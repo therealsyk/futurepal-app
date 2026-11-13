@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatMoney, formatDate, getCountry, countryName, COUNTRIES } from './locale';
+import { formatMoney, formatDate, getCountry, countryName, COUNTRIES, startOfWeek, formatDateByConvention } from './locale';
 
 const SUPPORTED_LANGUAGES = ['pt-PT', 'pt-BR', 'en', 'es', 'fr'];
 
@@ -55,6 +55,32 @@ describe('country helpers', () => {
     for (const c of COUNTRIES) {
       expect(SUPPORTED_LANGUAGES).toContain(c.language);
     }
+  });
+
+  it('startOfWeek returns Monday when firstDayOfWeek is 1', () => {
+    // Wed 2026-03-04 -> week starting Mon 2026-03-02
+    const start = startOfWeek('2026-03-04', 1);
+    expect(start.toISOString().slice(0, 10)).toBe('2026-03-02');
+    expect(start.getDay()).toBe(1);
+  });
+
+  it('startOfWeek returns Sunday when firstDayOfWeek is 0', () => {
+    // Wed 2026-03-04 -> week starting Sun 2026-03-01
+    const start = startOfWeek('2026-03-04', 0);
+    expect(start.toISOString().slice(0, 10)).toBe('2026-03-01');
+    expect(start.getDay()).toBe(0);
+  });
+
+  it('startOfWeek of a Monday with firstDayOfWeek 1 is itself', () => {
+    const start = startOfWeek('2026-03-02', 1);
+    expect(start.toISOString().slice(0, 10)).toBe('2026-03-02');
+  });
+
+  it('formatDateByConvention respects DMY/MDY/YMD', () => {
+    const d = new Date(2026, 2, 5); // 5 March 2026
+    expect(formatDateByConvention(d, 'DMY')).toBe('05/03/2026');
+    expect(formatDateByConvention(d, 'MDY')).toBe('03/05/2026');
+    expect(formatDateByConvention(d, 'YMD')).toBe('2026-03-05');
   });
 
   it('firstDayOfWeek uses 0=Sunday..6=Saturday and matches expectations', () => {

@@ -68,7 +68,20 @@
     "currency": "Main currency",
     "finish": "Finish",
     "skip": "Skip",
-    "defaultCategories": "Starting categories"
+    "firstDay": "First day of the week",
+    "firstDaySunday": "Sunday",
+    "firstDayMonday": "Monday",
+    "dateFormat": "Date format",
+    "categories": "Starting categories",
+    "catSalary": "Salary",
+    "catFood": "Food",
+    "catTransport": "Transport",
+    "catHome": "Home",
+    "catFun": "Leisure",
+    "account": "Account",
+    "accountNone": "Continue without an account",
+    "accountCreate": "Create account",
+    "accountLogin": "Sign in"
   },
   "demo": {
     "title": "Component demo",

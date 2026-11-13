@@ -44,25 +44,25 @@ export function Settings() {
     <div>
       <PageTitle titleKey="settings.title" />
 
-      <label>{t('settings.language')}</label>
-      <select value={settings.language} onChange={(e) => changeLanguage(e.target.value)}>
+      <label htmlFor="settings-language">{t('settings.language')}</label>
+      <select id="settings-language" value={settings.language} onChange={(e) => changeLanguage(e.target.value)}>
         {LANGUAGES.map((l) => (
           <option key={l.code} value={l.code}>{l.label}</option>
         ))}
       </select>
 
-      <label>{t('settings.country')}</label>
-      <select value={settings.country} onChange={(e) => changeCountry(e.target.value)}>
+      <label htmlFor="settings-country">{t('settings.country')}</label>
+      <select id="settings-country" value={settings.country} onChange={(e) => changeCountry(e.target.value)}>
         {COUNTRIES.map((c) => (
           <option key={c.code} value={c.code}>{countryName(c.code, settings.language)}</option>
         ))}
       </select>
 
-      <label>{t('settings.currency')}</label>
-      <input type="text" value={settings.currency} onChange={(e) => changeCurrency(e.target.value)} />
+      <label htmlFor="settings-currency">{t('settings.currency')}</label>
+      <input id="settings-currency" type="text" value={settings.currency} onChange={(e) => changeCurrency(e.target.value)} />
 
-      <label>{t('settings.theme')}</label>
-      <select value={settings.theme} onChange={(e) => changeTheme(e.target.value as 'dark' | 'light')}>
+      <label htmlFor="settings-theme">{t('settings.theme')}</label>
+      <select id="settings-theme" value={settings.theme} onChange={(e) => changeTheme(e.target.value as 'dark' | 'light')}>
         <option value="dark">{t('settings.themeDark')}</option>
         <option value="light">{t('settings.themeLight')}</option>
       </select>

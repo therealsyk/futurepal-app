@@ -5,7 +5,7 @@ export interface CountryInfo {
   currency: string; // ISO 4217
   language: string; // i18n key used by the app (pt-PT, pt-BR, en, es, fr)
   firstDayOfWeek: number; // 0 = Sunday .. 6 = Saturday (matches JS Date.getDay())
-  dateFormat: string; // 'DMY' | 'MDY' | 'YMD'
+  dateFormat: 'DMY' | 'MDY' | 'YMD';
 }
 
 // firstDayOfWeek convention: 0 = Sunday .. 6 = Saturday (JS Date.getDay()).
@@ -46,6 +46,29 @@ export function formatMoney(cents: number, currency: string, locale: string): st
 export function formatDate(date: Date | string, locale: string): string {
   const d = typeof date === 'string' ? new Date(date + (date.length === 10 ? 'T00:00:00' : '')) : date;
   return new Intl.DateTimeFormat(locale).format(d);
+}
+
+// Returns the ISO date of the first day of the week containing `date`,
+// using firstDayOfWeek (0 = Sunday .. 6 = Saturday). Pure logic for calendar UI.
+export function startOfWeek(date: Date | string, firstDayOfWeek: number): Date {
+  const d = typeof date === 'string' ? new Date(date + (date.length === 10 ? 'T00:00:00' : '')) : new Date(date);
+  const day = d.getDay();
+  const offset = (day - firstDayOfWeek + 7) % 7;
+  const start = new Date(d);
+  start.setDate(d.getDate() - offset);
+  start.setHours(0, 0, 0, 0);
+  return start;
+}
+
+// Formats a date according to the country's dateFormat convention (DMY/MDY/YMD).
+export function formatDateByConvention(date: Date | string, format: 'DMY' | 'MDY' | 'YMD'): string {
+  const d = typeof date === 'string' ? new Date(date + (date.length === 10 ? 'T00:00:00' : '')) : date;
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = String(d.getFullYear());
+  if (format === 'YMD') return `${yyyy}-${mm}-${dd}`;
+  if (format === 'MDY') return `${mm}/${dd}/${yyyy}`;
+  return `${dd}/${mm}/${yyyy}`;
 }
 
 export function countryName(code: string, locale: string): string {

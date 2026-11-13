@@ -7,6 +7,9 @@ export interface AppSettings {
   country: string; // ISO alpha-2, empty until chosen in the wizard
   currency: string; // ISO 4217 main currency
   theme: 'dark' | 'light';
+  firstDayOfWeek: number; // 0 = Sunday .. 6 = Saturday (JS Date.getDay())
+  dateFormat: 'DMY' | 'MDY' | 'YMD';
+  account: 'none' | 'created' | 'signedin'; // auth choice from the wizard
 }
 
 const STORAGE_KEY = 'wallet.settings';
@@ -16,6 +19,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   country: '',
   currency: 'EUR',
   theme: 'dark',
+  firstDayOfWeek: 1,
+  dateFormat: 'DMY',
+  account: 'none',
 };
 
 export function loadSettings(): AppSettings {
@@ -49,7 +55,13 @@ export function applyLanguage(language: string): void {
 export function applyCountry(settings: AppSettings, countryCode: string): AppSettings {
   const info = getCountry(countryCode);
   if (!info) return settings;
-  const next: AppSettings = { ...settings, country: info.code, currency: info.currency };
+  const next: AppSettings = {
+    ...settings,
+    country: info.code,
+    currency: info.currency,
+    firstDayOfWeek: info.firstDayOfWeek,
+    dateFormat: info.dateFormat,
+  };
   // Only auto-switch language if the user has not explicitly picked one yet (wizard flow).
   if (!settings.language || settings.language === DEFAULT_SETTINGS.language) {
     const supported = ['pt-PT', 'pt-BR', 'en', 'es', 'fr'];

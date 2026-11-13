@@ -68,7 +68,20 @@
     "currency": "Moneda principal",
     "finish": "Finalizar",
     "skip": "Saltar",
-    "defaultCategories": "Categorías iniciales"
+    "firstDay": "Primer día de la semana",
+    "firstDaySunday": "Domingo",
+    "firstDayMonday": "Lunes",
+    "dateFormat": "Formato de fecha",
+    "categories": "Categorías iniciales",
+    "catSalary": "Salario",
+    "catFood": "Alimentación",
+    "catTransport": "Transporte",
+    "catHome": "Casa",
+    "catFun": "Ocio",
+    "account": "Cuenta",
+    "accountNone": "Continuar sin cuenta",
+    "accountCreate": "Crear cuenta",
+    "accountLogin": "Iniciar sesión"
   },
   "demo": {
     "title": "Demostración de componentes",
