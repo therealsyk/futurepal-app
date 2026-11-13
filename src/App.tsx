@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import Sidebar from './ui/Sidebar';
 import { Panel, Calendar, Transactions, Budgets, Goals, Salaries, Settings } from './pages';
+import { DemoPage } from './ui/components';
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
           <Route path="/metas" element={<Goals />} />
           <Route path="/salarios" element={<Salaries />} />
           <Route path="/definicoes" element={<Settings />} />
+          <Route path="/demo" element={<DemoPage />} />
         </Routes>
       </main>
     </div>
