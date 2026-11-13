@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { formatMoney, formatDate, getCountry, countryName } from './locale';
+import { formatMoney, formatDate, getCountry, countryName, COUNTRIES } from './locale';
+
+const SUPPORTED_LANGUAGES = ['pt-PT', 'pt-BR', 'en', 'es', 'fr'];
 
 describe('formatMoney', () => {
   it('EUR in pt-PT (Node ICU may use narrow spaces as separators)', () => {
@@ -47,5 +49,27 @@ describe('country helpers', () => {
   it('returns translated country names', () => {
     expect(countryName('PT', 'en')).toBe('Portugal');
     expect(countryName('US', 'pt-PT')).toContain('Estados Unidos');
+  });
+
+  it('every country language is one the app supports', () => {
+    for (const c of COUNTRIES) {
+      expect(SUPPORTED_LANGUAGES).toContain(c.language);
+    }
+  });
+
+  it('firstDayOfWeek uses 0=Sunday..6=Saturday and matches expectations', () => {
+    // Convention: 0 = Sunday .. 6 = Saturday (JS Date.getDay()).
+    const mondayFirst = ['PT', 'GB', 'IE', 'ES', 'FR', 'DE', 'AU', 'JP', 'CH'];
+    const sundayFirst = ['BR', 'US', 'CA', 'MX', 'AR'];
+    for (const code of mondayFirst) {
+      expect(getCountry(code)?.firstDayOfWeek).toBe(1); // Monday
+    }
+    for (const code of sundayFirst) {
+      expect(getCountry(code)?.firstDayOfWeek).toBe(0); // Sunday
+    }
+    for (const c of COUNTRIES) {
+      expect(c.firstDayOfWeek).toBeGreaterThanOrEqual(0);
+      expect(c.firstDayOfWeek).toBeLessThanOrEqual(6);
+    }
   });
 });

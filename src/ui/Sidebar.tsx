@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { t } from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 const items = [
   { path: '/', key: 'nav.panel' },
@@ -12,6 +12,7 @@ const items = [
 ];
 
 export default function Sidebar() {
+  const { t } = useTranslation();
   return (
     <nav className="sidebar" aria-label={t('common.appName')}>
       <div className="sidebar-brand">{t('common.appName')}</div>

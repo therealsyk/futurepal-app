@@ -59,6 +59,17 @@
     "themeDark": "Sombre",
     "themeLight": "Clair"
   },
+  "setup": {
+    "welcome": "Bienvenue dans Wallet",
+    "intro": "Configurons votre langue, pays et monnaie.",
+    "language": "Langue",
+    "country": "Pays",
+    "chooseCountry": "Choisissez un pays",
+    "currency": "Monnaie principale",
+    "finish": "Terminer",
+    "skip": "Passer",
+    "defaultCategories": "Catégories initiales"
+  },
   "demo": {
     "title": "Démonstration des composants",
     "exampleAmount": "$ 1 234,56",

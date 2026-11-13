@@ -59,6 +59,17 @@
     "themeDark": "Dark",
     "themeLight": "Light"
   },
+  "setup": {
+    "welcome": "Welcome to Wallet",
+    "intro": "Let's set your language, country and currency.",
+    "language": "Language",
+    "country": "Country",
+    "chooseCountry": "Choose a country",
+    "currency": "Main currency",
+    "finish": "Finish",
+    "skip": "Skip",
+    "defaultCategories": "Starting categories"
+  },
   "demo": {
     "title": "Component demo",
     "exampleAmount": "$ 1,234.56",

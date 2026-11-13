@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { t } from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 export function Card({ title, children }: { title?: string; children: ReactNode }) {
   return (
@@ -49,6 +49,7 @@ export function Input({ label, value, onChange, type = 'text', placeholder }: { 
 }
 
 export function Modal({ title, open, onClose, children }: { title: string; open: boolean; onClose: () => void; children: ReactNode }) {
+  const { t } = useTranslation();
   if (!open) return null;
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -85,6 +86,7 @@ export function TabBar({ tabs, active, onSelect }: { tabs: string[]; active: str
 export interface DonutSlice { label: string; value: number; color: string }
 
 export function DonutChart({ slices }: { slices: DonutSlice[] }) {
+  const { t } = useTranslation();
   const total = slices.reduce((s, x) => s + Math.max(0, x.value), 0);
   if (total <= 0) return <p className="stat-label">{t('common.noData')}</p>;
 
@@ -132,6 +134,7 @@ export function DonutChart({ slices }: { slices: DonutSlice[] }) {
 }
 
 export function DemoPage() {
+  const { t } = useTranslation();
   const [modalOpen, setModalOpen] = useState(false);
   const [tab, setTab] = useState(t('demo.tabMonth'));
   return (

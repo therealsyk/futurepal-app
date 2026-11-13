@@ -59,6 +59,17 @@
     "themeDark": "Escuro",
     "themeLight": "Claro"
   },
+  "setup": {
+    "welcome": "Bem-vindo ao Wallet",
+    "intro": "Vamos configurar seu idioma, país e moeda.",
+    "language": "Idioma",
+    "country": "País",
+    "chooseCountry": "Escolha o país",
+    "currency": "Moeda principal",
+    "finish": "Concluir",
+    "skip": "Pular",
+    "defaultCategories": "Categorias iniciais"
+  },
   "demo": {
     "title": "Demonstração de componentes",
     "exampleAmount": "R$ 1.234,56",
