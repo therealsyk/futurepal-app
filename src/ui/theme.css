@@ -1,0 +1,50 @@
+/* Design system base — passo 2 vai completar theme.css e componentes. */
+:root {
+  --bg: #0f1420;
+  --card: #171e2e;
+  --accent: #2dd4bf;
+  --danger: #f87171;
+  --text: #e6ecf3;
+  --muted: #8a97a8;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.app-shell { display: flex; min-height: 100vh; }
+
+.sidebar {
+  width: 220px;
+  padding: 16px;
+  background: var(--card);
+  border-right: 1px solid #232c3d;
+}
+
+.sidebar-brand { font-size: 20px; font-weight: 700; margin-bottom: 16px; }
+
+.sidebar-link {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 12px;
+  color: var(--muted);
+  text-decoration: none;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.sidebar-link:hover { background: #1d2536; }
+.sidebar-link.active { background: var(--accent); color: #08111a; font-weight: 600; }
+
+.app-main { flex: 1; padding: 24px; }
+
+.page-title { font-size: 28px; margin: 0 0 12px; }
+
+@media (max-width: 760px) {
+  .app-shell { flex-direction: column; }
+  .sidebar { width: 100%; display: flex; flex-wrap: wrap; gap: 8px; }
+}
