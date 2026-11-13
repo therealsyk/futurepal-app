@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
+import { t } from 'i18next';
 
 export function Card({ title, children }: { title?: string; children: ReactNode }) {
   return (
@@ -55,7 +56,7 @@ export function Modal({ title, open, onClose, children }: { title: string; open:
         <h2 className="modal-title">{title}</h2>
         {children}
         <div style={{ marginTop: 12 }}>
-          <Button label="Fechar" onClick={onClose} />
+          <Button label={t('common.close')} onClick={onClose} />
         </div>
       </div>
     </div>
@@ -85,7 +86,7 @@ export interface DonutSlice { label: string; value: number; color: string }
 
 export function DonutChart({ slices }: { slices: DonutSlice[] }) {
   const total = slices.reduce((s, x) => s + Math.max(0, x.value), 0);
-  if (total <= 0) return <p className="stat-label">Sem dados</p>;
+  if (total <= 0) return <p className="stat-label">{t('common.noData')}</p>;
 
   const r = 60;
   const cx = 70;
@@ -132,37 +133,37 @@ export function DonutChart({ slices }: { slices: DonutSlice[] }) {
 
 export function DemoPage() {
   const [modalOpen, setModalOpen] = useState(false);
-  const [tab, setTab] = useState('Mês');
+  const [tab, setTab] = useState(t('demo.tabMonth'));
   return (
     <div>
-      <Card title="StatTile">
-        <StatTile label="Gasto total" value="€ 1.234,56" tone="negative" />
+      <Card title={t('demo.statTile')}>
+        <StatTile label={t('demo.totalSpent')} value={t('demo.exampleAmount')} tone="negative" />
       </Card>
-      <Card title="ProgressBar">
+      <Card title={t('demo.progressBar')}>
         <ProgressBar value={70} max={100} />
         <div style={{ height: 8 }} />
         <ProgressBar value={120} max={100} />
       </Card>
-      <Card title="Buttons + Input">
-        <Button label="Primário" variant="primary" />
-        <Button label="Perigo" variant="danger" />
-        <Input label="Descrição" value="" onChange={() => {}} placeholder="Ex.: Via Verde" />
+      <Card title={t('demo.buttonsInput')}>
+        <Button label={t('demo.primary')} variant="primary" />
+        <Button label={t('demo.danger')} variant="danger" />
+        <Input label={t('demo.description')} value="" onChange={() => {}} placeholder={t('demo.placeholderExample')} />
       </Card>
-      <Card title="TabBar">
-        <TabBar tabs={['Mês', 'Ano', '30 dias', '60 dias', '90 dias']} active={tab} onSelect={setTab} />
+      <Card title={t('demo.tabBar')}>
+        <TabBar tabs={[t('demo.tabMonth'), t('demo.tabYear'), t('demo.tab30'), t('demo.tab60'), t('demo.tab90')]} active={tab} onSelect={setTab} />
       </Card>
-      <Card title="DonutChart">
+      <Card title={t('demo.donutChart')}>
         <DonutChart
           slices={[
-            { label: 'Casa', value: 400, color: '#2dd4bf' },
-            { label: 'Alimentação', value: 300, color: '#f87171' },
-            { label: 'Transporte', value: 200, color: '#fbbf24' },
+            { label: t('demo.catHome'), value: 400, color: '#2dd4bf' },
+            { label: t('demo.catFood'), value: 300, color: '#f87171' },
+            { label: t('demo.catTransport'), value: 200, color: '#fbbf24' },
           ]}
         />
       </Card>
-      <Button label="Abrir Modal" onClick={() => setModalOpen(true)} />
-      <Modal title="Exemplo de modal" open={modalOpen} onClose={() => setModalOpen(false)}>
-        <p>Conteúdo do modal.</p>
+      <Button label={t('demo.openModal')} onClick={() => setModalOpen(true)} />
+      <Modal title={t('demo.modalTitle')} open={modalOpen} onClose={() => setModalOpen(false)}>
+        <p>{t('demo.modalBody')}</p>
       </Modal>
     </div>
   );

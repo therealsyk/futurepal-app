@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import { t } from 'i18next';
 
 const items = [
   { path: '/', key: 'nav.panel' },
@@ -12,15 +13,15 @@ const items = [
 
 export default function Sidebar() {
   return (
-    <nav className="sidebar" aria-label="Menu">
-      <div className="sidebar-brand">Wallet</div>
+    <nav className="sidebar" aria-label={t('common.appName')}>
+      <div className="sidebar-brand">{t('common.appName')}</div>
       {items.map((it) => (
         <NavLink
           key={it.path}
           to={it.path}
           className={(props) => `sidebar-link${props.isActive ? ' active' : ''}`}
         >
-          {it.key}
+          {t(it.key)}
         </NavLink>
       ))}
     </nav>
