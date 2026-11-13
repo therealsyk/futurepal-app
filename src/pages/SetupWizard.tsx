@@ -2,6 +2,32 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { COUNTRIES, countryName } from '../core/locale';
 import { loadSettings, saveSettings, type AppSettings } from '../core/settings';
+import { db } from '../db/app-db';
+import { seedDefaults } from '../db/database';
+
+// Map the wizard's category keys to concrete DB categories (name + income flag).
+const CATEGORY_MAP: Record<string, { name: string; isIncome: boolean }> = {
+  'setup.catSalary': { name: 'Salário', isIncome: true },
+  'setup.catFood': { name: 'Alimentação', isIncome: false },
+  'setup.catTransport': { name: 'Transporte', isIncome: false },
+  'setup.catHome': { name: 'Casa', isIncome: false },
+  'setup.catFun': { name: 'Lazer', isIncome: false },
+};
+
+async function persistCategories(keys: string[]) {
+  await seedDefaults(db);
+  await db.categories.clear();
+  const rows = keys
+    .map((k) => CATEGORY_MAP[k])
+    .filter(Boolean)
+    .map((c) => ({ name: c.name, isIncome: c.isIncome }));
+  if (rows.length === 0) {
+    // Keep at least the default set so the app always has categories.
+    await seedDefaults(db);
+  } else {
+    await db.categories.bulkAdd(rows);
+  }
+}
 
 const LANGUAGES = [
   { code: 'pt-PT', label: 'Português (Portugal)' },
@@ -58,14 +84,14 @@ export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings
     const finalCountry = country || 'PT';
     const next = buildSettings(finalCountry);
     saveSettings(next);
-    onDone(next);
+    persistCategories(categories).then(() => onDone(next));
   }
 
   function skip() {
     // Persist a default country so the wizard does not reappear.
     const next = buildSettings('PT');
     saveSettings(next);
-    onDone(next);
+    persistCategories(DEFAULT_CATEGORY_KEYS).then(() => onDone(next));
   }
 
   return (
