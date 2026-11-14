@@ -110,6 +110,24 @@
     "accountCreate": "Criar conta",
     "accountLogin": "Entrar"
   },
+  "calendar": {
+    "title": "Calendário",
+    "yearTotal": "Total do ano",
+    "dayPanel": "Despesas do dia",
+    "noExpenses": "Sem despesas neste dia.",
+    "monthNames": ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"]
+  },
+  "salaries": {
+    "title": "Salários",
+    "yearLabel": "Ano",
+    "salaryFor": "Salário de",
+    "extras": "Rendimentos extras",
+    "addExtra": "Adicionar extra",
+    "annualSalaries": "Salários do ano",
+    "annualExpenses": "Despesas do ano",
+    "annualSavings": "Poupança do ano",
+    "savingsPercent": "% poupança"
+  },
   "demo": {
     "title": "Demonstração de componentes",
     "exampleAmount": "€ 1.234,56",

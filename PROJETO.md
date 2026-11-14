@@ -21,10 +21,16 @@ src/ui/theme.css (design system), src/ui/Sidebar.tsx, src/ui/components.tsx, src
 * [x] Fase 1: afinar design system (theme.css + componentes) ao look do vídeo; verificar build + /demo no browser
 * [x] Fase 2: Sidebar desktop com destaque de item ativo e ícones lineares; ver app a correr
 * [x] Fase 3: Panel overview estilo vídeo (Income/Expenses/Balance + categorias 'X left') com dados reais Dexie; testes finance.ts + browser
+* [~] Fase 4: Calendário (grid por dia com gasto + painel lateral) e Salários (grelha ano×mes + extras), SPEC §6.4/§6.5; testes core + browser
+* [ ] Fase 5: Orçamentos (barra de progresso), Metas, Recorrentes e Grupos, SPEC §6.7; testes core + browser
 
 ## Estado atual
 
-Todas as fases concluidas (3/3).
+Concluidas (3/5): Fase 1, Fase 2, Fase 3.
+
+Em curso: Fase 4: Calendário (grid por dia com gasto + painel lateral) e Salários (grelha ano×mes + extras), SPEC §6.4/§6.5; testes core + browser.
+
+Proxima: Fase 5: Orçamentos (barra de progresso), Metas, Recorrentes e Grupos, SPEC §6.7; testes core + browser.
 
 ## Historico
 

@@ -19,6 +19,11 @@ import {
   DEFAULT_CATEGORY_DEFS,
   salaryInRange,
   periodSummary,
+  dailyTotals,
+  transactionsOnDay,
+  salaryGrid,
+  salaryYearSummary,
+  setSalary,
 } from './finance';
 
 let db: WalletDB;
@@ -292,6 +297,63 @@ describe('filterTransactions (SPEC §6.2)', () => {
     const s = await periodSummary(db, '2026-01-01', '2026-02-28');
     expect(s.missingSalaryMonths).toContain(2);
     expect(s.missingSalaryMonths).not.toContain(1);
+  });
+
+  it('dailyTotals sums expenses per day of a year', async () => {
+    const cat = await makeCategory('Casa');
+    await addTransaction(db, { date: '2026-03-01', type: 'expense', categoryId: cat.id, description: 'a', amountCents: 1000, currency: 'EUR' });
+    await addTransaction(db, { date: '2026-03-01', type: 'expense', categoryId: cat.id, description: 'b', amountCents: 500, currency: 'EUR' });
+    await addTransaction(db, { date: '2026-03-02', type: 'expense', categoryId: cat.id, description: 'c', amountCents: 700, currency: 'EUR' });
+    const totals = await dailyTotals(db, 2026);
+    expect(totals['2026-03-01']).toBe(1500);
+    expect(totals['2026-03-02']).toBe(700);
+    expect(totals['2026-03-03']).toBeUndefined();
+  });
+
+  it('dailyTotals ignores soft-deleted rows', async () => {
+    const cat = await makeCategory('Casa');
+    const tx = await addTransaction(db, { date: '2026-04-10', type: 'expense', categoryId: cat.id, description: 'x', amountCents: 3000, currency: 'EUR' });
+    await softDelete(db, 'transactions', tx.id);
+    const totals = await dailyTotals(db, 2026);
+    expect(totals['2026-04-10']).toBeUndefined();
+  });
+
+  it('transactionsOnDay returns all transactions for a day', async () => {
+    const cat = await makeCategory('Casa');
+    await addTransaction(db, { date: '2026-05-05', type: 'expense', categoryId: cat.id, description: 'x', amountCents: 100, currency: 'EUR' });
+    await addTransaction(db, { date: '2026-05-05', type: 'income', categoryId: cat.id, description: 'y', amountCents: 200, currency: 'EUR' });
+    const list = await transactionsOnDay(db, '2026-05-05');
+    expect(list.length).toBe(2);
+  });
+
+  it('salaryGrid returns 12 months with amounts', async () => {
+    await setSalary(db, 2026, 1, 100000);
+    await setSalary(db, 2026, 2, 95000);
+    const grid = await salaryGrid(db, 2026);
+    expect(grid.length).toBe(12);
+    expect(grid[0].amountCents).toBe(100000);
+    expect(grid[1].amountCents).toBe(95000);
+    expect(grid[2].amountCents).toBe(0);
+  });
+
+  it('setSalary updates an existing month instead of adding a duplicate', async () => {
+    await setSalary(db, 2026, 1, 100000);
+    await setSalary(db, 2026, 1, 120000);
+    const grid = await salaryGrid(db, 2026);
+    expect(grid[0].amountCents).toBe(120000);
+    const count = (await db.salaries.toArray()).filter((s) => s.year === 2026 && s.month === 1).length;
+    expect(count).toBe(1);
+  });
+
+  it('salaryYearSummary computes savings and % savings', async () => {
+    const cat = await makeCategory('Casa');
+    await setSalary(db, 2026, 1, 100000);
+    await addTransaction(db, { date: '2026-01-15', type: 'expense', categoryId: cat.id, description: 'x', amountCents: 40000, currency: 'EUR' });
+    const s = await salaryYearSummary(db, 2026);
+    expect(s.salaryCents).toBe(100000);
+    expect(s.expenseCents).toBe(40000);
+    expect(s.savingsCents).toBe(60000);
+    expect(s.pctSavings).toBeCloseTo(0.6, 6);
   });
 });
 

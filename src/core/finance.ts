@@ -247,3 +247,48 @@ export async function budgetUsage(db: WalletDB, categoryId: string, year: number
   const spentCents = txs.reduce((s, t) => s + t.amountCents, 0);
   return { limitCents, spentCents, remainingCents: limitCents - spentCents, overBudget: spentCents > limitCents };
 }
+
+// SPEC §6.5 Calendar: total expense per day of a year (YYYY-MM-DD -> cents).
+export async function dailyTotals(db: WalletDB, year: number): Promise<Record<string, number>> {
+  const txs = await db.transactions.filter((t) => t.deletedAt === null && t.type === 'expense' && t.date.startsWith(String(year))).toArray();
+  const map: Record<string, number> = {};
+  for (const t of txs) map[t.date] = (map[t.date] || 0) + t.amountCents;
+  return map;
+}
+
+// SPEC §6.5 Calendar: transactions (expenses+income) on a specific day.
+export async function transactionsOnDay(db: WalletDB, date: string): Promise<Transaction[]> {
+  return db.transactions.filter((t) => t.deletedAt === null && t.date === date).toArray();
+}
+
+// SPEC §6.4 Salaries: editable year x month grid (12 months) plus dated extras.
+export async function salaryGrid(db: WalletDB, year: number): Promise<Array<{ month: number; amountCents: number }>> {
+  const salaries = (await db.salaries.toArray()).filter((s) => s.deletedAt === null && s.year === year);
+  const grid: Array<{ month: number; amountCents: number }> = [];
+  for (let m = 1; m <= 12; m++) {
+    const found = salaries.filter((s) => s.month === m).reduce((sum, s) => sum + s.amountCents, 0);
+    grid.push({ month: m, amountCents: found });
+  }
+  return grid;
+}
+
+// SPEC §6.4 Salaries: per-year totals (salaries, expenses, savings, % savings).
+export async function salaryYearSummary(db: WalletDB, year: number): Promise<{ salaryCents: number; expenseCents: number; savingsCents: number; pctSavings: number }> {
+  const grid = await salaryGrid(db, year);
+  const salaryCents = grid.reduce((s, g) => s + g.amountCents, 0);
+  const txs = await db.transactions.filter((t) => t.deletedAt === null && t.date.startsWith(String(year))).toArray();
+  const expenseCents = txs.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amountCents, 0);
+  const savingsCents = salaryCents - expenseCents;
+  return { salaryCents, expenseCents, savingsCents, pctSavings: salaryCents > 0 ? savingsCents / salaryCents : 0 };
+}
+
+export async function setSalary(db: WalletDB, year: number, month: number, amountCents: number): Promise<void> {
+  assertCents(amountCents);
+  const salaries = (await db.salaries.toArray()).filter((s) => s.deletedAt === null && s.year === year && s.month === month);
+  if (salaries.length > 0) {
+    await db.salaries.update(salaries[0].id, { amountCents, updatedAt: new Date().toISOString() });
+  } else {
+    const now = new Date().toISOString();
+    await db.salaries.add({ id: crypto.randomUUID(), year, month, amountCents, createdAt: now, updatedAt: now, deletedAt: null });
+  }
+}
