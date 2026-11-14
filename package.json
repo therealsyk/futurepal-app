@@ -2,10 +2,11 @@
   "name": "wallet",
   "private": true,
   "version": "0.1.0",
-  "type": "module",
+  "main": "electron/main.js",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "electron:build": "tsc && vite build && electron-builder --win portable",
     "preview": "vite preview",
     "test": "vitest run"
   },
@@ -25,6 +26,8 @@
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "electron": "^45.3.2",
+    "electron-builder": "^26.18.0",
     "fake-indexeddb": "^6.2.8",
     "playwright": "^1.65.0",
     "typescript": "~7.0.2",

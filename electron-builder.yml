@@ -1,0 +1,11 @@
+appId: com.rafael.wallet
+productName: Wallet
+directories:
+  output: release
+files:
+  - dist/**
+  - electron/**
+  - package.json
+win:
+  target: portable
+  icon: dist/favicon.ico
