@@ -69,7 +69,10 @@
     "dateFormat": "Formato de fecha",
     "theme": "Tema",
     "themeDark": "Oscuro",
-    "themeLight": "Claro"
+    "themeLight": "Claro",
+    "syncReady": "Sincronización disponible. Haz clic para sincronizar tus datos.",
+    "syncLocalOnly": "Modo local: configura Supabase para sincronizar entre dispositivos.",
+    "syncNow": "Sincronizar ahora"
   },
   "setup": {
     "welcome": "Bienvenido a Wallet",

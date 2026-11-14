@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { PageTitle } from './index';
 import { COUNTRIES, countryName } from '../core/locale';
 import { loadSettings, saveSettings, setTheme, type AppSettings } from '../core/settings';
+import { hasSupabaseConfig } from '../auth/supabase';
 
 const LANGUAGES = [
   { code: 'pt-PT', label: 'Português (Portugal)' },
@@ -66,6 +67,11 @@ export function Settings() {
         <option value="dark">{t('settings.themeDark')}</option>
         <option value="light">{t('settings.themeLight')}</option>
       </select>
+
+      <div className="sync-status">
+        <p>{hasSupabaseConfig() ? t('settings.syncReady') : t('settings.syncLocalOnly')}</p>
+        <button data-testid="sync-btn" disabled={!hasSupabaseConfig()}>{t('settings.syncNow')}</button>
+      </div>
     </div>
   );
 }
