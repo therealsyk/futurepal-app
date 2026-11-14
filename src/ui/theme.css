@@ -2,11 +2,11 @@
 
 :root {
   /* Dark theme (default) */
-  --bg: #0b111c;
-  --bg-2: #0e1522;
-  --card: #141d2c;
-  --card-2: #1a2436;
-  --border: #243043;
+  --bg: #07080f;
+  --bg-2: #101322;
+  --card: rgba(21, 26, 42, 0.55);
+  --card-2: rgba(28, 34, 54, 0.6);
+  --border: rgba(120, 130, 170, 0.16);
   --text: #e8eff7;
   --muted: #8b98a9;
   --accent: #2dd4bf;
@@ -263,11 +263,63 @@ button.danger { background: var(--danger); color: #2b0b0b; border: none; padding
 .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: grid; place-items: center; z-index: 50; }
 .modal { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; max-width: 420px; width: 90%; box-shadow: var(--shadow); }
 
+/* ---- Dashboard (ALATURA-style glass cards) ---- */
+.dashboard { display: grid; gap: 14px; }
+.dash-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 14px; }
+.glass-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(10px);
+}
+.card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.icon-sq {
+  width: 34px; height: 34px; border-radius: 10px;
+  background: linear-gradient(135deg, rgba(96, 168, 240, 0.22), rgba(224, 90, 160, 0.22));
+  display: grid; place-items: center; font-size: 16px; color: var(--text);
+}
+.card-head h2 { font-size: 15px; font-weight: 700; letter-spacing: 0.3px; }
+.chart-legend { display: flex; gap: 14px; margin-bottom: 8px; font-size: 12px; color: var(--muted); }
+.chart-legend .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+
+.kpi-col { display: flex; flex-direction: column; gap: 14px; }
+.kpi-value { font-size: 30px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px; }
+.progress { height: 10px; border-radius: 6px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.progress span { display: block; height: 100%; border-radius: 6px; }
+.progress-blue span { background: linear-gradient(90deg, #2f7ff2, #35c4dc); }
+.progress-pink span { background: linear-gradient(90deg, #8b5cf6, #e05aa0); }
+.kpi-delta { font-size: 12px; color: var(--muted); margin-top: 8px; }
+.kpi-delta.pos { color: var(--positive); }
+.kpi-delta.neg { color: var(--danger); }
+
+.assistant { background: linear-gradient(135deg, #1a2b4d 0%, #6c3f9e 55%, #b23f7f 100%); border-color: rgba(178, 63, 127, 0.4); }
+.assistant p { color: #f3e7f6; font-size: 14px; line-height: 1.5; }
+
+.dash-bottom { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+.tx-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.tx-row { display: flex; align-items: center; gap: 12px; background: var(--card-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; }
+.avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #3a4768, #7c5fae); display: grid; place-items: center; font-size: 12px; color: #fff; }
+.tx-main { flex: 1; min-width: 0; }
+.tx-desc { font-weight: 600; font-size: 14px; }
+.tx-date { font-size: 12px; color: var(--muted); }
+.tx-amt { font-weight: 700; font-size: 14px; white-space: nowrap; }
+.amt-pos { color: var(--positive); }
+.amt-neg { color: var(--danger); }
+
+.donut-wrap { display: flex; align-items: center; gap: 16px; }
+.donut-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--muted); }
+.donut-legend .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+
 /* ---- Misc ---- */
 .muted { color: var(--muted); font-size: 13px; }
 .warning { color: var(--warn); font-size: 13px; margin-bottom: 12px; }
 .empty { color: var(--muted); font-style: italic; }
 
+@media (max-width: 900px) {
+  .dash-grid, .dash-bottom { grid-template-columns: 1fr; }
+}
 @media (max-width: 760px) {
   .app-shell { flex-direction: column; }
   .sidebar { width: 100%; display: flex; flex-wrap: wrap; gap: 8px; }

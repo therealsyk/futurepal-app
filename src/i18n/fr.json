@@ -41,7 +41,15 @@
     "category": "Catégorie",
     "monthly": "Dépenses par mois",
     "savingsPerMonth": "Épargne par mois",
-    "missingSalaryWarning": "Il manque le salaire d'un mois de la période."
+    "missingSalaryWarning": "Il manque le salaire d'un mois de la période.",
+    "incomeAnalysis": "Analyse des revenus",
+    "monthlySavings": "Épargne mensuelle",
+    "monthlyExpenses": "Dépenses mensuelles",
+    "aiAssistant": "Assistant IA",
+    "aiHint": "Comment puis-je économiser davantage ce mois-ci ?",
+    "recent": "Transactions récentes",
+    "seeAll": "Voir tout",
+    "budgetUsage": "Utilisation du budget"
   },
   "transactions": {
     "title": "Transactions",

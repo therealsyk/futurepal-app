@@ -41,7 +41,15 @@
     "category": "Categoría",
     "monthly": "Gastos por mes",
     "savingsPerMonth": "Ahorro por mes",
-    "missingSalaryWarning": "Falta el salario de algún mes del período."
+    "missingSalaryWarning": "Falta el salario de algún mes del período.",
+    "incomeAnalysis": "Análisis de ingresos",
+    "monthlySavings": "Ahorro mensual",
+    "monthlyExpenses": "Gastos mensuales",
+    "aiAssistant": "Asistente IA",
+    "aiHint": "¿Cómo puedo ahorrar más este mes?",
+    "recent": "Transacciones recientes",
+    "seeAll": "Ver todo",
+    "budgetUsage": "Uso del presupuesto"
   },
   "transactions": {
     "title": "Transacciones",

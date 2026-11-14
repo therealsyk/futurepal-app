@@ -41,7 +41,15 @@
     "category": "Category",
     "monthly": "Spending by month",
     "savingsPerMonth": "Savings per month",
-    "missingSalaryWarning": "A salary is missing for some month in the period."
+    "missingSalaryWarning": "A salary is missing for some month in the period.",
+    "incomeAnalysis": "Income Analysis",
+    "monthlySavings": "Monthly Savings",
+    "monthlyExpenses": "Monthly Expenses",
+    "aiAssistant": "AI Assistant",
+    "aiHint": "How can I save more this month?",
+    "recent": "Recent Transactions",
+    "seeAll": "See all",
+    "budgetUsage": "Budget Usage"
   },
   "transactions": {
     "title": "Transactions",

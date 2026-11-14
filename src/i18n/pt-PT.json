@@ -41,7 +41,15 @@
     "category": "Categoria",
     "monthly": "Gastos por mês",
     "savingsPerMonth": "Poupança por mês",
-    "missingSalaryWarning": "Falta o salário de algum mês do período."
+    "missingSalaryWarning": "Falta o salário de algum mês do período.",
+    "incomeAnalysis": "Análise de rendimentos",
+    "monthlySavings": "Poupança mensal",
+    "monthlyExpenses": "Gastos mensais",
+    "aiAssistant": "Assistente",
+    "aiHint": "Como posso poupar mais este mês?",
+    "recent": "Transações recentes",
+    "seeAll": "Ver tudo",
+    "budgetUsage": "Uso do orçamento"
   },
   "transactions": {
     "title": "Transações",

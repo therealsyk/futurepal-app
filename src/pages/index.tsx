@@ -25,7 +25,7 @@ function initials(name: string): string {
 }
 
 // SVG area/line chart of income vs net savings across 12 months (photo-style).
-function IncomeChart({ months, t }: { months: { income: number; expense: number }[]; t: string }) {
+function IncomeChart({ months, t, settings }: { months: { income: number; expense: number }[]; t: (k: string) => string; settings: AppSettings }) {
   const W = 640, H = 260, PAD = 34;
   const maxVal = Math.max(1, ...months.flatMap((m) => [m.income, m.income - m.expense]));
   const x = (i: number) => PAD + (i * (W - 2 * PAD)) / 11;
@@ -61,7 +61,7 @@ function IncomeChart({ months, t }: { months: { income: number; expense: number 
             {MONTH_NAMES[peakIdx]} {new Date().getFullYear()}
           </text>
           <text x={Math.min(W - PAD - 60, Math.max(PAD + 60, x(peakIdx)))} y={y(months[peakIdx].income) - 24} fontSize="15" fill="#fff" textAnchor="middle">
-            {formatMoney(months[peakIdx].income, t)}
+            {formatMoney(months[peakIdx].income, settings.currency, settings.language)}
           </text>
         </g>
       )}
@@ -71,7 +71,7 @@ function IncomeChart({ months, t }: { months: { income: number; expense: number 
           <stop offset="100%" stopColor="#e05aa0" />
         </linearGradient>
       </defs>
-      {months.map((m, i) => (
+      {months.map((_, i) => (
         <text key={i} x={x(i)} y={H - 10} fontSize="10" fill="rgba(255,255,255,0.35)" textAnchor="middle">{MONTH_NAMES[i]}</text>
       ))}
     </svg>
@@ -82,6 +82,7 @@ export function Panel() {
   const { t } = useTranslation();
   const [months, setMonths] = useState<{ income: number; expense: number }[]>([]);
   const [cats, setCats] = useState<CategoryTotal[]>([]);
+  const [catColors, setCatColors] = useState<Map<string, string>>(new Map());
   const [recent, setRecent] = useState<{ description: string; date: string; amountCents: number; type: 'expense' | 'income'; color: string }[]>([]);
   const settings: AppSettings = loadSettings();
 
@@ -89,13 +90,14 @@ export function Panel() {
     const year = new Date().getFullYear();
     Promise.all([
       monthlyTotals(db, year),
-      categoryTotals(db, year),
+      totalsByCategory(db, year, new Date().getMonth() + 1),
       db.transactions.filter((tr) => tr.deletedAt === null).toArray(),
       db.categories.toArray(),
     ]).then(([mt, catTotals, txs, categories]) => {
       setMonths(mt);
       setCats(catTotals);
       const colorOf = new Map(categories.filter((c) => c.deletedAt === null).map((c) => [c.id, c.color]));
+      setCatColors(colorOf);
       setRecent(
         txs.sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 5).map((tr) => ({
           description: tr.description,
@@ -113,7 +115,7 @@ export function Panel() {
   const savings = totalIncome - totalSpent;
   const savingsPct = totalIncome > 0 ? Math.max(0, Math.min(100, Math.round((savings / totalIncome) * 100))) : 0;
   const spentPct = totalIncome > 0 ? Math.max(0, Math.min(100, Math.round((totalSpent / totalIncome) * 100))) : 0;
-  const activeCats = cats.filter((c) => c.totalCents > 0);
+  const activeCats = cats.filter((c) => c.totalCents > 0).map((c) => ({ ...c, color: catColors.get(c.categoryId) ?? '#9CA3AF' }));
 
   return (
     <div className="dashboard">
@@ -128,7 +130,7 @@ export function Panel() {
             <span className="dot" style={{ background: '#4f9dff' }} /> {t('panel.income')}
             <span className="dot" style={{ background: '#e05aa0' }} /> {t('panel.net')}
           </div>
-          <IncomeChart months={months} t={t} />
+          <IncomeChart months={months} t={t} settings={settings} />
         </article>
 
         {/* Right column: KPI cards */}
@@ -138,7 +140,7 @@ export function Panel() {
               <span className="icon-sq">💪</span>
               <h2>{t('panel.monthlySavings')}</h2>
             </header>
-            <div className="kpi-value">{formatMoney(savings, t)}</div>
+            <div className="kpi-value">{formatMoney(savings, settings.currency, settings.language)}</div>
             <div className="progress progress-blue"><span style={{ width: savingsPct + '%' }} /></div>
           </article>
 
@@ -147,7 +149,7 @@ export function Panel() {
               <span className="icon-sq">💙</span>
               <h2>{t('panel.monthlyExpenses')}</h2>
             </header>
-            <div className="kpi-value">{formatMoney(totalSpent, t)}</div>
+            <div className="kpi-value">{formatMoney(totalSpent, settings.currency, settings.language)}</div>
             <div className="progress progress-pink"><span style={{ width: spentPct + '%' }} /></div>
           </article>
 
@@ -179,7 +181,7 @@ export function Panel() {
                     <small>{new Date(tr.date).toLocaleDateString(localeForLanguage(settings.language))}</small>
                   </div>
                   <span className={tr.type === 'income' ? 'amt-pos' : 'amt-neg'}>
-                    {tr.type === 'income' ? '+' : '-'}{formatMoney(tr.amountCents, t)}
+                    {tr.type === 'income' ? '+' : '-'}{formatMoney(tr.amountCents, settings.currency, settings.language)}
                   </span>
                 </li>
               ))}
@@ -210,14 +212,14 @@ export function Panel() {
                       const large = frac > 0.5 ? 1 : 0;
                       const x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1);
                       const x2 = cx + r * Math.cos(a2), y2 = cy + r * Math.sin(a2);
-                      return <path key={c.id} d={`M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`} fill="none" stroke={c.color} strokeWidth="16" />;
+                      return <path key={c.categoryId} d={`M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`} fill="none" stroke={c.color} strokeWidth="16" />;
                     });
                   })()}
                 </svg>
               </div>
               <ul className="legend">
                 {activeCats.slice(0, 6).map((c) => (
-                  <li key={c.id}><span className="dot" style={{ background: c.color }} /> {c.name}</li>
+                  <li key={c.categoryId}><span className="dot" style={{ background: c.color }} /> {c.name}</li>
                 ))}
               </ul>
             </>
