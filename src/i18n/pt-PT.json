@@ -22,6 +22,7 @@
   "panel": {
     "title": "Painel",
     "income": "Rendimento",
+    "totalSpent": "Gasto total",
     "net": "Poupança",
     "periodMonth": "Mês",
     "periodYear": "Ano",
