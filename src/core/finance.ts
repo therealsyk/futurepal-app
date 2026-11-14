@@ -297,7 +297,7 @@ export async function setSalary(db: WalletDB, year: number, month: number, amoun
 export async function addGoal(db: WalletDB, name: string, targetCents: number, startDate: string, targetDate?: string | null): Promise<Goal> {
   assertCents(targetCents);
   if (targetCents <= 0) throw new Error('Meta precisa de um alvo maior que zero');
-  const row = stampNew({ name, targetCents, currentCents: 0, startDate, targetDate: targetDate ?? null });
+  const row = stampNew<Goal>({ name, targetCents, currentCents: 0, startDate, targetDate: targetDate ?? null });
   await db.goals.add(row);
   return row;
 }
@@ -331,7 +331,7 @@ function addMonths(dateISO: string, months: number): string {
 export async function addRecurring(db: WalletDB, input: Omit<Recurring, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>): Promise<Recurring> {
   assertCents(input.amountCents);
   if (input.amountCents <= 0) throw new Error('Valor recorrente deve ser maior que zero');
-  return db.recurrings.add(stampNew(input));
+  return db.recurrings.add(stampNew<Recurring>(input));
 }
 
 // Generate transactions for recurring entries up to `untilDate` (YYYY-MM-DD).

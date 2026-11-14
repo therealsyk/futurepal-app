@@ -29,7 +29,6 @@ import {
   listGoals,
   addRecurring,
   expandRecurring,
-  listRecurring,
   addGroup,
   listGroups,
   transactionsInGroup,
@@ -38,7 +37,7 @@ import {
 let db: WalletDB;
 
 async function makeCategory(name: string): Promise<Category> {
-  const cat = stampNew({ name, color: '#000', icon: '', order: 0 });
+  const cat = stampNew<Category>({ name, color: '#000', icon: '', order: 0 });
   await db.categories.add(cat);
   return cat;
 }
