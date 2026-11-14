@@ -6,7 +6,7 @@ export interface AppSettings {
   language: string; // pt-PT | pt-BR | en | es | fr
   country: string; // ISO alpha-2, empty until chosen in the wizard
   currency: string; // ISO 4217 main currency
-  theme: 'dark' | 'light';
+  theme: 'dark' | 'light' | 'gray';
   firstDayOfWeek: number; // 0 = Sunday .. 6 = Saturday (JS Date.getDay())
   dateFormat: 'DMY' | 'MDY' | 'YMD';
   account: 'none' | 'created' | 'signedin'; // auth choice from the wizard
@@ -70,7 +70,7 @@ export function applyCountry(settings: AppSettings, countryCode: string): AppSet
   return next;
 }
 
-export function setTheme(theme: 'dark' | 'light'): void {
+export function setTheme(theme: 'dark' | 'light' | 'gray'): void {
   try {
     document.documentElement.setAttribute('data-theme', theme);
   } catch {

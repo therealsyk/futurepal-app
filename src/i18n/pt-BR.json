@@ -81,6 +81,7 @@
     "theme": "Tema",
     "themeDark": "Escuro",
     "themeLight": "Claro",
+    "themeGray": "Cinza",
     "syncReady": "Sincronização disponível. Clique para sincronizar seus dados.",
     "syncLocalOnly": "Modo local: configure o Supabase para sincronizar entre dispositivos.",
     "syncNow": "Sincronizar agora",

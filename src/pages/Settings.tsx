@@ -125,7 +125,7 @@ export function Settings() {
     update({ ...settings, currency: code });
   }
 
-  function changeTheme(theme: 'dark' | 'light') {
+  function changeTheme(theme: 'dark' | 'light' | 'gray') {
     update({ ...settings, theme });
     setTheme(theme);
   }
@@ -152,9 +152,10 @@ export function Settings() {
       <input id="settings-currency" type="text" value={settings.currency} onChange={(e) => changeCurrency(e.target.value)} />
 
       <label htmlFor="settings-theme">{t('settings.theme')}</label>
-      <select id="settings-theme" value={settings.theme} onChange={(e) => changeTheme(e.target.value as 'dark' | 'light')}>
+      <select id="settings-theme" value={settings.theme} onChange={(e) => changeTheme(e.target.value as 'dark' | 'light' | 'gray')}>
         <option value="dark">{t('settings.themeDark')}</option>
         <option value="light">{t('settings.themeLight')}</option>
+        <option value="gray">{t('settings.themeGray')}</option>
       </select>
 
       <div className="sync-status">

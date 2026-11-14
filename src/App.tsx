@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import Sidebar from './ui/Sidebar';
+import TopBar from './ui/TopBar';
 import { Panel, Calendar, Transactions, Budgets, Goals, Salaries } from './pages';
 import { Settings } from './pages/Settings';
 import { DemoPage } from './ui/components';
@@ -22,7 +22,7 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <Sidebar />
+      <TopBar />
       <main className="app-main">
         <Routes>
           <Route path="/" element={<Panel />} />
