@@ -75,7 +75,19 @@
     "syncNow": "Sync now",
     "syncSuccess": "Synced. Sent {pushed}, received {pulled}.",
     "syncError": "Sync failed: {error}",
-    "syncNoUser": "Sign in to sync."
+    "syncNoUser": "Sign in to sync.",
+    "backupTitle": "Backup",
+    "backupExport": "Export backup (JSON)",
+    "backupImport": "Import backup (JSON)",
+    "backupExported": "Backup exported.",
+    "backupImported": "Backup imported: {count} records.",
+    "backupError": "Backup error: {error}",
+    "excelTitle": "Import Excel",
+    "excelImport": "Choose Excel file (.xlsx)",
+    "excelPreview": "File read: {count} valid rows.",
+    "excelConfirm": "Confirm import",
+    "excelImported": "Imported {count} records from Excel.",
+    "excelError": "Import error: {error}"
   },
   "setup": {
     "welcome": "Welcome to Wallet",

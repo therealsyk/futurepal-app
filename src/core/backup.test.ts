@@ -3,7 +3,7 @@ import { describe, it, beforeEach, expect } from 'vitest';
 import { createDatabase, stampNew } from '../db/database';
 import type { WalletDB, Category } from '../db/database';
 import { addTransaction, ensureDefaultCategories } from './finance';
-import { exportBackup, importBackup, parseExcelBuffer, commitExcelRows } from './backup';
+import { exportBackup, importBackup, parseExcelBuffer, commitExcelRows, type BackupData } from './backup';
 
 let db: WalletDB;
 
@@ -72,6 +72,21 @@ describe('Excel import (SPEC §8)', () => {
     expect(rows[0]).toEqual({ date: '2026-01-15', description: 'Supermercado', amountCents: 4530, type: 'expense', category: 'Alimentação' });
     expect(rows[1].date).toBe('2026-02-03');
     expect(rows[2].amountCents).toBe(80000);
+  });
+
+  it('Settings UI round-trip: export -> JSON string -> parse -> import restores records', async () => {
+    // Mirrors exactly what Settings.tsx does: JSON.stringify(exportBackup) then JSON.parse before importBackup.
+    const cat = await makeCategory('Casa');
+    await addTransaction(db, { date: '2026-05-01', type: 'expense', categoryId: cat.id, description: 'Internet', amountCents: 3500, currency: 'EUR' });
+    const json = JSON.stringify(await exportBackup(db)); // Blob content in the UI
+    const parsed: BackupData = JSON.parse(json);
+    const db2 = createDatabase('backup-ui-' + Math.random().toString(36).slice(2));
+    await db2.categories.bulkAdd(await db.categories.toArray());
+    const count = await importBackup(db2, parsed);
+    expect(count).toBe(1);
+    const restored = await db2.transactions.toArray();
+    expect(restored[0].description).toBe('Internet');
+    expect(restored[0].amountCents).toBe(3500);
   });
 
   it('commitExcelRows creates categories and transactions with positive cents', async () => {

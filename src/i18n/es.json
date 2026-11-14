@@ -75,7 +75,19 @@
     "syncNow": "Sincronizar ahora",
     "syncSuccess": "Sincronizado. Enviados {pushed}, recibidos {pulled}.",
     "syncError": "Error de sincronización: {error}",
-    "syncNoUser": "Inicia sesión para sincronizar."
+    "syncNoUser": "Inicia sesión para sincronizar.",
+    "backupTitle": "Copia de seguridad",
+    "backupExport": "Exportar backup (JSON)",
+    "backupImport": "Importar backup (JSON)",
+    "backupExported": "Backup exportado.",
+    "backupImported": "Backup importado: {count} registros.",
+    "backupError": "Error de copia de seguridad: {error}",
+    "excelTitle": "Importar Excel",
+    "excelImport": "Elegir archivo Excel (.xlsx)",
+    "excelPreview": "Archivo leído: {count} filas válidas.",
+    "excelConfirm": "Confirmar importación",
+    "excelImported": "Importados {count} registros de Excel.",
+    "excelError": "Error de importación: {error}"
   },
   "setup": {
     "welcome": "Bienvenido a Wallet",

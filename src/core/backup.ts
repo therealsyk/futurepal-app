@@ -1,6 +1,6 @@
 import type { WalletDB } from '../db/database';
 import type { Transaction, Salary } from '../db/database';
-import XLSX from 'xlsx';
+import * as XLSX from 'xlsx';
 
 // SPEC §6.10: export/import JSON backup. Export all active records (no soft-deleted).
 export interface BackupData {
@@ -73,7 +73,7 @@ function parseAmount(value: unknown): number | null {
   return null;
 }
 
-export function parseExcelBuffer(buffer: Buffer): ParsedExcelRow[] {
+export function parseExcelBuffer(buffer: Buffer | ArrayBuffer): ParsedExcelRow[] {
   const wb = XLSX.read(buffer, { type: 'buffer' });
   const sheetName = wb.SheetNames.find((n: string) => n.toLowerCase() === 'registo') || wb.SheetNames[0];
   const ws = wb.Sheets[sheetName];
