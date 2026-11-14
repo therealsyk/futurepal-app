@@ -121,7 +121,7 @@ export class WalletDB extends Dexie {
       salaries: 'id, year, month',
       budgets: 'id, categoryId',
       goals: 'id, startDate',
-      recurrings: 'id, nextDate, categoryId',
+      recurrings: 'id, nextDate, endDate, categoryId',
       groups: 'id, name',
       exchangeRates: 'id, base',
     });

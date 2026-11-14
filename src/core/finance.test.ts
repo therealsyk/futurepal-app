@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
 import { readFileSync } from 'node:fs';
 import { describe, it, beforeEach, expect } from 'vitest';
-import { createDatabase } from '../db/database';
+import { createDatabase, stampNew } from '../db/database';
 import type { WalletDB, Category } from '../db/database';
 import {
   addTransaction,
@@ -24,12 +24,23 @@ import {
   salaryGrid,
   salaryYearSummary,
   setSalary,
+  addGoal,
+  contributeToGoal,
+  listGoals,
+  addRecurring,
+  expandRecurring,
+  listRecurring,
+  addGroup,
+  listGroups,
+  transactionsInGroup,
 } from './finance';
 
 let db: WalletDB;
 
 async function makeCategory(name: string): Promise<Category> {
-  return addCategory(db, { name, color: '#000', icon: '', order: 0 });
+  const cat = stampNew({ name, color: '#000', icon: '', order: 0 });
+  await db.categories.add(cat);
+  return cat;
 }
 
 beforeEach(async () => {
@@ -354,6 +365,63 @@ describe('filterTransactions (SPEC §6.2)', () => {
     expect(s.expenseCents).toBe(40000);
     expect(s.savingsCents).toBe(60000);
     expect(s.pctSavings).toBeCloseTo(0.6, 6);
+  });
+
+  // ---- Metas (SPEC §6.7) ----
+  it('addGoal rejects target <= 0', async () => {
+    await expect(addGoal(db, 'Casa', 0, '2026-01-01')).rejects.toThrow();
+  });
+
+  it('contributeToGoal accumulates and reports progress', async () => {
+    const g = await addGoal(db, 'Fundo de emergencia', 500000, '2026-01-01');
+    await contributeToGoal(db, g.id, 200000);
+    await contributeToGoal(db, g.id, 100000);
+    const goals = await listGoals(db);
+    expect(goals[0].currentCents).toBe(300000);
+    expect(goals[0].targetCents).toBe(500000);
+  });
+
+  it('contributeToGoal rejects zero and unknown goal', async () => {
+    const g = await addGoal(db, 'X', 100000, '2026-01-01');
+    await expect(contributeToGoal(db, g.id, 0)).rejects.toThrow();
+    await expect(contributeToGoal(db, 'nope', 500)).rejects.toThrow();
+  });
+
+  // ---- Recorrentes (SPEC §6.9) ----
+  it('expandRecurring generates monthly transactions up to a date', async () => {
+    const cat = await makeCategory('Contas');
+    await addRecurring(db, { type: 'expense', categoryId: cat.id, description: 'Renda', amountCents: 80000, currency: 'EUR', frequency: 'monthly', nextDate: '2026-01-01', endDate: null });
+    const txs = await expandRecurring(db, '2026-03-31');
+    expect(txs.length).toBe(3); // Jan, Feb, Mar
+    expect(txs[0].amountCents).toBe(80000);
+    expect(txs[2].date).toBe('2026-03-01');
+  });
+
+  it('expandRecurring advances nextDate so re-run does not duplicate', async () => {
+    const cat = await makeCategory('Contas');
+    await addRecurring(db, { type: 'expense', categoryId: cat.id, description: 'Renda', amountCents: 80000, currency: 'EUR', frequency: 'monthly', nextDate: '2026-01-01', endDate: null });
+    await expandRecurring(db, '2026-03-31');
+    const again = await expandRecurring(db, '2026-03-31');
+    expect(again.length).toBe(0);
+  });
+
+  it('expandRecurring respects endDate', async () => {
+    const cat = await makeCategory('Contas');
+    await addRecurring(db, { type: 'expense', categoryId: cat.id, description: 'Renda', amountCents: 80000, currency: 'EUR', frequency: 'monthly', nextDate: '2026-01-01', endDate: '2026-02-15' });
+    const txs = await expandRecurring(db, '2026-12-31');
+    expect(txs.length).toBe(2); // Jan 1, Feb 1 (Feb 1 <= Feb 15)
+  });
+
+  // ---- Grupos (SPEC §6.9) ----
+  it('addGroup and transactionsInGroup link transactions', async () => {
+    const group = await addGroup(db, 'Casa partilhada', '#0EA5E9');
+    const cat = await makeCategory('Alimentacao');
+    await addTransaction(db, { date: '2026-01-10', type: 'expense', categoryId: cat.id, description: 'Merce', amountCents: 3000, currency: 'EUR', groupId: group.id });
+    const inGroup = await transactionsInGroup(db, group.id);
+    expect(inGroup.length).toBe(1);
+    expect(inGroup[0].description).toBe('Merce');
+    const groups = await listGroups(db);
+    expect(groups.length).toBe(1);
   });
 });
 

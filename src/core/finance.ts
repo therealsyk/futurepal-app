@@ -1,5 +1,5 @@
 import { endOfMonth } from 'date-fns';
-import type { WalletDB, Transaction, Category, Budget } from '../db/database';
+import type { WalletDB, Transaction, Category, Budget, Goal, Recurring, Group } from '../db/database';
 import { stampNew } from '../db/database';
 import { assertCents } from './money';
 
@@ -291,4 +291,87 @@ export async function setSalary(db: WalletDB, year: number, month: number, amoun
     const now = new Date().toISOString();
     await db.salaries.add({ id: crypto.randomUUID(), year, month, amountCents, createdAt: now, updatedAt: now, deletedAt: null });
   }
+}
+
+// ---- Metas (SPEC §6.7) ----
+export async function addGoal(db: WalletDB, name: string, targetCents: number, startDate: string, targetDate?: string | null): Promise<Goal> {
+  assertCents(targetCents);
+  if (targetCents <= 0) throw new Error('Meta precisa de um alvo maior que zero');
+  const row = stampNew({ name, targetCents, currentCents: 0, startDate, targetDate: targetDate ?? null });
+  await db.goals.add(row);
+  return row;
+}
+
+export async function contributeToGoal(db: WalletDB, goalId: string, amountCents: number): Promise<Goal> {
+  assertCents(amountCents);
+  if (amountCents <= 0) throw new Error('Contribuicao deve ser maior que zero');
+  const goal = await db.goals.get(goalId);
+  if (!goal || goal.deletedAt) throw new Error('Meta nao encontrada');
+  const current = goal.currentCents + amountCents;
+  await db.goals.update(goalId, { currentCents: current, updatedAt: new Date().toISOString() });
+  return (await db.goals.get(goalId))!;
+}
+
+export async function listGoals(db: WalletDB): Promise<Goal[]> {
+  return (await db.goals.toArray()).filter((g) => g.deletedAt === null);
+}
+
+// ---- Recorrentes (SPEC §6.9) ----
+// Timezone-safe: 'YYYY-MM-DD' is treated as a plain calendar date (no UTC shift).
+function addMonths(dateISO: string, months: number): string {
+  const [y, m, d] = dateISO.split('-').map(Number);
+  const total = (y * 12 + (m - 1)) + months;
+  const ny = Math.floor(total / 12);
+  const nm = (total % 12) + 1;
+  const daysInMonth = new Date(Date.UTC(ny, nm, 0)).getUTCDate();
+  const day = Math.min(d, daysInMonth);
+  return `${ny}-${String(nm).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+export async function addRecurring(db: WalletDB, input: Omit<Recurring, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>): Promise<Recurring> {
+  assertCents(input.amountCents);
+  if (input.amountCents <= 0) throw new Error('Valor recorrente deve ser maior que zero');
+  return db.recurrings.add(stampNew(input));
+}
+
+// Generate transactions for recurring entries up to `untilDate` (YYYY-MM-DD).
+// Returns the list of transactions that should be inserted.
+export async function expandRecurring(db: WalletDB, untilDate: string): Promise<Omit<Transaction, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>[]> {
+  const recs = (await db.recurrings.toArray()).filter((r) => r.deletedAt === null);
+  const out: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>[] = [];
+  for (const r of recs) {
+    let date = r.nextDate;
+    const end = r.endDate ?? untilDate;
+    while (date <= end) {
+      out.push({ date, type: r.type, categoryId: r.categoryId, description: r.description, amountCents: r.amountCents, currency: r.currency, recurringId: r.id });
+      if (r.frequency === 'weekly') {
+        const d = new Date(date); d.setDate(d.getDate() + 7); date = d.toISOString().slice(0, 10);
+      } else if (r.frequency === 'yearly') {
+        date = addMonths(date, 12);
+      } else {
+        date = addMonths(date, 1);
+      }
+    }
+    // Advance nextDate past untilDate so re-running doesn't duplicate.
+    await db.recurrings.update(r.id, { nextDate: date, updatedAt: new Date().toISOString() });
+  }
+  return out;
+}
+
+export async function listRecurring(db: WalletDB): Promise<Recurring[]> {
+  return (await db.recurrings.toArray()).filter((r) => r.deletedAt === null);
+}
+
+// ---- Grupos (SPEC §6.9) ----
+export async function addGroup(db: WalletDB, name: string, color: string): Promise<Group> {
+  return db.groups.add(stampNew({ name, color }));
+}
+
+export async function listGroups(db: WalletDB): Promise<Group[]> {
+  return (await db.groups.toArray()).filter((g) => g.deletedAt === null);
+}
+
+// Transactions belonging to a group.
+export async function transactionsInGroup(db: WalletDB, groupId: string): Promise<Transaction[]> {
+  return (await db.transactions.toArray()).filter((t) => t.deletedAt === null && t.groupId === groupId);
 }
