@@ -19,7 +19,7 @@ export default function App() {
       <Sidebar />
       <main className="app-main">
         <Routes>
-          <Route path="/" element={<Panel />} />
+          <Route path="/" element={<Panel settings={settings} />} />
           <Route path="/calendario" element={<Calendar />} />
           <Route path="/transacoes" element={<Transactions />} />
           <Route path="/orcamentos" element={<Budgets />} />

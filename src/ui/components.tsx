@@ -20,6 +20,28 @@ export function StatTile({ label, value, tone }: { label: string; value: string;
   );
 }
 
+export function OverviewGrid({ tiles }: { tiles: Array<{ label: string; value: string; tone?: 'positive' | 'negative' }> }) {
+  return (
+    <div className="overview-grid">
+      {tiles.map((tile, i) => (
+        <div key={i} className="stat-tile">
+          <span className="stat-label">{tile.label}</span>
+          <span className={`stat-value${tile.tone ? ' ' + tile.tone : ''}`}>{tile.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function CategoryRow({ name, left }: { name: string; left: string }) {
+  return (
+    <div className="category-row">
+      <span className="category-name">{name}</span>
+      <span className="category-left">{left}</span>
+    </div>
+  );
+}
+
 export function ProgressBar({ value, max }: { value: number; max: number }) {
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
   const over = value > max;

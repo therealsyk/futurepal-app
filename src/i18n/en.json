@@ -107,5 +107,33 @@
     "catHome": "Home",
     "catFood": "Food",
     "catTransport": "Transport"
+  },
+  "categories": {
+    "catHome": "Home",
+    "catBills": "Bills",
+    "catFood": "Food",
+    "catTransport": "Transport",
+    "catHealth": "Health",
+    "catPets": "Pets",
+    "catShopping": "Shopping",
+    "catLeisure": "Leisure",
+    "catOther": "Other",
+    "catCar": "Car",
+    "catRent": "Rent"
+  },
+  "panel": {
+    "income": "Income",
+    "totalSpent": "Total spent",
+    "net": "Savings",
+    "noData": "No data this month",
+    "recentTitle": "Recent transactions",
+    "addTransaction": "Add transaction",
+    "typeExpense": "Expense",
+    "typeIncome": "Income",
+    "date": "Date",
+    "amount": "Amount",
+    "category": "Category",
+    "save": "Save",
+    "delete": "Delete"
   }
 }

@@ -2,37 +2,44 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
 import { monthSummary, totalsByCategory } from '../core/finance';
+import { formatMoney } from '../core/money';
+import { loadSettings, type AppSettings } from '../core/settings';
 
 export function PageTitle({ titleKey }: { titleKey: string }) {
   const { t } = useTranslation();
   return <h1 className="page-title">{t(titleKey)}</h1>;
 }
 
-export const Panel = () => {
+export const Panel = ({ settings }: { settings?: AppSettings }) => {
   const { t } = useTranslation();
+  const s = settings ?? loadSettings();
   const now = new Date();
-  const [summary, setSummary] = useState({ income: 0, expenses: 0, net: 0 });
-  const [cats, setCats] = useState<{ name: string; total: number }[]>([]);
+  const [summary, setSummary] = useState({ incomeCents: 0, expenseCents: 0, netCents: 0 });
+  const [cats, setCats] = useState<{ categoryId: string; nameKey?: string; name: string; totalCents: number }[]>([]);
 
   useEffect(() => {
     monthSummary(db, now.getFullYear(), now.getMonth() + 1).then(setSummary);
     totalsByCategory(db, now.getFullYear(), now.getMonth() + 1)
-      .then((rows) => setCats(rows.filter((r) => r.total !== 0)))
+      .then((rows) => setCats(rows.filter((r) => r.totalCents !== 0)))
       .catch(() => setCats([]));
   }, []);
+
+  const catLabel = (c: { name: string; nameKey?: string }) => (c.nameKey ? t(c.nameKey) : c.name);
 
   return (
     <div>
       <PageTitle titleKey="panel.title" />
       <div className="panel-summary">
-        <p>{t('panel.income')}: {summary.income}</p>
-        <p>{t('panel.totalSpent')}: {summary.expenses}</p>
-        <p>{t('panel.savings')}: {summary.net}</p>
+        <p>{t('panel.income')}: {formatMoney(summary.incomeCents, s.currency, s.language)}</p>
+        <p>{t('panel.totalSpent')}: {formatMoney(summary.expenseCents, s.currency, s.language)}</p>
+        <p>{t('panel.net')}: {formatMoney(summary.netCents, s.currency, s.language)}</p>
       </div>
       {cats.length > 0 && (
         <ul className="panel-cats">
           {cats.map((c) => (
-            <li key={c.name}>{c.name}: {c.total}</li>
+            <li key={c.categoryId}>
+              {catLabel(c)}: {formatMoney(c.totalCents, s.currency, s.language)}
+            </li>
           ))}
         </ul>
       )}

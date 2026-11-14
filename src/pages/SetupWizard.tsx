@@ -3,30 +3,38 @@ import { useTranslation } from 'react-i18next';
 import { COUNTRIES, countryName } from '../core/locale';
 import { loadSettings, saveSettings, type AppSettings } from '../core/settings';
 import { db } from '../db/app-db';
-import { seedDefaults } from '../db/database';
+import { stampNew, seedSettings } from '../db/database';
 
-// Map the wizard's category keys to concrete DB categories (name + income flag).
-const CATEGORY_MAP: Record<string, { name: string; isIncome: boolean }> = {
-  'setup.catSalary': { name: 'Salário', isIncome: true },
-  'setup.catFood': { name: 'Alimentação', isIncome: false },
-  'setup.catTransport': { name: 'Transporte', isIncome: false },
-  'setup.catHome': { name: 'Casa', isIncome: false },
-  'setup.catFun': { name: 'Lazer', isIncome: false },
+import type { Category } from '../db/database';
+
+// Map wizard category keys to DB categories (nameKey + color), SPEC §5/§6.3.
+const CATEGORY_DEFS: Record<string, { nameKey: string; color: string }> = {
+  'catSalary': { nameKey: 'catSalary', color: '#4CAF50' },
+  'catFood': { nameKey: 'catFood', color: '#FFB020' },
+  'catTransport': { nameKey: 'catTransport', color: '#60A5FA' },
+  'catHome': { nameKey: 'catHome', color: '#2DD4BF' },
+  'catFun': { nameKey: 'catLeisure', color: '#22D3EE' },
 };
 
-async function persistCategories(keys: string[]) {
-  await seedDefaults(db);
+async function persistCategories(keys: string[], settings: AppSettings) {
   await db.categories.clear();
-  const rows = keys
-    .map((k) => CATEGORY_MAP[k])
-    .filter(Boolean)
-    .map((c) => ({ name: c.name, isIncome: c.isIncome }));
-  if (rows.length === 0) {
-    // Keep at least the default set so the app always has categories.
-    await seedDefaults(db);
-  } else {
-    await db.categories.bulkAdd(rows);
-  }
+  const rows: Category[] = keys.map((key, i) => {
+    const def = CATEGORY_DEFS[key] ?? { nameKey: key, color: '#9CA3AF' };
+    return stampNew<Category>({ name: def.nameKey, color: def.color, icon: '', order: i, nameKey: def.nameKey });
+  });
+  await db.categories.bulkAdd(rows);
+
+  // Persist settings to the Dexie settings table (SPEC §5) with setupDone=true.
+  await seedSettings(db, {
+    language: settings.language,
+    country: settings.country,
+    mainCurrency: settings.currency,
+    firstDayOfWeek: settings.firstDayOfWeek,
+    dateFormat: settings.dateFormat,
+    theme: settings.theme,
+    setupDone: true,
+    lastSync: null,
+  });
 }
 
 const LANGUAGES = [
@@ -37,7 +45,7 @@ const LANGUAGES = [
   { code: 'fr', label: 'Français' },
 ];
 
-const DEFAULT_CATEGORY_KEYS = ['setup.catSalary', 'setup.catFood', 'setup.catTransport', 'setup.catHome', 'setup.catFun'];
+const DEFAULT_CATEGORY_KEYS = ['catSalary', 'catFood', 'catTransport', 'catHome', 'catFun'];
 
 export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings) => void }) {
   const { t, i18n } = useTranslation();
@@ -84,14 +92,14 @@ export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings
     const finalCountry = country || 'PT';
     const next = buildSettings(finalCountry);
     saveSettings(next);
-    persistCategories(categories).then(() => onDone(next));
+    persistCategories(categories, next).then(() => onDone(next));
   }
 
   function skip() {
     // Persist a default country so the wizard does not reappear.
     const next = buildSettings('PT');
     saveSettings(next);
-    persistCategories(DEFAULT_CATEGORY_KEYS).then(() => onDone(next));
+    persistCategories(DEFAULT_CATEGORY_KEYS, next).then(() => onDone(next));
   }
 
   return (
@@ -142,7 +150,7 @@ export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings
         {DEFAULT_CATEGORY_KEYS.map((key) => (
           <label key={key} className="wizard-cat">
             <input type="checkbox" checked={categories.includes(key)} onChange={() => toggleCategory(key)} />
-            <span>{t(key)}</span>
+            <span>{t('categories.' + (CATEGORY_DEFS[key]?.nameKey ?? key))}</span>
           </label>
         ))}
       </div>

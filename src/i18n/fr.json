@@ -107,5 +107,33 @@
     "catHome": "Maison",
     "catFood": "Alimentation",
     "catTransport": "Transport"
+  },
+  "categories": {
+    "catHome": "Maison",
+    "catBills": "Factures",
+    "catFood": "Alimentation",
+    "catTransport": "Transport",
+    "catHealth": "Santé",
+    "catPets": "Animaux",
+    "catShopping": "Achats",
+    "catLeisure": "Loisirs",
+    "catOther": "Autres",
+    "catCar": "Voiture",
+    "catRent": "Loyer"
+  },
+  "panel": {
+    "income": "Revenus",
+    "totalSpent": "Total dépensé",
+    "net": "Épargne",
+    "noData": "Aucune donnée ce mois",
+    "recentTitle": "Transactions récentes",
+    "addTransaction": "Ajouter transaction",
+    "typeExpense": "Dépense",
+    "typeIncome": "Revenu",
+    "date": "Date",
+    "amount": "Montant",
+    "category": "Catégorie",
+    "save": "Enregistrer",
+    "delete": "Supprimer"
   }
 }
