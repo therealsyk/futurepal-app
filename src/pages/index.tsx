@@ -4,6 +4,7 @@ import { db } from '../db/app-db';
 import { monthSummary, totalsByCategory } from '../core/finance';
 import { formatMoney } from '../core/money';
 import { loadSettings, type AppSettings } from '../core/settings';
+import { OverviewGrid, CategoryRow } from '../ui/components';
 
 export function PageTitle({ titleKey }: { titleKey: string }) {
   const { t } = useTranslation();
@@ -29,19 +30,23 @@ export const Panel = ({ settings }: { settings?: AppSettings }) => {
   return (
     <div>
       <PageTitle titleKey="panel.title" />
-      <div className="panel-summary">
-        <p>{t('panel.income')}: {formatMoney(summary.incomeCents, s.currency, s.language)}</p>
-        <p>{t('panel.totalSpent')}: {formatMoney(summary.expenseCents, s.currency, s.language)}</p>
-        <p>{t('panel.net')}: {formatMoney(summary.netCents, s.currency, s.language)}</p>
-      </div>
+      <OverviewGrid
+        tiles={[
+          { label: t('panel.income'), value: formatMoney(summary.incomeCents, s.currency, s.language) },
+          { label: t('panel.totalSpent'), value: formatMoney(summary.expenseCents, s.currency, s.language), tone: 'negative' },
+          { label: t('panel.net'), value: formatMoney(summary.netCents, s.currency, s.language), tone: summary.netCents >= 0 ? 'positive' : 'negative' },
+        ]}
+      />
       {cats.length > 0 && (
-        <ul className="panel-cats">
+        <div className="overview-grid">
           {cats.map((c) => (
-            <li key={c.categoryId}>
-              {catLabel(c)}: {formatMoney(c.totalCents, s.currency, s.language)}
-            </li>
+            <CategoryRow
+              key={c.categoryId}
+              name={catLabel(c)}
+              left={formatMoney(c.totalCents, s.currency, s.language)}
+            />
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );
