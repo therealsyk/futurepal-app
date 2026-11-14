@@ -37,6 +37,9 @@
     "savings": "Épargne",
     "percentSpent": "% des revenus dépensés",
     "percentSavings": "% d'épargne",
+    "byCategory": "Par catégorie",
+    "category": "Catégorie",
+    "monthly": "Dépenses par mois",
     "savingsPerMonth": "Épargne par mois",
     "missingSalaryWarning": "Il manque le salaire d'un mois de la période."
   },

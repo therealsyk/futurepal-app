@@ -37,6 +37,9 @@
     "savings": "Poupança",
     "percentSpent": "% do rendimento gasto",
     "percentSavings": "% poupança",
+    "byCategory": "Por categoria",
+    "category": "Categoria",
+    "monthly": "Gastos por mês",
     "savingsPerMonth": "Poupança por mês",
     "missingSalaryWarning": "Falta o salário de algum mês do período."
   },

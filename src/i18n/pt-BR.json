@@ -37,6 +37,9 @@
     "savings": "Economia",
     "percentSpent": "% da renda gasto",
     "percentSavings": "% economia",
+    "byCategory": "Por categoria",
+    "category": "Categoria",
+    "monthly": "Gastos por mês",
     "savingsPerMonth": "Economia por mês",
     "missingSalaryWarning": "Falta o salário de algum mês do período."
   },

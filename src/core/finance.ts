@@ -83,11 +83,18 @@ export async function monthTransactions(db: WalletDB, year: number, month: numbe
   return db.transactions.filter((t) => t.deletedAt === null && t.date >= start && t.date <= end).toArray();
 }
 
+export interface CategoryTotal {
+  categoryId: string;
+  name: string;
+  type: 'expense' | 'income';
+  totalCents: number;
+}
+
 // All queries ignore soft-deleted rows.
-export async function totalsByCategory(db: WalletDB, year: number, month: number): Promise<Array<{ categoryId: string; name: string; type: 'expense' | 'income'; totalCents: number }>> {
+export async function totalsByCategory(db: WalletDB, year: number, month: number): Promise<CategoryTotal[]> {
   const txs = (await monthTransactions(db, year, month)).filter((t) => t.deletedAt === null);
   const cats = await db.categories.toArray();
-  const catMap = new Map<string, { categoryId: string; name: string; type: 'expense' | 'income'; totalCents: number }>();
+  const catMap = new Map<string, CategoryTotal>();
   for (const c of cats) {
     if (c.deletedAt !== null) continue;
     catMap.set(c.id, { categoryId: c.id, name: c.name, type: 'expense', totalCents: 0 });
@@ -96,7 +103,7 @@ export async function totalsByCategory(db: WalletDB, year: number, month: number
     const entry = catMap.get(t.categoryId);
     if (entry) entry.totalCents += t.amountCents;
   }
-  return [...catMap.values()];
+  return [...catMap.values()].sort((a, b) => b.totalCents - a.totalCents);
 }
 
 export interface TxFilter {
@@ -234,6 +241,21 @@ export async function periodSummary(db: WalletDB, startDate: string, endDate: st
   }
 
   return { period: '', totalSpentCents, avgPerDayCents, expenseCount, maxExpenseCents, topCategory, salaryCents, incomeCents, savingsCents, pctSpent, pctSavings, avgMonthlySavingsCents, missingSalaryMonths };
+}
+
+// SPEC §6.6 monthly expense/income totals for the panel bar chart.
+export async function monthlyTotals(db: WalletDB, year: number): Promise<{ expense: number; income: number }[]> {
+  const result: { expense: number; income: number }[] = [];
+  for (let m = 1; m <= 12; m++) {
+    const start = `${year}-${String(m).padStart(2, '0')}-01`;
+    const end = endOfMonth(new Date(Date.UTC(year, m - 1, 1))).toISOString().slice(0, 10);
+    const txs = await rangeTransactions(db, start, end);
+    const expense = txs.filter((t) => t.type === 'expense' && t.amountCents > 0).reduce((s, t) => s + t.amountCents, 0);
+    const salary = await salaryInRange(db, start, end);
+    const income = salary + txs.filter((t) => t.type === 'income').reduce((s, t) => s + t.amountCents, 0);
+    result.push({ expense, income });
+  }
+  return result;
 }
 
 export async function budgetUsage(db: WalletDB, categoryId: string, year: number, month: number): Promise<{ limitCents: number; spentCents: number; remainingCents: number; overBudget: boolean }> {
