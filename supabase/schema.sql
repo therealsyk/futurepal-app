@@ -136,22 +136,30 @@ alter table recurrings enable row level security;
 alter table groups enable row level security;
 alter table exchange_rates enable row level security;
 
--- Policies (create once per table). Replace the DO blocks if they already exist.
-do $$
-begin
-  if not exists (select 1 from pg_policies where tablename='settings' and policyname='user_read') then
-    create policy user_read on settings for select using (user_id = auth.uid());
-    create policy user_write on settings for insert,update,delete using (user_id = auth.uid());
-  end if;
-end$$;
+-- Policies (one per table, plain statements — no DO blocks).
+create policy if not exists user_read on settings for select using (user_id = auth.uid());
+create policy if not exists user_write on settings for insert,update,delete using (user_id = auth.uid());
 
--- Repeat the same pattern for every table above. For brevity here is a generic helper:
-do $$
-begin
-  for t in (select unnest(array['categories','transactions','salaries','budgets','goals','recurrings','groups','exchange_rates'])) loop
-    if not exists (select 1 from pg_policies where tablename=t and policyname='user_read') then
-      execute format('create policy user_read on %I for select using (user_id = auth.uid());', t);
-      execute format('create policy user_write on %I for insert,update,delete using (user_id = auth.uid());', t);
-    end if;
-  end loop;
-end$$;
+create policy if not exists user_read on categories for select using (user_id = auth.uid());
+create policy if not exists user_write on categories for insert,update,delete using (user_id = auth.uid());
+
+create policy if not exists user_read on transactions for select using (user_id = auth.uid());
+create policy if not exists user_write on transactions for insert,update,delete using (user_id = auth.uid());
+
+create policy if not exists user_read on salaries for select using (user_id = auth.uid());
+create policy if not exists user_write on salaries for insert,update,delete using (user_id = auth.uid());
+
+create policy if not exists user_read on budgets for select using (user_id = auth.uid());
+create policy if not exists user_write on budgets for insert,update,delete using (user_id = auth.uid());
+
+create policy if not exists user_read on goals for select using (user_id = auth.uid());
+create policy if not exists user_write on goals for insert,update,delete using (user_id = auth.uid());
+
+create policy if not exists user_read on recurrings for select using (user_id = auth.uid());
+create policy if not exists user_write on recurrings for insert,update,delete using (user_id = auth.uid());
+
+create policy if not exists user_read on groups for select using (user_id = auth.uid());
+create policy if not exists user_write on groups for insert,update,delete using (user_id = auth.uid());
+
+create policy if not exists user_read on exchange_rates for select using (user_id = auth.uid());
+create policy if not exists user_write on exchange_rates for insert,update,delete using (user_id = auth.uid());
