@@ -21,7 +21,13 @@ export default function Sidebar() {
   const { t } = useTranslation();
   return (
     <nav className="sidebar" aria-label={t('common.appName')}>
-      <div className="sidebar-brand">{t('common.appName')}</div>
+      <div className="brand">
+        <span className="brand-mark">W</span>
+        <div>
+          <div className="brand-name">{t('common.appName')}</div>
+          <div className="brand-sub">Personal Finance</div>
+        </div>
+      </div>
       {items.map((it) => (
         <NavLink
           key={it.path}
