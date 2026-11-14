@@ -21,6 +21,9 @@
   },
   "panel": {
     "title": "Painel",
+    "income": "Rendimento",
+    "totalSpent": "Total gasto",
+    "net": "Poupança",
     "periodMonth": "Mês",
     "periodYear": "Ano",
     "period30": "30 dias",
@@ -122,20 +125,5 @@
     "catHome": "Casa",
     "catFood": "Alimentação",
     "catTransport": "Transporte"
-  },
-  "panel": {
-    "income": "Rendimento",
-    "totalSpent": "Total gasto",
-    "net": "Poupança",
-    "noData": "Sem dados este mês",
-    "recentTitle": "Transações recentes",
-    "addTransaction": "Adicionar transação",
-    "typeExpense": "Despesa",
-    "typeIncome": "Rendimento",
-    "date": "Data",
-    "amount": "Montante",
-    "category": "Categoria",
-    "save": "Guardar",
-    "delete": "Apagar"
   }
 }

@@ -120,20 +120,5 @@
     "catOther": "Otros",
     "catCar": "Coche",
     "catRent": "Alquiler"
-  },
-  "panel": {
-    "income": "Ingresos",
-    "totalSpent": "Total gastado",
-    "net": "Ahorro",
-    "noData": "Sin datos este mes",
-    "recentTitle": "Transacciones recientes",
-    "addTransaction": "Añadir transacción",
-    "typeExpense": "Gasto",
-    "typeIncome": "Ingreso",
-    "date": "Fecha",
-    "amount": "Importe",
-    "category": "Categoría",
-    "save": "Guardar",
-    "delete": "Eliminar"
   }
 }

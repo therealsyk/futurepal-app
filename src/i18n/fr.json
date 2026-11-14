@@ -120,20 +120,5 @@
     "catOther": "Autres",
     "catCar": "Voiture",
     "catRent": "Loyer"
-  },
-  "panel": {
-    "income": "Revenus",
-    "totalSpent": "Total dépensé",
-    "net": "Épargne",
-    "noData": "Aucune donnée ce mois",
-    "recentTitle": "Transactions récentes",
-    "addTransaction": "Ajouter transaction",
-    "typeExpense": "Dépense",
-    "typeIncome": "Revenu",
-    "date": "Date",
-    "amount": "Montant",
-    "category": "Catégorie",
-    "save": "Enregistrer",
-    "delete": "Supprimer"
   }
 }

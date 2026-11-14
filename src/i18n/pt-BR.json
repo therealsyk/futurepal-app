@@ -120,20 +120,5 @@
     "catOther": "Outros",
     "catCar": "Carro",
     "catRent": "Aluguel"
-  },
-  "panel": {
-    "income": "Renda",
-    "totalSpent": "Total gasto",
-    "net": "Economia",
-    "noData": "Sem dados este mês",
-    "recentTitle": "Transações recentes",
-    "addTransaction": "Adicionar transação",
-    "typeExpense": "Despesa",
-    "typeIncome": "Renda",
-    "date": "Data",
-    "amount": "Valor",
-    "category": "Categoria",
-    "save": "Salvar",
-    "delete": "Excluir"
   }
 }
