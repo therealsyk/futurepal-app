@@ -14,6 +14,9 @@ import {
   addCategory,
   activeCategories,
   MAX_ACTIVE_CATEGORIES,
+  filterTransactions,
+  ensureDefaultCategories,
+  DEFAULT_CATEGORY_DEFS,
 } from './finance';
 
 let db: WalletDB;
@@ -192,5 +195,57 @@ describe('budget usage', () => {
     for (const b of budgets) await softDelete(db, 'budgets', b.id);
     const usage3 = await budgetUsage(db, food.id, 2026, 4);
     expect(usage3.limitCents).toBe(0);
+  });
+});
+
+describe('filterTransactions (SPEC §6.2)', () => {
+  it('filters by month, category and text', async () => {
+    const home = await makeCategory('Casa');
+    const food = await makeCategory('Comida');
+    await addTransaction(db, { date: '2026-01-05', type: 'expense', categoryId: home.id, description: 'Luz', amountCents: 4000, currency: 'EUR' });
+    await addTransaction(db, { date: '2026-01-20', type: 'expense', categoryId: food.id, description: 'Supermercado', amountCents: 3500, currency: 'EUR' });
+    await addTransaction(db, { date: '2026-02-10', type: 'expense', categoryId: home.id, description: 'Agua', amountCents: 1200, currency: 'EUR' });
+
+    const feb = await filterTransactions(db, { year: 2026, month: 2 });
+    expect(feb.length).toBe(1);
+    expect(feb[0].description).toBe('Agua');
+
+    const homeOnly = await filterTransactions(db, { categoryId: home.id });
+    expect(homeOnly.length).toBe(2);
+
+    const search = await filterTransactions(db, { text: 'super' });
+    expect(search.length).toBe(1);
+    expect(search[0].description).toBe('Supermercado');
+
+    // Combined filters: month + category.
+    const combo = await filterTransactions(db, { year: 2026, month: 1, categoryId: home.id });
+    expect(combo.length).toBe(1);
+    expect(combo[0].description).toBe('Luz');
+  });
+
+  it('ignores soft-deleted transactions', async () => {
+    const cat = await makeCategory('Test');
+    const tx = await addTransaction(db, { date: '2026-03-01', type: 'expense', categoryId: cat.id, description: 'apagar', amountCents: 500, currency: 'EUR' });
+    await softDelete(db, 'transactions', tx.id);
+    const rows = await filterTransactions(db, { text: 'apagar' });
+    expect(rows.length).toBe(0);
+  });
+
+  it('ensureDefaultCategories seeds defaults when DB is empty', async () => {
+    await ensureDefaultCategories(db);
+    const cats = await activeCategories(db);
+    expect(cats.length).toBe(DEFAULT_CATEGORY_DEFS.length);
+    // Idempotent: running again does not duplicate.
+    await ensureDefaultCategories(db);
+    const cats2 = await activeCategories(db);
+    expect(cats2.length).toBe(DEFAULT_CATEGORY_DEFS.length);
+  });
+
+  it('ensureDefaultCategories does not overwrite existing categories', async () => {
+    await makeCategory('Minha categoria');
+    await ensureDefaultCategories(db);
+    const cats = await activeCategories(db);
+    expect(cats.length).toBe(1);
+    expect(cats[0].name).toBe('Minha categoria');
   });
 });

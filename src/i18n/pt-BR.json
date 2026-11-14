@@ -20,6 +20,7 @@
     "noData": "Sem dados"
   },
   "panel": {
+    "net": "Economia",
     "title": "Painel",
     "periodMonth": "Mês",
     "periodYear": "Ano",
@@ -46,7 +47,18 @@
     "date": "Data",
     "category": "Categoria",
     "typeExpense": "Despesa",
-    "typeIncome": "Renda"
+    "typeIncome": "Renda",
+    "addTransaction": "Nova transação",
+    "empty": "Ainda não há transações este mês.",
+    "deleteConfirm": "Excluir?",
+    "manageCategories": "Gerenciar categorias",
+    "newCategoryName": "Nome da categoria",
+    "maxCategories": "Máximo de 12 categorias ativas.",
+    "filterMonth": "Mês",
+    "filterCategory": "Filtrar por categoria",
+    "filterText": "Pesquisar texto",
+    "allCategories": "Todas",
+    "editTransaction": "Editar transação"
   },
   "settings": {
     "title": "Configurações",

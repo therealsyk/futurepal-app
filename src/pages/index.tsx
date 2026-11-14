@@ -52,7 +52,8 @@ export const Panel = ({ settings }: { settings?: AppSettings }) => {
   );
 };
 export const Calendar = () => <PageTitle titleKey="nav.calendar" />;
-export const Transactions = () => <PageTitle titleKey="transactions.title" />;
+import { Transactions } from './Transactions';
+export { Transactions };
 export const Budgets = () => <PageTitle titleKey="nav.budgets" />;
 export const Goals = () => <PageTitle titleKey="nav.goals" />;
 export const Salaries = () => <PageTitle titleKey="nav.salaries" />;

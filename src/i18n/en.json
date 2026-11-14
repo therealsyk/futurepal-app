@@ -20,6 +20,7 @@
     "noData": "No data"
   },
   "panel": {
+    "net": "Savings",
     "title": "Dashboard",
     "periodMonth": "Month",
     "periodYear": "Year",
@@ -46,7 +47,18 @@
     "date": "Date",
     "category": "Category",
     "typeExpense": "Expense",
-    "typeIncome": "Income"
+    "typeIncome": "Income",
+    "addTransaction": "New transaction",
+    "empty": "No transactions this month yet.",
+    "deleteConfirm": "Delete?",
+    "manageCategories": "Manage categories",
+    "newCategoryName": "Category name",
+    "maxCategories": "Max 12 active categories.",
+    "filterMonth": "Month",
+    "filterCategory": "Filter by category",
+    "filterText": "Search text",
+    "allCategories": "All",
+    "editTransaction": "Edit transaction"
   },
   "settings": {
     "title": "Settings",

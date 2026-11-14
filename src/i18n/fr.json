@@ -20,6 +20,7 @@
     "noData": "Aucune donnée"
   },
   "panel": {
+    "net": "Épargne",
     "title": "Tableau de bord",
     "periodMonth": "Mois",
     "periodYear": "Année",
@@ -46,7 +47,18 @@
     "date": "Date",
     "category": "Catégorie",
     "typeExpense": "Dépense",
-    "typeIncome": "Revenu"
+    "typeIncome": "Revenu",
+    "addTransaction": "Nouvelle transaction",
+    "empty": "Aucune transaction ce mois-ci.",
+    "deleteConfirm": "Supprimer ?",
+    "manageCategories": "Gérer les catégories",
+    "newCategoryName": "Nom de la catégorie",
+    "maxCategories": "Maximum 12 catégories actives.",
+    "filterMonth": "Mois",
+    "filterCategory": "Filtrer par catégorie",
+    "filterText": "Rechercher du texte",
+    "allCategories": "Toutes",
+    "editTransaction": "Modifier la transaction"
   },
   "settings": {
     "title": "Paramètres",

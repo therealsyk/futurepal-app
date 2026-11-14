@@ -20,6 +20,7 @@
     "noData": "Sin datos"
   },
   "panel": {
+    "net": "Ahorro",
     "title": "Panel",
     "periodMonth": "Mes",
     "periodYear": "Año",
@@ -46,7 +47,18 @@
     "date": "Fecha",
     "category": "Categoría",
     "typeExpense": "Gasto",
-    "typeIncome": "Ingreso"
+    "typeIncome": "Ingreso",
+    "addTransaction": "Nueva transacción",
+    "empty": "Aún no hay transacciones este mes.",
+    "deleteConfirm": "¿Eliminar?",
+    "manageCategories": "Gestionar categorías",
+    "newCategoryName": "Nombre de la categoría",
+    "maxCategories": "Máximo 12 categorías activas.",
+    "filterMonth": "Mes",
+    "filterCategory": "Filtrar por categoría",
+    "filterText": "Buscar texto",
+    "allCategories": "Todas",
+    "editTransaction": "Editar transacción"
   },
   "settings": {
     "title": "Configuración",
