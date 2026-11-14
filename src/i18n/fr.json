@@ -95,6 +95,22 @@
     "accountCreate": "Créer un compte",
     "accountLogin": "Se connecter"
   },
+  "calendar": {
+    "title": "Calendrier",
+    "yearTotal": "Total de l'année",
+    "dayPanel": "Dépenses du jour",
+    "noExpenses": "Aucune dépense ce jour.",
+    "monthNames": ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
+  },
+  "salaries": {
+    "title": "Salaires",
+    "yearLabel": "Année",
+    "salaryFor": "Salaire de",
+    "extras": "Revenus complémentaires",
+    "addExtra": "Ajouter un extra",
+    "monthTotal": "Total mensuel",
+    "yearTotal": "Total de l'année"
+  },
   "demo": {
     "title": "Démonstration des composants",
     "exampleAmount": "$ 1 234,56",

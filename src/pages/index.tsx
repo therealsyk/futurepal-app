@@ -102,10 +102,10 @@ export const Panel = ({ settings }: { settings?: AppSettings }) => {
     </div>
   );
 };
-export const Calendar = () => <PageTitle titleKey="nav.calendar" />;
+import { Calendar } from './Calendar';
+import { Salaries } from './Salaries';
 import { Transactions } from './Transactions';
-export { Transactions };
+export { Transactions, Calendar, Salaries };
 export const Budgets = () => <PageTitle titleKey="nav.budgets" />;
 export const Goals = () => <PageTitle titleKey="nav.goals" />;
-export const Salaries = () => <PageTitle titleKey="nav.salaries" />;
 
