@@ -35,6 +35,7 @@ function IncomeChart({ months, t, settings }: { months: { income: number; expens
     months.map((m, i) => `${i === 0 ? 'M' : 'L'} ${x(i)} ${y(key === 'income' ? m.income : m.income - m.expense)}`).join(' ');
   const areaPath = (key: 'income' | 'net') => linePath(key) + ` L ${x(11)} ${H - PAD} L ${x(0)} ${H - PAD} Z`;
 
+  if (months.length === 0) return null;
   const peakIdx = months.reduce((best, m, i) => (m.income > months[best].income ? i : best), 0);
 
   return (

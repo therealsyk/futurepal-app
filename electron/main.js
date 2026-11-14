@@ -18,6 +18,12 @@ app.whenReady().then(() => {
     },
   });
 
+  win.webContents.on('console-message', (event) => {
+    console.log('[renderer]', event.message);
+  });
+  win.webContents.on('render-process-gone', (event, details) => {
+    console.error('[renderer crashed]', details);
+  });
   win.loadURL(resolveAppUrl());
 
   app.on('activate', () => {
