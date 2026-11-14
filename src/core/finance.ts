@@ -146,6 +146,96 @@ export async function setBudget(db: WalletDB, categoryId: string, limitCents: nu
   }
 }
 
+// SPEC §6.6: salary for a period = sum of monthly salaries, prorated by days of each
+// month that fall inside the period (for 30/60/90-day windows). Extras count by date.
+export async function salaryInRange(db: WalletDB, startDate: string, endDate: string): Promise<number> {
+  const salaries = (await db.salaries.toArray()).filter((s) => s.deletedAt === null);
+  let total = 0;
+  for (const s of salaries) {
+    const mStart = `${s.year}-${String(s.month).padStart(2, '0')}-01`;
+    const mEnd = endOfMonth(new Date(Date.UTC(s.year, s.month - 1, 1))).toISOString().slice(0, 10);
+    // overlap days between [mStart,mEnd] and [startDate,endDate]
+    const a = Math.max(new Date(mStart).getTime(), new Date(startDate).getTime());
+    const b = Math.min(new Date(mEnd).getTime(), new Date(endDate).getTime());
+    if (b < a) continue;
+    const overlapDays = Math.floor((b - a) / 86400000) + 1;
+    const monthDays = Math.floor((new Date(mEnd).getTime() - new Date(mStart).getTime()) / 86400000) + 1;
+    total += Math.round(s.amountCents * (overlapDays / monthDays));
+  }
+  return total;
+}
+
+export interface PeriodSummary {
+  period: string; // 'month' | 'year' | '30d' | '60d' | '90d'
+  totalSpentCents: number;
+  avgPerDayCents: number;
+  expenseCount: number;
+  maxExpenseCents: number;
+  topCategory: { categoryId: string; name: string; totalCents: number } | null;
+  salaryCents: number;
+  incomeCents: number; // salary + extras (income txs)
+  savingsCents: number;
+  pctSpent: number; // gasto / rendimento
+  pctSavings: number; // poupança / rendimento
+  avgMonthlySavingsCents: number;
+  missingSalaryMonths: number[]; // months in period with days but salary = 0
+}
+
+export async function rangeTransactions(db: WalletDB, startDate: string, endDate: string): Promise<Transaction[]> {
+  return db.transactions.filter((t) => t.deletedAt === null && t.date >= startDate && t.date <= endDate).toArray();
+}
+
+// SPEC §6.6 full panel indicators for a date range.
+export async function periodSummary(db: WalletDB, startDate: string, endDate: string): Promise<PeriodSummary> {
+  const txs = await rangeTransactions(db, startDate, endDate);
+  const expenses = txs.filter((t) => t.type === 'expense' && t.amountCents > 0);
+  const totalSpentCents = expenses.reduce((s, t) => s + t.amountCents, 0);
+  const expenseCount = expenses.length;
+  const maxExpenseCents = expenses.reduce((m, t) => Math.max(m, t.amountCents), 0);
+
+  // top category by total spend
+  const catTotals = new Map<string, number>();
+  for (const t of expenses) catTotals.set(t.categoryId, (catTotals.get(t.categoryId) || 0) + t.amountCents);
+  let topCategory: PeriodSummary['topCategory'] = null;
+  for (const [categoryId, totalCents] of catTotals) {
+    if (!topCategory || totalCents > topCategory.totalCents) {
+      const c = await db.categories.get(categoryId);
+      topCategory = { categoryId, name: c ? c.name : '', totalCents };
+    }
+  }
+
+  // days in period (inclusive)
+  const days = Math.floor((new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000) + 1;
+  const avgPerDayCents = days > 0 ? Math.round(totalSpentCents / days) : 0;
+
+  // salary: sum of salaries for months overlapping the period, prorated by days inside
+  let salaryCents = await salaryInRange(db, startDate, endDate);
+
+  // extras = income transactions (besides salary rows) counted by date
+  const extraIncomeCents = txs.filter((t) => t.type === 'income').reduce((s, t) => s + t.amountCents, 0);
+  const incomeCents = salaryCents + extraIncomeCents;
+  const savingsCents = incomeCents - totalSpentCents;
+  const pctSpent = incomeCents > 0 ? totalSpentCents / incomeCents : 0;
+  const pctSavings = incomeCents > 0 ? savingsCents / incomeCents : 0;
+  const avgMonthlySavingsCents = days > 0 ? Math.round((savingsCents / days) * 30.44) : 0;
+
+  // missing salary months: months with >=1 day in the period but no salary row for that month
+  const missingSalaryMonths: number[] = [];
+  const startD = new Date(startDate);
+  const endD = new Date(endDate);
+  for (let y = startD.getFullYear(); y <= endD.getFullYear(); y++) {
+    for (let m = 1; m <= 12; m++) {
+      const mStart = `${y}-${String(m).padStart(2, '0')}-01`;
+      const mEnd = endOfMonth(new Date(Date.UTC(y, m - 1, 1))).toISOString().slice(0, 10);
+      if (mEnd < startDate || mStart > endDate) continue; // month not in period
+      const hasSalary = (await db.salaries.where('year').equals(y).filter((s) => s.month === m && s.deletedAt === null && s.amountCents > 0).count()) > 0;
+      if (!hasSalary) missingSalaryMonths.push(m);
+    }
+  }
+
+  return { period: '', totalSpentCents, avgPerDayCents, expenseCount, maxExpenseCents, topCategory, salaryCents, incomeCents, savingsCents, pctSpent, pctSavings, avgMonthlySavingsCents, missingSalaryMonths };
+}
+
 export async function budgetUsage(db: WalletDB, categoryId: string, year: number, month: number): Promise<{ limitCents: number; spentCents: number; remainingCents: number; overBudget: boolean }> {
   const budgets = await db.budgets.where('categoryId').equals(categoryId).toArray();
   let limitCents = 0;

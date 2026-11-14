@@ -17,6 +17,8 @@ import {
   filterTransactions,
   ensureDefaultCategories,
   DEFAULT_CATEGORY_DEFS,
+  salaryInRange,
+  periodSummary,
 } from './finance';
 
 let db: WalletDB;
@@ -248,4 +250,52 @@ describe('filterTransactions (SPEC §6.2)', () => {
     expect(cats.length).toBe(1);
     expect(cats[0].name).toBe('Minha categoria');
   });
+
+  it('salaryInRange prorates a monthly salary by days inside the window', async () => {
+    // Salary of 30000 cents for March 2026 (31 days). Window Mar 1..Mar 15 = 15 days.
+    await db.salaries.add(stampNewSalary({ year: 2026, month: 3, amountCents: 31000 }));
+    const full = await salaryInRange(db, '2026-03-01', '2026-03-31');
+    expect(full).toBe(31000);
+    const half = await salaryInRange(db, '2026-03-01', '2026-03-15');
+    // 31000 * 15/31 = 15000
+    expect(half).toBe(15000);
+  });
+
+  it('periodSummary computes SPEC §6.6 indicators', async () => {
+    const cat = await makeCategory('Casa');
+    // salaries: Jan+Feb 2026 = 100000 cents each month (31/28 days)
+    await db.salaries.add(stampNewSalary({ year: 2026, month: 1, amountCents: 100000 }));
+    await db.salaries.add(stampNewSalary({ year: 2026, month: 2, amountCents: 100000 }));
+    // expenses in Jan-Feb: 50000 (Jan) + 30000 (Feb) = 80000
+    await addTransaction(db, { date: '2026-01-10', type: 'expense', categoryId: cat.id, description: 'rent', amountCents: 50000, currency: 'EUR' });
+    await addTransaction(db, { date: '2026-02-10', type: 'expense', categoryId: cat.id, description: 'food', amountCents: 30000, currency: 'EUR' });
+    const s = await periodSummary(db, '2026-01-01', '2026-02-28');
+    expect(s.totalSpentCents).toBe(80000);
+    expect(s.expenseCount).toBe(2);
+    expect(s.maxExpenseCents).toBe(50000);
+    expect(s.topCategory?.categoryId).toBe(cat.id);
+    // salary = 100000 (Jan, full) + 100000 (Feb full) = 200000; no extras
+    expect(s.salaryCents).toBe(200000);
+    expect(s.incomeCents).toBe(200000);
+    expect(s.savingsCents).toBe(120000);
+    // days = 59 (Jan 31 + Feb 28)
+    expect(s.avgPerDayCents).toBe(Math.round(80000 / 59));
+    expect(s.pctSpent).toBeCloseTo(80000 / 200000, 6);
+    expect(s.pctSavings).toBeCloseTo(120000 / 200000, 6);
+  });
+
+  it('periodSummary flags months with no salary', async () => {
+    const cat = await makeCategory('Casa');
+    await db.salaries.add(stampNewSalary({ year: 2026, month: 1, amountCents: 100000 }));
+    // Feb has no salary row -> should be flagged as missing
+    await addTransaction(db, { date: '2026-02-05', type: 'expense', categoryId: cat.id, description: 'x', amountCents: 1000, currency: 'EUR' });
+    const s = await periodSummary(db, '2026-01-01', '2026-02-28');
+    expect(s.missingSalaryMonths).toContain(2);
+    expect(s.missingSalaryMonths).not.toContain(1);
+  });
 });
+
+function stampNewSalary(row: { year: number; month: number; amountCents: number }) {
+  const now = new Date().toISOString();
+  return { id: 'sal-' + Math.random().toString(36).slice(2), createdAt: now, updatedAt: now, deletedAt: null, ...row };
+}
