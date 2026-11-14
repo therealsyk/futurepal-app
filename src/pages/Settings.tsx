@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { PageTitle } from './index';
 import { COUNTRIES, countryName } from '../core/locale';
 import { loadSettings, saveSettings, setTheme, type AppSettings } from '../core/settings';
-import { hasSupabaseConfig } from '../auth/supabase';
+import { hasSupabaseConfig, getSupabase, canSync } from '../auth/supabase';
+import { syncNow } from '../sync/supabase-sync';
+import { db } from '../db/app-db';
 
 const LANGUAGES = [
   { code: 'pt-PT', label: 'Português (Portugal)' },
@@ -16,6 +18,35 @@ const LANGUAGES = [
 export function Settings() {
   const { t, i18n } = useTranslation();
   const [settings, setSettings] = useState<AppSettings>(loadSettings());
+  const [syncMsg, setSyncMsg] = useState('');
+
+  async function onSync() {
+    setSyncMsg('');
+    const client = getSupabase();
+    if (!client) {
+      setSyncMsg(t('settings.syncNoUser'));
+      return;
+    }
+    const { data } = await client.auth.getUser();
+    const user = data.user ?? null;
+    if (!canSync(user)) {
+      setSyncMsg(t('settings.syncNoUser'));
+      return;
+    }
+    // Settings row is created by the Setup Wizard (seedSettings); if it does not
+    // exist yet (user skipped/never finished wizard), there is nothing to sync.
+    const existing = await db.settings.toArray();
+    if (existing.length === 0) {
+      setSyncMsg(t('settings.syncNoUser'));
+      return;
+    }
+    const result = await syncNow(client, db, user!.id, existing[0].lastSync);
+    if (result.error) {
+      setSyncMsg(t('settings.syncError', { error: result.error }));
+    } else {
+      setSyncMsg(t('settings.syncSuccess', { pushed: result.pushed, pulled: result.pulled }));
+    }
+  }
 
   function update(next: AppSettings) {
     setSettings(next);
@@ -70,7 +101,8 @@ export function Settings() {
 
       <div className="sync-status">
         <p>{hasSupabaseConfig() ? t('settings.syncReady') : t('settings.syncLocalOnly')}</p>
-        <button data-testid="sync-btn" disabled={!hasSupabaseConfig()}>{t('settings.syncNow')}</button>
+        <button data-testid="sync-btn" disabled={!hasSupabaseConfig()} onClick={onSync}>{t('settings.syncNow')}</button>
+        {syncMsg && <p data-testid="sync-result">{syncMsg}</p>}
       </div>
     </div>
   );

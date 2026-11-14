@@ -72,7 +72,10 @@
     "themeLight": "Claro",
     "syncReady": "Sincronização disponível. Clique para sincronizar seus dados.",
     "syncLocalOnly": "Modo local: configure o Supabase para sincronizar entre dispositivos.",
-    "syncNow": "Sincronizar agora"
+    "syncNow": "Sincronizar agora",
+    "syncSuccess": "Sincronizado. Enviados {pushed}, recebidos {pulled}.",
+    "syncError": "Falha na sincronização: {error}",
+    "syncNoUser": "Faça login para sincronizar."
   },
   "setup": {
     "welcome": "Bem-vindo ao Wallet",
