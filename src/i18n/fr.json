@@ -148,5 +148,40 @@
     "catOther": "Autres",
     "catCar": "Voiture",
     "catRent": "Loyer"
+  },
+  "budgets": {
+    "title": "Budgets",
+    "addBudget": "Définir un budget",
+    "limit": "Limite mensuelle",
+    "spent": "Dépensé",
+    "left": "Restant",
+    "over": "Dépassé",
+    "noBudgets": "Aucun budget pour le moment.",
+    "category": "Catégorie"
+  },
+  "goals": {
+    "title": "Objectifs",
+    "addGoal": "Nouvel objectif",
+    "name": "Nom",
+    "target": "Objectif",
+    "current": "Actuel",
+    "startDate": "Date de début",
+    "targetDate": "Date limite (optionnel)",
+    "contribute": "Contribuer",
+    "amount": "Montant",
+    "progress": "Progression",
+    "noGoals": "Aucun objectif pour le moment.",
+    "recurringTitle": "Mouvements récurrents",
+    "addRecurring": "Nouvelle récurrence",
+    "frequency": "Fréquence",
+    "weekly": "Hebdomadaire",
+    "monthly": "Mensuel",
+    "yearly": "Annuel",
+    "nextDate": "Prochaine date",
+    "endDate": "Date de fin (optionnel)",
+    "groupsTitle": "Groupes",
+    "addGroup": "Nouveau groupe",
+    "groupName": "Nom du groupe",
+    "noGroups": "Aucun groupe pour le moment."
   }
 }

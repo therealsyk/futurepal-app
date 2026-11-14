@@ -148,5 +148,40 @@
     "catOther": "Other",
     "catCar": "Car",
     "catRent": "Rent"
+  },
+  "budgets": {
+    "title": "Budgets",
+    "addBudget": "Set budget",
+    "limit": "Monthly limit",
+    "spent": "Spent",
+    "left": "Left",
+    "over": "Over",
+    "noBudgets": "No budgets yet.",
+    "category": "Category"
+  },
+  "goals": {
+    "title": "Goals",
+    "addGoal": "New goal",
+    "name": "Name",
+    "target": "Target",
+    "current": "Current",
+    "startDate": "Start date",
+    "targetDate": "Deadline (optional)",
+    "contribute": "Contribute",
+    "amount": "Amount",
+    "progress": "Progress",
+    "noGoals": "No goals yet.",
+    "recurringTitle": "Recurring entries",
+    "addRecurring": "New recurring",
+    "frequency": "Frequency",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "nextDate": "Next date",
+    "endDate": "End date (optional)",
+    "groupsTitle": "Groups",
+    "addGroup": "New group",
+    "groupName": "Group name",
+    "noGroups": "No groups yet."
   }
 }

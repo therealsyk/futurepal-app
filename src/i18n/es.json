@@ -148,5 +148,40 @@
     "catOther": "Otros",
     "catCar": "Coche",
     "catRent": "Alquiler"
+  },
+  "budgets": {
+    "title": "Presupuestos",
+    "addBudget": "Definir presupuesto",
+    "limit": "Límite mensual",
+    "spent": "Gastado",
+    "left": "Restante",
+    "over": "Excedido",
+    "noBudgets": "Aún no hay presupuestos.",
+    "category": "Categoría"
+  },
+  "goals": {
+    "title": "Metas",
+    "addGoal": "Nueva meta",
+    "name": "Nombre",
+    "target": "Objetivo",
+    "current": "Actual",
+    "startDate": "Fecha de inicio",
+    "targetDate": "Fecha límite (opcional)",
+    "contribute": "Aportar",
+    "amount": "Importe",
+    "progress": "Progreso",
+    "noGoals": "Aún no hay metas.",
+    "recurringTitle": "Movimientos recurrentes",
+    "addRecurring": "Nueva recurrencia",
+    "frequency": "Frecuencia",
+    "weekly": "Semanal",
+    "monthly": "Mensual",
+    "yearly": "Anual",
+    "nextDate": "Próxima fecha",
+    "endDate": "Fecha final (opcional)",
+    "groupsTitle": "Grupos",
+    "addGroup": "Nuevo grupo",
+    "groupName": "Nombre del grupo",
+    "noGroups": "Aún no hay grupos."
   }
 }

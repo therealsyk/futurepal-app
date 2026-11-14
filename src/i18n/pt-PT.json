@@ -152,5 +152,40 @@
     "catHome": "Casa",
     "catFood": "Alimentação",
     "catTransport": "Transporte"
+  },
+  "budgets": {
+    "title": "Orçamentos",
+    "addBudget": "Definir orçamento",
+    "limit": "Limite mensal",
+    "spent": "Gastado",
+    "left": "Restante",
+    "over": "Excedido",
+    "noBudgets": "Ainda não há orçamentos.",
+    "category": "Categoria"
+  },
+  "goals": {
+    "title": "Metas",
+    "addGoal": "Nova meta",
+    "name": "Nome",
+    "target": "Alvo",
+    "current": "Atual",
+    "startDate": "Data de início",
+    "targetDate": "Data limite (opcional)",
+    "contribute": "Contribuir",
+    "amount": "Valor",
+    "progress": "Progresso",
+    "noGoals": "Ainda não há metas.",
+    "recurringTitle": "Movimentos recorrentes",
+    "addRecurring": "Nova recorrência",
+    "frequency": "Frequência",
+    "weekly": "Semanal",
+    "monthly": "Mensal",
+    "yearly": "Anual",
+    "nextDate": "Próxima data",
+    "endDate": "Data final (opcional)",
+    "groupsTitle": "Grupos",
+    "addGroup": "Novo grupo",
+    "groupName": "Nome do grupo",
+    "noGroups": "Ainda não há grupos."
   }
 }
