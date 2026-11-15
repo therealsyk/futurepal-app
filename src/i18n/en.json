@@ -55,6 +55,8 @@
     "vsLastMonth": "vs. last month",
     "noComparison": "No prior month to compare",
     "noBase": "No income base yet",
+    "upcomingRecurring": "Upcoming recurring transactions",
+    "noUpcoming": "No upcoming recurring transactions.",
     "yearly": "Yearly",
     "allCategories": "All categories",
     "recentTransactions": "Recent Transactions",
@@ -150,6 +152,7 @@
     "yearTotal": "Year total",
     "dayPanel": "Expenses for the day",
     "noExpenses": "No expenses on this day.",
+    "recurringUpcoming": "Upcoming recurring",
     "monthNames": [
       "January",
       "February",
@@ -247,6 +250,9 @@
     "groupsTitle": "Groups",
     "addGroup": "New group",
     "groupName": "Group name",
-    "noGroups": "No groups yet."
+    "noGroups": "No groups yet.",
+    "estimateLabel": "Estimate: about",
+    "estimateDate": "expected completion",
+    "estimateNone": "No net savings observed yet — completion cannot be estimated."
   }
 }

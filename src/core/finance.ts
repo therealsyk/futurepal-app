@@ -419,6 +419,46 @@ export async function listGoals(db: WalletDB): Promise<Goal[]> {
   return (await db.goals.toArray()).filter((g) => g.deletedAt === null);
 }
 
+// SPEC §6.8: estimate when a goal will be reached from the observed saving rate.
+// Rate = net surplus (income - expenses) since the goal started, averaged per month.
+// If recurring incomes exist, they are added on top (they may not have been materialized yet).
+export async function estimateGoalCompletion(db: WalletDB, goal: Goal): Promise<{ months: number | null; date: string | null }> {
+  if (goal.currentCents >= goal.targetCents) return { months: 0, date: new Date().toISOString().slice(0, 10) };
+
+  const today = new Date().toISOString().slice(0, 10);
+  const txs = (await db.transactions.toArray()).filter((t) => t.deletedAt === null && t.date >= goal.startDate && t.date <= today);
+
+  let income = 0;
+  let expense = 0;
+  for (const tx of txs) {
+    if (tx.type === 'income') income += tx.amountCents;
+    else expense += tx.amountCents;
+  }
+
+  // Months elapsed since the goal started (at least 1 to avoid divide-by-zero).
+  const startY = Number(goal.startDate.slice(0, 4));
+  const startM = Number(goal.startDate.slice(5, 7));
+  const nowY = Number(today.slice(0, 4));
+  const nowM = Number(today.slice(5, 7));
+  const elapsedMonths = Math.max(1, (nowY - startY) * 12 + (nowM - startM) + 1);
+
+  let monthlyRate = (income - expense) / elapsedMonths;
+
+  // Add recurring incomes that are still pending expansion.
+  const recs = (await db.recurrings.toArray()).filter((r) => r.deletedAt === null && r.type === 'income');
+  for (const r of recs) {
+    if (r.frequency === 'monthly') monthlyRate += r.amountCents;
+    else if (r.frequency === 'weekly') monthlyRate += Math.round(r.amountCents * 52 / 12);
+    else if (r.frequency === 'yearly') monthlyRate += Math.round(r.amountCents / 12);
+  }
+
+  if (monthlyRate <= 0) return { months: null, date: null };
+
+  const remaining = goal.targetCents - goal.currentCents;
+  const months = Math.ceil(remaining / monthlyRate);
+  return { months, date: addMonths(today, months) };
+}
+
 // ---- Recorrentes (SPEC §6.9) ----
 // Timezone-safe: 'YYYY-MM-DD' is treated as a plain calendar date (no UTC shift).
 function addMonths(dateISO: string, months: number): string {

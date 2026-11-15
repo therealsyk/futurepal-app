@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
 import type { Category, Goal, Recurring, Group } from '../db/database';
 import { newId } from '../db/database';
-import { addGoal, contributeToGoal, listGoals, addRecurring, expandRecurring, addGroup, listGroups } from '../core/finance';
+import { addGoal, contributeToGoal, listGoals, estimateGoalCompletion, addRecurring, expandRecurring, addGroup, listGroups } from '../core/finance';
 import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
 import { PageTitle } from './index';
@@ -17,9 +17,14 @@ export function Goals() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [cats, setCats] = useState<Category[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [estimates, setEstimates] = useState<Record<string, { months: number | null; date: string | null }>>({});
 
   const refresh = async () => {
-    setGoals(await listGoals(db));
+    const gs = await listGoals(db);
+    setGoals(gs);
+    const est: Record<string, { months: number | null; date: string | null }> = {};
+    for (const g of gs) est[g.id] = await estimateGoalCompletion(db, g);
+    setEstimates(est);
     setRecurrings(await db.recurrings.filter((r) => r.deletedAt === null).toArray());
     setGroups(await listGroups(db));
     setCats(await db.categories.filter((c) => c.deletedAt === null).toArray());
@@ -110,6 +115,13 @@ export function Goals() {
                 <span>{formatMoney(g.currentCents, settings.currency, settings.language)} / {formatMoney(g.targetCents, settings.currency, settings.language)}</span>
               </div>
               <ProgressBar value={pct} max={100} />
+              {estimates[g.id] && (
+                <p>
+                  {estimates[g.id].months === null
+                    ? t('goals.estimateNone')
+                    : `${t('goals.estimateLabel')} ${estimates[g.id].months} · ${t('goals.estimateDate')}: ${estimates[g.id].date}`}
+                </p>
+              )}
               <div className="budget-row-form">
                 <input id={`goal-contribute-${g.id}`} type="text" placeholder={t('goals.amount')} />
                 <Button label={t('goals.contribute')} onClick={() => contribute(g.id)} />

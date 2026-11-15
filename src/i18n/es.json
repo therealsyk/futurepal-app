@@ -55,6 +55,8 @@
     "vsLastMonth": "vs. mes anterior",
     "noComparison": "Sin mes anterior para comparar",
     "noBase": "Aún no hay base de ingresos",
+    "upcomingRecurring": "Movimientos recurrentes previstos",
+    "noUpcoming": "No hay movimientos recurrentes previstos.",
     "yearly": "Anual",
     "allCategories": "Todas las categorías",
     "recentTransactions": "Transacciones recientes",
@@ -150,6 +152,7 @@
     "yearTotal": "Total del año",
     "dayPanel": "Gastos del día",
     "noExpenses": "Sin gastos en este día.",
+    "recurringUpcoming": "Recurrente próxima",
     "monthNames": [
       "Enero",
       "Febrero",
@@ -247,6 +250,9 @@
     "groupsTitle": "Grupos",
     "addGroup": "Nuevo grupo",
     "groupName": "Nombre del grupo",
-    "noGroups": "Aún no hay grupos."
+    "noGroups": "Aún no hay grupos.",
+    "estimateLabel": "Estimación: faltan",
+    "estimateDate": "finalización prevista",
+    "estimateNone": "No se observó ahorro neto — no se puede estimar la finalización."
   }
 }

@@ -30,6 +30,7 @@ import {
   addGoal,
   contributeToGoal,
   listGoals,
+  estimateGoalCompletion,
   addRecurring,
   expandRecurring,
   addGroup,
@@ -537,5 +538,86 @@ describe('dailyExpenseTotals (Phase 5 calendar)', () => {
     const r2 = await dailyExpenseTotals(db, 2026, 11, 'EUR');
     expect(r2.byDay[13]).toBeUndefined();
     expect(r2.unconverted).toBe(1);
+  });
+});
+
+describe('Goal completion estimate (SPEC §6.8)', () => {
+  it('estimates months remaining from observed net savings', async () => {
+    const cat = await makeCategory('Salaries');
+    await addTransaction(db, { type: 'income', amountCents: 100000, date: '2026-09-05', currency: 'EUR', categoryId: cat.id, description: 'salary' });
+    const goal = await addGoal(db, 'Trip', 300000, '2026-01-01');
+    const est = await estimateGoalCompletion(db, goal);
+    expect(est.months).not.toBeNull();
+    expect(est.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(est.months!).toBeGreaterThan(1);
+  });
+
+  it('returns null when there is no net savings', async () => {
+    const cat = await makeCategory('General');
+    await addTransaction(db, { type: 'expense', amountCents: 50000, date: '2026-09-05', currency: 'EUR', categoryId: cat.id, description: 'rent' });
+    const goal = await addGoal(db, 'No savings', 100000, '2026-01-01');
+    const est = await estimateGoalCompletion(db, goal);
+    expect(est.months).toBeNull();
+    expect(est.date).toBeNull();
+  });
+
+  it('adds pending monthly recurring income to the rate', async () => {
+    const goal = await addGoal(db, 'With recurring', 240000, '2026-10-01');
+    const cat = await makeCategory('Allowance');
+    await addRecurring(db, { type: 'income', categoryId: cat.id, description: 'Allowance', amountCents: 20000, currency: 'EUR', frequency: 'monthly', nextDate: '2026-11-01' });
+    const est = await estimateGoalCompletion(db, goal);
+    // today is 2026-11-15 -> elapsed 2 months, no materialized txs; rate = 200/month
+    // remaining 240000 / 20000 = 12 months
+    expect(est.months).toBe(12);
+  });
+
+  it('already-finished goals complete now', async () => {
+    const goal = await addGoal(db, 'Done', 10000, '2026-01-01');
+    const updated = await contributeToGoal(db, goal.id, 10000);
+    const est = await estimateGoalCompletion(db, updated);
+    expect(est.months).toBe(0);
+    expect(est.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+describe('Recurring expansion (SPEC §6.9)', () => {
+  const rent = (db: WalletDB, cat: Category) => addRecurring(db, { type: 'expense', categoryId: cat.id, description: 'Rent', amountCents: 80000, currency: 'EUR', frequency: 'monthly', nextDate: '2026-09-01' });
+
+  it('expands a monthly recurring into transactions up to today', async () => {
+    const cat = await makeCategory('Rent');
+    await rent(db, cat);
+    const created = await expandRecurring(db, '2026-11-30');
+    expect(created.length).toBe(3); // Sep 1, Oct 1, Nov 1
+    expect(created[0].date).toBe('2026-09-01');
+    expect(created[0].amountCents).toBe(80000);
+  });
+
+  it('does not expand beyond endDate', async () => {
+    const cat = await makeCategory('Temp');
+    await addRecurring(db, { type: 'income', categoryId: cat.id, description: 'Temp', amountCents: 10000, currency: 'EUR', frequency: 'monthly', nextDate: '2026-10-01', endDate: '2026-11-01' });
+    const created = await expandRecurring(db, '2026-12-31');
+    expect(created.length).toBe(2); // Oct 1 and Nov 1 only
+  });
+
+  it('advances nextDate so a second expansion adds nothing', async () => {
+    const cat = await makeCategory('Rent2');
+    await addRecurring(db, { type: 'expense', categoryId: cat.id, description: 'Rent2', amountCents: 80000, currency: 'EUR', frequency: 'monthly', nextDate: '2026-11-01' });
+    const first = await expandRecurring(db, '2026-11-30');
+    expect(first.length).toBe(1);
+    // Simulate materialization: insert the returned txs and update nextDate as pages do.
+    for (const t of first) await db.transactions.add(stampNew<Transaction>(t));
+    const rec = (await db.recurrings.toArray())[0];
+    await db.recurrings.update(rec.id, { nextDate: '2026-12-01' });
+    const second = await expandRecurring(db, '2026-11-30');
+    expect(second.length).toBe(0);
+  });
+
+  it('weekly frequency advances by 7 days', async () => {
+    const cat = await makeCategory('Bus');
+    await addRecurring(db, { type: 'expense', categoryId: cat.id, description: 'Bus pass', amountCents: 2000, currency: 'EUR', frequency: 'weekly', nextDate: '2026-11-03' });
+    const created = await expandRecurring(db, '2026-11-15');
+    expect(created.length).toBe(2); // Nov 3 and Nov 10
+    const dates = created.map((t) => t.date);
+    expect(dates[1]).toBe('2026-11-10');
   });
 });

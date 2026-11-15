@@ -55,6 +55,8 @@
     "vsLastMonth": "vs. mois précédent",
     "noComparison": "Pas de mois précédent à comparer",
     "noBase": "Pas encore de base de revenus",
+    "upcomingRecurring": "Mouvements récurrents à venir",
+    "noUpcoming": "Aucun mouvement récurrent à venir.",
     "yearly": "Annuel",
     "allCategories": "Toutes les catégories",
     "recentTransactions": "Transactions récentes",
@@ -150,6 +152,7 @@
     "yearTotal": "Total de l'année",
     "dayPanel": "Dépenses du jour",
     "noExpenses": "Aucune dépense ce jour.",
+    "recurringUpcoming": "Récurrent à venir",
     "monthNames": [
       "Janvier",
       "Février",
@@ -247,6 +250,9 @@
     "groupsTitle": "Groupes",
     "addGroup": "Nouveau groupe",
     "groupName": "Nom du groupe",
-    "noGroups": "Aucun groupe pour le moment."
+    "noGroups": "Aucun groupe pour le moment.",
+    "estimateLabel": "Estimation : il reste",
+    "estimateDate": "fin prévue",
+    "estimateNone": "Aucune épargne nette observée — fin impossible à estimer."
   }
 }

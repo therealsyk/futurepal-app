@@ -12,7 +12,7 @@ import { Salaries } from './Salaries';
 import { Budgets } from './Budgets';
 import { Goals } from './Goals';
 import { LineChart } from '../ui/components';
-import { dailyExpenseTotals, buildCalendarGrid, weekdayLabels } from '../core/finance';
+import { dailyExpenseTotals, buildCalendarGrid, weekdayLabels, expandRecurring } from '../core/finance';
 import { format } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
 import { pt } from 'date-fns/locale/pt';
@@ -62,9 +62,21 @@ export function Panel() {
   const [calTotals, setCalTotals] = useState<Record<number, number> | null>(null);
   const [calUnconverted, setCalUnconverted] = useState<number>(0);
   const [calError, setCalError] = useState<string | null>(null);
+  // SPEC §6.9: upcoming recurring entries (next 3 months), shown in the Panel.
+  const [upcoming, setUpcoming] = useState<{ date: string; description: string; amountCents: number }[]>([]);
 
   useEffect(() => {
     setSettings(loadSettings());
+    const today = new Date();
+    const until = new Date(today.getFullYear() + (today.getMonth() > 9 ? 1 : 0), (today.getMonth() + 3) % 12, today.getDate())
+      .toISOString().slice(0, 10);
+    expandRecurring(db, until)
+      .then((items) => {
+        const todayStr = today.toISOString().slice(0, 10);
+        setUpcoming(items.filter((r) => r.date > todayStr).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 8));
+      })
+      .catch(() => setUpcoming([]));
+  }, []);
     db.transactions.toArray().then((rows) => setTxs(rows.filter((r) => r.deletedAt === null)));
     db.categories.toArray().then((rows) => setCats(rows.filter((r) => r.deletedAt === null).map((r) => ({ id: r.id, name: r.name, nameKey: r.nameKey }))));
     db.budgets.toArray().then((rows) => setBudgets(rows.filter((r) => r.deletedAt === null)));
@@ -344,6 +356,23 @@ export function Panel() {
                 ))}
               </div>
             </>
+          )}
+        </article>
+
+        <article className="glass-card kpi kpi-upcoming">
+          <header className="card-head"><span className="icon-sq">{svgIcon("M12 3a9 9 0 1 0 9 9 M12 3v9l6-4")}</span><h2>{t('panel.upcomingRecurring')}</h2></header>
+          {upcoming.length === 0 ? (
+            <div className="kpi-bar kpi-bar-neutral"><span className="kpi-bar-note">{t('panel.noUpcoming')}</span></div>
+          ) : (
+            <ul className="upcoming-list">
+              {upcoming.map((r, i) => (
+                <li key={`${r.date}-${i}`}>
+                  <span className="upcoming-date">{format(new Date(r.date), 'MMM d', { locale: dateLocale(settings.language) })}</span>
+                  <span className="upcoming-desc">{r.description}</span>
+                  <span className="upcoming-amount">{formatMoney(r.amountCents, settings.currency, settings.language)}</span>
+                </li>
+              ))}
+            </ul>
           )}
         </article>
       </section>
