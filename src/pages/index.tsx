@@ -160,16 +160,14 @@ export function Panel() {
               </select>
             </div>
           </header>
-          {filteredChart.length === 0 ? (
-            <p className="muted">{t('panel.noData')}</p>
-          ) : (
-            <LineChart
-              rows={filteredChart}
-              currency={settings.currency}
-              language={settings.language}
-              incomeLabel={t('panel.income')}
-            />
-          )}
+          <LineChart
+            rows={filteredChart}
+            currency={settings.currency}
+            language={settings.language}
+            incomeLabel={t('panel.income')}
+            expenseLabel={t('panel.expenses')}
+            emptyLabel={t('panel.noData')}
+          />
         </article>
 
         <article className="glass-card card-recent">
@@ -228,19 +226,39 @@ export function Panel() {
         <article className="glass-card kpi kpi-savings">
           <header className="card-head"><span className="icon-sq">{svgIcon("M12 2v20 M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6")}</span><h2>{t('panel.savings')}</h2></header>
           <div className="kpi-value">{formatMoney(saved, settings.currency, settings.language)}</div>
-          <div className={`delta ${saved >= lastSaved ? 'up' : 'down'}`}>
-            {pctDelta(saved, lastSaved)}% {t('panel.vsLastMonth')}
-          </div>
-          <div className="kpi-bar"><span className="kpi-bar-fill" style={{ width: savingsPct + '%' }} /></div>
+          {lastSaved !== 0 && saved !== lastSaved ? (
+            <div className={`delta ${saved > lastSaved ? 'up' : 'down'}`}>
+              {Math.abs(pctDelta(saved, lastSaved))}% {t('panel.vsLastMonth')}
+            </div>
+          ) : (
+            <div className="delta delta-none">{t('panel.noComparison')}</div>
+          )}
+          {income > 0 ? (
+            <div className="kpi-bar" role="progressbar" aria-valuenow={savingsPct} aria-valuemin={0} aria-valuemax={100}>
+              <span className="kpi-bar-fill" style={{ width: savingsPct + '%' }} />
+            </div>
+          ) : (
+            <div className="kpi-bar kpi-bar-neutral"><span className="kpi-bar-note">{t('panel.noBase')}</span></div>
+          )}
         </article>
 
         <article className="glass-card kpi kpi-expenses">
           <header className="card-head"><span className="icon-sq">{svgIcon("M3 3v18h18 M7 14l4-4 3 3 5-6")}</span><h2>{t('panel.expenses')}</h2></header>
           <div className="kpi-value">{formatMoney(spent, settings.currency, settings.language)}</div>
-          <div className={`delta ${spent <= lastSpent ? 'up' : 'down'}`}>
-            {pctDelta(spent, lastSpent)}% {t('panel.vsLastMonth')}
-          </div>
-          <div className="kpi-bar"><span className="kpi-bar-fill" style={{ width: expensePct + '%' }} /></div>
+          {lastSpent !== 0 && spent !== lastSpent ? (
+            <div className={`delta ${spent > lastSpent ? 'up' : 'down'}`}>
+              {Math.abs(pctDelta(spent, lastSpent))}% {t('panel.vsLastMonth')}
+            </div>
+          ) : (
+            <div className="delta delta-none">{t('panel.noComparison')}</div>
+          )}
+          {income > 0 ? (
+            <div className="kpi-bar" role="progressbar" aria-valuenow={expensePct} aria-valuemin={0} aria-valuemax={100}>
+              <span className="kpi-bar-fill" style={{ width: expensePct + '%' }} />
+            </div>
+          ) : (
+            <div className="kpi-bar kpi-bar-neutral"><span className="kpi-bar-note">{t('panel.noBase')}</span></div>
+          )}
         </article>
 
 

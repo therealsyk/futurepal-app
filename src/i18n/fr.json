@@ -52,6 +52,8 @@
     "budgetUsage": "Utilisation du budget",
     "expenses": "Dépenses",
     "vsLastMonth": "vs. mois précédent",
+    "noComparison": "Pas de mois précédent à comparer",
+    "noBase": "Pas encore de base de revenus",
     "yearly": "Annuel",
     "allCategories": "Toutes les catégories",
     "recentTransactions": "Transactions récentes",

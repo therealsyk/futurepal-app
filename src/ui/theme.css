@@ -192,8 +192,11 @@ body {
 .dash-grid .card-budget     { grid-area: budget;   margin-bottom: 0; min-width: 0; }
 .dash-grid .kpi-col         { display: flex; flex-direction: column; gap: 22px; margin-bottom: 0; }
 .dash-grid .card-calendar   { margin-bottom: 0; min-width: 0; }
-.kpi-bar { margin-top: 10px; height: 6px; border-radius: 6px; background: var(--card-2); overflow: hidden; }
-.kpi-bar-fill { display: block; height: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--accent), var(--green)); }
+.kpi-bar { margin-top: 12px; height: 8px; border-radius: 999px; background: var(--card-2); overflow: hidden; }
+.kpi-bar-fill { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--green)); }
+/* Neutral bar when there is no valid base to represent progress against */
+.kpi-bar-neutral { display: flex; align-items: center; justify-content: center; height: 8px; border-radius: 999px; background: var(--card-2); border: 1px dashed var(--border); }
+.kpi-bar-note { font-size: 11px; color: var(--muted); }
 
 /* ── Income analysis chart ───────────────────────────────── */
 .chart-controls { display: flex; gap: 8px; margin-left: auto; }
@@ -251,6 +254,22 @@ html[data-theme="light"] .chart-tip { background: rgba(255, 255, 255, 0.85); }
 .kpi-delta { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
 .kpi-delta.up { color: var(--green); }
 .kpi-delta.down { color: var(--red); }
+
+/* Savings / Expenses accent surfaces */
+.kpi-savings { border-color: rgba(74, 168, 255, 0.28); }
+.kpi-savings .icon-sq { background: rgba(74, 168, 255, 0.14); color: var(--blue); }
+.kpi-savings .kpi-bar-fill { background: linear-gradient(90deg, var(--blue), #7cc4ff); }
+.kpi-expenses { border-color: rgba(160, 120, 255, 0.28); }
+.kpi-expenses .icon-sq { background: rgba(160, 120, 255, 0.14); color: var(--accent-2); }
+.kpi-expenses .kpi-bar-fill { background: linear-gradient(90deg, var(--accent), #c3a8ff); }
+
+.delta { font-size: 12px; margin-top: 6px; color: var(--muted); }
+.delta.up { color: var(--green); }
+.delta.down { color: var(--red); }
+.delta-none { color: var(--muted); font-style: italic; }
+
+/* Chart empty state (keeps height + grid) */
+.chart-empty { text-align: center; color: var(--muted); font-size: 13px; margin: 8px 0 4px; }
 
 .progress { height: 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.10); overflow: hidden; margin-top: 10px; }
 html[data-theme="light"] .progress { background: rgba(30, 40, 60, 0.10); }

@@ -60,14 +60,33 @@ function smoothPath(points: [number, number][]) {
   return d;
 }
 
-export function LineChart({ rows, currency, language, incomeLabel = 'Income' }: {
+export function LineChart({ rows, currency, language, incomeLabel = 'Income', expenseLabel = 'Expenses', emptyLabel }: {
   rows: { label: string; income: number; expense: number }[];
   currency: string;
   language: string;
   incomeLabel?: string;
+  expenseLabel?: string;
+  emptyLabel?: string;
 }) {
   const [hover, setHover] = useState<number | null>(null);
   const W = 640, H = 260, PAD_X = 14, TOP = 26, BOTTOM = 34;
+
+  // Empty state: keep the chart's height and composition (subtle gridlines +
+  // baseline) with a legible centered message. Do not collapse to one line.
+  if (rows.length === 0) {
+    return (
+      <div className="line-chart-wrap">
+        <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={240} role="img" aria-label="Income chart, no data">
+          {[0.25, 0.5, 0.75].map((f) => (
+            <line key={f} x1={PAD_X} y1={BOTTOM + f * (H - TOP - BOTTOM)} x2={W - PAD_X} y2={BOTTOM + f * (H - TOP - BOTTOM)} stroke="var(--border)" strokeWidth="1"/>
+          ))}
+          <line x1={PAD_X} y1={BOTTOM} x2={W - PAD_X} y2={BOTTOM} stroke="var(--border-strong, var(--border))" strokeWidth="1.25"/>
+        </svg>
+        <p className="chart-empty">{emptyLabel || 'No data yet'}</p>
+      </div>
+    );
+  }
+
   const maxVal = Math.max(...rows.map((r) => Math.max(r.income, r.expense)), 1);
   const x = (i: number) =>
     rows.length === 1 ? W / 2 : PAD_X + i * ((W - PAD_X * 2) / (rows.length - 1));
@@ -115,6 +134,9 @@ export function LineChart({ rows, currency, language, incomeLabel = 'Income' }: 
                 <span className="tip-label">{rows[hover].label}</span>
                 <p><i className="dot pink"/> {incomeLabel}</p>
                 <strong>{formatMoney(rows[hover].income, currency, language)}</strong>
+                {rows[hover].expense > 0 && (
+                  <p><i className="dot blue"/> {expenseLabel}</p>
+                )}
                 {hover > 0 && rows[hover - 1].income > 0 && (
                   <em className={`delta ${rows[hover].income >= rows[hover - 1].income ? 'up' : 'down'}`}>
                     {pctDelta(rows[hover].income, rows[hover - 1].income)}%
