@@ -11,6 +11,7 @@ import { Calendar } from './Calendar';
 import { Salaries } from './Salaries';
 import { Budgets } from './Budgets';
 import { Goals } from './Goals';
+import { LineChart } from '../ui/components';
 
 
 
@@ -106,8 +107,6 @@ export function Panel() {
         }));
       })();
 
-  const maxVal = Math.max(1, ...filteredChart.map((r) => Math.max(r.income, r.expense)));
-
   // ── Budget usage ──
 
   let budgetUsed = 0;
@@ -162,7 +161,7 @@ export function Panel() {
       </section>
 
       {/* ── Income analysis chart ── */}
-      <article className="glass-card analysis">
+      <article className="glass-card card-analysis">
         <header className="card-head">
           <span className="icon-sq">💚</span>
           <h2>{t('panel.incomeAnalysis')}</h2>
@@ -179,16 +178,16 @@ export function Panel() {
             </select>
           </div>
         </header>
-        <div className="chart-bars">
-          {filteredChart.length === 0 && <p className="muted">{t('panel.noData')}</p>}
-          {filteredChart.map((r) => (
-            <div className="bar-group" key={r.label}>
-              <div className="bar bar-income" style={{ height: `${(r.income / maxVal) * 100}%` }} title={`Income ${formatMoney(r.income, settings.currency, settings.language)}`} />
-              <div className="bar bar-expense" style={{ height: `${(r.expense / maxVal) * 100}%` }} title={`Expense ${formatMoney(r.expense, settings.currency, settings.language)}`} />
-              <span className="bar-label">{r.label}</span>
-            </div>
-          ))}
-        </div>
+        {filteredChart.length === 0 ? (
+          <p className="muted">{t('panel.noData')}</p>
+        ) : (
+          <LineChart
+            rows={filteredChart}
+            currency={settings.currency}
+            language={settings.language}
+            incomeLabel={t('panel.income')}
+          />
+        )}
       </article>
 
       {/* ── Recent transactions ── */}

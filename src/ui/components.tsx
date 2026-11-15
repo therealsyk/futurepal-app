@@ -1,6 +1,13 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { formatMoney } from '../core/money';
+
+// Percent change helper for the chart tooltip (integer-safe, rounds to 1 decimal).
+function pctDelta(now: number, prev: number): number {
+  if (!prev) return 0;
+  return Math.round(((now - prev) / prev) * 1000) / 10;
+}
 
 export function Card({ title, children }: { title?: string; children: ReactNode }) {
   return (
@@ -38,6 +45,100 @@ export function CategoryRow({ name, left }: { name: string; left: string }) {
     <div className="category-row">
       <span className="category-name">{name}</span>
       <span className="category-left">{left}</span>
+    </div>
+  );
+}
+
+function smoothPath(points: [number, number][]) {
+  if (!points.length) return '';
+  let d = `M ${points[0][0]} ${points[0][1]}`;
+  for (let i = 1; i < points.length; i++) {
+    const [x0, y0] = points[i - 1], [x1, y1] = points[i];
+    const cx = (x0 + x1) / 2;
+    d += ` C ${cx} ${y0}, ${cx} ${y1}, ${x1} ${y1}`;
+  }
+  return d;
+}
+
+export function LineChart({ rows, currency, language, incomeLabel = 'Income' }: {
+  rows: { label: string; income: number; expense: number }[];
+  currency: string;
+  language: string;
+  incomeLabel?: string;
+}) {
+  const [hover, setHover] = useState<number | null>(null);
+  const W = 640, H = 260, PAD_X = 14, TOP = 26, BOTTOM = 34;
+  const maxVal = Math.max(...rows.map((r) => Math.max(r.income, r.expense)), 1);
+  const x = (i: number) =>
+    rows.length === 1 ? W / 2 : PAD_X + i * ((W - PAD_X * 2) / (rows.length - 1));
+  const y = (v: number) => BOTTOM + (1 - v / maxVal) * (H - TOP - BOTTOM);
+  const incomePts = rows.map((r, i) => [x(i), y(r.income)] as [number, number]);
+  const expensePts = rows.map((r, i) => [x(i), y(r.expense)] as [number, number]);
+  const incomePath = smoothPath(incomePts);
+  const expensePath = smoothPath(expensePts);
+  const hatchArea = rows.length > 1
+    ? `${incomePath} L ${x(rows.length - 1)} ${H - BOTTOM} L ${x(0)} ${H - BOTTOM} Z`
+    : '';
+
+  return (
+    <div className="line-chart-wrap">
+      <svg viewBox={`0 0 ${W} ${H}`} className="line-chart" role="img">
+        <defs>
+          <pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse"
+                   patternTransform="rotate(-45)">
+            <line x1="0" y1="0" x2="0" y2="8" stroke="#ec6a8f" strokeWidth="1.5" opacity=".3"/>
+          </pattern>
+        </defs>
+
+        {/* gridlines */}
+        {[0.25, 0.5, 0.75, 1].map((f) => (
+          <line key={f} x1={PAD_X} y1={y(maxVal * f)} x2={W - PAD_X} y2={y(maxVal * f)}
+                stroke="rgba(148,163,199,.10)" strokeWidth="1"/>
+        ))}
+
+        {/* hatched area under the income curve */}
+        {hatchArea && <path d={hatchArea} fill="url(#hatch)"/>}
+
+        {/* smooth curves: expense (blue), income (pink) */}
+        <path d={expensePath} fill="none" stroke="#4aa8ff" strokeWidth="2.5" opacity=".9"/>
+        <path d={incomePath} fill="none" stroke="#ec6a8f" strokeWidth="2.5"/>
+
+        {/* hover point + tooltip */}
+        {hover !== null && (
+          <g>
+            <line x1={x(hover)} y1={TOP - 8} x2={x(hover)} y2={H - BOTTOM + 6}
+                  stroke="rgba(255,255,255,.3)" strokeDasharray="4 4"/>
+            <circle cx={x(hover)} cy={y(rows[hover].income)} r={5} fill="#ec6a8f"
+                    stroke="#fff" strokeWidth="1.5"/>
+            <foreignObject x={Math.min(Math.max(x(hover) - 95, 4), W - 194)} y={20} width={190} height={120}>
+              <div className="chart-tip">
+                <span className="tip-label">{rows[hover].label}</span>
+                <p><i className="dot pink"/> {incomeLabel}</p>
+                <strong>{formatMoney(rows[hover].income, currency, language)}</strong>
+                {hover > 0 && rows[hover - 1].income > 0 && (
+                  <em className={`delta ${rows[hover].income >= rows[hover - 1].income ? 'up' : 'down'}`}>
+                    {pctDelta(rows[hover].income, rows[hover - 1].income)}%
+                  </em>
+                )}
+              </div>
+            </foreignObject>
+          </g>
+        )}
+
+        {/* invisible hover targets per data point */}
+        {rows.map((r, i) => (
+          <rect key={r.label} x={x(i) - (W - PAD_X * 2) / (2 * Math.max(rows.length - 1, 1))}
+                y={0} width={(W - PAD_X * 2) / Math.max(rows.length - 1, 1)} height={H}
+                fill="transparent"
+                onMouseEnter={() => setHover(i)}
+                onMouseLeave={() => setHover(null)}/>
+        ))}
+      </svg>
+      <div className="chart-xlabels">
+        {rows.map((r, i) => (
+          <span key={r.label} className={hover === i ? 'active' : ''}>{r.label}</span>
+        ))}
+      </div>
     </div>
   );
 }

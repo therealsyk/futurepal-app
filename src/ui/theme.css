@@ -182,16 +182,39 @@ body {
 .chart-legend { display: flex; gap: 14px; margin-bottom: 8px; font-size: 12.5px; color: var(--muted); }
 .legend-dot { width: 9px; height: 9px; border-radius: 3px; display: inline-block; margin-right: 6px; }
 
-.line-chart { width: 100%; height: 220px; display: block; }
-.line-area { opacity: 0.28; }          /* translucent fill like the photo */
-.line-stroke { stroke-width: 2.5; }
+.line-chart-wrap { position: relative; }
+.line-chart { width: 100%; height: 240px; display: block; }
+
+/* dot-grid texture inside the analysis card ("technological" feel) */
+.card-analysis {
+  background-image: radial-gradient(rgba(148, 163, 199, 0.07) 1px, transparent 1px);
+  background-size: 14px 14px;
+}
+
+.chart-xlabels {
+  display: flex; justify-content: space-between; gap: 6px;
+  margin-top: 6px; font-size: 11.5px; color: var(--muted);
+}
+.chart-xlabels span.active { color: var(--text); font-weight: 600; }
 
 .chart-tip {
-  position: absolute; pointer-events: none;
-  background: var(--card-2); border: 1px solid var(--border);
-  border-radius: 12px; padding: 8px 12px; font-size: 12px;
-  box-shadow: var(--shadow);
+  background: rgba(24, 29, 43, 0.82);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  border-radius: 12px; padding: 10px 14px; font-size: 12px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
 }
+html[data-theme="light"] .chart-tip { background: rgba(255, 255, 255, 0.85); }
+.chart-tip .tip-label { color: var(--muted); font-size: 11px; display: block; margin-bottom: 4px; }
+.chart-tip strong { font-size: 19px; display: block; margin-top: 2px; }
+.chart-tip .delta { font-size: 11.5px; font-style: normal; }
+.chart-tip .delta.up { color: var(--green); }
+.chart-tip .delta.down { color: var(--red); }
+
+/* legend / tooltip dots */
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+.dot.pink { background: var(--pink); }
+.dot.blue { background: #4aa8ff; }
 
 /* ── KPI cards (right column) ────────────────────────────── */
 .kpi { margin-bottom: 0; }
@@ -278,4 +301,18 @@ button { cursor: pointer; }
 @media (max-width: 900px) {
   .dash-grid { grid-template-columns: 1fr; grid-template-areas: "analysis" "kpi" "recent" "budget" "calendar"; }
   .topbar { flex-wrap: wrap; }
+}
+
+/* ── Full-window desktop (1920x1080) ─────────────────────── */
+@media (min-width: 1280px) {
+  .content { padding: 22px 30px 34px; }
+  .dash-grid {
+    grid-template-columns: minmax(520px, 2.2fr) minmax(320px, 1.2fr) minmax(300px, 1fr);
+    grid-template-areas:
+      "analysis analysis kpi"
+      "recent   budget   calendar";
+  }
+  .dash-grid .card-analysis { grid-area: analysis; }
+  .line-chart-wrap { height: 260px; }
+  .topbar { padding: 16px 30px; }
 }

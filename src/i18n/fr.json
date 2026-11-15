@@ -56,7 +56,9 @@
     "allCategories": "Toutes les catégories",
     "recentTransactions": "Transactions récentes",
     "manageBudgets": "Gérer les budgets",
-    "dailySpend": "Dépenses par jour"
+    "dailySpend": "Dépenses par jour",
+    "myWallet": "Mon portefeuille",
+    "noData": "Aucune donnée"
   },
   "transactions": {
     "title": "Transactions",
@@ -137,7 +139,20 @@
     "yearTotal": "Total de l'année",
     "dayPanel": "Dépenses du jour",
     "noExpenses": "Aucune dépense ce jour.",
-    "monthNames": ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
+    "monthNames": [
+      "Janvier",
+      "Février",
+      "Mars",
+      "Avril",
+      "Mai",
+      "Juin",
+      "Juillet",
+      "Août",
+      "Septembre",
+      "Octobre",
+      "Novembre",
+      "Décembre"
+    ]
   },
   "salaries": {
     "title": "Salaires",
