@@ -382,4 +382,6 @@ export function Panel() {
   );
 }
 
-export { Transactions, Calendar, Salaries, Budgets, Goals };
+import { Dashboard } from './Dashboard';
+
+export { Dashboard, Transactions, Calendar, Salaries, Budgets, Goals };

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import TopBar from './ui/TopBar';
-import { Panel, Calendar, Transactions, Budgets, Goals, Salaries } from './pages';
+import { Dashboard, Calendar, Transactions, Budgets, Goals, Salaries } from './pages';
 import { Settings } from './pages/Settings';
 import { DemoPage } from './ui/components';
 import SetupWizard from './pages/SetupWizard';
@@ -25,7 +25,7 @@ export default function App() {
       <TopBar />
       <main className="app-main">
         <Routes>
-          <Route path="/" element={<Panel />} />
+          <Route path="/" element={<Dashboard />} />
           <Route path="/calendario" element={<Calendar />} />
           <Route path="/transacoes" element={<Transactions />} />
           <Route path="/orcamentos" element={<Budgets />} />

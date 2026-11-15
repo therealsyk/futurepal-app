@@ -24,15 +24,17 @@ src/ui/theme.css (design system), src/ui/Sidebar.tsx, src/ui/components.tsx, src
 * [~] Fase 4: Calendário (grid por dia com gasto + painel lateral) e Salários (grelha ano×mes + extras), SPEC §6.4/§6.5; testes core + browser
 * [ ] Fase 5: Orçamentos (barra de progresso), Metas, Recorrentes e Grupos, SPEC §6.7; testes core + browser
 * [x] Fase 6: Sync offline-first (src/core/sync.ts push/merge por updatedAt + supabase/schema.sql das 9 tabelas + botão "Sincronizar" na Definições). Verificar: tsc, vitest com fake-indexeddb (merge simulado), browser sem chaves brutas. Online só testado quando o Rafael colar URL/key no .env.
-* [~] Fase 7: (dashboard ALTURA): grid de janelas 2 colunas + cartao calendario mensal de despesas diarias no lugar do slot AI Assistant; verificar com vitest, build e screenshot do .exe
+* [x] Fase 7: (dashboard ALTURA): grid de janelas 2 colunas + cartao calendario mensal de despesas diarias no lugar do slot AI Assistant; verificar com vitest, build e screenshot do .exe
 
 ## Estado atual
 
-Concluidas (4/7): Fase 1, Fase 2, Fase 3, Fase 6.
+Concluidas (5/7): Fase 1, Fase 2, Fase 3, Fase 6, Fase 7.
 
-Em curso: Fase 4: Calendário (grid por dia com gasto + painel lateral) e Salários (grelha ano×mes + extras), SPEC §6.4/§6.5; testes core + browser; Fase 7: (dashboard ALTURA): grid de janelas 2 colunas + cartao calendario mensal de despesas diarias no lugar do slot AI Assistant; verificar com vitest, build e screenshot do .exe.
+Em curso: Fase 4: Calendário (grid por dia com gasto + painel lateral) e Salários (grelha ano×mes + extras), SPEC §6.4/§6.5; testes core + browser.
 
 Proxima: Fase 5: Orçamentos (barra de progresso), Metas, Recorrentes e Grupos, SPEC §6.7; testes core + browser.
+
+Ultima atualizacao (2026-11-15): Dashboard redesign (Altura-style): Phase 1 complete — Tailwind v4 installed/wired, build + 97 tests pass. Next: Phase 2 = write src/pages/Dashboard.tsx with all five sections; Phase 3 = wire route and rebuild exe for visual check.
 
 ## Historico
 
@@ -41,3 +43,4 @@ Proxima: Fase 5: Orçamentos (barra de progresso), Metas, Recorrentes e Grupos, 
 - 2026-11-14: Fase 2 concluida - Fase 2 concluida: Sidebar.tsx com iconees SVG lineares (stroke) em todos os itens e classe .active; theme.css com .sidebar-icon. tsc limpo, vitest 35 passed, build OK. UI verificada no browser: sidebar lateral com icones + destaque do item ativo, sem chaves brutas nas labels de navegacao.
 - 2026-11-14: Fase 3 concluida - Fase 3 concluida: Panel usa OverviewGrid (Income/Expenses/Balance) + CategoryRow com dados reais Dexie. tsc limpo, vitest 35 passed, build OK. UI verificada no browser: Painel mostra Rendimento/Total gasto/Poupanca formatados em EUR. Nota: panel.title ainda aparece como chave bruta (falta 'panel.title' nos JSON de traducoes).
 - 2026-11-14: Fase 6 concluida - Fase 6 concluída e verificada: sync.ts + 6 testes unitários (merge por updatedAt, local-first em empates); schema Supabase com 9 tabelas + RLS; botão "Sincronizar" na Definições (traduzido nos 5 idiomas). tsc limpo, 68 testes vitest verdes, UI vista no browser (/definicoes mostra estado local e botão desativado). Commit 40f9a4d. Falta testar online quando o Rafael fornecer URL/Anon key do Supabase.
+- 2026-11-15: Fase 7 concluida - Phase 1 done: Tailwind v4.3.5 installed and wired into vite.config.ts (@tailwindcss/vite) and theme.css (@import "tailwindcss"). Verified: vite build succeeds (Tailwind preflight + --tw-* vars present in dist CSS) and all 97 vitest tests pass. Leftover temp files (_cdp_check.py, navtest.js, build_out.txt) removed.
