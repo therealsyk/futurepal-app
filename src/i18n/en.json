@@ -49,7 +49,14 @@
     "aiHint": "How can I save more this month?",
     "recent": "Recent Transactions",
     "seeAll": "See all",
-    "budgetUsage": "Budget Usage"
+    "budgetUsage": "Budget Usage",
+    "expenses": "Expenses",
+    "vsLastMonth": "vs. last month",
+    "yearly": "Yearly",
+    "allCategories": "All categories",
+    "recentTransactions": "Recent Transactions",
+    "manageBudgets": "Manage budgets",
+    "dailySpend": "Daily spend"
   },
   "transactions": {
     "title": "Transactions",

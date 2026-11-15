@@ -31,7 +31,7 @@ export interface SettingsRow extends BaseRecord {
   mainCurrency: string;
   firstDayOfWeek: number; // 0-6 (0 = Sunday)
   dateFormat: 'DMY' | 'MDY' | 'YMD';
-  theme: 'dark' | 'light';
+  theme: 'dark' | 'light' | 'gray';
   setupDone: boolean;
   lastSync: string | null;
 }

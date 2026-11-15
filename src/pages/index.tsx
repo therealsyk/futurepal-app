@@ -1,232 +1,263 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
-import { monthlyTotals, totalsByCategory, type CategoryTotal } from '../core/finance';
+
 import { formatMoney } from '../core/money';
-import { loadSettings, localeForLanguage } from '../core/settings';
+import { loadSettings } from '../core/settings';
 import type { AppSettings } from '../core/settings';
+import type { Transaction, Budget } from '../db/database';
 import { Transactions } from './Transactions';
 import { Calendar } from './Calendar';
 import { Salaries } from './Salaries';
 import { Budgets } from './Budgets';
 import { Goals } from './Goals';
 
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 
 export function PageTitle({ titleKey }: { titleKey: string }) {
   const { t } = useTranslation();
   return <h1 className="page-title">{t(titleKey)}</h1>;
 }
 
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-  return name.slice(0, 2).toUpperCase() || '•';
-}
-
-// SVG area/line chart of income vs net savings across 12 months (photo-style).
-function IncomeChart({ months, t, settings }: { months: { income: number; expense: number }[]; t: (k: string) => string; settings: AppSettings }) {
-  const W = 640, H = 260, PAD = 34;
-  const maxVal = Math.max(1, ...months.flatMap((m) => [m.income, m.income - m.expense]));
-  const x = (i: number) => PAD + (i * (W - 2 * PAD)) / 11;
-  const y = (v: number) => H - PAD - (Math.max(0, v) / maxVal) * (H - 2 * PAD);
-
-  const linePath = (key: 'income' | 'net') =>
-    months.map((m, i) => `${i === 0 ? 'M' : 'L'} ${x(i)} ${y(key === 'income' ? m.income : m.income - m.expense)}`).join(' ');
-  const areaPath = (key: 'income' | 'net') => linePath(key) + ` L ${x(11)} ${H - PAD} L ${x(0)} ${H - PAD} Z`;
-
-  if (months.length === 0) return null;
-  const peakIdx = months.reduce((best, m, i) => (m.income > months[best].income ? i : best), 0);
-
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="line-chart" role="img" aria-label={t('panel.incomeAnalysis')}>
-      {[0, 0.25, 0.5, 0.75, 1].map((f) => {
-        const gy = H - PAD - f * (H - 2 * PAD);
-        return (
-          <g key={f}>
-            <line x1={PAD} y1={gy} x2={W - PAD} y2={gy} stroke="rgba(255,255,255,0.07)" />
-            <text x={PAD - 8} y={gy + 4} fontSize="10" fill="rgba(255,255,255,0.35)" textAnchor="end">
-              {Math.round((maxVal * f) / 100)}k
-            </text>
-          </g>
-        );
-      })}
-      <path d={areaPath('income')} fill="url(#gradIncome)" opacity="0.35" />
-      <path d={linePath('income')} fill="none" stroke="#4f9dff" strokeWidth="2.5" />
-      <path d={linePath('net')} fill="none" stroke="#e05aa0" strokeWidth="2.5" />
-      {months[peakIdx].income > 0 && (
-        <g>
-          <circle cx={x(peakIdx)} cy={y(months[peakIdx].income)} r="4" fill="#fff" opacity="0.9" />
-          <rect x={Math.min(W - PAD - 120, Math.max(PAD, x(peakIdx) - 60))} y={y(months[peakIdx].income) - 58} width="120" height="46" rx="10" fill="rgba(20,26,40,0.85)" stroke="rgba(255,255,255,0.12)" />
-          <text x={Math.min(W - PAD - 60, Math.max(PAD + 60, x(peakIdx)))} y={y(months[peakIdx].income) - 43} fontSize="10" fill="rgba(255,255,255,0.5)" textAnchor="middle">
-            {MONTH_NAMES[peakIdx]} {new Date().getFullYear()}
-          </text>
-          <text x={Math.min(W - PAD - 60, Math.max(PAD + 60, x(peakIdx)))} y={y(months[peakIdx].income) - 24} fontSize="15" fill="#fff" textAnchor="middle">
-            {formatMoney(months[peakIdx].income, settings.currency, settings.language)}
-          </text>
-        </g>
-      )}
-      <defs>
-        <linearGradient id="gradIncome" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#4f9dff" />
-          <stop offset="100%" stopColor="#e05aa0" />
-        </linearGradient>
-      </defs>
-      {months.map((_, i) => (
-        <text key={i} x={x(i)} y={H - 10} fontSize="10" fill="rgba(255,255,255,0.35)" textAnchor="middle">{MONTH_NAMES[i]}</text>
-      ))}
-    </svg>
-  );
-}
+type ChartMode = 'monthly' | 'yearly';
 
 export function Panel() {
   const { t } = useTranslation();
-  const [months, setMonths] = useState<{ income: number; expense: number }[]>([]);
-  const [cats, setCats] = useState<CategoryTotal[]>([]);
-  const [catColors, setCatColors] = useState<Map<string, string>>(new Map());
-  const [recent, setRecent] = useState<{ description: string; date: string; amountCents: number; type: 'expense' | 'income'; color: string }[]>([]);
-  const settings: AppSettings = loadSettings();
+  const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [txs, setTxs] = useState<Transaction[]>([]);
+  const [cats, setCats] = useState<{ id: string; name: string }[]>([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [mode, setMode] = useState<ChartMode>('monthly');
+  const [catFilter, setCatFilter] = useState<string>('all');
 
   useEffect(() => {
-    const year = new Date().getFullYear();
-    Promise.all([
-      monthlyTotals(db, year),
-      totalsByCategory(db, year, new Date().getMonth() + 1),
-      db.transactions.filter((tr) => tr.deletedAt === null).toArray(),
-      db.categories.toArray(),
-    ]).then(([mt, catTotals, txs, categories]) => {
-      setMonths(mt);
-      setCats(catTotals);
-      const colorOf = new Map(categories.filter((c) => c.deletedAt === null).map((c) => [c.id, c.color]));
-      setCatColors(colorOf);
-      setRecent(
-        txs.sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 5).map((tr) => ({
-          description: tr.description,
-          date: tr.date,
-          amountCents: tr.amountCents,
-          type: tr.type,
-          color: colorOf.get(tr.categoryId) ?? '#9CA3AF',
-        })),
-      );
-    });
+    setSettings(loadSettings());
+    db.transactions.toArray().then((rows) => setTxs(rows.filter((r) => r.deletedAt === null)));
+    db.categories.toArray().then((rows) => setCats(rows.filter((r) => r.deletedAt === null).map((r) => ({ id: r.id, name: r.name }))));
+    db.budgets.toArray().then((rows) => setBudgets(rows.filter((r) => r.deletedAt === null)));
   }, []);
 
-  const totalIncome = months.reduce((s, m) => s + m.income, 0);
-  const totalSpent = months.reduce((s, m) => s + m.expense, 0);
-  const savings = totalIncome - totalSpent;
-  const savingsPct = totalIncome > 0 ? Math.max(0, Math.min(100, Math.round((savings / totalIncome) * 100))) : 0;
-  const spentPct = totalIncome > 0 ? Math.max(0, Math.min(100, Math.round((totalSpent / totalIncome) * 100))) : 0;
-  const activeCats = cats.filter((c) => c.totalCents > 0).map((c) => ({ ...c, color: catColors.get(c.categoryId) ?? '#9CA3AF' }));
+  if (!settings) return <p className="muted">…</p>;
+
+  const now = new Date();
+  const thisMonth = now.toISOString().slice(0, 7);
+  const lastMonth = (() => {
+    const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return d.toISOString().slice(0, 7);
+  })();
+
+  const live = txs.filter((tx) => !isNaN(new Date(tx.date).getTime()));
+  const monthTx = live.filter((tx) => tx.date.slice(0, 7) === thisMonth);
+  const lastMonthTx = live.filter((tx) => tx.date.slice(0, 7) === lastMonth);
+
+  const sum = (rows: Transaction[], type: 'income' | 'expense') =>
+    rows.filter((tx) => tx.type === type).reduce((a, tx) => a + tx.amountCents, 0);
+
+  const income = sum(monthTx, 'income');
+  const spent = sum(monthTx, 'expense');
+  const saved = income - spent;
+  const lastIncome = sum(lastMonthTx, 'income');
+  const lastSpent = sum(lastMonthTx, 'expense');
+  const lastSaved = lastIncome - lastSpent;
+
+  const pctDelta = (cur: number, prev: number) => {
+    if (prev === 0) return cur > 0 ? 100 : 0;
+    return Math.round(((cur - prev) / Math.abs(prev)) * 100);
+  };
+
+  // ── Chart data ──
+  const yearlyTotals: { month: string; income: number; expense: number }[] = [];
+  for (const tx of live) {
+    const m = tx.date.slice(0, 7);
+    const row = yearlyTotals.find((r) => r.month === m) ?? { month: m, income: 0, expense: 0 };
+    if (tx.type === 'income') row.income += tx.amountCents; else row.expense += tx.amountCents;
+    if (!yearlyTotals.includes(row)) yearlyTotals.push(row);
+  }
+  const monthly = yearlyTotals.sort((a, b) => a.month.localeCompare(b.month));
+  const yearlyMap: Record<string, { income: number; expense: number }> = {};
+  for (const tx of live) {
+    const y = tx.date.slice(0, 4);
+    const row = yearlyMap[y] ?? { income: 0, expense: 0 };
+    if (tx.type === 'income') row.income += tx.amountCents; else row.expense += tx.amountCents;
+    yearlyMap[y] = row;
+  }
+  const years = Object.keys(yearlyMap).sort();
+
+  const chartRows = mode === 'monthly'
+    ? monthly.map((m) => ({ label: m.month.slice(5) + ' ' + m.month.slice(0, 4), income: m.income, expense: m.expense }))
+    : years.map((y) => ({ label: y, income: yearlyMap[y].income, expense: yearlyMap[y].expense }));
+
+  const filteredChart = catFilter === 'all'
+    ? chartRows
+    : (() => {
+        const catIds = new Set(cats.filter((c) => c.name.toLowerCase() === catFilter).map((c) => c.id));
+        const map: Record<string, { income: number; expense: number }> = {};
+        for (const tx of live) {
+          if (!catIds.has(tx.categoryId)) continue;
+          const key = mode === 'monthly' ? tx.date.slice(0, 7) : tx.date.slice(0, 4);
+          const row = map[key] ?? { income: 0, expense: 0 };
+          if (tx.type === 'income') row.income += tx.amountCents; else row.expense += tx.amountCents;
+          map[key] = row;
+        }
+        return Object.keys(map).sort().map((k) => ({
+          label: mode === 'monthly' ? k.slice(5) + ' ' + k.slice(0, 4) : k,
+          income: map[k].income,
+          expense: map[k].expense,
+        }));
+      })();
+
+  const maxVal = Math.max(1, ...filteredChart.map((r) => Math.max(r.income, r.expense)));
+
+  // ── Budget usage ──
+
+  let budgetUsed = 0;
+  for (const b of budgets) {
+    const used = monthTx.filter((tx) => tx.type === 'expense' && tx.categoryId === b.categoryId).reduce((a, x) => a + x.amountCents, 0);
+    budgetUsed += Math.min(used, b.limitCents);
+  }
+  const budgetTotal = budgets.reduce((a, b) => a + b.limitCents, 0);
+  const budgetPct = budgetTotal > 0 ? Math.min(100, Math.round((budgetUsed / budgetTotal) * 100)) : 0;
+
+  // ── Recent transactions (5 latest) ──
+  const recent = [...monthTx].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
+  const catName = (id: string) => cats.find((c) => c.id === id)?.name ?? '—';
+
+  // ── Calendar: per-day spend this month ──
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const daySpend: number[] = new Array(daysInMonth).fill(0);
+  for (const tx of monthTx) {
+    if (tx.type !== 'expense') continue;
+    const d = parseInt(tx.date.slice(8, 10), 10);
+    if (d >= 1 && d <= daysInMonth) daySpend[d - 1] += tx.amountCents;
+  }
+  const maxDay = Math.max(1, ...daySpend);
 
   return (
-    <div className="dashboard">
-      <section className="dash-grid">
-        {/* Left: Income Analysis */}
-        <article className="glass-card card-analysis">
-          <header className="card-head">
-            <span className="icon-sq">📊</span>
-            <h2>{t('panel.incomeAnalysis')}</h2>
-          </header>
-          <div className="chart-legend">
-            <span className="dot" style={{ background: '#4f9dff' }} /> {t('panel.income')}
-            <span className="dot" style={{ background: '#e05aa0' }} /> {t('panel.net')}
+    <div className="dash-grid">
+      {/* ── KPI row ── */}
+      <section className="kpi-row" aria-label="KPIs">
+        <article className="glass-card kpi kpi-savings">
+          <header className="card-head"><span className="icon-sq">💙</span><h2>{t('panel.savings')}</h2></header>
+          <div className="kpi-value">{formatMoney(saved, settings.currency, settings.language)}</div>
+          <div className={`delta ${saved >= lastSaved ? 'up' : 'down'}`}>
+            {pctDelta(saved, lastSaved)}% {t('panel.vsLastMonth')}
           </div>
-          <IncomeChart months={months} t={t} settings={settings} />
         </article>
 
-        {/* Right column: KPI cards */}
-        <aside className="kpi-col">
-          <article className="glass-card kpi">
-            <header className="card-head">
-              <span className="icon-sq">💪</span>
-              <h2>{t('panel.monthlySavings')}</h2>
-            </header>
-            <div className="kpi-value">{formatMoney(savings, settings.currency, settings.language)}</div>
-            <div className="progress progress-blue"><span style={{ width: savingsPct + '%' }} /></div>
-          </article>
-
-          <article className="glass-card kpi">
-            <header className="card-head">
-              <span className="icon-sq">💙</span>
-              <h2>{t('panel.monthlyExpenses')}</h2>
-            </header>
-            <div className="kpi-value">{formatMoney(totalSpent, settings.currency, settings.language)}</div>
-            <div className="progress progress-pink"><span style={{ width: spentPct + '%' }} /></div>
-          </article>
-
-          <article className="glass-card assistant">
-            <header className="card-head">
-              <span className="icon-sq">✨</span>
-              <h2>{t('panel.aiAssistant')}</h2>
-            </header>
-            <p>{t('panel.aiHint')}</p>
-          </article>
-        </aside>
-
-        {/* Bottom row */}
-        <article className="glass-card card-recent">
-          <header className="card-head">
-            <span className="icon-sq">💙</span>
-            <h2>{t('panel.recent')}</h2>
-            <a className="see-all" href="/transactions">{t('panel.seeAll')}</a>
-          </header>
-          {recent.length === 0 ? (
-            <p className="muted">{t('common.noData')}</p>
-          ) : (
-            <ul className="tx-list">
-              {recent.map((tr, i) => (
-                <li key={i}>
-                  <span className="avatar" style={{ background: tr.color }}>{initials(tr.description)}</span>
-                  <div>
-                    <strong>{tr.description}</strong>
-                    <small>{new Date(tr.date).toLocaleDateString(localeForLanguage(settings.language))}</small>
-                  </div>
-                  <span className={tr.type === 'income' ? 'amt-pos' : 'amt-neg'}>
-                    {tr.type === 'income' ? '+' : '-'}{formatMoney(tr.amountCents, settings.currency, settings.language)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
+        <article className="glass-card kpi kpi-income">
+          <header className="card-head"><span className="icon-sq">💚</span><h2>{t('panel.income')}</h2></header>
+          <div className="kpi-value">{formatMoney(income, settings.currency, settings.language)}</div>
+          <div className={`delta ${income >= lastIncome ? 'up' : 'down'}`}>
+            {pctDelta(income, lastIncome)}% {t('panel.vsLastMonth')}
+          </div>
         </article>
 
-        <article className="glass-card card-budget">
-          <header className="card-head">
-            <span className="icon-sq">💙</span>
-            <h2>{t('panel.budgetUsage')}</h2>
-          </header>
-          {activeCats.length === 0 ? (
-            <p className="muted">{t('common.noData')}</p>
-          ) : (
-            <>
-              <div className="donut-wrap">
-                <svg viewBox="0 0 120 120" className="donut">
-                  {(() => {
-                    const total = activeCats.reduce((s, c) => s + c.totalCents, 0);
-                    let acc = 0;
-                    const r = 45, cx = 60, cy = 60;
-                    return activeCats.map((c) => {
-                      const frac = c.totalCents / total;
-                      const a1 = acc * 2 * Math.PI - Math.PI / 2;
-                      acc += frac;
-                      const a2 = acc * 2 * Math.PI - Math.PI / 2;
-                      const large = frac > 0.5 ? 1 : 0;
-                      const x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1);
-                      const x2 = cx + r * Math.cos(a2), y2 = cy + r * Math.sin(a2);
-                      return <path key={c.categoryId} d={`M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`} fill="none" stroke={c.color} strokeWidth="16" />;
-                    });
-                  })()}
-                </svg>
-              </div>
-              <ul className="legend">
-                {activeCats.slice(0, 6).map((c) => (
-                  <li key={c.categoryId}><span className="dot" style={{ background: c.color }} /> {c.name}</li>
-                ))}
-              </ul>
-            </>
-          )}
+        <article className="glass-card kpi kpi-expenses">
+          <header className="card-head"><span className="icon-sq">💙</span><h2>{t('panel.expenses')}</h2></header>
+          <div className="kpi-value">{formatMoney(spent, settings.currency, settings.language)}</div>
+          <div className={`delta ${spent <= lastSpent ? 'up' : 'down'}`}>
+            {pctDelta(spent, lastSpent)}% {t('panel.vsLastMonth')}
+          </div>
         </article>
       </section>
+
+      {/* ── Income analysis chart ── */}
+      <article className="glass-card analysis">
+        <header className="card-head">
+          <span className="icon-sq">💚</span>
+          <h2>{t('panel.incomeAnalysis')}</h2>
+          <div className="chart-controls">
+            <button className={`seg ${mode === 'monthly' ? 'active' : ''}`} onClick={() => setMode('monthly')}>
+              {t('panel.monthly')}
+            </button>
+            <button className={`seg ${mode === 'yearly' ? 'active' : ''}`} onClick={() => setMode('yearly')}>
+              {t('panel.yearly')}
+            </button>
+            <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)} aria-label="category filter">
+              <option value="all">{t('panel.allCategories')}</option>
+              {cats.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
+            </select>
+          </div>
+        </header>
+        <div className="chart-bars">
+          {filteredChart.length === 0 && <p className="muted">{t('panel.noData')}</p>}
+          {filteredChart.map((r) => (
+            <div className="bar-group" key={r.label}>
+              <div className="bar bar-income" style={{ height: `${(r.income / maxVal) * 100}%` }} title={`Income ${formatMoney(r.income, settings.currency, settings.language)}`} />
+              <div className="bar bar-expense" style={{ height: `${(r.expense / maxVal) * 100}%` }} title={`Expense ${formatMoney(r.expense, settings.currency, settings.language)}`} />
+              <span className="bar-label">{r.label}</span>
+            </div>
+          ))}
+        </div>
+      </article>
+
+      {/* ── Recent transactions ── */}
+      <article className="glass-card recent">
+        <header className="card-head">
+          <span className="icon-sq">🧾</span>
+          <h2>{t('panel.recentTransactions')}</h2>
+          <a className="link" href="#transactions">{t('panel.seeAll')}</a>
+        </header>
+        {recent.length === 0 ? (
+          <p className="muted">{t('panel.noData')}</p>
+        ) : (
+          <ul className="tx-list">
+            {recent.map((tx) => (
+              <li key={tx.id}>
+                <span className={`dot ${tx.type === 'income' ? 'green' : 'pink'}`} />
+                <div>
+                  <strong>{tx.description || catName(tx.categoryId)}</strong>
+                  <small>{tx.date} · {catName(tx.categoryId)}</small>
+                </div>
+                <span className={`amount ${tx.type === 'income' ? 'pos' : 'neg'}`}>
+                  {tx.type === 'income' ? '+' : '−'}{formatMoney(tx.amountCents, settings.currency, settings.language)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </article>
+
+      {/* ── Budget usage donut ── */}
+      <article className="glass-card budget-card">
+        <header className="card-head">
+          <span className="icon-sq">💙</span>
+          <h2>{t('panel.budgetUsage')}</h2>
+        </header>
+        <div className="donut-wrap">
+          <svg viewBox="0 0 100 100" width="92" height="92" aria-hidden="true">
+            <circle className="donut-track" cx="50" cy="50" r="40" />
+            <circle className="donut-fill" cx="50" cy="50" r="40"
+              strokeDasharray={`${budgetPct * 2.513} 251.3`} />
+            <text className="donut-label" x="50" y="54" textAnchor="middle">{budgetPct}%</text>
+          </svg>
+        </div>
+        <ul className="legend">
+          {budgets.slice(0, 6).map((b) => {
+            const used = monthTx.filter((tx) => tx.type === 'expense' && tx.categoryId === b.categoryId).reduce((a, x) => a + x.amountCents, 0);
+            return <li key={b.id}><span className="dot pink" />{catName(b.categoryId)} — {formatMoney(used, settings.currency, settings.language)} / {formatMoney(b.limitCents, settings.currency, settings.language)}</li>;
+          })}
+        </ul>
+        <a className="link" href="#budgets">{t('panel.manageBudgets')}</a>
+      </article>
+
+      {/* ── Calendar card (per-day spend) ── */}
+      <article className="glass-card calendar-card">
+        <header className="card-head">
+          <span className="icon-sq">📅</span>
+          <h2>{t('panel.dailySpend')}</h2>
+        </header>
+        <div className="cal-grid">
+          {daySpend.map((amt, i) => (
+            <div key={i} className={`cal-day ${amt === 0 ? 'empty' : ''}`} title={`${thisMonth}-${String(i + 1).padStart(2, '0')}`}>
+              <span className="dnum">{i + 1}</span>
+              <span className="damt" style={{ opacity: amt > 0 ? Math.max(0.35, amt / maxDay) : 0 }}>
+                {amt > 0 ? formatMoney(amt, settings.currency, settings.language) : '·'}
+              </span>
+            </div>
+          ))}
+        </div>
+      </article>
     </div>
   );
 }

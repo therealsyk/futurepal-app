@@ -49,7 +49,14 @@
     "aiHint": "¿Cómo puedo ahorrar más este mes?",
     "recent": "Transacciones recientes",
     "seeAll": "Ver todo",
-    "budgetUsage": "Uso del presupuesto"
+    "budgetUsage": "Uso del presupuesto",
+    "expenses": "Gastos",
+    "vsLastMonth": "vs. mes anterior",
+    "yearly": "Anual",
+    "allCategories": "Todas las categorías",
+    "recentTransactions": "Transacciones recientes",
+    "manageBudgets": "Gestionar presupuestos",
+    "dailySpend": "Gasto diario"
   },
   "transactions": {
     "title": "Transacciones",

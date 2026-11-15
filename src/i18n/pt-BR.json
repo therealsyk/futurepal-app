@@ -49,7 +49,14 @@
     "aiHint": "Como posso economizar mais este mês?",
     "recent": "Transações recentes",
     "seeAll": "Ver tudo",
-    "budgetUsage": "Uso do orçamento"
+    "budgetUsage": "Uso do orçamento",
+    "expenses": "Despesas",
+    "vsLastMonth": "vs. mês anterior",
+    "yearly": "Anual",
+    "allCategories": "Todas as categorias",
+    "recentTransactions": "Transações recentes",
+    "manageBudgets": "Gerenciar orçamentos",
+    "dailySpend": "Gasto por dia"
   },
   "transactions": {
     "title": "Transações",

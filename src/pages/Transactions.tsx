@@ -26,6 +26,10 @@ export function Transactions() {
   const [filterCat, setFilterCat] = useState('');
   const [filterText, setFilterText] = useState('');
 
+  // table sorting: column + direction
+  const [sortCol, setSortCol] = useState<'date' | 'amount'>('date');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
   // form state
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
@@ -157,21 +161,45 @@ export function Transactions() {
       {txs.length === 0 ? (
         <p className="stat-label">{t('transactions.empty')}</p>
       ) : (
-        <div className="overview-grid">
-          {txs.map((tx) => {
-            const cat = cats.find((c) => c.id === tx.categoryId);
-            return (
-              <div className="category-row" key={tx.id}>
-                <span className="category-name">
-                  {tx.description || (cat ? catLabel(t, cat) : '')} — {cat ? catLabel(t, cat) : ''}
-                </span>
-                <span className={`category-left${tx.type === 'income' ? ' positive' : ''}`}>
-                  {formatMoney(tx.amountCents, tx.currency, settings.language)}
-                </span>
-                <Button label={t('transactions.deleteConfirm')} variant="danger" onClick={() => remove(tx.id)} />
-              </div>
-            );
-          })}
+        <div className="tx-table-wrap">
+          <table className="tx-table">
+            <thead>
+              <tr>
+                <th className="sortable" onClick={() => { setSortCol('date'); setSortDir(sortCol === 'date' && sortDir === 'desc' ? 'asc' : 'desc'); }}>
+                  {t('transactions.date')} {sortCol === 'date' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+                </th>
+                <th>{t('transactions.description')}</th>
+                <th>{t('transactions.category')}</th>
+                <th>{t('transactions.typeExpense')}</th>
+                <th className="sortable" onClick={() => { setSortCol('amount'); setSortDir(sortCol === 'amount' && sortDir === 'desc' ? 'asc' : 'desc'); }}>
+                  {t('transactions.amount')} {sortCol === 'amount' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+                </th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...txs].sort((a, b) => {
+                const cmp = sortCol === 'date' ? a.date.localeCompare(b.date) : a.amountCents - b.amountCents;
+                return sortDir === 'asc' ? cmp : -cmp;
+              }).map((tx) => {
+                const cat = cats.find((c) => c.id === tx.categoryId);
+                return (
+                  <tr key={tx.id}>
+                    <td>{tx.date}</td>
+                    <td>{tx.description || (cat ? catLabel(t, cat) : '')}</td>
+                    <td>{cat ? catLabel(t, cat) : ''}</td>
+                    <td>{tx.type === 'income' ? t('transactions.typeIncome') : t('transactions.typeExpense')}</td>
+                    <td className={tx.type === 'income' ? 'positive' : ''}>
+                      {formatMoney(tx.amountCents, tx.currency, settings.language)}
+                    </td>
+                    <td>
+                      <Button label={t('common.delete')} variant="danger" onClick={() => remove(tx.id)} />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

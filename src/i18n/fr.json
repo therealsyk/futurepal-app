@@ -49,7 +49,14 @@
     "aiHint": "Comment puis-je économiser davantage ce mois-ci ?",
     "recent": "Transactions récentes",
     "seeAll": "Voir tout",
-    "budgetUsage": "Utilisation du budget"
+    "budgetUsage": "Utilisation du budget",
+    "expenses": "Dépenses",
+    "vsLastMonth": "vs. mois précédent",
+    "yearly": "Annuel",
+    "allCategories": "Toutes les catégories",
+    "recentTransactions": "Transactions récentes",
+    "manageBudgets": "Gérer les budgets",
+    "dailySpend": "Dépenses par jour"
   },
   "transactions": {
     "title": "Transactions",
