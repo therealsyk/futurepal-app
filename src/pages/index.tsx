@@ -76,7 +76,7 @@ export function Panel() {
         setUpcoming(items.filter((r) => r.date > todayStr).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 8));
       })
       .catch(() => setUpcoming([]));
-  });
+  }, []);
 
   useEffect(() => {
     db.transactions.toArray().then((rows) => setTxs(rows.filter((r) => r.deletedAt === null)));
@@ -351,7 +351,7 @@ export function Panel() {
                     {cell !== 0 ? (
                       <>
                         <span className="dnum">{cell}</span>
-                        <span className="damt">{formatMoney(calTotals[cell] ?? 0, settings.currency, settings.language)}</span>
+                        {calTotals[cell] ? <span className="damt">{formatMoney(calTotals[cell], settings.currency, settings.language)}</span> : null}
                       </>
                     ) : null}
                   </div>
