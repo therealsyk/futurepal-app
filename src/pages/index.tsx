@@ -76,7 +76,9 @@ export function Panel() {
         setUpcoming(items.filter((r) => r.date > todayStr).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 8));
       })
       .catch(() => setUpcoming([]));
-  }, []);
+  });
+
+  useEffect(() => {
     db.transactions.toArray().then((rows) => setTxs(rows.filter((r) => r.deletedAt === null)));
     db.categories.toArray().then((rows) => setCats(rows.filter((r) => r.deletedAt === null).map((r) => ({ id: r.id, name: r.name, nameKey: r.nameKey }))));
     db.budgets.toArray().then((rows) => setBudgets(rows.filter((r) => r.deletedAt === null)));
