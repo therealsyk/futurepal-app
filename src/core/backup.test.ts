@@ -1,8 +1,8 @@
 import 'fake-indexeddb/auto';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { createDatabase, stampNew } from '../db/database';
-import type { WalletDB, Category } from '../db/database';
-import { addTransaction, ensureDefaultCategories } from './finance';
+import type { WalletDB, Category, Goal, Group } from '../db/database';
+import { addTransaction, ensureDefaultCategories, setBudget, addRecurring, transactionsInGroup } from './finance';
 import { exportBackup, importBackup, parseExcelBuffer, commitExcelRows, type BackupData } from './backup';
 
 let db: WalletDB;
@@ -30,7 +30,7 @@ describe('JSON backup (SPEC §6.10)', () => {
     await addTransaction(db, { date: '2026-01-11', type: 'expense', categoryId: cat.id, description: 'Agua', amountCents: 3000, currency: 'EUR' });
 
     const backup = await exportBackup(db);
-    expect(backup.version).toBe(1);
+    expect(backup.version).toBe(2);
     expect(backup.transactions.length).toBe(1);
     expect(backup.transactions[0].description).toBe('Agua');
     expect(typeof backup.exportedAt).toBe('string');
@@ -44,10 +44,42 @@ describe('JSON backup (SPEC §6.10)', () => {
     const db2 = createDatabase('backup-import-' + Math.random().toString(36).slice(2));
     await db2.categories.bulkAdd(await db.categories.toArray());
     const count = await importBackup(db2, backup);
-    expect(count).toBe(1);
+    expect(count).toBe(backup.transactions.length + backup.categories.length);
     const restored = await db2.transactions.toArray();
     expect(restored[0].description).toBe('Salario');
     expect(restored[0].amountCents).toBe(100000);
+  });
+
+  it('export includes categories, budgets, goals, recurrings and groups (SPEC §6.10)', async () => {
+    await ensureDefaultCategories(db);
+    const cats = await db.categories.toArray();
+    const catId = cats[0].id;
+
+    await setBudget(db, catId, 80000, 2026, 11);
+    await db.goals.put(stampNew<Goal>({ name: 'Fundo de emergência', targetCents: 500000, currentCents: 120000, startDate: '2026-01-01', targetDate: '2026-12-31' }));
+    await addRecurring(db, { description: 'Netflix', amountCents: 1399, type: 'expense', categoryId: catId, frequency: 'monthly', nextDate: '2026-11-01' });
+    const grp = stampNew<Group>({ name: 'Viagem ao Japão' });
+    await db.groups.put(grp);
+    await addTransaction(db, { date: '2026-06-01', type: 'expense', categoryId: catId, description: 'Bilhetes', amountCents: 90000, currency: 'EUR', groupId: grp.id });
+
+    const backup = await exportBackup(db);
+    expect(backup.version).toBe(2);
+    expect(backup.categories.length).toBeGreaterThan(0);
+    expect(backup.budgets.length).toBeGreaterThanOrEqual(1);
+    expect(backup.goals.length).toBe(1);
+    expect(backup.recurrings.length).toBe(1);
+    expect(backup.groups.length).toBe(1);
+
+    const db2 = createDatabase('backup-full-' + Math.random().toString(36).slice(2));
+    const count = await importBackup(db2, backup);
+    expect(count).toBe(backup.transactions.length + backup.salaries.length + backup.categories.length + backup.budgets.length + backup.goals.length + backup.recurrings.length + backup.groups.length);
+    const budget = (await db2.budgets.toArray()).find((b) => b.categoryId === catId);
+    expect(budget?.limitCents).toBe(80000);
+    expect((await db2.goals.toArray())[0].targetCents).toBe(500000);
+
+    expect((await db2.recurrings.toArray())[0].frequency).toBe('monthly');
+    const grpTx = await transactionsInGroup(db2, backup.groups[0].id);
+    expect(grpTx[0].description).toBe('Bilhetes');
   });
 });
 
@@ -83,7 +115,7 @@ describe('Excel import (SPEC §8)', () => {
     const db2 = createDatabase('backup-ui-' + Math.random().toString(36).slice(2));
     await db2.categories.bulkAdd(await db.categories.toArray());
     const count = await importBackup(db2, parsed);
-    expect(count).toBe(1);
+    expect(count).toBe(parsed.transactions.length + (parsed.categories?.length ?? 0));
     const restored = await db2.transactions.toArray();
     expect(restored[0].description).toBe('Internet');
     expect(restored[0].amountCents).toBe(3500);

@@ -1,5 +1,5 @@
 import type { WalletDB } from '../db/database';
-import type { Transaction, Salary } from '../db/database';
+import type { Transaction, Salary, Category, Budget, Goal, Recurring, Group } from '../db/database';
 import * as XLSX from 'xlsx';
 
 // SPEC §6.10: export/import JSON backup. Export all active records (no soft-deleted).
@@ -8,24 +8,65 @@ export interface BackupData {
   exportedAt: string;
   transactions: Transaction[];
   salaries: Salary[];
+  categories: Category[];
+  budgets: Budget[];
+  goals: Goal[];
+  recurrings: Recurring[];
+  groups: Group[];
 }
 
 export async function exportBackup(db: WalletDB): Promise<BackupData> {
-  const [transactions, salaries] = await Promise.all([
+  const [transactions, salaries, categories, budgets, goals, recurrings, groups] = await Promise.all([
     db.transactions.filter((t) => t.deletedAt === null).toArray(),
     db.salaries.filter((s) => s.deletedAt === null).toArray(),
+    db.categories.filter((c) => c.deletedAt === null).toArray(),
+    db.budgets.filter((b) => b.deletedAt === null).toArray(),
+    db.goals.filter((g) => g.deletedAt === null).toArray(),
+    db.recurrings.filter((r) => r.deletedAt === null).toArray(),
+    db.groups.filter((g) => g.deletedAt === null).toArray(),
   ]);
-  return { version: 1, exportedAt: new Date().toISOString(), transactions, salaries };
+  return {
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    transactions,
+    salaries,
+    categories,
+    budgets,
+    goals,
+    recurrings,
+    groups,
+  };
 }
 
 export async function importBackup(db: WalletDB, data: BackupData): Promise<number> {
   let count = 0;
-  for (const t of data.transactions) {
+  // Categories first so transaction/budget categoryIds resolve after a full restore.
+  for (const c of data.categories ?? []) {
+    await db.categories.put(c);
+    count++;
+  }
+  for (const t of data.transactions ?? []) {
     await db.transactions.put(t);
     count++;
   }
-  for (const s of data.salaries) {
+  for (const s of data.salaries ?? []) {
     await db.salaries.put(s);
+    count++;
+  }
+  for (const b of data.budgets ?? []) {
+    await db.budgets.put(b);
+    count++;
+  }
+  for (const g of data.goals ?? []) {
+    await db.goals.put(g);
+    count++;
+  }
+  for (const r of data.recurrings ?? []) {
+    await db.recurrings.put(r);
+    count++;
+  }
+  for (const g of data.groups ?? []) {
+    await db.groups.put(g);
     count++;
   }
   return count;
