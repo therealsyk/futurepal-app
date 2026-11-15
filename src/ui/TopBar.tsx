@@ -39,7 +39,7 @@ export default function TopBar() {
         ))}
       </nav>
       <div className="user-chip">
-        <span>👤</span>
+        <span className="chip-icon">{icon("M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8")}</span>
         <span>{t('panel.myWallet')}</span>
       </div>
     </header>

@@ -15,6 +15,12 @@ import { LineChart } from '../ui/components';
 
 
 
+const svgIcon = (d: string) => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d={d} />
+  </svg>
+);
+
 export function PageTitle({ titleKey }: { titleKey: string }) {
   const { t } = useTranslation();
   return <h1 className="page-title">{t(titleKey)}</h1>;
@@ -139,7 +145,7 @@ export function Panel() {
       <section className="zone-left">
         <article className="glass-card card-analysis">
           <header className="card-head">
-            <span className="icon-sq">💚</span>
+            <span className="icon-sq">{svgIcon("M20.84 4.61a5.5 5.5 0 0 0-7.79 0L12 5.67l-1.05-1.06a5.5 5.5 0 0 0-7.79 7.79l1.05 1.06L12 14.33l7.79-7.79a5.5 5.5 0 0 0 0-7.79z")}</span>
             <h2>{t('panel.incomeAnalysis')}</h2>
             <div className="chart-controls">
               <button className={`seg ${mode === 'monthly' ? 'active' : ''}`} onClick={() => setMode('monthly')}>
@@ -168,7 +174,7 @@ export function Panel() {
 
         <article className="glass-card card-recent">
           <header className="card-head">
-            <span className="icon-sq">🧾</span>
+            <span className="icon-sq">{svgIcon("M4 7h16 M4 12h16 M4 17h10")}</span>
             <h2>{t('panel.recentTransactions')}</h2>
             <a className="link" href="#transactions">{t('panel.seeAll')}</a>
           </header>
@@ -194,7 +200,7 @@ export function Panel() {
 
         <article className="glass-card card-budget">
           <header className="card-head">
-            <span className="icon-sq">💙</span>
+            <span className="icon-sq">{svgIcon("M21 12V7H5a2 2 0 0 1 0-4h14v4 M3 6v12a2 2 0 0 0 2 2h16v-6")}</span>
             <h2>{t('panel.budgetUsage')}</h2>
           </header>
           <div className="donut-wrap">
@@ -220,7 +226,7 @@ export function Panel() {
       {/* ── Right zone: Savings, Expenses and daily-spend calendar stacked ── */}
       <section className="zone-right">
         <article className="glass-card kpi kpi-savings">
-          <header className="card-head"><span className="icon-sq">💙</span><h2>{t('panel.savings')}</h2></header>
+          <header className="card-head"><span className="icon-sq">{svgIcon("M12 2v20 M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6")}</span><h2>{t('panel.savings')}</h2></header>
           <div className="kpi-value">{formatMoney(saved, settings.currency, settings.language)}</div>
           <div className={`delta ${saved >= lastSaved ? 'up' : 'down'}`}>
             {pctDelta(saved, lastSaved)}% {t('panel.vsLastMonth')}
@@ -229,7 +235,7 @@ export function Panel() {
         </article>
 
         <article className="glass-card kpi kpi-expenses">
-          <header className="card-head"><span className="icon-sq">💙</span><h2>{t('panel.expenses')}</h2></header>
+          <header className="card-head"><span className="icon-sq">{svgIcon("M3 3v18h18 M7 14l4-4 3 3 5-6")}</span><h2>{t('panel.expenses')}</h2></header>
           <div className="kpi-value">{formatMoney(spent, settings.currency, settings.language)}</div>
           <div className={`delta ${spent <= lastSpent ? 'up' : 'down'}`}>
             {pctDelta(spent, lastSpent)}% {t('panel.vsLastMonth')}
@@ -241,12 +247,12 @@ export function Panel() {
         {/* ── Calendar card (per-day spend) — stacked in the right zone ── */}
         <article className="glass-card card-calendar">
           <header className="card-head">
-            <span className="icon-sq">📅</span>
+            <span className="icon-sq">{svgIcon("M8 2v4 M16 2v4 M3 5h18v14H3z M3 10h18")}</span>
             <h2>{t('panel.dailySpend')}</h2>
           </header>
           <div className="cal-grid">
             {daySpend.map((amt, i) => (
-              <div key={i} className={`cal-day ${amt === 0 ? 'empty' : ''}`} title={`${thisMonth}-${String(i + 1).padStart(2, '0')}`}>
+              <div key={i} className={`cal-day ${amt === 0 ? 'empty' : ''} ${(i + 1) === now.getDate() ? 'today' : ''}`} title={`${thisMonth}-${String(i + 1).padStart(2, '0')}`}>
               <span className="dnum">{i + 1}</span>
               <span className="damt" style={{ opacity: amt > 0 ? Math.max(0.35, amt / maxDay) : 0 }}>
                 {amt > 0 ? formatMoney(amt, settings.currency, settings.language) : '·'}

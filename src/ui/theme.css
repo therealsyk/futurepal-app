@@ -4,22 +4,30 @@
    light, gray — switched via data-theme on <html>. */
 
 :root {
-  --bg: #0a0b14;
-  --bg-glow-1: rgba(93, 63, 172, 0.50);
-  --bg-glow-2: rgba(38, 22, 70, 0.45);
-  --card: rgba(21, 25, 37, 0.50);
-  --card-2: rgba(28, 33, 48, 0.62);
-  --border: rgba(148, 163, 199, 0.14);
+  /* Surfaces — near-black violet base; panels slightly lighter slate */
+  --bg: #0b0d16;
+  --bg-glow-1: rgba(93, 63, 172, 0.16);
+  --bg-glow-2: rgba(38, 22, 70, 0.14);
+  --card: rgba(24, 28, 41, 0.55);
+  --card-2: rgba(31, 36, 51, 0.62);
+  --border: rgba(148, 163, 199, 0.10);
+
+  /* Text */
   --text: #e9edf5;
-  --muted: #8b93a7;
+  --muted: #939ab0;
+
+  /* Accents — magenta/violet + cyan-blue highlights */
   --accent: #8b5cf6;
   --accent-2: #a78bfa;
   --blue: #4aa8ff;
   --pink: #ec6a8f;
+
+  /* Semantic (income / expense) */
   --green: #3ddca0;
   --red: #ff5f6d;
   --amber: #ffb02e;
-  --shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+
+  --shadow: 0 14px 32px rgba(0, 0, 0, 0.38);
 }
 
 html[data-theme="light"] {
@@ -94,7 +102,7 @@ body {
   width: 30px; height: 30px; border-radius: 9px;
   background: linear-gradient(135deg, var(--accent), #4f2ea8);
   color: #fff; font-weight: 700; display: grid; place-items: center;
-  box-shadow: 0 0 18px rgba(139, 92, 246, 0.45);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.22);
 }
 .brand-name { font-size: 15px; font-weight: 600; letter-spacing: .04em; }
 .brand-sub { font-size: 11px; color: var(--muted); display: none; }
@@ -146,7 +154,7 @@ body {
   border-radius: 16px;
   padding: 18px;
   margin-bottom: 14px;
-  shadow: var(--shadow);
+  box-shadow: var(--shadow);
 }
 .card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .icon-sq {
@@ -197,6 +205,7 @@ body {
   border: none; background: transparent; color: var(--muted);
   font-size: 12.5px; padding: 6px 12px; border-radius: 999px; cursor: pointer;
 }
+.seg button:hover { color: var(--text); }
 .seg button.active { background: var(--accent); color: #fff; }
 
 .chart-legend { display: flex; gap: 14px; margin-bottom: 8px; font-size: 12.5px; color: var(--muted); }
@@ -246,8 +255,8 @@ html[data-theme="light"] .chart-tip { background: rgba(255, 255, 255, 0.85); }
 .progress { height: 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.10); overflow: hidden; margin-top: 10px; }
 html[data-theme="light"] .progress { background: rgba(30, 40, 60, 0.10); }
 .progress span { display: block; height: 100%; border-radius: 999px; }
-.progress-blue span { background: linear-gradient(90deg, #2f7fd6, #4aa8ff, #7cc4ff); box-shadow: 0 0 12px rgba(74, 168, 255, 0.55); }
-.progress-pink span { background: linear-gradient(90deg, #b23a5c, #ec6a8f, #ff9bb8); box-shadow: 0 0 12px rgba(236, 106, 143, 0.50); }
+.progress-blue span { background: linear-gradient(90deg, var(--blue), #7cc4ff); }
+.progress-pink span { background: linear-gradient(90deg, var(--pink), #ff9bb8); }
 
 /* ── Transactions table (discreet lines) ─────────────────── */
 .tx-list { list-style: none; margin: 0; padding: 0; }
@@ -272,6 +281,11 @@ html[data-theme="light"] .progress { background: rgba(30, 40, 60, 0.10); }
   font-size: 12.5px; cursor: pointer; margin-left: auto;
 }
 .see-all:hover { color: var(--accent-2); }
+
+/* Inline links (See all / Manage budgets): no default blue/underline */
+.link { color: var(--muted); text-decoration: none; font-size: 12.5px; font-weight: 500; }
+.link:hover { color: var(--accent-2); }
+.link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* Full transactions table (See all page) */
 .tx-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
@@ -304,6 +318,8 @@ html[data-theme="light"] .progress { background: rgba(30, 40, 60, 0.10); }
 .cal-day .dnum { font-size: 11px; color: var(--muted); }
 .cal-day .damt { font-size: 12px; font-weight: 600; color: var(--pink); }
 .cal-day.empty .damt { color: transparent; }
+.cal-day.today { border-color: var(--accent-2); background: rgba(139, 92, 246, 0.12); }
+.cal-day.today .dnum { color: var(--accent-2); }
 
 /* ── Forms / buttons ─────────────────────────────────────── */
 input, select, textarea {
@@ -315,7 +331,13 @@ button { cursor: pointer; }
   background: var(--accent); color: #fff; border: none; border-radius: 9px;
   padding: 8px 14px; font-size: 13.5px;
 }
+.btn-primary:hover { background: var(--accent-2); }
 .btn-danger { background: var(--red); color: #fff; border: none; border-radius: 9px; padding: 7px 12px; }
+.btn-danger:hover { background: #ff7a86; }
+button:focus-visible, .btn-primary:focus-visible, .btn-danger:focus-visible,
+.seg button:focus-visible, select:focus-visible {
+  outline: 2px solid var(--accent-2); outline-offset: 1px;
+}
 
 /* ── Responsive ──────────────────────────────────────────── */
 @media (max-width: 900px) {
