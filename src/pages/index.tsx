@@ -130,10 +130,12 @@ export function Panel() {
     if (d >= 1 && d <= daysInMonth) daySpend[d - 1] += tx.amountCents;
   }
   const maxDay = Math.max(1, ...daySpend);
+  const savingsPct = income > 0 ? Math.min(100, Math.round((saved / income) * 100)) : 0;
+  const expensePct = income > 0 ? Math.min(100, Math.round((spent / income) * 100)) : 0;
 
   return (
-    <div className="dash-grid">
-      {/* ── KPI row ── */}
+    <div className="dashboard">
+      {/* ── KPI windows (ALTURA style, with progress bars) ── */}
       <section className="kpi-row" aria-label="KPIs">
         <article className="glass-card kpi kpi-savings">
           <header className="card-head"><span className="icon-sq">💙</span><h2>{t('panel.savings')}</h2></header>
@@ -141,14 +143,7 @@ export function Panel() {
           <div className={`delta ${saved >= lastSaved ? 'up' : 'down'}`}>
             {pctDelta(saved, lastSaved)}% {t('panel.vsLastMonth')}
           </div>
-        </article>
-
-        <article className="glass-card kpi kpi-income">
-          <header className="card-head"><span className="icon-sq">💚</span><h2>{t('panel.income')}</h2></header>
-          <div className="kpi-value">{formatMoney(income, settings.currency, settings.language)}</div>
-          <div className={`delta ${income >= lastIncome ? 'up' : 'down'}`}>
-            {pctDelta(income, lastIncome)}% {t('panel.vsLastMonth')}
-          </div>
+          <div className="kpi-bar"><span className="kpi-bar-fill" style={{ width: savingsPct + '%' }} /></div>
         </article>
 
         <article className="glass-card kpi kpi-expenses">
@@ -157,10 +152,12 @@ export function Panel() {
           <div className={`delta ${spent <= lastSpent ? 'up' : 'down'}`}>
             {pctDelta(spent, lastSpent)}% {t('panel.vsLastMonth')}
           </div>
+          <div className="kpi-bar"><span className="kpi-bar-fill" style={{ width: expensePct + '%' }} /></div>
         </article>
       </section>
 
-      {/* ── Income analysis chart ── */}
+      {/* ── Window grid: chart (left, spans 2 rows) + right column of windows ── */}
+      <section className="dash-grid">
       <article className="glass-card card-analysis">
         <header className="card-head">
           <span className="icon-sq">💚</span>
@@ -190,8 +187,33 @@ export function Panel() {
         )}
       </article>
 
-      {/* ── Recent transactions ── */}
-      <article className="glass-card recent">
+      {/* ── Budget usage donut (right column, top window) ── */}
+      <article className="glass-card budget-card">
+        <header className="card-head">
+          <span className="icon-sq">💙</span>
+          <h2>{t('panel.budgetUsage')}</h2>
+        </header>
+        <div className="donut-wrap">
+          <svg viewBox="0 0 100 100" width="92" height="92" aria-hidden="true">
+            <circle className="donut-track" cx="50" cy="50" r="40" />
+            <circle className="donut-fill" cx="50" cy="50" r="40"
+              strokeDasharray={`${budgetPct * 2.513} 251.3`} />
+            <text className="donut-label" x="50" y="54" textAnchor="middle">{budgetPct}%</text>
+          </svg>
+        </div>
+        <ul className="legend">
+          <li><span className="dot green" />{t('panel.savedDonut')} — {100 - budgetPct}%</li>
+          <li><span className="dot pink" />{t('panel.spendingDonut')} — {budgetPct}%</li>
+          {budgets.slice(0, 4).map((b) => {
+            const used = monthTx.filter((tx) => tx.type === 'expense' && tx.categoryId === b.categoryId).reduce((a, x) => a + x.amountCents, 0);
+            return <li key={b.id}><span className="dot blue" />{catName(b.categoryId)} — {formatMoney(used, settings.currency, settings.language)} / {formatMoney(b.limitCents, settings.currency, settings.language)}</li>;
+          })}
+        </ul>
+        <a className="link" href="#budgets">{t('panel.manageBudgets')}</a>
+      </article>
+
+      {/* ── Recent transactions (bottom-left window) ── */}
+      <article className="glass-card card-recent">
         <header className="card-head">
           <span className="icon-sq">🧾</span>
           <h2>{t('panel.recentTransactions')}</h2>
@@ -217,31 +239,8 @@ export function Panel() {
         )}
       </article>
 
-      {/* ── Budget usage donut ── */}
-      <article className="glass-card budget-card">
-        <header className="card-head">
-          <span className="icon-sq">💙</span>
-          <h2>{t('panel.budgetUsage')}</h2>
-        </header>
-        <div className="donut-wrap">
-          <svg viewBox="0 0 100 100" width="92" height="92" aria-hidden="true">
-            <circle className="donut-track" cx="50" cy="50" r="40" />
-            <circle className="donut-fill" cx="50" cy="50" r="40"
-              strokeDasharray={`${budgetPct * 2.513} 251.3`} />
-            <text className="donut-label" x="50" y="54" textAnchor="middle">{budgetPct}%</text>
-          </svg>
-        </div>
-        <ul className="legend">
-          {budgets.slice(0, 6).map((b) => {
-            const used = monthTx.filter((tx) => tx.type === 'expense' && tx.categoryId === b.categoryId).reduce((a, x) => a + x.amountCents, 0);
-            return <li key={b.id}><span className="dot pink" />{catName(b.categoryId)} — {formatMoney(used, settings.currency, settings.language)} / {formatMoney(b.limitCents, settings.currency, settings.language)}</li>;
-          })}
-        </ul>
-        <a className="link" href="#budgets">{t('panel.manageBudgets')}</a>
-      </article>
-
-      {/* ── Calendar card (per-day spend) ── */}
-      <article className="glass-card calendar-card">
+      {/* ── Calendar card (per-day spend) — in the old AI Assistant slot ── */}
+      <article className="glass-card card-calendar">
         <header className="card-head">
           <span className="icon-sq">📅</span>
           <h2>{t('panel.dailySpend')}</h2>
@@ -257,6 +256,7 @@ export function Panel() {
           ))}
         </div>
       </article>
+      </section>
     </div>
   );
 }
