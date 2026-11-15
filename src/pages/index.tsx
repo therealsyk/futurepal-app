@@ -135,8 +135,90 @@ export function Panel() {
 
   return (
     <div className="dashboard">
-      {/* ── KPI windows (ALTURA style, with progress bars) ── */}
-      <section className="kpi-row" aria-label="KPIs">
+      {/* ── Left zone: Income Analysis on top, Recent + Budget side by side ── */}
+      <section className="zone-left">
+        <article className="glass-card card-analysis">
+          <header className="card-head">
+            <span className="icon-sq">💚</span>
+            <h2>{t('panel.incomeAnalysis')}</h2>
+            <div className="chart-controls">
+              <button className={`seg ${mode === 'monthly' ? 'active' : ''}`} onClick={() => setMode('monthly')}>
+                {t('panel.monthly')}
+              </button>
+              <button className={`seg ${mode === 'yearly' ? 'active' : ''}`} onClick={() => setMode('yearly')}>
+                {t('panel.yearly')}
+              </button>
+              <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)} aria-label="category filter">
+                <option value="all">{t('panel.allCategories')}</option>
+                {cats.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
+              </select>
+            </div>
+          </header>
+          {filteredChart.length === 0 ? (
+            <p className="muted">{t('panel.noData')}</p>
+          ) : (
+            <LineChart
+              rows={filteredChart}
+              currency={settings.currency}
+              language={settings.language}
+              incomeLabel={t('panel.income')}
+            />
+          )}
+        </article>
+
+        <article className="glass-card card-recent">
+          <header className="card-head">
+            <span className="icon-sq">🧾</span>
+            <h2>{t('panel.recentTransactions')}</h2>
+            <a className="link" href="#transactions">{t('panel.seeAll')}</a>
+          </header>
+          {recent.length === 0 ? (
+            <p className="muted">{t('panel.noData')}</p>
+          ) : (
+            <ul className="tx-list">
+              {recent.map((tx) => (
+                <li key={tx.id}>
+                  <span className={`dot ${tx.type === 'income' ? 'green' : 'pink'}`} />
+                  <div>
+                    <strong>{tx.description || catName(tx.categoryId)}</strong>
+                    <small>{tx.date} · {catName(tx.categoryId)}</small>
+                  </div>
+                  <span className={`amount ${tx.type === 'income' ? 'pos' : 'neg'}`}>
+                    {tx.type === 'income' ? '+' : '−'}{formatMoney(tx.amountCents, settings.currency, settings.language)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </article>
+
+        <article className="glass-card card-budget">
+          <header className="card-head">
+            <span className="icon-sq">💙</span>
+            <h2>{t('panel.budgetUsage')}</h2>
+          </header>
+          <div className="donut-wrap">
+            <svg viewBox="0 0 100 100" width="92" height="92" aria-hidden="true">
+              <circle className="donut-track" cx="50" cy="50" r="40" />
+              <circle className="donut-fill" cx="50" cy="50" r="40"
+                strokeDasharray={`${budgetPct * 2.513} 251.3`} />
+              <text className="donut-label" x="50" y="54" textAnchor="middle">{budgetPct}%</text>
+            </svg>
+          </div>
+          <ul className="legend">
+            <li><span className="dot green" />{t('panel.savedDonut')} — {100 - budgetPct}%</li>
+            <li><span className="dot pink" />{t('panel.spendingDonut')} — {budgetPct}%</li>
+            {budgets.slice(0, 4).map((b) => {
+              const used = monthTx.filter((tx) => tx.type === 'expense' && tx.categoryId === b.categoryId).reduce((a, x) => a + x.amountCents, 0);
+              return <li key={b.id}><span className="dot blue" />{catName(b.categoryId)} — {formatMoney(used, settings.currency, settings.language)} / {formatMoney(b.limitCents, settings.currency, settings.language)}</li>;
+            })}
+          </ul>
+          <a className="link" href="#budgets">{t('panel.manageBudgets')}</a>
+        </article>
+      </section>
+
+      {/* ── Right zone: Savings, Expenses and daily-spend calendar stacked ── */}
+      <section className="zone-right">
         <article className="glass-card kpi kpi-savings">
           <header className="card-head"><span className="icon-sq">💙</span><h2>{t('panel.savings')}</h2></header>
           <div className="kpi-value">{formatMoney(saved, settings.currency, settings.language)}</div>
@@ -154,100 +236,17 @@ export function Panel() {
           </div>
           <div className="kpi-bar"><span className="kpi-bar-fill" style={{ width: expensePct + '%' }} /></div>
         </article>
-      </section>
 
-      {/* ── Window grid: chart (left, spans 2 rows) + right column of windows ── */}
-      <section className="dash-grid">
-      <article className="glass-card card-analysis">
-        <header className="card-head">
-          <span className="icon-sq">💚</span>
-          <h2>{t('panel.incomeAnalysis')}</h2>
-          <div className="chart-controls">
-            <button className={`seg ${mode === 'monthly' ? 'active' : ''}`} onClick={() => setMode('monthly')}>
-              {t('panel.monthly')}
-            </button>
-            <button className={`seg ${mode === 'yearly' ? 'active' : ''}`} onClick={() => setMode('yearly')}>
-              {t('panel.yearly')}
-            </button>
-            <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)} aria-label="category filter">
-              <option value="all">{t('panel.allCategories')}</option>
-              {cats.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
-            </select>
-          </div>
-        </header>
-        {filteredChart.length === 0 ? (
-          <p className="muted">{t('panel.noData')}</p>
-        ) : (
-          <LineChart
-            rows={filteredChart}
-            currency={settings.currency}
-            language={settings.language}
-            incomeLabel={t('panel.income')}
-          />
-        )}
-      </article>
 
-      {/* ── Budget usage donut (right column, top window) ── */}
-      <article className="glass-card budget-card">
-        <header className="card-head">
-          <span className="icon-sq">💙</span>
-          <h2>{t('panel.budgetUsage')}</h2>
-        </header>
-        <div className="donut-wrap">
-          <svg viewBox="0 0 100 100" width="92" height="92" aria-hidden="true">
-            <circle className="donut-track" cx="50" cy="50" r="40" />
-            <circle className="donut-fill" cx="50" cy="50" r="40"
-              strokeDasharray={`${budgetPct * 2.513} 251.3`} />
-            <text className="donut-label" x="50" y="54" textAnchor="middle">{budgetPct}%</text>
-          </svg>
-        </div>
-        <ul className="legend">
-          <li><span className="dot green" />{t('panel.savedDonut')} — {100 - budgetPct}%</li>
-          <li><span className="dot pink" />{t('panel.spendingDonut')} — {budgetPct}%</li>
-          {budgets.slice(0, 4).map((b) => {
-            const used = monthTx.filter((tx) => tx.type === 'expense' && tx.categoryId === b.categoryId).reduce((a, x) => a + x.amountCents, 0);
-            return <li key={b.id}><span className="dot blue" />{catName(b.categoryId)} — {formatMoney(used, settings.currency, settings.language)} / {formatMoney(b.limitCents, settings.currency, settings.language)}</li>;
-          })}
-        </ul>
-        <a className="link" href="#budgets">{t('panel.manageBudgets')}</a>
-      </article>
-
-      {/* ── Recent transactions (bottom-left window) ── */}
-      <article className="glass-card card-recent">
-        <header className="card-head">
-          <span className="icon-sq">🧾</span>
-          <h2>{t('panel.recentTransactions')}</h2>
-          <a className="link" href="#transactions">{t('panel.seeAll')}</a>
-        </header>
-        {recent.length === 0 ? (
-          <p className="muted">{t('panel.noData')}</p>
-        ) : (
-          <ul className="tx-list">
-            {recent.map((tx) => (
-              <li key={tx.id}>
-                <span className={`dot ${tx.type === 'income' ? 'green' : 'pink'}`} />
-                <div>
-                  <strong>{tx.description || catName(tx.categoryId)}</strong>
-                  <small>{tx.date} · {catName(tx.categoryId)}</small>
-                </div>
-                <span className={`amount ${tx.type === 'income' ? 'pos' : 'neg'}`}>
-                  {tx.type === 'income' ? '+' : '−'}{formatMoney(tx.amountCents, settings.currency, settings.language)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </article>
-
-      {/* ── Calendar card (per-day spend) — in the old AI Assistant slot ── */}
-      <article className="glass-card card-calendar">
-        <header className="card-head">
-          <span className="icon-sq">📅</span>
-          <h2>{t('panel.dailySpend')}</h2>
-        </header>
-        <div className="cal-grid">
-          {daySpend.map((amt, i) => (
-            <div key={i} className={`cal-day ${amt === 0 ? 'empty' : ''}`} title={`${thisMonth}-${String(i + 1).padStart(2, '0')}`}>
+        {/* ── Calendar card (per-day spend) — stacked in the right zone ── */}
+        <article className="glass-card card-calendar">
+          <header className="card-head">
+            <span className="icon-sq">📅</span>
+            <h2>{t('panel.dailySpend')}</h2>
+          </header>
+          <div className="cal-grid">
+            {daySpend.map((amt, i) => (
+              <div key={i} className={`cal-day ${amt === 0 ? 'empty' : ''}`} title={`${thisMonth}-${String(i + 1).padStart(2, '0')}`}>
               <span className="dnum">{i + 1}</span>
               <span className="damt" style={{ opacity: amt > 0 ? Math.max(0.35, amt / maxDay) : 0 }}>
                 {amt > 0 ? formatMoney(amt, settings.currency, settings.language) : '·'}
