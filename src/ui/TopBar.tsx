@@ -34,7 +34,7 @@ export default function TopBar() {
             className={(props) => 'nav-pill' + (props.isActive ? ' active' : '')}
           >
             <span className="nav-icon">{icon(it.icon)}</span>
-            {t(it.key)}
+            {t(`nav.${it.key}`)}
           </NavLink>
         ))}
       </nav>
