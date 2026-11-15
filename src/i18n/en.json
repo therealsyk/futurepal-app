@@ -50,6 +50,7 @@
     "recent": "Recent Transactions",
     "seeAll": "See all",
     "budgetUsage": "Budget Usage",
+    "budgetEmpty": "No budget set for this month.",
     "expenses": "Expenses",
     "vsLastMonth": "vs. last month",
     "noComparison": "No prior month to compare",
@@ -66,7 +67,9 @@
     "loading": "Loading…",
     "errorLoad": "Could not load the calendar. Try again.",
     "retry": "Try again",
-    "otherCurrenciesNote": "Some expenses in other currencies are not included (no exchange rate)."
+    "otherCurrenciesNote": "Some expenses in other currencies are not included (no exchange rate).",
+    "unconvertedOne": "expense in another currency not counted (no exchange rate)",
+    "unconvertedMany": "expenses in other currencies not counted (no exchange rate)"
   },
   "transactions": {
     "title": "Transactions",

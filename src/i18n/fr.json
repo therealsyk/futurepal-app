@@ -50,6 +50,7 @@
     "recent": "Transactions récentes",
     "seeAll": "Voir tout",
     "budgetUsage": "Utilisation du budget",
+    "budgetEmpty": "Aucun budget défini pour ce mois.",
     "expenses": "Dépenses",
     "vsLastMonth": "vs. mois précédent",
     "noComparison": "Pas de mois précédent à comparer",
@@ -66,7 +67,9 @@
     "loading": "Chargement…",
     "errorLoad": "Impossible de charger le calendrier. Réessayez.",
     "retry": "Réessayer",
-    "otherCurrenciesNote": "Certaines dépenses dans d'autres devises ne sont pas incluses (pas de taux de change)."
+    "otherCurrenciesNote": "Certaines dépenses dans d'autres devises ne sont pas incluses (pas de taux de change).",
+    "unconvertedOne": "dépense dans une autre devise non comptée (pas de taux de change)",
+    "unconvertedMany": "dépenses dans d'autres devises non comptées (pas de taux de change)"
   },
   "transactions": {
     "title": "Transactions",

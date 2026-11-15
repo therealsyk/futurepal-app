@@ -12,7 +12,7 @@ import { Salaries } from './Salaries';
 import { Budgets } from './Budgets';
 import { Goals } from './Goals';
 import { LineChart } from '../ui/components';
-import { dailyExpenseTotals, buildCalendarGrid } from '../core/finance';
+import { dailyExpenseTotals, buildCalendarGrid, weekdayLabels } from '../core/finance';
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
@@ -71,6 +71,8 @@ export function Panel() {
 
   const now = new Date();
   const thisMonth = now.toISOString().slice(0, 7);
+  const isToday = (day: number) =>
+    calYear === now.getFullYear() && calMonth === now.getMonth() + 1 && day === now.getDate();
   const lastMonth = (() => {
     const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     return d.toISOString().slice(0, 7);
@@ -197,8 +199,8 @@ export function Panel() {
             <ul className="tx-list">
               {recent.map((tx) => (
                 <li key={tx.id}>
-                  <span className={`dot ${tx.type === 'income' ? 'green' : 'pink'}`} />
-                  <div>
+                  <span className={`avatar ${tx.type === 'income' ? 'green' : 'pink'}`} aria-hidden="true">{svgIcon(tx.type === 'income' ? "M12 19V5 M5 12l7 7 7-7" : "M12 5v14 M19 12l-7 7-7-7")}</span>
+                  <div className="tx-meta">
                     <strong>{tx.description || catName(tx.categoryId)}</strong>
                     <small>{tx.date} · {catName(tx.categoryId)}</small>
                   </div>
@@ -216,22 +218,28 @@ export function Panel() {
             <span className="icon-sq">{svgIcon("M21 12V7H5a2 2 0 0 1 0-4h14v4 M3 6v12a2 2 0 0 0 2 2h16v-6")}</span>
             <h2>{t('panel.budgetUsage')}</h2>
           </header>
-          <div className="donut-wrap">
-            <svg viewBox="0 0 100 100" width="92" height="92" aria-hidden="true">
-              <circle className="donut-track" cx="50" cy="50" r="40" />
-              <circle className="donut-fill" cx="50" cy="50" r="40"
-                strokeDasharray={`${budgetPct * 2.513} 251.3`} />
-              <text className="donut-label" x="50" y="54" textAnchor="middle">{budgetPct}%</text>
-            </svg>
-          </div>
-          <ul className="legend">
-            <li><span className="dot green" />{t('panel.savedDonut')} — {100 - budgetPct}%</li>
-            <li><span className="dot pink" />{t('panel.spendingDonut')} — {budgetPct}%</li>
-            {budgets.slice(0, 4).map((b) => {
-              const used = monthTx.filter((tx) => tx.type === 'expense' && tx.categoryId === b.categoryId).reduce((a, x) => a + x.amountCents, 0);
-              return <li key={b.id}><span className="dot blue" />{catName(b.categoryId)} — {formatMoney(used, settings.currency, settings.language)} / {formatMoney(b.limitCents, settings.currency, settings.language)}</li>;
-            })}
-          </ul>
+          {budgetTotal > 0 ? (
+            <>
+              <div className="donut-wrap">
+                <svg viewBox="0 0 100 100" width="92" height="92" aria-hidden="true">
+                  <circle className="donut-track" cx="50" cy="50" r="40" />
+                  <circle className="donut-fill" cx="50" cy="50" r="40"
+                    strokeDasharray={`${budgetPct * 2.513} 251.3`} />
+                  <text className="donut-label" x="50" y="54" textAnchor="middle">{budgetPct}%</text>
+                </svg>
+              </div>
+              <ul className="legend">
+                <li><span className="dot green" />{t('panel.savedDonut')} — {100 - budgetPct}%</li>
+                <li><span className="dot pink" />{t('panel.spendingDonut')} — {budgetPct}%</li>
+              {budgets.slice(0, 4).map((b) => {
+                const used = monthTx.filter((tx) => tx.type === 'expense' && tx.categoryId === b.categoryId).reduce((a, x) => a + x.amountCents, 0);
+                return <li key={b.id}><span className="dot blue" />{catName(b.categoryId)} — {formatMoney(used, settings.currency, settings.language)} / {formatMoney(b.limitCents, settings.currency, settings.language)}</li>;
+              })}
+            </ul>
+            </>
+          ) : (
+            <div className="cal-state">{t('panel.budgetEmpty')}</div>
+          )}
           <a className="link" href="#budgets">{t('panel.manageBudgets')}</a>
         </article>
       </section>
@@ -299,15 +307,16 @@ export function Panel() {
                   {calUnconverted} {calUnconverted === 1 ? t('panel.unconvertedOne') : t('panel.unconvertedMany')}
                 </div>
               )}
+              <div className="cal-weekdays" aria-hidden="true">
+                {weekdayLabels(settings.language).map((w) => <span key={w}>{w}</span>)}
+              </div>
               <div className="cal-grid">
                 {buildCalendarGrid(calYear, calMonth).map((cell) => (
-                  <div key={`${calYear}-${calMonth}-${cell}`} className={`cal-day ${cell === 0 ? 'out' : ''} ${calTotals[cell] === undefined ? 'empty' : ''}`}>
+                  <div key={`${calYear}-${calMonth}-${cell}`} className={`cal-day ${cell === 0 ? 'out' : ''} ${isToday(cell) ? 'today' : ''}`}>
                     {cell !== 0 ? (
                       <>
                         <span className="dnum">{cell}</span>
-                        <span className="damt" style={{ opacity: calTotals[cell] > 0 ? Math.max(0.35, calTotals[cell] / (Math.max(1, ...Object.values(calTotals)))) : 0 }}>
-                          {calTotals[cell] > 0 ? formatMoney(calTotals[cell], settings.currency, settings.language) : '·'}
-                        </span>
+                        <span className="damt">{formatMoney(calTotals[cell] ?? 0, settings.currency, settings.language)}</span>
                       </>
                     ) : null}
                   </div>
