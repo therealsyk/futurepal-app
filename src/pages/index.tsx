@@ -134,7 +134,7 @@ export function Panel() {
   const expensePct = income > 0 ? Math.min(100, Math.round((spent / income) * 100)) : 0;
 
   return (
-    <div className="dashboard">
+    <div className="dashboard dash-grid">
       {/* ── Left zone: Income Analysis on top, Recent + Budget side by side ── */}
       <section className="zone-left">
         <article className="glass-card card-analysis">
