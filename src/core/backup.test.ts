@@ -57,8 +57,8 @@ describe('JSON backup (SPEC §6.10)', () => {
 
     await setBudget(db, catId, 80000, 2026, 11);
     await db.goals.put(stampNew<Goal>({ name: 'Fundo de emergência', targetCents: 500000, currentCents: 120000, startDate: '2026-01-01', targetDate: '2026-12-31' }));
-    await addRecurring(db, { description: 'Netflix', amountCents: 1399, type: 'expense', categoryId: catId, frequency: 'monthly', nextDate: '2026-11-01' });
-    const grp = stampNew<Group>({ name: 'Viagem ao Japão' });
+    await addRecurring(db, { description: 'Netflix', amountCents: 1399, type: 'expense', categoryId: catId, currency: 'EUR', frequency: 'monthly', nextDate: '2026-11-01' });
+    const grp = stampNew<Group>({ name: 'Viagem ao Japão', color: '#4f8cff' });
     await db.groups.put(grp);
     await addTransaction(db, { date: '2026-06-01', type: 'expense', categoryId: catId, description: 'Bilhetes', amountCents: 90000, currency: 'EUR', groupId: grp.id });
 
