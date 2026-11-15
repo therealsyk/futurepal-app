@@ -278,6 +278,87 @@ export async function dailyTotals(db: WalletDB, year: number): Promise<Record<st
   return map;
 }
 
+// SPEC §6.5 / Phase 5: per-day expense totals for one calendar month, expressed in the
+// settings currency. Only active expenses count (income and soft-deleted rows are excluded).
+// Foreign-currency expenses are converted using a stored exchange rate when available; if no
+// rate exists they are NOT summed (flagged instead) so we never invent a total by mixing currencies.
+export interface DailyExpenseResult {
+  // day-of-month (1..31) -> cents in settings currency
+  byDay: Record<number, number>;
+  // number of expense transactions in other currencies that could not be converted
+  unconverted: number;
+}
+
+export async function dailyExpenseTotals(
+  db: WalletDB,
+  year: number,
+  month: number,
+  settingsCurrency: string,
+): Promise<DailyExpenseResult> {
+  const start = `${year}-${String(month).padStart(2, '0')}-01`;
+  const end = endOfMonth(new Date(Date.UTC(year, month - 1, 1))).toISOString().slice(0, 10); // real last day
+  const txs = await db.transactions
+    .filter((t) => t.deletedAt === null && t.type === 'expense' && t.date >= start && t.date <= end)
+    .toArray();
+
+  // Build a quick base->target rate lookup from stored exchange rates (latest fetched).
+  let rateToTarget: Record<string, number> | null = null;
+  const hasForeign = txs.some((t) => t.currency !== settingsCurrency);
+  if (hasForeign) {
+    const rows = await db.exchangeRates.toArray();
+    // Prefer a row whose base is the target currency (rates[target] would be 1) or any recent row.
+    const targetRow = rows.find((r) => r.base === settingsCurrency);
+    if (targetRow) rateToTarget = targetRow.rates;
+  }
+
+  const byDay: Record<number, number> = {};
+  let unconverted = 0;
+  for (const t of txs) {
+    let cents = t.amountCents;
+    if (t.currency !== settingsCurrency) {
+      const rate = rateToTarget?.[t.currency];
+      if (!rate || !Number.isFinite(rate)) {
+        unconverted++;
+        continue; // do not silently mix currencies
+      }
+      cents = Math.round(t.amountCents * rate);
+    }
+    const day = parseInt(t.date.slice(8, 10), 10);
+    byDay[day] = (byDay[day] || 0) + cents;
+  }
+  return { byDay, unconverted };
+}
+
+// Phase 5: Monday-first 7-column calendar grid for a month. Returns day numbers (1..31)
+// with 0 for the leading/trailing empty cells, length always a multiple of 7.
+// Correct for 4/5/6-week months, February and leap years.
+export function buildCalendarGrid(year: number, month: number): number[] {
+  const first = new Date(Date.UTC(year, month - 1, 1));
+  const dow = first.getDay(); // 0 = Sunday .. 6 = Saturday
+  const leading = (dow + 6) % 7; // days before the 1st when the week starts on Monday
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getDate();
+  const cells: number[] = [];
+  for (let i = 0; i < leading; i++) cells.push(0);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  while (cells.length % 7 !== 0) cells.push(0);
+  return cells;
+}
+
+// Short weekday labels Monday..Sunday in the app language (Intl-based, no extra library).
+export function weekdayLabels(language: string): string[] {
+  try {
+    const fmt = new Intl.DateTimeFormat(language, { weekday: 'short' });
+    const labels: string[] = [];
+    for (let i = 0; i < 7; i++) {
+      // 2024-01-01 was a Monday; iterate 7 consecutive days.
+      labels.push(fmt.format(new Date(Date.UTC(2024, 0, 1 + i))));
+    }
+    return labels;
+  } catch {
+    return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  }
+}
+
 // SPEC §6.5 Calendar: transactions (expenses+income) on a specific day.
 export async function transactionsOnDay(db: WalletDB, date: string): Promise<Transaction[]> {
   return db.transactions.filter((t) => t.deletedAt === null && t.date === date).toArray();

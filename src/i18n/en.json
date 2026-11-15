@@ -60,7 +60,13 @@
     "manageBudgets": "Manage budgets",
     "dailySpend": "Daily spend",
     "myWallet": "My Wallet",
-    "noData": "No data yet"
+    "noData": "No data yet",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "loading": "Loading…",
+    "errorLoad": "Could not load the calendar. Try again.",
+    "retry": "Try again",
+    "otherCurrenciesNote": "Some expenses in other currencies are not included (no exchange rate)."
   },
   "transactions": {
     "title": "Transactions",

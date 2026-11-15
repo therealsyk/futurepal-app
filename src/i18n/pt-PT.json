@@ -60,7 +60,13 @@
     "manageBudgets": "Gerir orçamentos",
     "dailySpend": "Gasto por dia",
     "myWallet": "Minha carteira",
-    "noData": "Sem dados"
+    "noData": "Sem dados",
+    "prevMonth": "Mês anterior",
+    "nextMonth": "Mês seguinte",
+    "loading": "A carregar…",
+    "errorLoad": "Não foi possível carregar o calendário. Tente novamente.",
+    "retry": "Tentar novamente",
+    "otherCurrenciesNote": "Alguns gastos noutras moedas não estão incluídos (sem taxa de câmbio)."
   },
   "transactions": {
     "title": "Transações",

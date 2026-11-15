@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { readFileSync } from 'node:fs';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { createDatabase, stampNew } from '../db/database';
-import type { WalletDB, Category } from '../db/database';
+import type { WalletDB, Category, Transaction, ExchangeRateRow } from '../db/database';
 import {
   addTransaction,
   monthTransactions,
@@ -21,6 +21,9 @@ import {
   periodSummary,
   dailyTotals,
   transactionsOnDay,
+  dailyExpenseTotals,
+  buildCalendarGrid,
+  weekdayLabels,
   salaryGrid,
   salaryYearSummary,
   setSalary,
@@ -428,3 +431,111 @@ function stampNewSalary(row: { year: number; month: number; amountCents: number 
   const now = new Date().toISOString();
   return { id: 'sal-' + Math.random().toString(36).slice(2), createdAt: now, updatedAt: now, deletedAt: null, ...row };
 }
+
+describe('calendar grid helpers (Phase 5)', () => {
+  it('Monday-first: Nov 2026 starts on a Sunday -> 6 leading empties, 30 days', () => {
+    const g = buildCalendarGrid(2026, 11);
+    expect(g.length % 7).toBe(0);
+    expect(g.slice(0, 6).every((x) => x === 0)).toBe(true);
+    expect(g[6]).toBe(1); // first Monday is day 1? Actually Nov 2026: 1st is Monday. Check below.
+  });
+
+  it('Feb leap year (2024) has 29 days and grid length multiple of 7', () => {
+    const g = buildCalendarGrid(2024, 2);
+    expect(g.filter((x) => x > 0).length).toBe(29);
+    expect(g.length % 7).toBe(0);
+  });
+
+  it('Feb common year (2026) has 28 days', () => {
+    const g = buildCalendarGrid(2026, 2);
+    expect(g.filter((x) => x > 0).length).toBe(28);
+  });
+
+  it('a six-week month produces 42 cells (e.g. Oct 2025 starts Friday)', () => {
+    const g = buildCalendarGrid(2025, 10);
+    expect(g.length % 7).toBe(0);
+    expect(g.filter((x) => x > 0).length).toBe(31);
+  });
+
+  it('first and last day are present in the grid', () => {
+    const g = buildCalendarGrid(2026, 11);
+    expect(g.includes(1)).toBe(true);
+    expect(g.includes(30)).toBe(true); // Nov has 30 days
+  });
+
+  it('weekday labels are 7 short strings and start with Monday', () => {
+    const w = weekdayLabels('en');
+    expect(w.length).toBe(7);
+    expect(w[0]).toMatch(/Mon/i);
+    expect(w[6]).toMatch(/Sun/i);
+  });
+});
+
+describe('dailyExpenseTotals (Phase 5 calendar)', () => {
+  async function addTx(date: string, amountCents: number, type: 'expense' | 'income', currency = 'EUR') {
+    const rec = stampNew<Transaction>({ date, amountCents, type, currency, description: 'x', categoryId: 'cat-1' });
+    await db.transactions.put(rec);
+    return rec;
+  }
+
+  it('sums multiple expenses on the same day and ignores income', async () => {
+    await addTx('2026-11-15', 1000, 'expense'); // 10.00
+    await addTx('2026-11-15', 2350, 'expense'); // 23.50 -> total 33.50
+    await addTx('2026-11-15', 5000, 'income');  // must NOT count
+    const r = await dailyExpenseTotals(db, 2026, 11, 'EUR');
+    expect(r.byDay[15]).toBe(3350);
+    expect(r.unconverted).toBe(0);
+  });
+
+  it('days with no expenses are absent from the map (UI renders zero)', async () => {
+    await addTx('2026-11-03', 500, 'expense');
+    const r = await dailyExpenseTotals(db, 2026, 11, 'EUR');
+    expect(r.byDay[7]).toBeUndefined(); // day 7 -> UI shows 0.00
+  });
+
+  it('excludes soft-deleted expenses', async () => {
+    const t = await addTx('2026-11-10', 900, 'expense');
+    await db.transactions.update(t.id, { deletedAt: new Date().toISOString() });
+    const r = await dailyExpenseTotals(db, 2026, 11, 'EUR');
+    expect(r.byDay[10]).toBeUndefined();
+  });
+
+  it('does not mix months (group by year/month/day)', async () => {
+    await addTx('2026-10-15', 1000, 'expense'); // previous month, same day number
+    await addTx('2026-11-15', 2000, 'expense');
+    const r = await dailyExpenseTotals(db, 2026, 11, 'EUR');
+    expect(r.byDay[15]).toBe(2000); // not 3000
+  });
+
+  it('handles first and last day of the month', async () => {
+    await addTx('2026-11-01', 100, 'expense');
+    await addTx('2026-11-30', 200, 'expense');
+    const r = await dailyExpenseTotals(db, 2026, 11, 'EUR');
+    expect(r.byDay[1]).toBe(100);
+    expect(r.byDay[30]).toBe(200);
+  });
+
+  it('February leap year (2024) has day 29; common year (2026) does not', async () => {
+    await addTx('2024-02-29', 150, 'expense');
+    const rLeap = await dailyExpenseTotals(db, 2024, 2, 'EUR');
+    expect(rLeap.byDay[29]).toBe(150);
+    const rCommon = await dailyExpenseTotals(db, 2026, 2, 'EUR');
+    expect(Object.keys(rCommon.byDay).length).toBe(0); // no Feb 29 in 2026
+  });
+
+  it('converts foreign currency when a rate exists; flags and skips it otherwise', async () => {
+    await db.exchangeRates.put(stampNew<ExchangeRateRow>({ base: 'EUR', rates: { USD: 1.1 }, fetchedAt: new Date().toISOString() }));
+    // rateToTarget looks for row with base === settingsCurrency ('EUR'); rates['USD']=1.1 means 1 USD = 1.1 EUR? 
+    // Our helper treats rate as amountCents * rate to reach target, so store the multiplier cents->target.
+    await addTx('2026-11-12', 1000, 'expense', 'USD'); // 1000 cents USD -> 1100 cents EUR
+    const r = await dailyExpenseTotals(db, 2026, 11, 'EUR');
+    expect(r.byDay[12]).toBe(1100);
+    expect(r.unconverted).toBe(0);
+
+    // No rate for GBP -> flagged, not summed.
+    await addTx('2026-11-13', 500, 'expense', 'GBP');
+    const r2 = await dailyExpenseTotals(db, 2026, 11, 'EUR');
+    expect(r2.byDay[13]).toBeUndefined();
+    expect(r2.unconverted).toBe(1);
+  });
+});

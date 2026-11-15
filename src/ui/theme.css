@@ -339,6 +339,19 @@ html[data-theme="light"] .progress { background: rgba(30, 40, 60, 0.10); }
 .cal-day.empty .damt { color: transparent; }
 .cal-day.today { border-color: var(--accent-2); background: rgba(139, 92, 246, 0.12); }
 .cal-day.today .dnum { color: var(--accent-2); }
+.cal-day.out { border: none; background: transparent; min-height: 42px; }
+.cal-nav { display: flex; align-items: center; gap: 8px; margin-left: auto; font-size: 13px; color: var(--muted); }
+.cal-arrow {
+  border: 1px solid var(--border); border-radius: 8px; background: var(--card-2);
+  color: var(--text); width: 26px; height: 26px; cursor: pointer; font-size: 14px;
+}
+.cal-arrow:hover { border-color: var(--accent); }
+.cal-state { padding: 18px 8px; color: var(--muted); font-size: 13px; }
+.cal-error { color: #e5484d; }
+.cal-warning {
+  margin-bottom: 8px; padding: 8px 10px; border-radius: 8px; font-size: 12px;
+  background: rgba(245, 166, 74, 0.14); color: var(--accent);
+}
 
 /* ── Forms / buttons ─────────────────────────────────────── */
 input, select, textarea {

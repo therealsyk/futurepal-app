@@ -12,6 +12,9 @@ import { Salaries } from './Salaries';
 import { Budgets } from './Budgets';
 import { Goals } from './Goals';
 import { LineChart } from '../ui/components';
+import { dailyExpenseTotals, buildCalendarGrid } from '../core/finance';
+
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 
 
@@ -36,6 +39,12 @@ export function Panel() {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [mode, setMode] = useState<ChartMode>('monthly');
   const [catFilter, setCatFilter] = useState<string>('all');
+  const calStart = new Date();
+  const [calYear, setCalYear] = useState<number>(calStart.getFullYear());
+  const [calMonth, setCalMonth] = useState<number>(calStart.getMonth() + 1);
+  const [calTotals, setCalTotals] = useState<Record<number, number> | null>(null);
+  const [calUnconverted, setCalUnconverted] = useState<number>(0);
+  const [calError, setCalError] = useState<string | null>(null);
 
   useEffect(() => {
     setSettings(loadSettings());
@@ -43,6 +52,20 @@ export function Panel() {
     db.categories.toArray().then((rows) => setCats(rows.filter((r) => r.deletedAt === null).map((r) => ({ id: r.id, name: r.name }))));
     db.budgets.toArray().then((rows) => setBudgets(rows.filter((r) => r.deletedAt === null)));
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setCalTotals(null);
+    setCalError(null);
+    dailyExpenseTotals(db, calYear, calMonth, settings?.currency || 'EUR')
+      .then((res) => {
+        if (cancelled) return;
+        setCalTotals(res.byDay);
+        setCalUnconverted(res.unconverted);
+      })
+      .catch(() => { if (!cancelled) setCalError('error'); });
+    return () => { cancelled = true; };
+  }, [calYear, calMonth, settings?.currency]);
 
   if (!settings) return <p className="muted">…</p>;
 
@@ -127,15 +150,7 @@ export function Panel() {
   const recent = [...monthTx].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
   const catName = (id: string) => cats.find((c) => c.id === id)?.name ?? '—';
 
-  // ── Calendar: per-day spend this month ──
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const daySpend: number[] = new Array(daysInMonth).fill(0);
-  for (const tx of monthTx) {
-    if (tx.type !== 'expense') continue;
-    const d = parseInt(tx.date.slice(8, 10), 10);
-    if (d >= 1 && d <= daysInMonth) daySpend[d - 1] += tx.amountCents;
-  }
-  const maxDay = Math.max(1, ...daySpend);
+
   const savingsPct = income > 0 ? Math.min(100, Math.round((saved / income) * 100)) : 0;
   const expensePct = income > 0 ? Math.min(100, Math.round((spent / income) * 100)) : 0;
 
@@ -267,18 +282,40 @@ export function Panel() {
           <header className="card-head">
             <span className="icon-sq">{svgIcon("M8 2v4 M16 2v4 M3 5h18v14H3z M3 10h18")}</span>
             <h2>{t('panel.dailySpend')}</h2>
-          </header>
-          <div className="cal-grid">
-            {daySpend.map((amt, i) => (
-              <div key={i} className={`cal-day ${amt === 0 ? 'empty' : ''} ${(i + 1) === now.getDate() ? 'today' : ''}`} title={`${thisMonth}-${String(i + 1).padStart(2, '0')}`}>
-              <span className="dnum">{i + 1}</span>
-              <span className="damt" style={{ opacity: amt > 0 ? Math.max(0.35, amt / maxDay) : 0 }}>
-                {amt > 0 ? formatMoney(amt, settings.currency, settings.language) : '·'}
-              </span>
+            <div className="cal-nav">
+              <button className="cal-arrow" onClick={() => { if (calMonth === 1) { setCalYear(calYear - 1); setCalMonth(12); } else { setCalMonth(calMonth - 1); } }} aria-label="previous month">‹</button>
+              <span>{MONTH_NAMES[calMonth - 1]} {calYear}</span>
+              <button className="cal-arrow" onClick={() => { if (calMonth === 12) { setCalYear(calYear + 1); setCalMonth(1); } else { setCalMonth(calMonth + 1); } }} aria-label="next month">›</button>
             </div>
-          ))}
-        </div>
-      </article>
+          </header>
+          {calError ? (
+            <div className="cal-state cal-error">{t('panel.error')}</div>
+          ) : calTotals === null ? (
+            <div className="cal-state cal-loading">{t('panel.loading')}</div>
+          ) : (
+            <>
+              {calUnconverted > 0 && (
+                <div className="cal-warning">
+                  {calUnconverted} {calUnconverted === 1 ? t('panel.unconvertedOne') : t('panel.unconvertedMany')}
+                </div>
+              )}
+              <div className="cal-grid">
+                {buildCalendarGrid(calYear, calMonth).map((cell) => (
+                  <div key={`${calYear}-${calMonth}-${cell}`} className={`cal-day ${cell === 0 ? 'out' : ''} ${calTotals[cell] === undefined ? 'empty' : ''}`}>
+                    {cell !== 0 ? (
+                      <>
+                        <span className="dnum">{cell}</span>
+                        <span className="damt" style={{ opacity: calTotals[cell] > 0 ? Math.max(0.35, calTotals[cell] / (Math.max(1, ...Object.values(calTotals)))) : 0 }}>
+                          {calTotals[cell] > 0 ? formatMoney(calTotals[cell], settings.currency, settings.language) : '·'}
+                        </span>
+                      </>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </article>
       </section>
     </div>
   );
