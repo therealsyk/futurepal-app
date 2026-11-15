@@ -246,6 +246,8 @@
     "catLeisure": "Lazer",
     "catOther": "Outros",
     "catCar": "Carro",
-    "catRent": "Aluguel"
+    "catRent": "Aluguel",
+    "catSalary": "Salário",
+    "catAnimals": "Animais"
   }
 }

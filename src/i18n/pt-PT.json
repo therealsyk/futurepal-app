@@ -152,7 +152,9 @@
     "catLeisure": "Lazer",
     "catOther": "Outros",
     "catCar": "Carro",
-    "catRent": "Renda"
+    "catRent": "Renda",
+    "catSalary": "Salário",
+    "catAnimals": "Animais"
   },
   "account": {
     "title": "Conta",

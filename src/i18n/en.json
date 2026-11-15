@@ -210,7 +210,9 @@
     "catLeisure": "Leisure",
     "catOther": "Other",
     "catCar": "Car",
-    "catRent": "Rent"
+    "catRent": "Rent",
+    "catSalary": "Salary",
+    "catAnimals": "Pets"
   },
   "budgets": {
     "title": "Budgets",

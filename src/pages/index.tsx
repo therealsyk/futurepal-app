@@ -13,8 +13,25 @@ import { Budgets } from './Budgets';
 import { Goals } from './Goals';
 import { LineChart } from '../ui/components';
 import { dailyExpenseTotals, buildCalendarGrid, weekdayLabels } from '../core/finance';
+import { format } from 'date-fns';
+import { enUS } from 'date-fns/locale/en-US';
+import { pt } from 'date-fns/locale/pt';
+import { ptBR } from 'date-fns/locale/pt-BR';
+import { es } from 'date-fns/locale/es';
+import { fr } from 'date-fns/locale/fr';
 
-const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+// Localized month name for the calendar header (matches the UI language).
+function dateLocale(lang: string) {
+  if (lang === 'pt-BR') return ptBR;
+  if (lang.startsWith('pt')) return pt;
+  if (lang === 'es') return es;
+  if (lang === 'fr') return fr;
+  return enUS;
+}
+function monthName(year: number, month: number, lang: string): string {
+  const d = new Date(Date.UTC(year, month - 1, 1));
+  return format(d, 'MMMM', { locale: dateLocale(lang) });
+}
 
 
 
@@ -32,10 +49,10 @@ export function PageTitle({ titleKey }: { titleKey: string }) {
 type ChartMode = 'monthly' | 'yearly';
 
 export function Panel() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [txs, setTxs] = useState<Transaction[]>([]);
-  const [cats, setCats] = useState<{ id: string; name: string }[]>([]);
+  const [cats, setCats] = useState<{ id: string; name: string; nameKey?: string }[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [mode, setMode] = useState<ChartMode>('monthly');
   const [catFilter, setCatFilter] = useState<string>('all');
@@ -49,7 +66,7 @@ export function Panel() {
   useEffect(() => {
     setSettings(loadSettings());
     db.transactions.toArray().then((rows) => setTxs(rows.filter((r) => r.deletedAt === null)));
-    db.categories.toArray().then((rows) => setCats(rows.filter((r) => r.deletedAt === null).map((r) => ({ id: r.id, name: r.name }))));
+    db.categories.toArray().then((rows) => setCats(rows.filter((r) => r.deletedAt === null).map((r) => ({ id: r.id, name: r.name, nameKey: r.nameKey }))));
     db.budgets.toArray().then((rows) => setBudgets(rows.filter((r) => r.deletedAt === null)));
   }, []);
 
@@ -150,7 +167,11 @@ export function Panel() {
 
   // ── Recent transactions (5 latest) ──
   const recent = [...monthTx].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
-  const catName = (id: string) => cats.find((c) => c.id === id)?.name ?? '—';
+  const catName = (id: string) => {
+    const c = cats.find((x) => x.id === id);
+    if (!c) return '—';
+    return t(`categories.${c.nameKey ?? c.name}`);
+  };
 
 
   const savingsPct = income > 0 ? Math.min(100, Math.round((saved / income) * 100)) : 0;
@@ -173,7 +194,7 @@ export function Panel() {
               </button>
               <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)} aria-label="category filter">
                 <option value="all">{t('panel.allCategories')}</option>
-                {cats.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
+                {cats.map((c) => <option key={c.id} value={c.nameKey ?? c.name}>{t(`categories.${c.nameKey ?? c.name}`)}</option>)}
               </select>
             </div>
           </header>
@@ -292,7 +313,7 @@ export function Panel() {
             <h2>{t('panel.dailySpend')}</h2>
             <div className="cal-nav">
               <button className="cal-arrow" onClick={() => { if (calMonth === 1) { setCalYear(calYear - 1); setCalMonth(12); } else { setCalMonth(calMonth - 1); } }} aria-label="previous month">‹</button>
-              <span>{MONTH_NAMES[calMonth - 1]} {calYear}</span>
+              <span>{monthName(calYear, calMonth, i18n.language)} {calYear}</span>
               <button className="cal-arrow" onClick={() => { if (calMonth === 12) { setCalYear(calYear + 1); setCalMonth(1); } else { setCalMonth(calMonth + 1); } }} aria-label="next month">›</button>
             </div>
           </header>

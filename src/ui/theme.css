@@ -338,7 +338,7 @@ html[data-theme="light"] .progress { background: rgba(30, 40, 60, 0.10); }
 }
 .cal-day .dnum { font-size: 11px; color: var(--muted); }
 .cal-day .damt { font-size: 12px; font-weight: 600; color: var(--pink); }
-.cal-day.empty .damt { color: transparent; }
+.cal-day.empty .damt { color: var(--muted); }
 .cal-day.today { border-color: var(--accent-2); background: rgba(139, 92, 246, 0.12); }
 .cal-day.today .dnum { color: var(--accent-2); }
 .cal-day.out { border: none; background: transparent; min-height: 42px; }
