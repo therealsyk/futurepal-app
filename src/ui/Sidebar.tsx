@@ -14,6 +14,7 @@ const items = [
   { path: '/orcamentos', key: 'nav.budgets', icon: 'M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6' },
   { path: '/metas', key: 'nav.goals', icon: 'M22 11.08V12a10 10 0 1 1-5.914-5.914M22 11l-10 10' },
   { path: '/salarios', key: 'nav.salaries', icon: 'M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6' },
+  { path: '/categorias', key: 'nav.categories', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
   { path: '/definicoes', key: 'nav.settings', icon: 'M4 7h16M4 12h16M4 17h10' },
 ];
 

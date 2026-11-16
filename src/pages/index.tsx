@@ -385,3 +385,4 @@ export function Panel() {
 import { Dashboard } from './Dashboard';
 
 export { Dashboard, Transactions, Calendar, Salaries, Budgets, Goals };
+export { Categories } from './Categories';

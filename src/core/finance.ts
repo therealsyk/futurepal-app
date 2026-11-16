@@ -2,6 +2,7 @@ import { endOfMonth } from 'date-fns';
 import type { WalletDB, Transaction, Category, Budget, Goal, Recurring, Group } from '../db/database';
 import { stampNew } from '../db/database';
 import { assertCents } from './money';
+import { autoCategoryImage } from './category-images';
 
 export const MAX_ACTIVE_CATEGORIES = 12;
 
@@ -72,7 +73,8 @@ export async function ensureDefaultCategories(db: WalletDB): Promise<void> {
 export async function addCategory(db: WalletDB, input: Omit<Category, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>): Promise<Category> {
   const active = await activeCategories(db);
   if (active.length >= MAX_ACTIVE_CATEGORIES) throw new Error(`max ${MAX_ACTIVE_CATEGORIES} active categories`);
-  const cat = stampNew<Category>(input);
+  // Auto-match a picture from the name when none is supplied.
+  const cat = stampNew<Category>({ image: autoCategoryImage(input.name), ...input });
   await db.categories.add(cat);
   return cat;
 }

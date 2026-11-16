@@ -6,7 +6,8 @@
     "budgets": "Orçamentos",
     "goals": "Metas",
     "salaries": "Salários",
-    "settings": "Configurações"
+    "settings": "Configurações",
+    "categories": "Categorias"
   },
   "common": {
     "appName": "Wallet",
@@ -71,7 +72,18 @@
     "retry": "Tentar novamente",
     "otherCurrenciesNote": "Alguns gastos em outras moedas não estão incluídos (sem taxa de câmbio).",
     "unconvertedOne": "gasto em outra moeda não contabilizado (sem taxa de câmbio)",
-    "unconvertedMany": "gastos em outras moedas não contabilizados (sem taxa de câmbio)"
+    "unconvertedMany": "gastos em outras moedas não contabilizados (sem taxa de câmbio)",
+    "categoriesTitle": "Categorias",
+    "newCategory": "Nova categoria",
+    "categoryName": "Nome da categoria",
+    "editCategory": "Editar categoria",
+    "image": "Imagem",
+    "imageUrl": "URL da imagem",
+    "uploadImage": "Enviar imagem",
+    "autoImageHint": "A imagem é escolhida automaticamente pelo nome; você pode mudá-la.",
+    "create": "Criar",
+    "save": "Salvar",
+    "cancel": "Cancelar"
   },
   "transactions": {
     "title": "Transações",

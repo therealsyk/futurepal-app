@@ -7,6 +7,7 @@ import { formatMoney } from '../core/money';
 import { loadSettings } from '../core/settings';
 import type { AppSettings } from '../core/settings';
 import type { Transaction, Budget, Category } from '../db/database';
+import { categoryImage } from '../core/category-images';
 
 // ── Pure helpers (integer cents only, no float money) ────────────────────────
 function pct(part: number, whole: number): number {
@@ -42,13 +43,7 @@ export function smoothPath(points: { x: number; y: number }[]): string {
   return d;
 }
 
-const AVATAR_COLORS = ['#8b5cf6', '#3b82f6', '#ec4899', '#22d3ee', '#f59e0b', '#10b981'];
 
-function avatarFor(label: string): string {
-  let h = 0;
-  for (let i = 0; i < label.length; i++) h = (h * 31 + label.charCodeAt(i)) >>> 0;
-  return AVATAR_COLORS[h % AVATAR_COLORS.length];
-}
 
 // ── Card shell ────────────────────────────────────────────────────────────────
 function GlassCard({ children, className = '' }: { children: ReactNode; className?: string }) {
@@ -329,7 +324,8 @@ export function Dashboard() {
     budgetUsed += used;
   }
 
-  const catName = (id: string) => cats.find((c) => c.id === id)?.name ?? '—';
+  const catById = (id: string) => cats.find((c) => c.id === id);
+  const catName = (id: string) => catById(id)?.name ?? '—';
 
   const recent = [...monthTx].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6);
 
@@ -363,14 +359,12 @@ export function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 mt-2 flex-1">
           <GlassCard className="p-5">
             <CardTitle title={t('panel.recentTransactions')} />
-            <ul className="mt-4 space-y-3">
+            <ul className="mt-4 space-y-2">
               {recent.length === 0 && <li className="text-sm text-white/50">{t('panel.noData')}</li>}
               {recent.map((tx) => (
-                <li key={tx.id} className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold"
-                    style={{ background: avatarFor(catName(tx.categoryId)) }}>
-                    {catName(tx.categoryId).slice(0, 1)}
-                  </div>
+                <li key={tx.id} className="flex items-center gap-3 rounded-xl bg-white/5 border border-white/10 px-3 py-2">
+                  <img src={categoryImage(catById(tx.categoryId) ?? { name: catName(tx.categoryId) })}
+                    alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
                   <div className="flex-1">
                     <div className="text-sm text-white/90">{tx.description || catName(tx.categoryId)}</div>
                     <div className="text-xs text-white/50">{tx.date}</div>
