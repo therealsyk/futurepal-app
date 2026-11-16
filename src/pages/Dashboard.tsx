@@ -18,6 +18,12 @@ function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
 }
 
+// Month-over-month change in cents; null when the previous month has no data.
+function changePct(current: number, previous: number): number | null {
+  if (!previous) return null;
+  return Math.round(((current - previous) / Math.abs(previous)) * 100);
+}
+
 export function smoothPath(points: { x: number; y: number }[]): string {
   if (points.length === 0) return '';
   if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
@@ -114,30 +120,37 @@ function IncomeChart({ series, settings }: {
   );
 }
 
-// ── Progress bar card ─────────────────────────────────────────────────────────
-function ProgressCard({ title, value, total, percent, tone }: {
+// ── Progress bar card (bar built with Tailwind only) ─────────────────────────
+function ProgressCard({ title, value, total, percent, changePct, tone }: {
   title: string;
   value: number;
   total: number;
   percent: number;
-  tone: 'violet' | 'magenta';
+  changePct: number | null;
+  tone: 'blue' | 'magenta';
 }) {
-  const grad = tone === 'violet'
-    ? 'linear-gradient(90deg,#6366f1,#8b5cf6,#a78bfa)'
-    : 'linear-gradient(90deg,#ec4899,#f472b6,#f9a8d4)';
+  const grad = tone === 'blue'
+    ? 'linear-gradient(90deg,#3b82f6,#60a5fa,#93c5fd)'
+    : 'linear-gradient(90deg,#ec4899,#d946ef,#f472b6)';
+  const up = changePct !== null && changePct >= 0;
   return (
     <GlassCard className="p-5">
       <CardTitle title={title} />
-      <div className="mt-3 flex items-end justify-between">
+      <div className="mt-3 flex items-end justify-between gap-3">
         <div>
-          <div className="text-2xl font-bold text-white">{formatMoney(value, 'EUR', 'en')}</div>
-          <div className="text-xs text-white/50">{formatMoney(total, 'EUR', 'en')} total</div>
+          <div className="text-3xl font-bold leading-tight text-white">{formatMoney(value, 'EUR', 'en')}</div>
+          <div className="text-xs text-white/50 mt-1">{formatMoney(total, 'EUR', 'en')} total</div>
         </div>
-        <div className="text-3xl font-black text-white/90">{percent}%</div>
+        {changePct !== null && (
+          <div className={`text-sm font-semibold ${up ? 'text-emerald-400' : 'text-red-400'}`}>
+            {up ? '▲' : '▼'} {Math.abs(changePct)}%
+          </div>
+        )}
       </div>
-      <div className="mt-4 h-3.5 rounded-full bg-white/8 overflow-hidden" style={{ boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.5)' }}>
-        <div className="h-full rounded-full" style={{ width: `${clamp(percent, 0, 100)}%`, background: grad, boxShadow: '0 0 12px rgba(139,92,246,0.45)' }} />
+      <div className="mt-3 h-2 bg-white/10 rounded-full overflow-hidden">
+        <div className="h-full rounded-full" style={{ width: `${clamp(percent, 0, 100)}%`, background: grad }} />
       </div>
+      <div className="mt-2 text-xs text-white/45">{percent}% of income</div>
     </GlassCard>
   );
 }
@@ -297,6 +310,10 @@ export function Dashboard() {
     series.push({ label: d.toLocaleString(settings.language, { month: 'short' }), income: inc, expense: exp });
   }
 
+  const prevMonth = series[series.length - 2] ?? { income: 0, expense: 0 };
+  const prevSavings = prevMonth.income - prevMonth.expense;
+  const prevExpense = prevMonth.expense;
+
   const monthIncome = monthTx.filter((tx) => tx.type === 'income').reduce((a, tx) => a + tx.amountCents, 0);
   const monthExpense = monthTx.filter((tx) => tx.type === 'expense').reduce((a, tx) => a + tx.amountCents, 0);
   const savings = monthIncome - monthExpense;
@@ -337,8 +354,8 @@ export function Dashboard() {
           </GlassCard>
 
           <div className="grid grid-cols-1 gap-2">
-            <ProgressCard title={t('panel.monthlySavings')} value={savings} total={monthIncome} percent={savingsPct} tone="violet" />
-            <ProgressCard title={t('panel.monthlyExpenses')} value={monthExpense} total={monthIncome} percent={expensePct} tone="magenta" />
+            <ProgressCard title={t('panel.monthlySavings')} value={savings} total={monthIncome} percent={savingsPct} changePct={changePct(savings, prevSavings)} tone="blue" />
+            <ProgressCard title={t('panel.monthlyExpenses')} value={monthExpense} total={monthIncome} percent={expensePct} changePct={changePct(monthExpense, prevExpense)} tone="magenta" />
           </div>
         </div>
 
