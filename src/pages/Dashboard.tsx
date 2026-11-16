@@ -376,7 +376,7 @@ export function Dashboard() {
             <CardTitle title={t('panel.incomeAnalysis')} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 3v18h18"/><path d="M7 14l4-6 4 4 5-7"/></svg>} />
             <div className="flex gap-3 mt-3 text-xs text-white/70">
               <span><i className="dot" style={{ background: '#8b5cf6' }}></i> {t('panel.income')}</span>
-              <span><i className="dot" style={{ background: '#4aa8ff' }}></i> {t('panel.savings')}</span>
+              <span><i className="dot" style={{ background: '#4aa8ff' }}></i> {t('panel.expenses')}</span>
             </div>
             <div className="mt-2 flex-1 min-h-[300px]">
               <IncomeChart series={series} settings={settings} />
