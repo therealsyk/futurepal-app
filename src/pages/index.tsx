@@ -7,7 +7,7 @@ import { loadSettings } from '../core/settings';
 import type { AppSettings } from '../core/settings';
 import type { Transaction, Budget } from '../db/database';
 import { Transactions } from './Transactions';
-import { Calendar } from './Calendar';
+import Calendar from './Calendar';
 import { Salaries } from './Salaries';
 import { Budgets } from './Budgets';
 import { Goals } from './Goals';
