@@ -50,18 +50,29 @@ export function smoothPath(points: { x: number; y: number }[]): string {
 function GlassCard({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
     <div
-      className={`rounded-2xl border border-white/10 backdrop-blur-xl bg-white/5
+      className={`relative rounded-2xl border border-white/10 backdrop-blur-xl bg-white/5
         shadow-[0_28px_70px_-28px_rgba(0,0,0,0.85),0_10px_30px_-14px_rgba(139,92,246,0.35)] ${className}`}
     >
-      {children}
+      <div className="absolute inset-0 rounded-2xl pointer-events-none"
+        style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.01))' }} />
+      <div className="relative">
+        {children}
+      </div>
     </div>
   );
 }
 
-function CardTitle({ title, sub }: { title: string; sub?: string }) {
+function CardTitle({ title, sub, icon }: { title: string; sub?: string; icon?: ReactNode }) {
   return (
     <div className="flex items-center justify-between">
-      <h3 className="text-sm font-semibold text-white/90 tracking-wide">{title}</h3>
+      <div className="flex items-center gap-3">
+        {icon && (
+          <span className="w-[34px] h-[34px] rounded-xl border border-white/10 bg-white/7 grid place-items-center text-sm">
+            {icon}
+          </span>
+        )}
+        <h3 className="text-sm font-semibold text-white/90 tracking-wide">{title}</h3>
+      </div>
       {sub && <span className="text-xs text-white/50">{sub}</span>}
     </div>
   );
@@ -117,13 +128,14 @@ function IncomeChart({ series, settings }: {
 }
 
 // ── Progress bar card (bar built with Tailwind only) ─────────────────────────
-function ProgressCard({ title, value, total, percent, changePct, tone }: {
+function ProgressCard({ title, value, total, percent, changePct, tone, icon }: {
   title: string;
   value: number;
   total: number;
   percent: number;
   changePct: number | null;
   tone: 'blue' | 'magenta';
+  icon?: ReactNode;
 }) {
   const grad = tone === 'blue'
     ? 'linear-gradient(90deg,#3b82f6,#60a5fa,#93c5fd)'
@@ -131,7 +143,7 @@ function ProgressCard({ title, value, total, percent, changePct, tone }: {
   const up = changePct !== null && changePct >= 0;
   return (
     <GlassCard className="p-5">
-      <CardTitle title={title} />
+      <CardTitle title={title} icon={icon} />
       <div className="mt-3 flex items-end justify-between gap-3">
         <div>
           <div className="text-3xl font-bold leading-tight text-white">{formatMoney(value, 'EUR', 'en')}</div>
@@ -143,7 +155,7 @@ function ProgressCard({ title, value, total, percent, changePct, tone }: {
           </div>
         )}
       </div>
-      <div className="mt-3 h-2 bg-white/10 rounded-full overflow-hidden">
+      <div className="mt-3 h-[14px] bg-white/7 border border-white/10 rounded-full overflow-hidden">
         <div className="h-full rounded-full" style={{ width: `${clamp(percent, 0, 100)}%`, background: grad }} />
       </div>
       <div className="mt-2 text-xs text-white/45">{percent}% of income</div>
@@ -361,22 +373,26 @@ export function Dashboard() {
         {/* Top row: Income analysis (left) + savings/expenses (right) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 flex-1">
           <GlassCard className="lg:col-span-2 p-4 flex flex-col">
-            <CardTitle title={t('panel.incomeAnalysis')} sub={t('panel.income')} />
+            <CardTitle title={t('panel.incomeAnalysis')} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 3v18h18"/><path d="M7 14l4-6 4 4 5-7"/></svg>} />
+            <div className="flex gap-3 mt-3 text-xs text-white/70">
+              <span><i className="dot" style={{ background: '#8b5cf6' }}></i> {t('panel.income')}</span>
+              <span><i className="dot" style={{ background: '#4aa8ff' }}></i> {t('panel.savings')}</span>
+            </div>
             <div className="mt-2 flex-1 min-h-[300px]">
               <IncomeChart series={series} settings={settings} />
             </div>
           </GlassCard>
 
           <div className="grid grid-cols-1 gap-2">
-            <ProgressCard title={t('panel.monthlySavings')} value={savings} total={monthIncome} percent={savingsPct} changePct={changePct(savings, prevSavings)} tone="blue" />
-            <ProgressCard title={t('panel.monthlyExpenses')} value={monthExpense} total={monthIncome} percent={expensePct} changePct={changePct(monthExpense, prevExpense)} tone="magenta" />
+            <ProgressCard title={t('panel.monthlySavings')} value={savings} total={monthIncome} percent={savingsPct} changePct={changePct(savings, prevSavings)} tone="blue" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 2v20"/><path d="M17 6.5A7 7 0 0 0 5 12a7 7 0 0 0 14 5.5"/></svg>} />
+            <ProgressCard title={t('panel.monthlyExpenses')} value={monthExpense} total={monthIncome} percent={expensePct} changePct={changePct(monthExpense, prevExpense)} tone="magenta" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/></svg>} />
           </div>
         </div>
 
         {/* Bottom row: recent (left) + budget (center) + calendar (right) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 mt-2 flex-1">
           <GlassCard className="p-5">
-            <CardTitle title={t('panel.recentTransactions')} />
+            <CardTitle title={t('panel.recentTransactions')} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>} />
             <ul className="mt-4 space-y-2">
               {recent.length === 0 && <li className="text-sm text-white/50">{t('panel.noData')}</li>}
               {recent.map((tx) => (
@@ -396,7 +412,7 @@ export function Dashboard() {
           </GlassCard>
 
           <GlassCard className="p-5">
-            <CardTitle title={t('panel.budgetUsage')} />
+            <CardTitle title={t('panel.budgetUsage')} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/><path d="M12 3v9l6.4 6.4"/></svg>} />
             <div className="mt-4 flex items-center justify-center">
               <Donut used={budgetUsed} budget={budgetTotal} />
             </div>
