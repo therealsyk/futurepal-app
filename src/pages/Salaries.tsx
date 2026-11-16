@@ -21,6 +21,15 @@ export const Salaries = () => {
 
   const fmt = (cents: number) => formatMoney(cents, s.currency, s.language);
 
+  // Controlled input: raw user text while typing; re-syncs from DB after save.
+  const [drafts, setDrafts] = useState<Record<number, string>>({});
+
+  const refresh = async () => {
+    setGrid(await salaryGrid(db, year));
+    setSummary(await salaryYearSummary(db, year));
+    setDrafts({});
+  };
+
   return (
     <div>
       <h1 className="page-title">{t('salaries.title')}</h1>
@@ -35,10 +44,17 @@ export const Salaries = () => {
             <span>{t('salaries.salaryFor')} {(t('calendar.monthNames', { returnObjects: true }) as string[])[row.month - 1]}</span>
             <input
               type="text"
-              value={fmt(row.amountCents)}
+              value={drafts[row.month] ?? fmt(row.amountCents)}
               onChange={(e) => {
-                const cents = parseMoneyToCents(e.target.value);
-                if (cents !== null) setSalary(db, year, row.month, cents);
+                const raw = e.target.value;
+                const cents = parseMoneyToCents(raw);
+                if (cents === null) {
+                  setDrafts((d) => ({ ...d, [row.month]: raw }));
+                  return;
+                }
+                setSalary(db, year, row.month, cents)
+                  .then(refresh)
+                  .catch(() => setDrafts((d) => ({ ...d, [row.month]: raw })));
               }}
             />
           </div>
