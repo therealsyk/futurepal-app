@@ -113,6 +113,7 @@ export interface TxFilter {
   month?: number;
   categoryId?: string;
   text?: string;
+  groupId?: string;
 }
 
 // SPEC §6.2: filters by month, category and free text. Ignores soft-deleted rows.
@@ -124,6 +125,7 @@ export async function filterTransactions(db: WalletDB, filter: TxFilter): Promis
     txs = txs.filter((t) => t.date >= start && t.date <= end);
   }
   if (filter.categoryId) txs = txs.filter((t) => t.categoryId === filter.categoryId);
+  if (filter.groupId) txs = txs.filter((t) => t.groupId === filter.groupId);
   if (filter.text) {
     const q = filter.text.trim().toLowerCase();
     if (q) txs = txs.filter((t) => (t.description || '').toLowerCase().includes(q));

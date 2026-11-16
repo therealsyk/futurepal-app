@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
-import type { Transaction, Category } from '../db/database';
-import { addTransaction, softDelete, activeCategories, addCategory, filterTransactions } from '../core/finance';
+import type { Transaction, Category, Group } from '../db/database';
+import { addTransaction, softDelete, activeCategories, addCategory, filterTransactions, listGroups } from '../core/finance';
 import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
 import { PageTitle } from './index';
@@ -25,6 +25,7 @@ export function Transactions() {
   const [filterMonth, setFilterMonth] = useState<number>(month);
   const [filterCat, setFilterCat] = useState('');
   const [filterText, setFilterText] = useState('');
+  const [filterGroup, setFilterGroup] = useState('');
 
   // table sorting: column + direction
   const [sortCol, setSortCol] = useState<'date' | 'amount'>('date');
@@ -36,15 +37,18 @@ export function Transactions() {
   const [date, setDate] = useState(now.toISOString().slice(0, 10));
   const [type, setType] = useState<'expense' | 'income'>('expense');
   const [categoryId, setCategoryId] = useState('');
+  const [groupId, setGroupId] = useState('');
+  const [groups, setGroups] = useState<Group[]>([]);
 
   // category form
   const [newCatName, setNewCatName] = useState('');
   const [catError, setCatError] = useState<string | null>(null);
 
   const refresh = async () => {
-    const rows = await filterTransactions(db, { year, month: filterMonth, categoryId: filterCat || undefined, text: filterText });
+    const rows = await filterTransactions(db, { year, month: filterMonth, categoryId: filterCat || undefined, text: filterText, groupId: filterGroup || undefined });
     setTxs(rows);
     setCats(await activeCategories(db));
+    setGroups(await listGroups(db));
     if (!categoryId && cats.length === 0) {
       const first = await activeCategories(db);
       if (first.length > 0) setCategoryId(first[0].id);
@@ -53,7 +57,7 @@ export function Transactions() {
 
   useEffect(() => {
     refresh().catch((e) => setError(String(e)));
-  }, [filterMonth, filterCat, filterText]);
+  }, [filterMonth, filterCat, filterText, filterGroup]);
 
   const submit = async () => {
     setError(null);
@@ -71,6 +75,7 @@ export function Transactions() {
         description: description.trim(),
         amountCents: cents,
         currency: settings.currency,
+        groupId: groupId || undefined,
       });
       setDescription('');
       setAmount('');
@@ -126,6 +131,15 @@ export function Transactions() {
             ))}
           </select>
         </label>
+        <label style={{ display: 'block', margin: '8px 0' }}>
+          <span className="stat-label">{t('goals.groupName')}</span>
+          <select className="input" value={groupId} onChange={(e) => setGroupId(e.target.value)}>
+            <option value="">—</option>
+            {groups.map((g) => (
+              <option key={g.id} value={g.id}>{g.name}</option>
+            ))}
+          </select>
+        </label>
         <Button label={t('common.add')} variant="primary" onClick={submit} />
       </Card>
 
@@ -155,6 +169,15 @@ export function Transactions() {
             </select>
           </label>
           <Input label={t('transactions.filterText')} value={filterText} onChange={setFilterText} />
+          <label>
+            <span className="stat-label">{t('goals.groupsTitle')}</span>
+            <select className="input" data-testid="filter-group" value={filterGroup} onChange={(e) => setFilterGroup(e.target.value)}>
+              <option value="">—</option>
+              {groups.map((g) => (
+                <option key={g.id} value={g.id}>{g.name}</option>
+              ))}
+            </select>
+          </label>
         </div>
       </Card>
 
