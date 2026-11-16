@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
 import { formatMoney } from '../core/money';
@@ -17,8 +18,7 @@ function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
 }
 
-// Build a smooth SVG path (Catmull-Rom -> cubic Bezier) from points [x,y].
-function smoothPath(points: { x: number; y: number }[]): string {
+export function smoothPath(points: { x: number; y: number }[]): string {
   if (points.length === 0) return '';
   if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
   let d = `M ${points[0].x} ${points[0].y}`;
@@ -65,57 +65,52 @@ function CardTitle({ title, sub }: { title: string; sub?: string }) {
   );
 }
 
-// ── Income Analysis: line + filled area ───────────────────────────────────────
-function IncomeChart({ series }: {
-  series: { label: string; income: number; expense: number }[];
-}) {
-  const W = 640;
-  const H = 340;
-  const pad = 18;
-  const max = Math.max(1, ...series.flatMap((s) => [s.income, s.expense]));
-  const n = Math.max(1, series.length);
-  const x = (i: number) => pad + (i * (W - 2 * pad)) / (n - 1 || 1);
-  const y = (v: number) => H - pad - (v / max) * (H - 2 * pad);
 
-  const incPts = series.map((s, i) => ({ x: x(i), y: y(s.income) }));
-  const expPts = series.map((s, i) => ({ x: x(i), y: y(s.expense) }));
-  const incLine = smoothPath(incPts);
-  const expLine = smoothPath(expPts);
-  const area = incLine + ` L ${x(n - 1)} ${H - pad} L ${x(0)} ${H - pad} Z`;
+
+// ── Income Analysis: smooth area chart (Recharts) ─────────────────────────────
+function IncomeChart({ series, settings }: {
+  series: { label: string; income: number; expense: number }[];
+  settings: AppSettings;
+}) {
+  const totalIncome = series.reduce((s, d) => s + d.income, 0);
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="100%" preserveAspectRatio="none">
-      <defs>
-        <linearGradient id="incFill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#a78bfa" stopOpacity="0.55" />
-          <stop offset="45%" stopColor="#6366f1" stopOpacity="0.28" />
-          <stop offset="100%" stopColor="#ec4899" stopOpacity="0.10" />
-        </linearGradient>
-        <linearGradient id="incStroke" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#a78bfa" />
-          <stop offset="50%" stopColor="#60a5fa" />
-          <stop offset="100%" stopColor="#ec4899" />
-        </linearGradient>
-      </defs>
-      {[0.25, 0.5, 0.75].map((g) => (
-        <line key={g} x1={pad} y1={pad + g * (H - 2 * pad)} x2={W - pad} y2={pad + g * (H - 2 * pad)}
-          stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
-      ))}
-      <path d={area} fill="url(#incFill)" opacity="1" />
-      <path d={expLine + ` L ${x(n - 1)} ${H - pad} L ${x(0)} ${H - pad} Z`} fill="rgba(236,72,153,0.10)" opacity="0.9" />
-      <path d={incLine} fill="none" stroke="url(#incStroke)" strokeWidth="4" strokeLinecap="round"
-        style={{ filter: 'drop-shadow(0 0 6px rgba(167,139,250,0.6))' }} />
-      <path d={expLine} fill="none" stroke="rgba(236,72,153,0.55)" strokeWidth="2" strokeLinecap="round" strokeDasharray="4 4" />
-      {incPts.map((p, i) => (
-        <circle key={i} cx={p.x} cy={p.y} r="4" fill="#a78bfa" />
-      ))}
-      {series.length > 0 && (
-        <text x={pad} y={H - 6} fill="rgba(255,255,255,0.4)" font-size="11">{series[0].label}</text>
-      )}
-      {series.length > 1 && (
-        <text x={W - pad} y={H - 6} fill="rgba(255,255,255,0.4)" font-size="11" textAnchor="end">{series[series.length - 1].label}</text>
-      )}
-    </svg>
+    <div className="h-[300px] w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={series} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+          <defs>
+            <linearGradient id="incFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.45} />
+              <stop offset="55%" stopColor="#3b82f6" stopOpacity={0.18} />
+              <stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+          <XAxis dataKey="label" tickLine={false} axisLine={false}
+            tick={{ fill: 'rgba(255,255,255,0.45)', fontSize: 11 }} />
+          <YAxis tickLine={false} axisLine={false} width={56}
+            tick={{ fill: 'rgba(255,255,255,0.45)', fontSize: 11 }}
+            tickFormatter={(v) => formatMoney(v, settings.currency, settings.language)} />
+          <Tooltip
+            cursor={false}
+            content={({ active, payload }) => {
+              if (!active || !payload || payload.length === 0) return null;
+              const income = Number(payload[0].value) || 0;
+              const percent = totalIncome > 0 ? Math.round((income / totalIncome) * 100) : 0;
+              return (
+                <div className="rounded-xl border border-white/10 bg-white/10 backdrop-blur-xl px-3 py-2 shadow-xl">
+                  <div className="text-xs text-white/50">{payload[0].payload.label}</div>
+                  <div className="text-lg font-bold text-white">{formatMoney(income, settings.currency, settings.language)}</div>
+                  <div className="text-xs text-[#a78bfa]">{percent}%</div>
+                </div>
+              );
+            }}
+          />
+          <Area type="monotone" dataKey="income" stroke="#8b5cf6" strokeWidth={2.5}
+            fill="url(#incFill)" />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 
@@ -337,7 +332,7 @@ export function Dashboard() {
           <GlassCard className="lg:col-span-2 p-4 flex flex-col">
             <CardTitle title={t('panel.incomeAnalysis')} sub={t('panel.income')} />
             <div className="mt-2 flex-1 min-h-[300px]">
-              <IncomeChart series={series} />
+              <IncomeChart series={series} settings={settings} />
             </div>
           </GlassCard>
 
