@@ -7,21 +7,22 @@
 
 :root {
   /* Surfaces — near-black violet base; panels slightly lighter slate */
-  --bg: #0b0f19;
-  --bg-glow-1: rgba(93, 63, 172, 0.16);
-  --bg-glow-2: rgba(38, 22, 70, 0.14);
-  --card: rgba(255, 255, 255, 0.05);
-  --card-2: rgba(23, 28, 42, 0.72);
-  --border: rgba(255, 255, 255, 0.10);
+  --bg: #06070b;
+  --bg-glow-1: rgba(93, 63, 172, 0.14);
+  --bg-glow-2: rgba(38, 22, 70, 0.12);
+  --card: rgba(255, 255, 255, 0.04);
+  --card-2: rgba(16, 20, 30, 0.80);
+  --border: rgba(255, 255, 255, 0.07);
 
   /* Text */
   --text: #e9edf5;
   --muted: #939ab0;
 
-  /* Accents — magenta/violet + cyan-blue highlights */
-  --accent: #8b5cf6;
-  --accent-2: #a78bfa;
-  --blue: #4aa8ff;
+  /* Accents — violet/indigo + blue (ALTURA palette) */
+  --accent: #8b5cf6;   /* violet-500 */
+  --accent-2: #a78bfa; /* violet-400 */
+  --indigo: #6366f1;   /* indigo-500 */
+  --blue: #3b82f6;     /* blue-500 */
   --pink: #ec6a8f;
 
   /* Semantic (income / expense) */
@@ -426,6 +427,76 @@ button:focus-visible, .btn-primary:focus-visible, .btn-danger:focus-visible,
   padding: 7px 12px; color: var(--text); font-size: 13px;
 }
 .btn-ghost:hover { border-color: var(--accent); }
+
+/* ── shadcn/ui-style primitives (Fase 8a — ALTURA) ───────── */
+.altura-card {
+  background: var(--card-2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 14px;
+  padding: 24px; /* p-6 */
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow);
+}
+.altura-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.altura-card-title {
+  margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; color: var(--text);
+}
+.altura-card-desc { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); }
+.altura-card-content { display: block; }
+
+.altura-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  background: rgba(139, 92, 246, 0.14); color: var(--accent-2);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+}
+.altura-badge--success { background: rgba(34, 197, 94, 0.12); color: #4ade80; border-color: rgba(34, 197, 94, 0.25); }
+.altura-badge--danger { background: rgba(244, 63, 63, 0.12); color: var(--red); border-color: rgba(244, 63, 63, 0.25); }
+.altura-badge--outline { background: transparent; color: var(--muted); border-color: var(--border); }
+.altura-badge--secondary { background: rgba(255, 255, 255, 0.06); color: var(--text); border-color: var(--border); }
+
+.altura-progress { height: 8px; border-radius: 999px; background: rgba(255, 255, 255, 0.07); overflow: hidden; }
+.altura-progress-bar {
+  height: 100%; border-radius: 999px; background: var(--indigo);
+  transition: width 0.3s ease;
+}
+.altura-progress-bar--violet { background: var(--accent); }
+.altura-progress-bar--blue { background: var(--blue); }
+
+.altura-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(139, 92, 246, 0.18); border: 1px solid rgba(139, 92, 246, 0.30);
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.altura-avatar-img { width: 100%; height: 100%; object-fit: cover; }
+.altura-avatar-fallback { font-size: 13px; font-weight: 600; color: var(--accent-2); }
+
+.altura-separator { border: none; height: 1px; background: rgba(255, 255, 255, 0.06); margin: 14px 0; }
+
+.altura-btn {
+  border-radius: 9px; padding: 8px 14px; font-size: 13px; font-weight: 600; color: var(--text);
+  background: transparent; cursor: pointer;
+}
+.altura-btn--ghost { background: transparent; border: 1px solid transparent; }
+.altura-btn--ghost:hover { background: rgba(255, 255, 255, 0.06); }
+.altura-btn--outline { background: transparent; border: 1px solid var(--border); }
+.altura-btn--outline:hover { border-color: var(--accent); }
+.altura-btn--default { background: var(--accent); border: 1px solid rgba(139, 92, 246, 0.4); }
+
+/* Calendar days — uniform cells (fix for middle rows being taller) */
+.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.cal-day {
+  height: 46px; border-radius: 9px; border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--card); display: flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--muted); cursor: pointer; overflow: hidden;
+}
+.cal-day:hover { border-color: var(--accent); }
+.cal-day-num { flex: 1; text-align: center; font-weight: 600; }
+.cal-day.has-spend .cal-day-num { flex: none; }
+.cal-day-amount { flex: 1; text-align: right; font-size: 12px; color: var(--text); font-variant-numeric: tabular-nums; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.cal-day.has-spend { background: rgba(139, 92, 246, 0.16); border-color: rgba(139, 92, 246, 0.45); color: var(--text); }
+.cal-day.is-today, .cal-day.today { background: rgba(99, 102, 241, 0.22); border-color: rgba(99, 102, 241, 0.50); color: var(--text); }
+.cal-day.out { opacity: 0.35; }
 
 /* ── Responsive ──────────────────────────────────────────── */
 @media (max-width: 900px) {
