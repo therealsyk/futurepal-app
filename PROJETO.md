@@ -25,16 +25,15 @@ src/ui/theme.css (design system), src/ui/Sidebar.tsx, src/ui/components.tsx, src
 * [ ] Fase 5: Orçamentos (barra de progresso), Metas, Recorrentes e Grupos, SPEC §6.7; testes core + browser
 * [x] Fase 6: Sync offline-first (src/core/sync.ts push/merge por updatedAt + supabase/schema.sql das 9 tabelas + botão "Sincronizar" na Definições). Verificar: tsc, vitest com fake-indexeddb (merge simulado), browser sem chaves brutas. Online só testado quando o Rafael colar URL/key no .env.
 * [x] Fase 7: (dashboard ALTURA): grid de janelas 2 colunas + cartao calendario mensal de despesas diarias no lugar do slot AI Assistant; verificar com vitest, build e screenshot do .exe
+* [~] Fase 8: (ALTURA dashboard premium): 8a shadcn components + dark/glass tokens; 8b secções (Income Analysis recharts, Savings/Expenses, Calendário uniforme, Recent Transactions, Budget Usage donut); 8c i18n altura.* nos 5 idiomas + rebuild .exe e screenshot. Verificar: tsc+vite build, npm test, exe visual.
 
 ## Estado atual
 
-Concluidas (5/7): Fase 1, Fase 2, Fase 3, Fase 6, Fase 7.
+Concluidas (5/8): Fase 1, Fase 2, Fase 3, Fase 6, Fase 7.
 
-Em curso: Fase 4: Calendário (grid por dia com gasto + painel lateral) e Salários (grelha ano×mes + extras), SPEC §6.4/§6.5; testes core + browser.
+Em curso: Fase 4: Calendário (grid por dia com gasto + painel lateral) e Salários (grelha ano×mes + extras), SPEC §6.4/§6.5; testes core + browser; Fase 8: (ALTURA dashboard premium): 8a shadcn components + dark/glass tokens; 8b secções (Income Analysis recharts, Savings/Expenses, Calendário uniforme, Recent Transactions, Budget Usage donut); 8c i18n altura.* nos 5 idiomas + rebuild .exe e screenshot. Verificar: tsc+vite build, npm test, exe visual..
 
 Proxima: Fase 5: Orçamentos (barra de progresso), Metas, Recorrentes e Grupos, SPEC §6.7; testes core + browser.
-
-Ultima atualizacao (2026-11-15): Dashboard redesign (Altura-style): Phase 1 complete — Tailwind v4 installed/wired, build + 97 tests pass. Next: Phase 2 = write src/pages/Dashboard.tsx with all five sections; Phase 3 = wire route and rebuild exe for visual check.
 
 ## Historico
 
