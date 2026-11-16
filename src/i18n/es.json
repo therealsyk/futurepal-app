@@ -15,7 +15,7 @@
     "close": "Cerrar",
     "save": "Guardar",
     "cancel": "Cancelar",
-    "add": "Añadir",
+    "add": "Aà±adir",
     "edit": "Editar",
     "delete": "Eliminar",
     "noData": "Sin datos"
@@ -24,13 +24,13 @@
     "net": "Ahorro",
     "title": "Panel",
     "periodMonth": "Mes",
-    "periodYear": "Año",
+    "periodYear": "Aà±o",
     "period30": "30 días",
     "period60": "60 días",
     "period90": "90 días",
     "totalSpent": "Total gastado",
     "dailyAverage": "Media diaria",
-    "expenseCount": "Nº de gastos",
+    "expenseCount": "NÂº de gastos",
     "biggestExpense": "Mayor gasto",
     "topCategory": "Categoría principal",
     "salaryInPeriod": "Salario en el período",
@@ -67,7 +67,7 @@
     "noData": "Sin datos",
     "prevMonth": "Mes anterior",
     "nextMonth": "Mes siguiente",
-    "loading": "Cargando…",
+    "loading": "Cargandoâ€¦",
     "errorLoad": "No se pudo cargar el calendario. Inténtalo de nuevo.",
     "retry": "Reintentar",
     "otherCurrenciesNote": "Algunos gastos en otras monedas no están incluidos (sin tipo de cambio).",
@@ -95,7 +95,7 @@
     "typeIncome": "Ingreso",
     "addTransaction": "Nueva transacción",
     "empty": "Aún no hay transacciones este mes.",
-    "deleteConfirm": "¿Eliminar?",
+    "deleteConfirm": "Â¿Eliminar?",
     "manageCategories": "Gestionar categorías",
     "newCategoryName": "Nombre de la categoría",
     "maxCategories": "Máximo 12 categorías activas.",
@@ -103,7 +103,8 @@
     "filterCategory": "Filtrar por categoría",
     "filterText": "Buscar texto",
     "allCategories": "Todas",
-    "editTransaction": "Editar transacción"
+    "editTransaction": "Editar transacción",
+    "type": "Tipo"
   },
   "settings": {
     "title": "Configuración",
@@ -161,7 +162,7 @@
   },
   "calendar": {
     "title": "Calendario",
-    "yearTotal": "Total del año",
+    "yearTotal": "Total del aà±o",
     "dayPanel": "Gastos del día",
     "noExpenses": "Sin gastos en este día.",
     "recurringUpcoming": "Recurrente próxima",
@@ -178,16 +179,22 @@
       "Octubre",
       "Noviembre",
       "Diciembre"
-    ]
+    ],
+    "prevMonth": "Mes anterior",
+    "nextMonth": "Mes siguiente",
+    "dayDetailTitle": "Gastos del día",
+    "backToCalendar": "Volver al calendario",
+    "dayPanelHint": "Haz clic en un dia para ver sus gastos.",
+    "dayTotal": "Total del día"
   },
   "salaries": {
     "title": "Salarios",
-    "yearLabel": "Año",
+    "yearLabel": "Aà±o",
     "salaryFor": "Salario de",
     "extras": "Ingresos extra",
-    "addExtra": "Añadir extra",
+    "addExtra": "Aà±adir extra",
     "monthTotal": "Total mensual",
-    "yearTotal": "Total del año"
+    "yearTotal": "Total del aà±o"
   },
   "demo": {
     "title": "Demostración de componentes",
@@ -206,7 +213,7 @@
     "modalTitle": "Ejemplo de modal",
     "modalBody": "Contenido del modal.",
     "tabMonth": "Mes",
-    "tabYear": "Año",
+    "tabYear": "Aà±o",
     "tab30": "30 días",
     "tab60": "60 días",
     "tab90": "90 días",
@@ -265,6 +272,6 @@
     "noGroups": "Aún no hay grupos.",
     "estimateLabel": "Estimación: faltan",
     "estimateDate": "finalización prevista",
-    "estimateNone": "No se observó ahorro neto — no se puede estimar la finalización."
+    "estimateNone": "No se observó ahorro neto â€” no se puede estimar la finalización."
   }
 }

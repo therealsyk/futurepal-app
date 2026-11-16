@@ -67,7 +67,7 @@
     "noData": "No data yet",
     "prevMonth": "Previous month",
     "nextMonth": "Next month",
-    "loading": "Loading…",
+    "loading": "Loadingâ€¦",
     "errorLoad": "Could not load the calendar. Try again.",
     "retry": "Try again",
     "otherCurrenciesNote": "Some expenses in other currencies are not included (no exchange rate).",
@@ -103,7 +103,8 @@
     "filterCategory": "Filter by category",
     "filterText": "Search text",
     "allCategories": "All",
-    "editTransaction": "Edit transaction"
+    "editTransaction": "Edit transaction",
+    "type": "Type"
   },
   "settings": {
     "title": "Settings",
@@ -178,7 +179,13 @@
       "October",
       "November",
       "December"
-    ]
+    ],
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "dayDetailTitle": "Expenses for the day",
+    "backToCalendar": "Back to calendar",
+    "dayPanelHint": "Click a day to see its expenses.",
+    "dayTotal": "Day total"
   },
   "salaries": {
     "title": "Salaries",
@@ -265,6 +272,6 @@
     "noGroups": "No groups yet.",
     "estimateLabel": "Estimate: about",
     "estimateDate": "expected completion",
-    "estimateNone": "No net savings observed yet — completion cannot be estimated."
+    "estimateNone": "No net savings observed yet â€” completion cannot be estimated."
   }
 }

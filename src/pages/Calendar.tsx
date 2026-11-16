@@ -1,105 +1,95 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
-import { dailyTotals, transactionsOnDay, expandRecurring } from '../core/finance';
+import { dailyTotals, buildCalendarGrid } from '../core/finance';
 import { formatMoney } from '../core/money';
 import { loadSettings } from '../core/settings';
 
-// SPEC §6.5: grid by day with amount spent per day; clicking a day shows the
-// expense list for that day in a side panel.
-export const Calendar = () => {
+// SPEC §6.5 / Prompt 5: grid by day with amount spent under the day number;
+// month arrows; clicking a day navigates to that day's expense detail page.
+export default function Calendar() {
   const { t } = useTranslation();
-  const s = loadSettings();
-  const [year, setYear] = useState(new Date().getFullYear());
+  const navigate = useNavigate();
+  const now = new Date();
+  const [calYear, setCalYear] = useState(now.getFullYear());
+  const [calMonth, setCalMonth] = useState(now.getMonth() + 1);
+  const [settings, setSettings] = useState(loadSettings());
   const [totals, setTotals] = useState<Record<string, number>>({});
-  const [selectedDay, setSelectedDay] = useState<string | null>(null);
-  const [dayTx, setDayTx] = useState<any[]>([]);
-  // SPEC §6.9: projected recurring entries for the selected year (not yet
-  // saved as transactions — shown with a "recurring" badge).
-  const [recurringDays, setRecurringDays] = useState<Record<string, any[]>>({});
 
   useEffect(() => {
-    dailyTotals(db, year).then(setTotals).catch(() => setTotals({}));
-  }, [year]);
+    setSettings(loadSettings());
+    dailyTotals(db, calYear).then(setTotals);
+  }, [calYear]);
 
-  useEffect(() => {
-    const until = `${year}-12-31`;
-    expandRecurring(db, until)
-      .then((items) => {
-        const map: Record<string, any[]> = {};
-        for (const r of items) {
-          if (r.date.slice(0, 4) !== String(year)) continue;
-          (map[r.date] ??= []).push(r);
-        }
-        setRecurringDays(map);
-      })
-      .catch(() => setRecurringDays({}));
-  }, [year]);
+  const monthNames = t('calendar.monthNames', { returnObjects: true }) as string[];
+  const grid = buildCalendarGrid(calYear, calMonth);
+  const isToday = (day: number) =>
+    calYear === now.getFullYear() && calMonth === now.getMonth() + 1 && day === now.getDate();
 
-  useEffect(() => {
-    if (!selectedDay) return;
-    transactionsOnDay(db, selectedDay)
-      .then((txs) => setDayTx(txs.filter((x) => x.type === 'expense')))
-      .catch(() => setDayTx([]));
-  }, [selectedDay]);
+  const iso = (day: number) => `${calYear}-${String(calMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-  const fmt = (cents: number) => formatMoney(cents, s.currency, s.language);
+  const shiftMonth = (delta: number) => {
+    let y = calYear;
+    let m = calMonth + delta;
+    if (m < 1) { m = 12; y -= 1; }
+    if (m > 12) { m = 1; y += 1; }
+    setCalYear(y);
+    setCalMonth(m);
+  };
 
-  // Build all days of the year sorted by date.
-  const days: string[] = [];
-  const d = new Date(year, 0, 1);
-  while (d.getFullYear() === year) {
-    days.push(d.toISOString().slice(0, 10));
-    d.setDate(d.getDate() + 1);
-  }
+  const openDay = (day: number) => {
+    navigate(`/dia/${iso(day)}`);
+  };
 
   return (
     <div>
       <h1 className="page-title">{t('calendar.title')}</h1>
-      <div className="stat-row">
-        <label htmlFor="cal-year">{t('salaries.yearLabel')}</label>
-        <input id="cal-year" type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} />
+      <div className="cal-nav">
+        <button className="cal-arrow" onClick={() => shiftMonth(-1)} aria-label={t('calendar.prevMonth')}>
+          ←
+        </button>
+        <span className="cal-month-label">
+          {monthNames[calMonth - 1]} {calYear}
+        </span>
+        <button className="cal-arrow" onClick={() => shiftMonth(1)} aria-label={t('calendar.nextMonth')}>
+          →
+        </button>
       </div>
 
-      <div className="calendar-grid" role="grid">
-        {days.map((date) => (
-          <button
-            key={date}
-            type="button"
-            data-testid={`day-${date}`}
-            className={`calendar-day${selectedDay === date ? ' active' : ''}`}
-            onClick={() => setSelectedDay(date)}
-          >
-            <span className="calendar-date">{date.slice(8)}</span>
-            {totals[date] > 0 && <span className="calendar-amount">{fmt(totals[date])}</span>}
-            {recurringDays[date]?.length > 0 && (
-              <span className="calendar-recurring" title={t('calendar.recurringUpcoming')}>↻</span>
-            )}
-          </button>
-        ))}
+      <div className="card">
+        <div className="cal-weekdays">
+          {grid.map((d) => (
+            <span key={d}>{new Intl.DateTimeFormat(settings.language, { weekday: 'short' }).format(new Date(calYear, calMonth - 1, d))}</span>
+          ))}
+        </div>
+        <div className="cal-grid">
+          {grid.map((day) => {
+            const date = iso(day);
+            const spent = totals[date] ?? 0;
+            return (
+              <button
+                key={day}
+                type="button"
+                className={`cal-day${isToday(day) ? ' is-today' : ''}`}
+onClick={() => openDay(day)}
+                title={`${date} — ${formatMoney(spent, settings.currency, settings.language)}`}
+              >
+                <span className="cal-day-num">{day}</span>
+                <span className={`cal-day-amount${spent > 0 ? ' has-spend' : ''}`}>
+                  {spent > 0 ? formatMoney(spent, settings.currency, settings.language) : ''}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {selectedDay && (
-        <aside className="calendar-panel">
-          <h2>{t('calendar.dayPanel')}</h2>
-          {dayTx.length === 0 && !recurringDays[selectedDay]?.length ? (
-            <p>{t('calendar.noExpenses')}</p>
-          ) : (
-            <ul>
-              {dayTx.map((tx) => (
-                <li key={tx.id}>
-                  {tx.description} — {fmt(tx.amountCents)}
-                </li>
-              ))}
-              {(recurringDays[selectedDay] ?? []).map((r, i) => (
-                <li key={`rec-${i}`} className="calendar-recurring-item">
-                  {r.description} — {fmt(r.amountCents)} ({t('calendar.recurringUpcoming')})
-                </li>
-              ))}
-            </ul>
-          )}
-        </aside>
-      )}
+      <aside className="calendar-panel">
+        <h2>{t('calendar.yearTotal')}</h2>
+        <p className="big">{formatMoney(Object.values(totals).reduce((a, b) => a + b, 0), settings.currency, settings.language)}</p>
+        <p className="empty">{t('calendar.dayPanelHint')}</p>
+      </aside>
     </div>
   );
-};
+}

@@ -103,7 +103,8 @@
     "filterCategory": "Filtrar por categoria",
     "filterText": "Pesquisar texto",
     "allCategories": "Todas",
-    "editTransaction": "Editar transação"
+    "editTransaction": "Editar transação",
+    "type": "Tipo"
   },
   "settings": {
     "title": "Definições",
@@ -180,6 +181,7 @@
     "title": "Calendário",
     "yearTotal": "Total do ano",
     "dayPanel": "Despesas do dia",
+    "dayPanelHint": "Clica num dia para ver as despesas desse dia.",
     "noExpenses": "Sem despesas neste dia.",
     "recurringUpcoming": "Recorrente prevista",
     "monthNames": [
@@ -195,7 +197,12 @@
       "Outubro",
       "Novembro",
       "Dezembro"
-    ]
+    ],
+    "prevMonth": "Mês anterior",
+    "nextMonth": "Mês seguinte",
+    "dayDetailTitle": "Despesas do dia",
+    "backToCalendar": "Voltar ao calendário",
+    "dayTotal": "Total do dia"
   },
   "salaries": {
     "title": "Salários",
