@@ -19,7 +19,9 @@ export default function Calendar() {
 
   useEffect(() => {
     setSettings(loadSettings());
-    dailyTotals(db, calYear).then(setTotals);
+    dailyTotals(db, calYear)
+      .then(setTotals)
+      .catch(() => setTotals({}));
   }, [calYear]);
 
   const monthNames = t('calendar.monthNames', { returnObjects: true }) as string[];
@@ -72,7 +74,8 @@ export default function Calendar() {
                 key={day}
                 type="button"
                 className={`cal-day${isToday(day) ? ' is-today' : ''}`}
-onClick={() => openDay(day)}
+                aria-label={`${monthNames[calMonth - 1]} ${day}, ${calYear} — ${formatMoney(spent, settings.currency, settings.language)}`}
+                onClick={() => openDay(day)}
                 title={`${date} — ${formatMoney(spent, settings.currency, settings.language)}`}
               >
                 <span className="cal-day-num">{day}</span>

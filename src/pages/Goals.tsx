@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
 import type { Category, Goal, Recurring, Group } from '../db/database';
 import { newId } from '../db/database';
-import { addGoal, contributeToGoal, listGoals, estimateGoalCompletion, addRecurring, expandRecurring, addGroup, listGroups } from '../core/finance';
+import { addGoal, contributeToGoal, listGoals, estimateGoalCompletion, addRecurring, expandRecurring, addGroup, listGroups, transactionsInGroup } from '../core/finance';
 import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
 import { PageTitle } from './index';
@@ -15,6 +15,7 @@ export function Goals() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [recurrings, setRecurrings] = useState<Recurring[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
+  const [groupTotals, setGroupTotals] = useState<Record<string, number>>({});
   const [cats, setCats] = useState<Category[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [estimates, setEstimates] = useState<Record<string, { months: number | null; date: string | null }>>({});
@@ -26,7 +27,11 @@ export function Goals() {
     for (const g of gs) est[g.id] = await estimateGoalCompletion(db, g);
     setEstimates(est);
     setRecurrings(await db.recurrings.filter((r) => r.deletedAt === null).toArray());
-    setGroups(await listGroups(db));
+    const gs2 = await listGroups(db);
+    setGroups(gs2);
+    const totals: Record<string, number> = {};
+    for (const g of gs2) totals[g.id] = (await transactionsInGroup(db, g.id)).reduce((a, b) => a + b.amountCents, 0);
+    setGroupTotals(totals);
     setCats(await db.categories.filter((c) => c.deletedAt === null).toArray());
   };
 
@@ -173,6 +178,7 @@ export function Goals() {
           <div className="budget-row" key={g.id}>
             <div className="budget-row-head">
               <span>{g.name}</span>
+              <span>{formatMoney(groupTotals[g.id] ?? 0, settings.currency, settings.language)}</span>
             </div>
           </div>
         ))}
