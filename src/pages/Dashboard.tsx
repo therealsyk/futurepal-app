@@ -48,8 +48,8 @@ function avatarFor(label: string): string {
 function GlassCard({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
     <div
-      className={`rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-xl
-        shadow-[0_20px_60px_-20px_rgba(0,0,0,0.6)] ${className}`}
+      className={`rounded-3xl border border-white/10 bg-white/[0.05] backdrop-blur-xl
+        shadow-[0_24px_64px_-24px_rgba(0,0,0,0.75),0_8px_24px_-12px_rgba(139,92,246,0.25)] ${className}`}
     >
       {children}
     </div>
@@ -70,7 +70,7 @@ function IncomeChart({ series }: {
   series: { label: string; income: number; expense: number }[];
 }) {
   const W = 640;
-  const H = 300;
+  const H = 340;
   const pad = 18;
   const max = Math.max(1, ...series.flatMap((s) => [s.income, s.expense]));
   const n = Math.max(1, series.length);
@@ -100,8 +100,9 @@ function IncomeChart({ series }: {
         <line key={g} x1={pad} y1={pad + g * (H - 2 * pad)} x2={W - pad} y2={pad + g * (H - 2 * pad)}
           stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
       ))}
-      <path d={area} fill="url(#incFill)" />
-      <path d={incLine} fill="none" stroke="url(#incStroke)" strokeWidth="3" strokeLinecap="round" />
+      <path d={area} fill="url(#incFill)" opacity="0.85" />
+      <path d={incLine} fill="none" stroke="url(#incStroke)" strokeWidth="4" strokeLinecap="round"
+        style={{ filter: 'drop-shadow(0 0 6px rgba(167,139,250,0.6))' }} />
       <path d={expLine} fill="none" stroke="rgba(236,72,153,0.55)" strokeWidth="2" strokeLinecap="round" strokeDasharray="4 4" />
       {incPts.map((p, i) => (
         <circle key={i} cx={p.x} cy={p.y} r="4" fill="#a78bfa" />
@@ -137,8 +138,8 @@ function ProgressCard({ title, value, total, percent, tone }: {
         </div>
         <div className="text-3xl font-black text-white/90">{percent}%</div>
       </div>
-      <div className="mt-4 h-3 rounded-full bg-white/8 overflow-hidden">
-        <div className="h-full rounded-full" style={{ width: `${clamp(percent, 0, 100)}%`, background: grad }} />
+      <div className="mt-4 h-3.5 rounded-full bg-white/8 overflow-hidden" style={{ boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.5)' }}>
+        <div className="h-full rounded-full" style={{ width: `${clamp(percent, 0, 100)}%`, background: grad, boxShadow: '0 0 12px rgba(139,92,246,0.45)' }} />
       </div>
     </GlassCard>
   );
@@ -223,10 +224,10 @@ function DailySpendCalendar({ monthTx, settings, t }: {
           const v = spend[day];
           return (
             <div key={day}
-              className="rounded-xl border border-white/10 backdrop-blur p-2 text-center"
+              className="rounded-xl border border-white/10 backdrop-blur p-2 text-center overflow-hidden transition hover:border-white/25 hover:bg-white/[0.08]"
               style={{ background: cellColor(v), boxShadow: v > 0 ? '0 6px 18px -8px rgba(139,92,246,0.5)' : 'none' }}>
               <div className="text-[10px] text-white/60">{day}</div>
-              <div className="text-[10px] font-semibold text-white/90">
+              <div className="text-[9px] font-semibold text-white/90 truncate">
                 {v > 0 ? formatMoney(v, settings.currency, settings.language) : '·'}
               </div>
             </div>
@@ -319,8 +320,9 @@ export function Dashboard() {
   const recent = [...monthTx].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6);
 
   return (
-    <div className="min-h-screen bg-[#05060a] text-white">
-      <div className="max-w-[1100px] mx-auto p-6">
+    <div className="min-h-screen bg-[#05060a] text-white"
+      style={{ background: 'radial-gradient(900px 500px at 15% -10%, rgba(99,102,241,0.18), transparent 60%), radial-gradient(800px 450px at 85% 110%, rgba(236,72,153,0.14), transparent 60%), #05060a' }}>
+      <div className="max-w-[1180px] mx-auto p-4">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold tracking-wide">{t('panel.title')}</h1>
           <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur px-4 py-2 text-sm text-white/70">
@@ -329,22 +331,22 @@ export function Dashboard() {
         </div>
 
         {/* Top row: Income analysis (left) + savings/expenses (right) */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <GlassCard className="lg:col-span-2 p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+          <GlassCard className="lg:col-span-2 p-5 flex flex-col">
             <CardTitle title={t('panel.incomeAnalysis')} sub={t('panel.income')} />
-            <div className="mt-4 h-[300px]">
+            <div className="mt-3 flex-1 min-h-[340px]">
               <IncomeChart series={series} />
             </div>
           </GlassCard>
 
-          <div className="grid grid-cols-1 gap-6">
+          <div className="grid grid-cols-1 gap-3">
             <ProgressCard title={t('panel.monthlySavings')} value={savings} total={monthIncome} percent={savingsPct} tone="violet" />
             <ProgressCard title={t('panel.monthlyExpenses')} value={monthExpense} total={monthIncome} percent={expensePct} tone="magenta" />
           </div>
         </div>
 
         {/* Bottom row: recent (left) + budget (center) + calendar (right) */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mt-3">
           <GlassCard className="p-5">
             <CardTitle title={t('panel.recentTransactions')} />
             <ul className="mt-4 space-y-3">
