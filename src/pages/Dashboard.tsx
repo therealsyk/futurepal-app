@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
@@ -189,6 +190,7 @@ function DailySpendCalendar({ monthTx, settings, t }: {
   settings: AppSettings;
   t: (k: string) => string;
 }) {
+  const navigate = useNavigate();
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
     return { y: d.getFullYear(), m: d.getMonth() };
@@ -237,7 +239,15 @@ function DailySpendCalendar({ monthTx, settings, t }: {
           const v = spend[day];
           return (
             <div key={day}
-              className="rounded-lg border border-white/10 backdrop-blur p-1.5 text-center overflow-hidden transition hover:border-violet-400/40 hover:scale-[1.04]"
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate(`/dia/${cursor.y}-${String(cursor.m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  navigate(`/dia/${cursor.y}-${String(cursor.m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
+                }
+              }}
+              className="rounded-lg border border-white/10 backdrop-blur p-1.5 text-center overflow-hidden transition cursor-pointer hover:border-violet-400/40 hover:scale-[1.04]"
               style={{ background: cellColor(v), boxShadow: v > 0 ? '0 6px 16px -8px rgba(139,92,246,0.55)' : 'none' }}>
               <div className="text-[9px] text-white/55">{day}</div>
               <div className="text-[10px] font-semibold text-white/90 truncate">
