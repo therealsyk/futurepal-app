@@ -7,12 +7,12 @@
 
 :root {
   /* Surfaces — near-black violet base; panels slightly lighter slate */
-  --bg: #0b0d16;
+  --bg: #0b0f19;
   --bg-glow-1: rgba(93, 63, 172, 0.16);
   --bg-glow-2: rgba(38, 22, 70, 0.14);
-  --card: rgba(24, 28, 41, 0.55);
-  --card-2: rgba(31, 36, 51, 0.62);
-  --border: rgba(148, 163, 199, 0.10);
+  --card: rgba(255, 255, 255, 0.05);
+  --card-2: rgba(23, 28, 42, 0.72);
+  --border: rgba(255, 255, 255, 0.10);
 
   /* Text */
   --text: #e9edf5;
@@ -29,7 +29,7 @@
   --red: #ff5f6d;
   --amber: #ffb02e;
 
-  --shadow: 0 14px 32px rgba(0, 0, 0, 0.38);
+  --shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
 }
 
 html[data-theme="light"] {
@@ -147,16 +147,17 @@ body {
 }
 
 .page-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-.page-head h1 { font-size: 20px; margin: 0; }
+.page-head h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; }
 
 /* ── Cards ───────────────────────────────────────────────── */
 .glass-card {
-  background: var(--card);
-  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.10);
   border-radius: 16px;
-  padding: 18px;
-  margin-bottom: 14px;
-  box-shadow: var(--shadow);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
 }
 .card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .icon-sq {
@@ -164,14 +165,14 @@ body {
   background: var(--card-2); border: 1px solid var(--border);
   display: grid; place-items: center; font-size: 14px; color: var(--accent-2);
 }
-.card-head h2 { margin: 0; font-size: 15.5px; }
+.card-head h2 { margin: 0; font-size: 16.5px; letter-spacing: -0.01em; }
 
 /* ── Dashboard: two nested zones, left ~2fr / right ~1fr ── */
 .dashboard { display: grid; gap: 22px; }
 .dash-grid {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
-  gap: 22px;
+  gap: 14px;
   align-items: stretch;
 }
 .zone-left {
@@ -192,7 +193,7 @@ body {
 .dash-grid .card-analysis   { grid-area: analysis; margin-bottom: 0; }
 .dash-grid .card-recent     { grid-area: recent;   margin-bottom: 0; min-width: 0; }
 .dash-grid .card-budget     { grid-area: budget;   margin-bottom: 0; min-width: 0; }
-.dash-grid .kpi-col         { display: flex; flex-direction: column; gap: 22px; margin-bottom: 0; }
+.dash-grid .kpi-col         { display: flex; flex-direction: column; gap: 12px; margin-bottom: 0; }
 .dash-grid .card-calendar   { margin-bottom: 0; min-width: 0; }
 .kpi-bar { margin-top: 12px; height: 8px; border-radius: 999px; background: var(--card-2); overflow: hidden; }
 .kpi-bar-fill { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--green)); }
@@ -252,7 +253,7 @@ html[data-theme="light"] .chart-tip { background: rgba(255, 255, 255, 0.85); }
 
 /* ── KPI cards (right column) ────────────────────────────── */
 .kpi { margin-bottom: 0; }
-.kpi-value { font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
+.kpi-value { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
 .kpi-delta { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
 .kpi-delta.up { color: var(--green); }
 .kpi-delta.down { color: var(--red); }

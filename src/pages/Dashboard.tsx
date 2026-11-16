@@ -48,9 +48,8 @@ function avatarFor(label: string): string {
 function GlassCard({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
     <div
-      className={`rounded-3xl border border-white/[0.12] backdrop-blur-xl
+      className={`rounded-2xl border border-white/10 backdrop-blur-xl bg-white/5
         shadow-[0_28px_70px_-28px_rgba(0,0,0,0.85),0_10px_30px_-14px_rgba(139,92,246,0.35)] ${className}`}
-      style={{ background: 'linear-gradient(160deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.04) 45%, rgba(99,102,241,0.06) 100%)' }}
     >
       {children}
     </div>
