@@ -350,8 +350,8 @@ export function Panel() {
                   <div key={`${calYear}-${calMonth}-${cell}`} className={`cal-day ${cell === 0 ? 'out' : ''} ${isToday(cell) ? 'today' : ''}`}>
                     {cell !== 0 ? (
                       <>
-                        <span className="dnum">{cell}</span>
-                        {calTotals[cell] ? <span className="damt">{formatMoney(calTotals[cell], settings.currency, settings.language)}</span> : null}
+                        <span className="cal-day-num">{cell}</span>
+                        {calTotals[cell] ? <span className="cal-day-amount has-spend">{formatMoney(calTotals[cell], settings.currency, settings.language)}</span> : null}
                       </>
                     ) : null}
                   </div>
