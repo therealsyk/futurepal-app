@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
 import { formatMoney } from '../core/money';
@@ -152,26 +152,34 @@ function ProgressCard({ title, value, total, percent, changePct, tone }: {
 
 // ── Donut for budget usage ────────────────────────────────────────────────────
 function Donut({ used, budget }: { used: number; budget: number }) {
-  const r = 54;
-  const c = 2 * Math.PI * r;
   const over = budget > 0 && used > budget;
   const frac = budget > 0 ? clamp(used / budget, 0, 1) : 0;
-  const dash = frac * c;
   const color = over ? '#f43f5e' : frac > 0.85 ? '#f59e0b' : '#22c55e';
+  const data = [
+    { name: 'used', value: used },
+    { name: 'left', value: Math.max(budget - used, 0) },
+  ];
   return (
-    <svg viewBox="0 0 140 140" width="120" height="120">
-      <defs>
-        <linearGradient id="donutGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor={color} />
-          <stop offset="100%" stopColor={over ? '#ec4899' : '#8b5cf6'} />
-        </linearGradient>
-      </defs>
-      <circle cx="70" cy="70" r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="12" />
-      <circle cx="70" cy="70" r={r} fill="none" stroke="url(#donutGrad)" strokeWidth="12"
-        strokeDasharray={`${dash} ${c - dash}`} strokeDashoffset={c * 0.25} strokeLinecap="round" />
-      <text x="70" y="66" textAnchor="middle" fill="white" font-size="22" font-weight="700">{budget > 0 ? Math.round((used / budget) * 100) : 0}</text>
-      <text x="70" y="84" textAnchor="middle" fill="rgba(255,255,255,0.5)" font-size="10">used</text>
-    </svg>
+    <div className="relative" style={{ width: 120, height: 120 }}>
+      <PieChart width={120} height={120}>
+        <Pie
+          data={data}
+          cx={60}
+          cy={60}
+          innerRadius={42}
+          outerRadius={54}
+          startAngle={90}
+          endAngle={-270}
+          stroke="none"
+        >
+          <Cell fill={color} />
+          <Cell fill="rgba(255,255,255,0.08)" />
+        </Pie>
+      </PieChart>
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <span style={{ color: 'white', fontSize: 22, fontWeight: 700 }}>{budget > 0 ? Math.round((used / budget) * 100) : 0}</span>
+      </div>
+    </div>
   );
 }
 
