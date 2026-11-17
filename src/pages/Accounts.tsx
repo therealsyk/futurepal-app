@@ -6,6 +6,7 @@ import { addAccount, updateAccount, removeAccount, accountBalanceCents, netWorth
 import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
 import { PageHead, Seg, Sheet, Toggle, Field, EmptyState, Ic, ICON, useAccounts } from '../ui/fx';
+import type { Category } from '../db/database';
 import { todayISO } from '../core/dates';
 
 const TYPE_ICON: Record<AccountType, string> = { spending: ICON.wallet, savings: ICON.piggy, debt: ICON.debt };
@@ -23,7 +24,8 @@ export function Accounts() {
   const [txs, setTxs] = useState<Transaction[]>([]);
   const [salaryCents, setSalaryCents] = useState(0);
   const [transfers, setTransfers] = useState<Transfer[]>([]);
-  const [tdraft, setTdraft] = useState<{ from: string; to: string; amount: string; date: string; note: string; abate: boolean } | null>(null);
+  const [tdraft, setTdraft] = useState<{ from: string; to: string; amount: string; date: string; note: string; abate: boolean; categoryId: string } | null>(null);
+  const [cats, setCats] = useState<Category[]>([]);
   const [terror, setTerror] = useState<string | null>(null);
   const [tab, setTab] = useState<AccountType>('spending');
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -34,6 +36,7 @@ export function Accounts() {
     const now = new Date();
     setSalaryCents(salariesUntil(await db.salaries.toArray(), now.getFullYear(), now.getMonth() + 1));
     setTransfers(await loadTransfers(db));
+    setCats((await db.categories.toArray()).filter((c) => c.deletedAt === null).sort((a, b) => a.order - b.order));
     await refresh();
   };
   useEffect(() => { load().catch(() => {}); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
@@ -73,12 +76,12 @@ export function Accounts() {
     setTerror(null);
     const target = to ?? accounts.find((a) => a.type === 'debt') ?? accounts[1] ?? accounts[0];
     const src = target ? suggestedSource(accounts, target.id) : accounts[0];
-    setTdraft({ from: src?.id ?? '', to: target?.id ?? '', amount: '', date: today(), note: '', abate: target?.type === 'debt' && !!to });
+    setTdraft({ from: src?.id ?? '', to: target?.id ?? '', amount: '', date: today(), note: '', abate: target?.type === 'debt' && !!to, categoryId: '' });
   };
   const saveTransfer = async () => {
     if (!tdraft) return;
     const cents = parseMoneyToCents(tdraft.amount);
-    const input = { fromAccountId: tdraft.from, toAccountId: tdraft.to, amountCents: cents ?? 0, date: tdraft.date, note: tdraft.note };
+    const input = { fromAccountId: tdraft.from, toAccountId: tdraft.to, amountCents: cents ?? 0, date: tdraft.date, note: tdraft.note, categoryId: tdraft.categoryId || null };
     const err = validateTransfer(input, accounts);
     if (err) { setTerror(t('accounts.err_' + err)); return; }
     await addTransfer(db, input);
@@ -211,10 +214,16 @@ export function Accounts() {
                 <input className="fx-input" type="date" value={tdraft.date} onChange={(e) => setTdraft({ ...tdraft, date: e.target.value })} />
               </Field>
             </div>
+            <Field label={t('accounts.category')}>
+              <select className="fx-input" value={tdraft.categoryId} onChange={(e) => setTdraft({ ...tdraft, categoryId: e.target.value })}>
+                <option value="">{t('accounts.noCategory')}</option>
+                {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </Field>
             <Field label={t('accounts.note')}>
               <input className="fx-input" value={tdraft.note} placeholder={t('accounts.notePlaceholder')} onChange={(e) => setTdraft({ ...tdraft, note: e.target.value })} />
             </Field>
-            {tTarget?.type === 'debt' && <p className="fx-hint">{t('accounts.abateNotExpense')}</p>}
+            {tTarget?.type === 'debt' && <p className="fx-hint">{t('accounts.abateExpenseHint')}</p>}
           </>
         )}
       </Sheet>

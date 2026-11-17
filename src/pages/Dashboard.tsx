@@ -556,7 +556,7 @@ export function Dashboard() {
           const cents = parseMoneyToCents(contrib['abate:' + a.id] ?? '');
           if (!src || cents === null || cents <= 0) return;
           try {
-            await addTransfer(db, { fromAccountId: src.id, toAccountId: a.id, amountCents: cents, date: todayISO(), note: '' });
+            await addTransfer(db, { fromAccountId: src.id, toAccountId: a.id, amountCents: cents, date: todayISO(), note: '', categoryId: contrib['abatecat:' + a.id] || null });
             setContrib((c) => ({ ...c, ['abate:' + a.id]: '' }));
             setTransfers(await loadTransfers(db));
           } catch { /* moedas diferentes ou valor inválido: ignora */ }
@@ -565,6 +565,11 @@ export function Dashboard() {
           <div className="fx-inline" style={{ marginTop: 12 }}>
             <input className="fx-input" inputMode="decimal" placeholder={t('panel.abatePlaceholder', { from: src.name })} value={contrib['abate:' + a.id] ?? ''}
               onChange={(e) => setContrib((c) => ({ ...c, ['abate:' + a.id]: e.target.value }))} onKeyDown={(e) => { if (e.key === 'Enter') abate(); }} />
+            <select className="fx-input" aria-label={t('accounts.category')} value={contrib['abatecat:' + a.id] ?? ''}
+              onChange={(e) => setContrib((c) => ({ ...c, ['abatecat:' + a.id]: e.target.value }))}>
+              <option value="">{t('accounts.noCategory')}</option>
+              {cats.map((c) => <option key={c.id} value={c.id}>{catLabel(t, c)}</option>)}
+            </select>
             <button type="button" className="fx-btn primary" onClick={abate}>{t('accounts.abate')}</button>
           </div>
         );
