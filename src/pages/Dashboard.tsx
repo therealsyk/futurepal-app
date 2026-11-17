@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
 import { formatMoney } from '../core/money';
 import { loadSettings } from '../core/settings';
 import type { AppSettings } from '../core/settings';
-import type { Transaction, Budget, Category } from '../db/database';
+import type { Transaction, Budget, Category, Salary } from '../db/database';
 import { categoryImage } from '../core/category-images';
 
 // ── Pure helpers (integer cents only, no float money) ────────────────────────
@@ -80,48 +80,73 @@ function CardTitle({ title, sub, icon }: { title: string; sub?: string; icon?: R
 
 
 
-// ── Income Analysis: smooth area chart (Recharts) ─────────────────────────────
-function IncomeChart({ series, settings }: {
-  series: { label: string; income: number; expense: number }[];
+// ── Income Analysis: bar chart (Despesas/Salário/Extras, Excel-style) or category pie ─
+function IncomeChart({ monthly, catTotals, settings, mode }: {
+  monthly: { label: string; expense: number; salary: number; extras: number }[];
+  catTotals: { name: string; totalCents: number }[];
   settings: AppSettings;
+  mode: 'bars' | 'pie';
 }) {
-  const totalIncome = series.reduce((s, d) => s + d.income, 0);
-
+  const money = (v: number) => formatMoney(v, settings.currency, settings.language);
+  if (mode === 'pie') {
+    const data = catTotals.length
+      ? catTotals.map((c) => ({ name: c.name, value: c.totalCents }))
+      : [{ name: 'empty', value: 1 }];
+    const palette = ['#22d3ee', '#f472b6', '#60a5fa', '#f59e0b', '#8b5cf6', '#34d399', '#e11d48', '#94a3b8', '#a78bfa', '#fbbf24'];
+    return (
+      <div className="h-[300px] w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={95}
+              stroke="rgba(255,255,255,0.15)" strokeWidth={1}>
+              {data.map((_, i) => <Cell key={i} fill={palette[i % palette.length]} />)}
+            </Pie>
+            <Tooltip cursor={false}
+              content={({ active, payload }) => {
+                if (!active || !payload || payload.length === 0) return null;
+                const total = data.reduce((s, d) => s + d.value, 0);
+                const v = Number(payload[0].value) || 0;
+                return (
+                  <div className="rounded-xl border border-white/10 bg-white/10 backdrop-blur-xl px-3 py-2 shadow-xl">
+                    <div className="text-xs text-white/50">{payload[0].name}</div>
+                    <div className="text-lg font-bold text-white">{money(v)}</div>
+                    <div className="text-xs text-[#a78bfa]">{total > 0 ? Math.round((v / total) * 100) : 0}%</div>
+                  </div>
+                );
+              }} />
+            <Legend wrapperStyle={{ fontSize: 11, color: 'rgba(255,255,255,0.7)' }} />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+    );
+  }
   return (
     <div className="h-[300px] w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={series} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-          <defs>
-            <linearGradient id="incFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.45} />
-              <stop offset="55%" stopColor="#3b82f6" stopOpacity={0.18} />
-              <stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+        <BarChart data={monthly} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
           <XAxis dataKey="label" tickLine={false} axisLine={false}
             tick={{ fill: 'rgba(255,255,255,0.45)', fontSize: 11 }} />
           <YAxis tickLine={false} axisLine={false} width={56}
             tick={{ fill: 'rgba(255,255,255,0.45)', fontSize: 11 }}
-            tickFormatter={(v) => formatMoney(v, settings.currency, settings.language)} />
-          <Tooltip
-            cursor={false}
+            tickFormatter={(v) => money(v)} />
+          <Tooltip cursor={false}
             content={({ active, payload }) => {
               if (!active || !payload || payload.length === 0) return null;
-              const income = Number(payload[0].value) || 0;
-              const percent = totalIncome > 0 ? Math.round((income / totalIncome) * 100) : 0;
               return (
                 <div className="rounded-xl border border-white/10 bg-white/10 backdrop-blur-xl px-3 py-2 shadow-xl">
                   <div className="text-xs text-white/50">{payload[0].payload.label}</div>
-                  <div className="text-lg font-bold text-white">{formatMoney(income, settings.currency, settings.language)}</div>
-                  <div className="text-xs text-[#a78bfa]">{percent}%</div>
+                  {payload.map((p) => (
+                    <div key={String(p.name)} className="text-xs text-white/80">{p.name}: {money(Number(p.value) || 0)}</div>
+                  ))}
                 </div>
               );
-            }}
-          />
-          <Area type="monotone" dataKey="income" stroke="#8b5cf6" strokeWidth={2.5}
-            fill="url(#incFill)" />
-        </AreaChart>
+            }} />
+          <Legend wrapperStyle={{ fontSize: 11, color: 'rgba(255,255,255,0.7)' }} />
+          <Bar dataKey="expense" name="Despesas" fill="#22d3ee" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="salary" name="Salário" fill="#34d399" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="extras" name="Extras" fill="#f59e0b" radius={[3, 3, 0, 0]} />
+        </BarChart>
       </ResponsiveContainer>
     </div>
   );
@@ -271,8 +296,8 @@ function DailySpendCalendar({ monthTx, settings, t }: {
   const next = () => setCursor((c) => (c.m === 11 ? { y: c.y + 1, m: 0 } : { y: c.y, m: c.m + 1 }));
 
   return (
-    <GlassCard className="p-5">
-      <div className="flex items-center justify-between mb-4">
+    <GlassCard className="p-4">
+      <div className="flex items-center justify-between mb-3">
         <button onClick={prev} aria-label={t('panel.prevMonth')}
           className="rounded-xl border border-white/10 bg-white/5 backdrop-blur px-3 py-2 text-white/80 hover:bg-white/10 transition">
           ‹
@@ -286,7 +311,7 @@ function DailySpendCalendar({ monthTx, settings, t }: {
           ›
         </button>
       </div>
-      <div className="grid grid-cols-7 gap-1.5">
+      <div className="cal-grid grid grid-cols-7 gap-1">
         {Array.from({ length: daysInMonth }, (_, i) => {
           const day = i + 1;
           const v = spend[day];
@@ -300,17 +325,17 @@ function DailySpendCalendar({ monthTx, settings, t }: {
                   navigate(`/dia/${cursor.y}-${String(cursor.m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
                 }
               }}
-              className="rounded-lg border border-white/10 backdrop-blur p-1.5 text-center overflow-hidden transition cursor-pointer hover:border-violet-400/40 hover:scale-[1.04]"
+              className="cal-cell rounded-lg border border-white/10 backdrop-blur text-center overflow-hidden transition cursor-pointer hover:border-violet-400/40"
               style={{ background: cellColor(v), boxShadow: v > 0 ? '0 6px 16px -8px rgba(139,92,246,0.55)' : 'none' }}>
-              <div className="text-[9px] text-white/55">{day}</div>
+              <div className="text-[10px] text-white/55">{day}</div>
               <div className="text-[10px] font-semibold text-white/90 truncate">
-                {v > 0 ? formatMoney(v, settings.currency, settings.language) : ''}
+                {formatMoney(v, settings.currency, settings.language)}
               </div>
             </div>
           );
         })}
       </div>
-      <div className="mt-4 flex items-center justify-between text-xs text-white/50">
+      <div className="mt-3 flex items-center justify-between text-xs text-white/50">
         <span>{t('panel.totalSpent') || 'Total'}</span>
         <span className="text-white/80 font-semibold">{formatMoney(monthTotal, settings.currency, settings.language)}</span>
       </div>
@@ -325,22 +350,28 @@ export function Dashboard() {
   const [txs, setTxs] = useState<Transaction[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [cats, setCats] = useState<Category[]>([]);
+  const [salaries, setSalaries] = useState<Salary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [chartMode, setChartMode] = useState<'bars' | 'pie'>('bars');
+  const [period, setPeriod] = useState<'month' | 'year'>('month');
+  const [filterCat, setFilterCat] = useState('');
 
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
-        const [allTx, allB, allC] = await Promise.all([
+        const [allTx, allB, allC, allS] = await Promise.all([
           db.transactions.toArray(),
           db.budgets.toArray(),
           db.categories.toArray(),
+          db.salaries.toArray(),
         ]);
         if (!alive) return;
         setTxs(allTx.filter((x) => !x.deletedAt));
         setBudgets(allB.filter((x) => !x.deletedAt));
         setCats(allC.filter((x) => !x.deletedAt));
+        setSalaries(allS.filter((x) => !x.deletedAt));
         setSettings(loadSettings());
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
@@ -362,27 +393,72 @@ export function Dashboard() {
   const curMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const monthTx = txs.filter((tx) => tx.date.startsWith(curMonth));
 
-  // Income analysis series (last 6 months, monthly)
-  const series: { label: string; income: number; expense: number }[] = [];
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    let inc = 0, exp = 0;
+  // Filtered transactions for the selected period/category (Excel-style filters)
+  const inPeriod = (tx: Transaction) => {
+    if (filterCat && tx.categoryId !== filterCat) return false;
+    if (period === 'month') return tx.date.startsWith(curMonth);
+    return tx.date.startsWith(String(now.getFullYear()));
+  };
+
+  // Monthly bars for the bar chart: expenses / salary / extras per month of the year
+  const monthlyBars: { label: string; expense: number; salary: number; extras: number }[] = [];
+  for (let m = 0; m < 12; m++) {
+    const key = `${now.getFullYear()}-${String(m + 1).padStart(2, '0')}`;
+    let exp = 0, extra = 0;
     for (const tx of txs) {
       if (!tx.date.startsWith(key)) continue;
-      if (tx.type === 'income') inc += tx.amountCents;
-      else exp += tx.amountCents;
+      if (filterCat && tx.categoryId !== filterCat) continue;
+      if (tx.type === 'expense') exp += tx.amountCents;
+      else extra += tx.amountCents;
     }
-    series.push({ label: d.toLocaleString(settings.language, { month: 'short' }), income: inc, expense: exp });
+    const sal = salaries.find((s) => s.year === now.getFullYear() && s.month === m + 1);
+    monthlyBars.push({
+      label: new Date(now.getFullYear(), m, 1).toLocaleString(settings.language, { month: 'short' }),
+      expense: exp,
+      salary: sal ? sal.amountCents : 0,
+      extras: extra,
+    });
   }
 
-  const prevMonth = series[series.length - 2] ?? { income: 0, expense: 0 };
-  const prevSavings = prevMonth.income - prevMonth.expense;
-  const prevExpense = prevMonth.expense;
+  // Category totals for the pie (respecting period + category filter)
+  const filteredTx = txs.filter(inPeriod);
+  const catTotals: { name: string; totalCents: number }[] = [];
+  for (const tx of filteredTx) {
+    if (tx.type !== 'expense') continue;
+    const c = cats.find((x) => x.id === tx.categoryId);
+    const name = c?.name ?? '—';
+    const found = catTotals.find((x) => x.name === name);
+    if (found) found.totalCents += tx.amountCents;
+    else catTotals.push({ name, totalCents: tx.amountCents });
+  }
+  catTotals.sort((a, b) => b.totalCents - a.totalCents);
+
+  // Prev month for the vs-last-month deltas (unchanged logic)
+  const prevKey = (() => {
+    const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  })();
+  const prevTx = txs.filter((tx) => tx.date.startsWith(prevKey));
+  const prevIncome = prevTx.filter((tx) => tx.type === 'income').reduce((a, tx) => a + tx.amountCents, 0);
+  const prevExpense = prevTx.filter((tx) => tx.type === 'expense').reduce((a, tx) => a + tx.amountCents, 0);
+  const prevSavings = prevIncome - prevExpense;
 
   const monthIncome = monthTx.filter((tx) => tx.type === 'income').reduce((a, tx) => a + tx.amountCents, 0);
   const monthExpense = monthTx.filter((tx) => tx.type === 'expense').reduce((a, tx) => a + tx.amountCents, 0);
   const savings = monthIncome - monthExpense;
+
+  // Excel-style summary strip (Resumo sheet): totals for the selected period
+  const periodTx = txs.filter(inPeriod);
+  const totalSpent = periodTx.filter((tx) => tx.type === 'expense').reduce((a, tx) => a + tx.amountCents, 0);
+  const salaryInPeriod = salaries
+    .filter((s) => s.year === now.getFullYear())
+    .reduce((a, s) => a + s.amountCents, 0);
+  const extrasInPeriod = periodTx.filter((tx) => tx.type === 'income').reduce((a, tx) => a + tx.amountCents, 0);
+  const incomeInPeriod = salaryInPeriod + extrasInPeriod;
+  const savedPct = incomeInPeriod > 0 ? Math.round(((incomeInPeriod - totalSpent) / incomeInPeriod) * 100) : 0;
+  const spentPct = incomeInPeriod > 0 ? Math.round((totalSpent / incomeInPeriod) * 100) : 0;
+  const monthsWithData = new Set(periodTx.map((tx) => tx.date.slice(0, 7))).size || 1;
+  const avgMonthlySavings = Math.round((incomeInPeriod - totalSpent) / monthsWithData);
   const savingsPct = pct(Math.max(0, savings), monthIncome);
   const expensePct = pct(monthExpense, monthIncome);
 
@@ -403,21 +479,56 @@ export function Dashboard() {
   return (
     <div className="min-h-screen bg-[#05060a] text-white"
       style={{ background: 'radial-gradient(900px 500px at 15% -10%, rgba(99,102,241,0.18), transparent 60%), radial-gradient(800px 450px at 85% 110%, rgba(236,72,153,0.14), transparent 60%), #05060a' }}>
-      <div className="dash-shell w-full mx-auto p-4 flex flex-col min-h-screen">
-        <div className="flex items-center justify-between mb-3">
-          <h1 className="text-xl font-bold tracking-wide">{t('panel.title')}</h1>
+      <div className="dash-shell w-full mx-auto p-4 flex flex-col min-h-0">
+        <div className="summary-strip" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8, marginBottom: 8 }}>
+          {[
+            { label: t('panel.totalSpent'), value: formatMoney(totalSpent, settings.currency, settings.language) },
+            { label: t('panel.dailyAverage'), value: formatMoney(Math.round(totalSpent / (period === 'month' ? new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() : 365)), settings.currency, settings.language) },
+            { label: t('panel.percentSpent'), value: `${spentPct}%` },
+            { label: t('panel.percentSavings'), value: `${savedPct}%` },
+            { label: t('panel.savingsPerMonth'), value: formatMoney(avgMonthlySavings, settings.currency, settings.language) },
+          ].map((m) => (
+            <div key={m.label} className="rounded-xl border border-white/10 bg-white/5 backdrop-blur px-3 py-2">
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>{m.label}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'white' }}>{m.value}</div>
+            </div>
+          ))}
         </div>
 
         {/* Top row: Income analysis (left) + savings/expenses (right) */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 flex-1">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 flex-1 min-h-[260px]">
           <GlassCard className="lg:col-span-2 p-4 flex flex-col">
             <CardTitle title={t('panel.incomeAnalysis')} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 3v18h18"/><path d="M7 14l4-6 4 4 5-7"/></svg>} />
-            <div className="flex gap-3 mt-3 text-xs text-white/70">
-              <span><i className="dot" style={{ background: '#8b5cf6' }}></i> {t('panel.income')}</span>
-              <span><i className="dot" style={{ background: '#4aa8ff' }}></i> {t('panel.expenses')}</span>
+            <div className="flex items-center justify-between gap-3 mt-3 text-xs text-white/70 flex-wrap">
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button onClick={() => setChartMode('bars')} aria-label={t('panel.monthly')}
+                  className={`rounded-lg border border-white/10 px-3 py-1 transition ${chartMode === 'bars' ? 'bg-violet-500/25 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}>
+                  {t('panel.monthly')}
+                </button>
+                <button onClick={() => setChartMode('pie')} aria-label={t('panel.byCategory')}
+                  className={`rounded-lg border border-white/10 px-3 py-1 transition ${chartMode === 'pie' ? 'bg-violet-500/25 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}>
+                  {t('panel.byCategory')}
+                </button>
+              </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button onClick={() => setPeriod('month')}
+                  className={`rounded-lg border border-white/10 px-3 py-1 transition ${period === 'month' ? 'bg-violet-500/25 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}>
+                  {t('panel.periodMonth')}
+                </button>
+                <button onClick={() => setPeriod('year')}
+                  className={`rounded-lg border border-white/10 px-3 py-1 transition ${period === 'year' ? 'bg-violet-500/25 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}>
+                  {t('panel.periodYear')}
+                </button>
+                <select value={filterCat} onChange={(e) => setFilterCat(e.target.value)}
+                  aria-label={t('panel.category')}
+                  className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-white/80">
+                  <option value="">{t('panel.allCategories')}</option>
+                  {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
             </div>
-            <div className="mt-2 flex-1 min-h-[300px]">
-              <IncomeChart series={series} settings={settings} />
+            <div className="mt-2 flex-1 min-h-[170px]">
+              <IncomeChart monthly={monthlyBars} catTotals={catTotals} settings={settings} mode={chartMode} />
             </div>
           </GlassCard>
 
@@ -428,8 +539,8 @@ export function Dashboard() {
         </div>
 
         {/* Bottom row: recent (left) + budget (center) + calendar (right) */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 mt-2 flex-1">
-          <GlassCard className="p-5">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 mt-2 flex-1 min-h-[240px]">
+          <GlassCard className="p-4">
             <CardTitle title={t('panel.recentTransactions')} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>} />
             <ul className="mt-4 space-y-2">
               {recent.length === 0 && <li className="text-sm text-white/50">{t('panel.noData')}</li>}
@@ -449,12 +560,12 @@ export function Dashboard() {
             </ul>
           </GlassCard>
 
-          <GlassCard className="p-5">
+          <GlassCard className="p-4">
             <CardTitle title={t('panel.budgetUsage')} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/><path d="M12 3v9l6.4 6.4"/></svg>} />
-            <div className="mt-4 flex items-center justify-center">
+            <div className="mt-3 flex items-center justify-center">
               <Donut used={budgetUsed} budget={budgetTotal} />
             </div>
-            <div className="mt-3 flex justify-between text-xs text-white/50">
+            <div className="mt-2 flex justify-between text-xs text-white/50">
               <span>{formatMoney(budgetUsed, settings.currency, settings.language)}</span>
               <span>{formatMoney(budgetTotal, settings.currency, settings.language)}</span>
             </div>
