@@ -127,7 +127,41 @@ function IncomeChart({ series, settings }: {
   );
 }
 
-// ── Progress bar card (bar built with Tailwind only) ─────────────────────────
+// ── ALTURA progress bar (CSS/SVG layers: gradient fill + end reflection + dash track) ─
+const BAR_GRADS = {
+  blue: {
+    // deep petrol -> blue -> luminous cyan (sampled from reference)
+    grad: 'linear-gradient(90deg,#14386b 0%,#2b6f9e 55%,#4fd1c5 92%,#a5f3fc 100%)',
+    glow: '#67e8f9',
+  },
+  purple: {
+    // dark purple -> violet/magenta -> luminous lilac
+    grad: 'linear-gradient(90deg,#3b1f5b 0%,#8b5cf6 55%,#c084fc 92%,#e6c8ff 100%)',
+    glow: '#d8a8ff',
+  },
+};
+
+function AltBar({ value, max, variant, name }: {
+  value: number; max: number;
+  variant: 'blue' | 'purple'; name: string;
+}) {
+  const p = max > 0 ? clamp(Math.round((value / max) * 100), 0, 100) : 0; // real data; no invented progress
+  const g = BAR_GRADS[variant];
+  return (
+    <div className="alt-bar" role="progressbar" aria-label={name}
+      aria-valuenow={p} aria-valuemin={0} aria-valuemax={100}>
+      {/* unfilled remainder: thin ~1px dashes, 4px apart, shorter than fill, centered */}
+      <div className="alt-bar-track" aria-hidden="true">
+        <div className="alt-bar-dashes" style={{ ['--dash-color' as any]: g.glow }} />
+      </div>
+      {/* continuous gradient fill with discreet outer glow + narrow reflection at right end */}
+      <div className="alt-bar-fill" style={{ width: `${p}%`, background: g.grad, ['--bar-glow' as any]: g.glow }}>
+        <span className="alt-bar-reflection" aria-hidden="true" />
+      </div>
+    </div>
+  );
+}
+
 function ProgressCard({ title, value, total, percent, changePct, tone, icon }: {
   title: string;
   value: number;
@@ -137,9 +171,7 @@ function ProgressCard({ title, value, total, percent, changePct, tone, icon }: {
   tone: 'blue' | 'magenta';
   icon?: ReactNode;
 }) {
-  const grad = tone === 'blue'
-    ? 'linear-gradient(90deg,#3b82f6,#60a5fa,#93c5fd)'
-    : 'linear-gradient(90deg,#ec4899,#d946ef,#f472b6)';
+  const variant = tone === 'blue' ? 'blue' : 'purple';
   const up = changePct !== null && changePct >= 0;
   return (
     <GlassCard className="p-5">
@@ -155,8 +187,8 @@ function ProgressCard({ title, value, total, percent, changePct, tone, icon }: {
           </div>
         )}
       </div>
-      <div className="mt-3 h-[14px] bg-white/7 border border-white/10 rounded-full overflow-hidden">
-        <div className="h-full rounded-full" style={{ width: `${clamp(percent, 0, 100)}%`, background: grad }} />
+      <div className="mt-3">
+        <AltBar value={value} max={total} variant={variant} name={title} />
       </div>
       <div className="mt-2 text-xs text-white/45">{percent}% of income</div>
     </GlassCard>
@@ -168,10 +200,13 @@ function Donut({ used, budget }: { used: number; budget: number }) {
   const over = budget > 0 && used > budget;
   const frac = budget > 0 ? clamp(used / budget, 0, 1) : 0;
   const color = over ? '#f43f5e' : frac > 0.85 ? '#f59e0b' : '#22c55e';
-  const data = [
-    { name: 'used', value: used },
-    { name: 'left', value: Math.max(budget - used, 0) },
-  ];
+  const empty = budget <= 0;
+  const data = empty
+    ? [{ name: 'empty', value: 1 }]
+    : [
+        { name: 'used', value: used },
+        { name: 'left', value: Math.max(budget - used, 0) },
+      ];
   return (
     <div className="relative" style={{ width: 120, height: 120 }}>
       <PieChart width={120} height={120}>
@@ -185,8 +220,14 @@ function Donut({ used, budget }: { used: number; budget: number }) {
           endAngle={-270}
           stroke="none"
         >
-          <Cell fill={color} />
-          <Cell fill="rgba(255,255,255,0.08)" />
+          {empty ? (
+            <Cell fill="rgba(255,255,255,0.12)" />
+          ) : (
+            <>
+              <Cell fill={color} />
+              <Cell fill="rgba(255,255,255,0.08)" />
+            </>
+          )}
         </Pie>
       </PieChart>
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -362,12 +403,9 @@ export function Dashboard() {
   return (
     <div className="min-h-screen bg-[#05060a] text-white"
       style={{ background: 'radial-gradient(900px 500px at 15% -10%, rgba(99,102,241,0.18), transparent 60%), radial-gradient(800px 450px at 85% 110%, rgba(236,72,153,0.14), transparent 60%), #05060a' }}>
-      <div className="max-w-[1360px] mx-auto p-4 flex flex-col min-h-screen">
+      <div className="dash-shell w-full mx-auto p-4 flex flex-col min-h-screen">
         <div className="flex items-center justify-between mb-3">
           <h1 className="text-xl font-bold tracking-wide">{t('panel.title')}</h1>
-          <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur px-4 py-2 text-sm text-white/70">
-            {settings.currency}
-          </div>
         </div>
 
         {/* Top row: Income analysis (left) + savings/expenses (right) */}

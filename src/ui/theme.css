@@ -5,6 +5,17 @@
    income chart, neon progress bars. Three functional themes: dark (default),
    light, gray — switched via data-theme on <html>. */
 
+/* Fullscreen fit: dashboard stretches to the viewport on large displays */
+.dash-shell {
+  max-width: min(1720px, 100%);
+}
+@media (min-width: 1440px) {
+  .dash-shell { padding: 6px 12px; }
+}
+@media (min-width: 1900px) {
+  .dash-shell { max-width: none; padding: 8px 16px; }
+}
+
 :root {
   /* Surfaces — near-black violet base; panels slightly lighter slate */
   --bg: #06070b;
@@ -198,16 +209,42 @@ body {
 .dash-grid .card-budget     { grid-area: budget;   margin-bottom: 0; min-width: 0; }
 .dash-grid .kpi-col         { display: flex; flex-direction: column; gap: 12px; margin-bottom: 0; }
 .dash-grid .card-calendar   { margin-bottom: 0; min-width: 0; }
+/* ── ALTURA progress bars (reference-matched) ────────────────────
+   Thick bar, slight corners (not a pill). Fill = deep-to-bright
+   gradient with a narrow reflection and very discreet outer glow at
+   the right edge. Unfilled remainder = thin 1px dashes spaced ~4px,
+   centered vertically, slightly shorter than the fill, appearing
+   only after the filled end. Height/colors tunable via CSS vars. */
 .kpi-bar {
-  margin-top: 12px; height: 14px; border-radius: 999px;
-  background: var(--card-2); border: 1px solid var(--border);
-  overflow: hidden;
+  --bar-h: 30px;
+  margin-top: 12px; height: var(--bar-h); border-radius: 5px;
+  background: transparent; border: none;
+  position: relative; overflow: hidden;
+}
+/* Dashed remainder: thin vertical ticks on the card's dark base */
+.kpi-bar::after {
+  content: ""; position: absolute; inset: 0;
+  background-image: repeating-linear-gradient(90deg,
+    rgba(255, 255, 255, 0.16) 0 1px, transparent 1px 5px);
+  height: calc(var(--bar-h) - 8px);
+  top: 4px;
+  border-radius: 3px;
 }
 .kpi-bar-fill {
-  display: block; height: 100%; border-radius: 999px;
-  background: linear-gradient(90deg, var(--accent), var(--green));
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.35);
+  display: block; position: relative; height: 100%; border-radius: 5px;
+  background: linear-gradient(90deg, var(--bar-from), var(--bar-mid), var(--bar-to));
 }
+/* Narrow soft reflection + discreet exterior glow at the filled end */
+.kpi-bar-fill::after {
+  content: ""; position: absolute; right: 0; top: 2px; bottom: 2px; width: 14px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.38));
+  box-shadow: 0 0 10px 2px var(--bar-glow);
+}
+.kpi-bar-blue { --bar-from: #14386b; --bar-mid: #2b6f9e; --bar-to: #7fd6f2; --bar-glow: rgba(127, 214, 242, 0.25); }
+.kpi-bar-purple { --bar-from: #3b1d63; --bar-mid: #8a3fa8; --bar-to: #e0a9f5; --bar-glow: rgba(224, 169, 245, 0.25); }
+/* Zero-fill: no residual glow — hide the fill entirely */
+.kpi-bar-fill[style*="width: 0%"] { display: none; }
 /* Neutral bar when there is no valid base to represent progress against */
 .kpi-bar-neutral { display: flex; align-items: center; justify-content: center; height: 8px; border-radius: 999px; background: var(--card-2); border: 1px dashed var(--border); }
 .kpi-bar-note { font-size: 11px; color: var(--muted); }
@@ -497,6 +534,60 @@ button:focus-visible, .btn-primary:focus-visible, .btn-danger:focus-visible,
 .cal-day.has-spend { background: rgba(139, 92, 246, 0.16); border-color: rgba(139, 92, 246, 0.45); color: var(--text); }
 .cal-day.is-today, .cal-day.today { background: rgba(99, 102, 241, 0.22); border-color: rgba(99, 102, 241, 0.50); color: var(--text); }
 .cal-day.out { opacity: 0.35; }
+
+/* ── ALTURA progress bars (Monthly Savings / Monthly Expenses) ─────
+   Layers: dash track (unfilled remainder), gradient fill, narrow
+   reflection at the right end of the fill. Height and colors are
+   CSS variables so cards can tune them. */
+.alt-bar {
+  --bar-height: 30px;
+  --bar-radius: 5px;
+  position: relative;
+  height: var(--bar-height);
+  width: 100%;
+}
+/* unfilled remainder: thin 1px vertical dashes, ~4px apart, slightly
+   shorter than the fill and vertically centered; no outer border */
+.alt-bar-track {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+}
+.alt-bar-dashes {
+  flex: 1;
+  height: calc(var(--bar-height) - 12px); /* shorter than fill, centered */
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--dash-color, rgba(255, 255, 255, 0.22)) 0 1px,
+    transparent 1px 5px
+  );
+  opacity: 0.55;
+}
+/* continuous gradient fill, slightly rounded corners (not a pill) */
+.alt-bar-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: var(--bar-height);
+  border-radius: var(--bar-radius);
+  overflow: hidden;
+  box-shadow: 0 0 10px -4px var(--bar-glow, transparent); /* very discreet outer glow */
+}
+/* narrow soft reflection at the right end of the fill */
+.alt-bar-reflection {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 8px;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35));
+}
+/* the dashes only exist to the right of the fill: track sits behind,
+   fill covers it, so dashes never appear over the gradient */
+@media (prefers-reduced-motion: reduce) {
+  .alt-bar-fill { transition: none; }
+}
 
 /* ── Responsive ──────────────────────────────────────────── */
 @media (max-width: 900px) {

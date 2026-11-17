@@ -292,7 +292,7 @@ export function Panel() {
             <div className="delta delta-none">{t('panel.noComparison')}</div>
           )}
           {income > 0 ? (
-            <div className="kpi-bar" role="progressbar" aria-valuenow={savingsPct} aria-valuemin={0} aria-valuemax={100}>
+            <div className="kpi-bar kpi-bar-blue" role="progressbar" aria-label={t('panel.monthlySavings')} aria-valuenow={savingsPct} aria-valuemin={0} aria-valuemax={100}>
               <span className="kpi-bar-fill" style={{ width: savingsPct + '%' }} />
             </div>
           ) : (
@@ -311,7 +311,7 @@ export function Panel() {
             <div className="delta delta-none">{t('panel.noComparison')}</div>
           )}
           {income > 0 ? (
-            <div className="kpi-bar" role="progressbar" aria-valuenow={expensePct} aria-valuemin={0} aria-valuemax={100}>
+            <div className="kpi-bar kpi-bar-purple" role="progressbar" aria-label={t('panel.monthlyExpenses')} aria-valuenow={expensePct} aria-valuemin={0} aria-valuemax={100}>
               <span className="kpi-bar-fill" style={{ width: expensePct + '%' }} />
             </div>
           ) : (
