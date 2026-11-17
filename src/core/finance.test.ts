@@ -36,6 +36,8 @@ import {
   addGroup,
   listGroups,
   transactionsInGroup,
+  periodKpis,
+  spendByDay,
 } from './finance';
 
 let db: WalletDB;
@@ -49,6 +51,45 @@ async function makeCategory(name: string): Promise<Category> {
 beforeEach(async () => {
   db = createDatabase('test-' + Math.random().toString(36).slice(2));
   // Do NOT seed defaults here: tests create their own categories to stay under the 12 limit.
+});
+
+describe('periodKpis (Excel Resumo strip)', () => {
+  it('computes totals, count, largest expense, top category and daily average', async () => {
+    const food = await makeCategory('Food');
+    const rent = await makeCategory('Rent');
+    await addTransaction(db, { date: '2026-01-03', type: 'expense', categoryId: food.id, description: 'a', amountCents: 3000, currency: 'EUR' });
+    await addTransaction(db, { date: '2026-01-03', type: 'expense', categoryId: food.id, description: 'b', amountCents: 2000, currency: 'EUR' });
+    await addTransaction(db, { date: '2026-01-10', type: 'expense', categoryId: rent.id, description: 'c', amountCents: 9000, currency: 'EUR' });
+    await addTransaction(db, { date: '2026-01-05', type: 'income', categoryId: food.id, description: 'sal', amountCents: 10000, currency: 'EUR' });
+    const txs = await db.transactions.toArray();
+    const cats = await activeCategories(db);
+    const k = periodKpis(txs, cats);
+    expect(k.totalSpentCents).toBe(14000); // income ignored
+    expect(k.expenseCount).toBe(3);
+    expect(k.largestExpenseCents).toBe(9000);
+    expect(k.topCategoryName).toBe('Rent');
+    expect(k.avgDailyCents).toBe(7000); // 14000 / 2 distinct days
+  });
+
+  it('returns zeros and null top category when there are no expenses', async () => {
+    const k = periodKpis([], []);
+    expect(k.totalSpentCents).toBe(0);
+    expect(k.expenseCount).toBe(0);
+    expect(k.largestExpenseCents).toBe(0);
+    expect(k.topCategoryName).toBeNull();
+    expect(k.avgDailyCents).toBe(0);
+  });
+});
+
+describe('spendByDay (heatmap)', () => {
+  it('groups expenses by day and ignores income', async () => {
+    const cat = await makeCategory('Test');
+    await addTransaction(db, { date: '2026-01-02', type: 'expense', categoryId: cat.id, description: 'x', amountCents: 500, currency: 'EUR' });
+    await addTransaction(db, { date: '2026-01-02', type: 'expense', categoryId: cat.id, description: 'y', amountCents: 700, currency: 'EUR' });
+    await addTransaction(db, { date: '2026-01-04', type: 'income', categoryId: cat.id, description: 'z', amountCents: 1000, currency: 'EUR' });
+    const days = spendByDay(await db.transactions.toArray());
+    expect(days).toEqual([{ day: '2026-01-02', cents: 1200 }]);
+  });
 });
 
 describe('addTransaction validation', () => {

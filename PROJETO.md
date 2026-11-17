@@ -26,12 +26,13 @@ src/ui/theme.css (design system), src/ui/Sidebar.tsx, src/ui/components.tsx, src
 * [x] Fase 6: Sync offline-first (src/core/sync.ts push/merge por updatedAt + supabase/schema.sql das 9 tabelas + botão "Sincronizar" na Definições). Verificar: tsc, vitest com fake-indexeddb (merge simulado), browser sem chaves brutas. Online só testado quando o Rafael colar URL/key no .env.
 * [x] Fase 7: (dashboard ALTURA): grid de janelas 2 colunas + cartao calendario mensal de despesas diarias no lugar do slot AI Assistant; verificar com vitest, build e screenshot do .exe
 * [x] Fase 8: (ALTURA dashboard premium): [x] 8a shadcn components + dark/glass tokens; [ ] 8b secções (Income Analysis recharts, Savings/Expenses, Calendário uniforme, Recent Transactions, Budget Usage donut); [ ] 8c i18n altura.* nos 5 idiomas + rebuild .exe e screenshot. Verificar: tsc+vite build, npm test,exe visual.
+* [~] Fase 9: (brief Claude/files.zip): 9a poupança correta (savings = income − expenses; '—' sem rendimento) + faixa de 5 KPIs (Total gasto, Média/dia, Nº despesas, Maior despesa, Categoria top). Verificar: npm.cmd test + build. 9b seletor de período global (Ano/Mês/30/60/90 dias). 9c IncomeChart estilo Altura (área roxa riscada = rendimento, linha azul = despesas, tooltip). 9d donut categorias + heatmap calendário com intensidade. 9e cartão Empréstimo (65k) + banner de alertas. Verificar cada sub-fase: build + testes + screenshot do .exe.
 
 ## Estado atual
 
-Concluidas (6/8): Fase 1, Fase 2, Fase 3, Fase 6, Fase 7, Fase 8.
+Concluidas (6/9): Fase 1, Fase 2, Fase 3, Fase 6, Fase 7, Fase 8.
 
-Em curso: Fase 4: Calendário (grid por dia com gasto + painel lateral) e Salários (grelha ano×mes + extras), SPEC §6.4/§6.5; testes core + browser.
+Em curso: Fase 4: Calendário (grid por dia com gasto + painel lateral) e Salários (grelha ano×mes + extras), SPEC §6.4/§6.5; testes core + browser; Fase 9: (brief Claude/files.zip): 9a poupança correta (savings = income − expenses; '—' sem rendimento) + faixa de 5 KPIs (Total gasto, Média/dia, Nº despesas, Maior despesa, Categoria top). Verificar: npm.cmd test + build. 9b seletor de período global (Ano/Mês/30/60/90 dias). 9c IncomeChart estilo Altura (área roxa riscada = rendimento, linha azul = despesas, tooltip). 9d donut categorias + heatmap calendário com intensidade. 9e cartão Empréstimo (65k) + banner de alertas. Verificar cada sub-fase: build + testes + screenshot do .exe..
 
 Proxima: Fase 5: Orçamentos (barra de progresso), Metas, Recorrentes e Grupos, SPEC §6.7; testes core + browser.
 
@@ -45,3 +46,4 @@ Proxima: Fase 5: Orçamentos (barra de progresso), Metas, Recorrentes e Grupos, 
 - 2026-11-15: Fase 7 concluida - Phase 1 done: Tailwind v4.3.5 installed and wired into vite.config.ts (@tailwindcss/vite) and theme.css (@import "tailwindcss"). Verified: vite build succeeds (Tailwind preflight + --tw-* vars present in dist CSS) and all 97 vitest tests pass. Leftover temp files (_cdp_check.py, navtest.js, build_out.txt) removed.
 - 2026-11-16: Fase 8 concluida - Fase 8a done: src/ui/shadcn.tsx (Card/CardHeader/CardTitle/CardDescription/CardContent, Badge variants, Progress, Avatar, Separator, Button ghost/outline/default) + theme.css tokens (#06070b bg, violet-500/indigo-500/blue-500 accents, glass cards p-6 border-white/5 backdrop-blur, uniform 46px calendar cells with repeat(7,minmax(0,1fr))). Verified: tsc+vite build clean (only chunk-size warning), npm test 97/97 passed. Git checkpoint a5980d5.
 - 2026-11-16: Fase 8 concluida - Verified: all panel.* keys used by Dashboard exist in all 5 i18n files; fixed wrong key (panel.savings -> panel.expenses in chart legend). Responsive layout already handled via grid-cols-1 lg:grid-cols-3. tsc clean, 97/97 tests pass.
+- 2026-11-17: Fase 1 concluida - Phase 1 verified: build passes (npm run build ✓ 471ms), dev server tested in maximized Edge window; dash-shell now max-width min(1720px,100%) with padding media queries at 1440px/1900px. Git checkpoint 10c5c98.

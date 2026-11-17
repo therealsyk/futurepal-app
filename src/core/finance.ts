@@ -85,6 +85,60 @@ export async function monthTransactions(db: WalletDB, year: number, month: numbe
   return db.transactions.filter((t) => t.deletedAt === null && t.date >= start && t.date <= end).toArray();
 }
 
+// ── Dashboard KPI helpers (pure, integer cents) ───────────────────────────────
+export interface DaySpend { day: string; cents: number }
+
+// Expenses grouped by calendar day, sorted by day. Used by the daily-spend heatmap.
+export function spendByDay(txs: Transaction[]): DaySpend[] {
+  const map = new Map<string, number>();
+  for (const t of txs) {
+    if (t.deletedAt !== null || t.type !== 'expense') continue;
+    map.set(t.date, (map.get(t.date) ?? 0) + t.amountCents);
+  }
+  return [...map.entries()].map(([day, cents]) => ({ day, cents })).sort((a, b) => a.day.localeCompare(b.day));
+}
+
+export interface PeriodKpis {
+  totalSpentCents: number;
+  expenseCount: number;
+  largestExpenseCents: number;
+  topCategoryName: string | null;
+  topCategoryCents: number;
+  avgDailyCents: number; // spent / distinct days with expenses (Excel "Média/dia")
+}
+
+// Excel "Resumo" strip: totals for a set of transactions. Pure and testable.
+export function periodKpis(txs: Transaction[], categories: Category[]): PeriodKpis {
+  const expenses = txs.filter((t) => t.deletedAt === null && t.type === 'expense');
+  let totalSpentCents = 0;
+  let largestExpenseCents = 0;
+  const byCat = new Map<string, number>();
+  const days = new Set<string>();
+  for (const t of expenses) {
+    totalSpentCents += t.amountCents;
+    if (t.amountCents > largestExpenseCents) largestExpenseCents = t.amountCents;
+    byCat.set(t.categoryId, (byCat.get(t.categoryId) ?? 0) + t.amountCents);
+    days.add(t.date);
+  }
+  let topCategoryName: string | null = null;
+  let topCategoryCents = 0;
+  for (const [id, cents] of byCat) {
+    if (cents > topCategoryCents) {
+      topCategoryCents = cents;
+      const cat = categories.find((c) => c.id === id);
+      topCategoryName = cat ? cat.name : null;
+    }
+  }
+  return {
+    totalSpentCents,
+    expenseCount: expenses.length,
+    largestExpenseCents,
+    topCategoryName,
+    topCategoryCents,
+    avgDailyCents: days.size > 0 ? Math.round(totalSpentCents / days.size) : 0,
+  };
+}
+
 export interface CategoryTotal {
   categoryId: string;
   name: string;

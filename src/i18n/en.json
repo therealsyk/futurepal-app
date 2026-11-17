@@ -33,6 +33,7 @@
     "expenseCount": "Number of expenses",
     "biggestExpense": "Biggest expense",
     "topCategory": "Top category",
+    "largestExpense": "Largest expense",
     "salaryInPeriod": "Salary in period",
     "income": "Income",
     "savings": "Savings",

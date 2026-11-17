@@ -9,13 +9,9 @@ import { loadSettings } from '../core/settings';
 import type { AppSettings } from '../core/settings';
 import type { Transaction, Budget, Category, Salary } from '../db/database';
 import { categoryImage } from '../core/category-images';
+import { periodKpis } from '../core/finance';
 
 // ── Pure helpers (integer cents only, no float money) ────────────────────────
-function pct(part: number, whole: number): number {
-  if (!whole) return 0;
-  return Math.round((part / whole) * 100);
-}
-
 function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
 }
@@ -187,14 +183,15 @@ function AltBar({ value, max, variant, name }: {
   );
 }
 
-function ProgressCard({ title, value, total, percent, changePct, tone, icon }: {
+function ProgressCard({ title, value, total, incomeCents, changePct, tone, icon, t }: {
   title: string;
   value: number;
   total: number;
-  percent: number;
+  incomeCents: number;
   changePct: number | null;
   tone: 'blue' | 'magenta';
   icon?: ReactNode;
+  t: (k: string) => string;
 }) {
   const variant = tone === 'blue' ? 'blue' : 'purple';
   const up = changePct !== null && changePct >= 0;
@@ -215,7 +212,9 @@ function ProgressCard({ title, value, total, percent, changePct, tone, icon }: {
       <div className="mt-3">
         <AltBar value={value} max={total} variant={variant} name={title} />
       </div>
-      <div className="mt-2 text-xs text-white/45">{percent}% of income</div>
+      <div className="mt-2 text-xs text-white/45">
+        {incomeCents > 0 ? `${Math.round((value / incomeCents) * 100)}% ${t('panel.percentSpent')}` : t('panel.noBase')}
+      </div>
     </GlassCard>
   );
 }
@@ -325,10 +324,10 @@ function DailySpendCalendar({ monthTx, settings, t }: {
                   navigate(`/dia/${cursor.y}-${String(cursor.m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
                 }
               }}
-              className="cal-cell rounded-lg border border-white/10 backdrop-blur text-center overflow-hidden transition cursor-pointer hover:border-violet-400/40"
+              className="cal-cell border border-white/10 backdrop-blur text-center overflow-hidden transition cursor-pointer hover:border-violet-400/40"
               style={{ background: cellColor(v), boxShadow: v > 0 ? '0 6px 16px -8px rgba(139,92,246,0.55)' : 'none' }}>
-              <div className="text-[10px] text-white/55">{day}</div>
-              <div className="text-[10px] font-semibold text-white/90 truncate">
+              <div className="text-[11px] text-white/70">{day}</div>
+              <div className="text-[11px] font-semibold text-white/90 truncate">
                 {formatMoney(v, settings.currency, settings.language)}
               </div>
             </div>
@@ -447,20 +446,13 @@ export function Dashboard() {
   const monthExpense = monthTx.filter((tx) => tx.type === 'expense').reduce((a, tx) => a + tx.amountCents, 0);
   const savings = monthIncome - monthExpense;
 
-  // Excel-style summary strip (Resumo sheet): totals for the selected period
+  // Excel "Resumo" data for the selected period (used by KPI strip via periodKpis)
   const periodTx = txs.filter(inPeriod);
-  const totalSpent = periodTx.filter((tx) => tx.type === 'expense').reduce((a, tx) => a + tx.amountCents, 0);
-  const salaryInPeriod = salaries
-    .filter((s) => s.year === now.getFullYear())
-    .reduce((a, s) => a + s.amountCents, 0);
-  const extrasInPeriod = periodTx.filter((tx) => tx.type === 'income').reduce((a, tx) => a + tx.amountCents, 0);
-  const incomeInPeriod = salaryInPeriod + extrasInPeriod;
-  const savedPct = incomeInPeriod > 0 ? Math.round(((incomeInPeriod - totalSpent) / incomeInPeriod) * 100) : 0;
-  const spentPct = incomeInPeriod > 0 ? Math.round((totalSpent / incomeInPeriod) * 100) : 0;
-  const monthsWithData = new Set(periodTx.map((tx) => tx.date.slice(0, 7))).size || 1;
-  const avgMonthlySavings = Math.round((incomeInPeriod - totalSpent) / monthsWithData);
-  const savingsPct = pct(Math.max(0, savings), monthIncome);
-  const expensePct = pct(monthExpense, monthIncome);
+  // Savings bar reflects real month savings (income - expenses); negative -> empty bar
+  const savingsBarMax = Math.max(monthIncome, monthExpense);
+
+  // Excel "Resumo" KPIs for the selected period (pure helpers from core/finance)
+  const kpis = periodKpis(periodTx, cats);
 
   // Budget usage
   let budgetTotal = 0, budgetUsed = 0;
@@ -479,24 +471,24 @@ export function Dashboard() {
   return (
     <div className="min-h-screen bg-[#05060a] text-white"
       style={{ background: 'radial-gradient(900px 500px at 15% -10%, rgba(99,102,241,0.18), transparent 60%), radial-gradient(800px 450px at 85% 110%, rgba(236,72,153,0.14), transparent 60%), #05060a' }}>
-      <div className="dash-shell w-full mx-auto p-4 flex flex-col min-h-0">
-        <div className="summary-strip" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8, marginBottom: 8 }}>
+      <div className="dash-shell w-full mx-auto flex flex-col min-h-0">
+        <div className="kpi-strip" style={{ marginBottom: 16 }}>
           {[
-            { label: t('panel.totalSpent'), value: formatMoney(totalSpent, settings.currency, settings.language) },
-            { label: t('panel.dailyAverage'), value: formatMoney(Math.round(totalSpent / (period === 'month' ? new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() : 365)), settings.currency, settings.language) },
-            { label: t('panel.percentSpent'), value: `${spentPct}%` },
-            { label: t('panel.percentSavings'), value: `${savedPct}%` },
-            { label: t('panel.savingsPerMonth'), value: formatMoney(avgMonthlySavings, settings.currency, settings.language) },
+            { label: t('panel.totalSpent'), value: formatMoney(kpis.totalSpentCents, settings.currency, settings.language) },
+            { label: t('panel.dailyAverage'), value: formatMoney(kpis.avgDailyCents, settings.currency, settings.language) },
+            { label: t('panel.expenseCount'), value: String(kpis.expenseCount) },
+            { label: t('panel.largestExpense'), value: formatMoney(kpis.largestExpenseCents, settings.currency, settings.language) },
+            { label: t('panel.topCategory'), value: kpis.topCategoryName ?? '—' },
           ].map((m) => (
-            <div key={m.label} className="rounded-xl border border-white/10 bg-white/5 backdrop-blur px-3 py-2">
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>{m.label}</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'white' }}>{m.value}</div>
+            <div key={m.label} className="kpi-card">
+              <div className="kpi-label">{m.label}</div>
+              <div className="kpi-num">{m.value}</div>
             </div>
           ))}
         </div>
 
         {/* Top row: Income analysis (left) + savings/expenses (right) */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 flex-1 min-h-[260px]">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-[16px] flex-1 min-h-[260px]">
           <GlassCard className="lg:col-span-2 p-4 flex flex-col">
             <CardTitle title={t('panel.incomeAnalysis')} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 3v18h18"/><path d="M7 14l4-6 4 4 5-7"/></svg>} />
             <div className="flex items-center justify-between gap-3 mt-3 text-xs text-white/70 flex-wrap">
@@ -533,13 +525,13 @@ export function Dashboard() {
           </GlassCard>
 
           <div className="grid grid-cols-1 gap-2">
-            <ProgressCard title={t('panel.monthlySavings')} value={savings} total={monthIncome} percent={savingsPct} changePct={changePct(savings, prevSavings)} tone="blue" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 2v20"/><path d="M17 6.5A7 7 0 0 0 5 12a7 7 0 0 0 14 5.5"/></svg>} />
-            <ProgressCard title={t('panel.monthlyExpenses')} value={monthExpense} total={monthIncome} percent={expensePct} changePct={changePct(monthExpense, prevExpense)} tone="magenta" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/></svg>} />
+            <ProgressCard title={t('panel.monthlySavings')} value={Math.max(0, savings)} total={savingsBarMax} incomeCents={monthIncome} changePct={changePct(savings, prevSavings)} tone="blue" t={t} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 2v20"/><path d="M17 6.5A7 7 0 0 0 5 12a7 7 0 0 0 14 5.5"/></svg>} />
+            <ProgressCard title={t('panel.monthlyExpenses')} value={monthExpense} total={savingsBarMax} incomeCents={monthIncome} changePct={changePct(monthExpense, prevExpense)} tone="magenta" t={t} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/></svg>} />
           </div>
         </div>
 
         {/* Bottom row: recent (left) + budget (center) + calendar (right) */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 mt-2 flex-1 min-h-[240px]">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-[16px] mt-[16px] flex-1 min-h-[240px]">
           <GlassCard className="p-4">
             <CardTitle title={t('panel.recentTransactions')} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>} />
             <ul className="mt-4 space-y-2">
