@@ -84,7 +84,11 @@
     "autoImageHint": "L'image est choisie automatiquement à  partir du nom ; vous pouvez la modifier.",
     "create": "Créer",
     "save": "Enregistrer",
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "loan": "Prêt",
+    "aiAssistant": "Assistant IA",
+    "savedShort": "économisé",
+    "monthlyBreakdown": "Dépenses par mois"
   },
   "transactions": {
     "title": "Transactions",

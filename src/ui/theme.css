@@ -15,6 +15,40 @@
   .dash-shell { padding: 12px; }
 }
 
+/* ── Mockup card system ("c") — shared by every dashboard panel ── */
+.mock-card {
+  border: 1px solid var(--border);
+  background: linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.025));
+  border-radius: 24px;
+  padding: 18px 20px;
+  box-shadow: var(--shadow);
+  min-width: 0;
+  overflow: hidden;
+}
+html[data-theme="light"] .mock-card { background: var(--card-2); }
+html[data-theme="gray"] .mock-card { background: var(--card-2); }
+.mock-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.mock-ic {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--card);
+  display: grid; place-items: center; flex: none;
+}
+.mock-label {
+  font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--muted);
+}
+.mock-meta { color: var(--muted); font-size: 12px; }
+.mock-big {
+  font-size: 34px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1;
+}
+
 /* KPI strip — five compact cards, mockup style */
 .kpi-strip {
   display: grid;
@@ -26,13 +60,15 @@
 }
 .kpi-strip .kpi-card {
   border: 1px solid var(--border);
-  background: var(--card);
+  background: linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.025));
   border-radius: 18px;
   padding: 12px 18px;
   display: flex;
   flex-direction: column;
   justify-content: center;
 }
+html[data-theme="light"] .kpi-strip .kpi-card,
+html[data-theme="gray"] .kpi-strip .kpi-card { background: var(--card-2); }
 .kpi-strip .kpi-label {
   font-size: 11px;
   letter-spacing: .08em;
@@ -46,6 +82,26 @@
   margin-top: 4px;
 }
 
+/* Mockup pill progress bar (savings/expenses/loan): solid pill + dashed tick track */
+.pill-bar { display: flex; align-items: center; gap: 6px; }
+.pill-fill {
+  height: 22px; border-radius: 99px; min-width: 18px;
+}
+.pill-fill.blue { background: linear-gradient(90deg, #1e90ff, #3fb6ff); }
+.pill-fill.purple { background: linear-gradient(90deg, #7a1fb8, #b14cf0); }
+.tick-track {
+  flex: 1; height: 22px;
+  background: repeating-linear-gradient(90deg, var(--muted) 0 1px, transparent 1px 5px);
+  opacity: .35;
+}
+
+/* Mockup row list ("r") */
+.mock-row {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  font-size: 12.5px; padding: 5px 0; border-bottom: 1px solid var(--border);
+}
+.mock-row:last-child { border-bottom: 0; }
+
 /* Calendar: every day cell has the same height regardless of money text */
 .cal-grid { grid-auto-rows: 44px; }
 .cal-cell {
@@ -54,6 +110,11 @@
   justify-content: center;
   padding: 4px 7px;
   border-radius: 10px;
+  font-size: 11px;
+}
+.cal-head {
+  font-size: 10px; text-align: center; color: var(--muted);
+  letter-spacing: .06em; padding-bottom: 2px;
 }
 
 :root {
@@ -223,12 +284,20 @@ body {
 
 /* ── Dashboard: two nested zones, left ~2fr / right ~1fr ── */
 .dashboard { display: grid; gap: 22px; }
+
+/* Mockup 12-column grid (Claude "Wallet 1920x1080"): row 1 = chart(6) +
+   savings/expenses(3) + donut(3); row 2 = calendar(4) + table(5) + loan/AI(3). */
 .dash-grid {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
-  gap: 14px;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 16px;
   align-items: stretch;
 }
+.dash-span-3 { grid-column: span 3; }
+.dash-span-4 { grid-column: span 4; }
+.dash-span-5 { grid-column: span 5; }
+.dash-span-6 { grid-column: span 6; }
+
 .zone-left {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);

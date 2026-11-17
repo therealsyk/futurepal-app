@@ -8,7 +8,6 @@ import { formatMoney } from '../core/money';
 import { loadSettings } from '../core/settings';
 import type { AppSettings } from '../core/settings';
 import type { Transaction, Budget, Category, Salary } from '../db/database';
-import { categoryImage } from '../core/category-images';
 import { periodKpis } from '../core/finance';
 
 // ── Pure helpers (integer cents only, no float money) ────────────────────────
@@ -16,11 +15,6 @@ function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
 }
 
-// Month-over-month change in cents; null when the previous month has no data.
-function changePct(current: number, previous: number): number | null {
-  if (!previous) return null;
-  return Math.round(((current - previous) / Math.abs(previous)) * 100);
-}
 
 export function smoothPath(points: { x: number; y: number }[]): string {
   if (points.length === 0) return '';
@@ -148,114 +142,169 @@ function IncomeChart({ monthly, catTotals, settings, mode }: {
   );
 }
 
-// ── ALTURA progress bar (CSS/SVG layers: gradient fill + end reflection + dash track) ─
-const BAR_GRADS = {
-  blue: {
-    // deep petrol -> blue -> luminous cyan (sampled from reference)
-    grad: 'linear-gradient(90deg,#14386b 0%,#2b6f9e 55%,#4fd1c5 92%,#a5f3fc 100%)',
-    glow: '#67e8f9',
-  },
-  purple: {
-    // dark purple -> violet/magenta -> luminous lilac
-    grad: 'linear-gradient(90deg,#3b1f5b 0%,#8b5cf6 55%,#c084fc 92%,#e6c8ff 100%)',
-    glow: '#d8a8ff',
-  },
-};
-
-function AltBar({ value, max, variant, name }: {
-  value: number; max: number;
-  variant: 'blue' | 'purple'; name: string;
+// ── Mockup-style KPI cards (savings / expenses) ───────────────────────────────
+function SavingsCard({ title, valueCents, perMonthCents, salaryCents, extrasCents, pctOfIncome, settings, t }: {
+  title: string; valueCents: number; perMonthCents: number; salaryCents: number;
+  extrasCents: number; pctOfIncome: number | null; settings: AppSettings; t: (k: string) => string;
 }) {
-  const p = max > 0 ? clamp(Math.round((value / max) * 100), 0, 100) : 0; // real data; no invented progress
-  const g = BAR_GRADS[variant];
+  const money = (v: number) => formatMoney(v, settings.currency, settings.language);
   return (
-    <div className="alt-bar" role="progressbar" aria-label={name}
-      aria-valuenow={p} aria-valuemin={0} aria-valuemax={100}>
-      {/* unfilled remainder: thin ~1px dashes, 4px apart, shorter than fill, centered */}
-      <div className="alt-bar-track" aria-hidden="true">
-        <div className="alt-bar-dashes" style={{ ['--dash-color' as any]: g.glow }} />
+    <div className="mock-card">
+      <div className="mock-head">
+        <span className="mock-ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 3v18h18"/><path d="M7 14l4-6 4 4 5-7"/></svg></span>
+        {title}
       </div>
-      {/* continuous gradient fill with discreet outer glow + narrow reflection at right end */}
-      <div className="alt-bar-fill" style={{ width: `${p}%`, background: g.grad, ['--bar-glow' as any]: g.glow }}>
-        <span className="alt-bar-reflection" aria-hidden="true" />
+      <div className="mock-big">{money(Math.max(0, valueCents))}</div>
+      <div className="mock-meta mt-1">
+        Salário: {money(salaryCents)} · Extras: {money(extrasCents)}
+      </div>
+      <div className="pill-bar mt-3">
+        <div className="pill-fill blue" style={{ width: `${pctOfIncome === null ? 0 : clamp(pctOfIncome, 4, 100)}%` }} />
+        <div className="tick-track" aria-hidden="true" />
+      </div>
+      <div className="mock-meta mt-2">
+        {pctOfIncome !== null ? `${pctOfIncome}% ${t('panel.percentSpent')}` : t('panel.noBase')} · {t('panel.savingsPerMonth')}: {money(Math.max(0, perMonthCents))}
       </div>
     </div>
   );
 }
 
-function ProgressCard({ title, value, total, incomeCents, changePct, tone, icon, t }: {
-  title: string;
-  value: number;
-  total: number;
-  incomeCents: number;
-  changePct: number | null;
-  tone: 'blue' | 'magenta';
-  icon?: ReactNode;
-  t: (k: string) => string;
+function ExpensesCard({ title, valueCents, count, avgDailyCents, pctOfIncome, settings, t }: {
+  title: string; valueCents: number; count: number; avgDailyCents: number;
+  pctOfIncome: number | null; settings: AppSettings; t: (k: string) => string;
 }) {
-  const variant = tone === 'blue' ? 'blue' : 'purple';
-  const up = changePct !== null && changePct >= 0;
+  const money = (v: number) => formatMoney(v, settings.currency, settings.language);
   return (
-    <GlassCard className="p-5">
-      <CardTitle title={title} icon={icon} />
-      <div className="mt-3 flex items-end justify-between gap-3">
-        <div>
-          <div className="text-3xl font-bold leading-tight text-white">{formatMoney(value, 'EUR', 'en')}</div>
-          <div className="text-xs text-white/50 mt-1">{formatMoney(total, 'EUR', 'en')} total</div>
-        </div>
-        {changePct !== null && (
-          <div className={`text-sm font-semibold ${up ? 'text-emerald-400' : 'text-red-400'}`}>
-            {up ? '▲' : '▼'} {Math.abs(changePct)}%
-          </div>
-        )}
+    <div className="mock-card">
+      <div className="mock-head">
+        <span className="mock-ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 3v18h18"/><path d="M7 14l4-6 4 4 5-7"/></svg></span>
+        {title}
       </div>
-      <div className="mt-3">
-        <AltBar value={value} max={total} variant={variant} name={title} />
+      <div className="mock-big">{money(valueCents)}</div>
+      <div className="mock-meta mt-1">
+        {count} despesas · {money(avgDailyCents)} média/dia
       </div>
-      <div className="mt-2 text-xs text-white/45">
-        {incomeCents > 0 ? `${Math.round((value / incomeCents) * 100)}% ${t('panel.percentSpent')}` : t('panel.noBase')}
+      <div className="pill-bar mt-3">
+        <div className="pill-fill purple" style={{ width: `${pctOfIncome === null ? 0 : clamp(pctOfIncome, 4, 100)}%` }} />
+        <div className="tick-track" aria-hidden="true" />
       </div>
-    </GlassCard>
+      <div className="mock-meta mt-2">{pctOfIncome !== null ? `${pctOfIncome}% ${t('panel.percentSpent')}` : t('panel.noBase')}</div>
+    </div>
   );
 }
 
-// ── Donut for budget usage ────────────────────────────────────────────────────
-function Donut({ used, budget }: { used: number; budget: number }) {
-  const over = budget > 0 && used > budget;
-  const frac = budget > 0 ? clamp(used / budget, 0, 1) : 0;
-  const color = over ? '#f43f5e' : frac > 0.85 ? '#f59e0b' : '#22c55e';
-  const empty = budget <= 0;
-  const data = empty
-    ? [{ name: 'empty', value: 1 }]
-    : [
-        { name: 'used', value: used },
-        { name: 'left', value: Math.max(budget - used, 0) },
-      ];
+// ── Category donut (SVG, no extra deps) ───────────────────────────────────────
+function CategoryDonut({ catTotals, totalCents }: {
+  catTotals: { name: string; totalCents: number }[]; totalCents: number;
+}) {
+  const palette = ['#22d3ee', '#f472b6', '#60a5fa', '#f59e0b', '#8b5cf6', '#34d399', '#e11d48', '#94a3b8', '#a78bfa', '#fbbf24'];
+  if (totalCents <= 0 || catTotals.length === 0) {
+    return <div className="mock-meta mt-2">—</div>;
+  }
+  const cx = 60, cy = 60, r = 46;
+  let angle = -Math.PI / 2;
+  const arcs = catTotals.map((c, i) => {
+    const frac = c.totalCents / totalCents;
+    const a0 = angle;
+    const a1 = angle + frac * Math.PI * 2;
+    angle = a1;
+    const large = a1 - a0 > Math.PI ? 1 : 0;
+    const x0 = cx + r * Math.cos(a0);
+    const y0 = cy + r * Math.sin(a0);
+    const x1 = cx + r * Math.cos(a1);
+    const y1 = cy + r * Math.sin(a1);
+    return { d: `M ${cx} ${cy} L ${x0.toFixed(2)} ${y0.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)} Z`, fill: palette[i % palette.length], pct: Math.round(frac * 100), name: c.name };
+  });
   return (
-    <div className="relative" style={{ width: 120, height: 120 }}>
-      <PieChart width={120} height={120}>
-        <Pie
-          data={data}
-          cx={60}
-          cy={60}
-          innerRadius={42}
-          outerRadius={54}
-          startAngle={90}
-          endAngle={-270}
-          stroke="none"
-        >
-          {empty ? (
-            <Cell fill="rgba(255,255,255,0.12)" />
-          ) : (
-            <>
-              <Cell fill={color} />
-              <Cell fill="rgba(255,255,255,0.08)" />
-            </>
-          )}
-        </Pie>
-      </PieChart>
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <span style={{ color: 'white', fontSize: 22, fontWeight: 700 }}>{budget > 0 ? Math.round((used / budget) * 100) : 0}</span>
+    <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+      <svg width="120" height="120" viewBox="0 0 120 120" role="img" aria-label="category breakdown">
+        {arcs.map((a) => (
+          <path key={a.name} d={a.d} fill={a.fill} stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
+        ))}
+      </svg>
+      <div style={{ display: 'grid', gap: 4, fontSize: 11.5 }}>
+        {arcs.slice(0, 6).map((a) => (
+          <div key={a.name} style={{ display: 'flex', gap: 6, alignItems: 'center', color: 'rgba(255,255,255,0.75)' }}>
+            <span style={{ width: 8, height: 8, borderRadius: 2, background: a.fill, flex: 'none' }} />
+            {a.name} · {a.pct}%
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Monthly breakdown table (Jan–Dez, mockup style) ───────────────────────────
+function MonthlyTable({ rows, settings, t }: {
+  rows: { label: string; expense: number; salary: number; extras: number }[];
+  settings: AppSettings; t: (k: string) => string;
+}) {
+  const money = (v: number) => formatMoney(v, settings.currency, settings.language);
+  const maxExp = Math.max(1, ...rows.map((r) => r.expense));
+  return (
+    <div style={{ display: 'grid', gap: 4 }}>
+      {rows.map((r) => (
+        <div key={r.label} className="mock-row">
+          <span style={{ color: 'rgba(255,255,255,0.7)' }}>{r.label}</span>
+          <div style={{ flex: 1, height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+            <div style={{ width: `${Math.round((r.expense / maxExp) * 100)}%`, height: '100%', background: 'linear-gradient(90deg,#7a1fb8,#b14cf0)' }} />
+          </div>
+          <span style={{ color: 'rgba(255,255,255,0.9)', fontWeight: 600 }}>{money(r.expense)}</span>
+          <span style={{ color: 'rgba(255,255,255,0.45)' }}>{money(Math.max(0, r.salary + r.extras - r.expense))} {t('panel.savedShort')}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Loan card (recurring transfer, mockup style) ──────────────────────────────
+function LoanCard({ loan, settings, t }: {
+  loan: { monthlyCents: number; pctOfSalary: number | null } | null;
+  settings: AppSettings; t: (k: string) => string;
+}) {
+  const money = (v: number) => formatMoney(v, settings.currency, settings.language);
+  if (!loan || loan.monthlyCents <= 0) {
+    return (
+      <div className="mock-card">
+        <div className="mock-head">
+          <span className="mock-ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h1M3 12h1M3 18h1"/></svg></span>
+          {t('panel.loan') || 'Loan'}
+        </div>
+        <div className="mock-meta">{t('panel.noBase')}</div>
+      </div>
+    );
+  }
+  return (
+    <div className="mock-card">
+      <div className="mock-head">
+        <span className="mock-ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h1M3 12h1M3 18h1"/></svg></span>
+        {t('panel.loan') || 'Loan'}
+      </div>
+      <div className="mock-big">{money(loan.monthlyCents)}</div>
+      <div className="mock-meta mt-1">
+        {loan.pctOfSalary !== null ? `${loan.pctOfSalary}% do salário` : money(loan.monthlyCents) + ' / mês'}
+      </div>
+    </div>
+  );
+}
+
+// ── AI tip card (mockup style, real data only) ────────────────────────────────
+function AiTipCard({ savingsPct, missingMonths, topCategory, t }: {
+  savingsPct: number | null; missingMonths: number; topCategory: string | null; t: (k: string) => string;
+}) {
+  const tips: string[] = [];
+  if (missingMonths > 0) tips.push(`Faltam ${missingMonths} salário(s) registado(s) para calcular poupança.`);
+  if (savingsPct !== null && savingsPct < 20) tips.push('Gasto acima de 80% do rendimento — revisiona categorias.');
+  if (topCategory) tips.push(`Maior categoria: ${topCategory}.`);
+  if (tips.length === 0) tips.push('Sem dados suficientes para recomendações.');
+  return (
+    <div className="mock-card">
+      <div className="mock-head">
+        <span className="mock-ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 3a7 7 0 0 1 4 12l-1 5h-6l-1-5A7 7 0 0 1 12 3z"/></svg></span>
+        {t('panel.aiAssistant') || 'AI Assistant'}
+      </div>
+      <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.8)', display: 'grid', gap: 6 }}>
+        {tips.map((tip) => <div key={tip}>{tip}</div>)}
       </div>
     </div>
   );
@@ -433,14 +482,6 @@ export function Dashboard() {
   catTotals.sort((a, b) => b.totalCents - a.totalCents);
 
   // Prev month for the vs-last-month deltas (unchanged logic)
-  const prevKey = (() => {
-    const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-  })();
-  const prevTx = txs.filter((tx) => tx.date.startsWith(prevKey));
-  const prevIncome = prevTx.filter((tx) => tx.type === 'income').reduce((a, tx) => a + tx.amountCents, 0);
-  const prevExpense = prevTx.filter((tx) => tx.type === 'expense').reduce((a, tx) => a + tx.amountCents, 0);
-  const prevSavings = prevIncome - prevExpense;
 
   const monthIncome = monthTx.filter((tx) => tx.type === 'income').reduce((a, tx) => a + tx.amountCents, 0);
   const monthExpense = monthTx.filter((tx) => tx.type === 'expense').reduce((a, tx) => a + tx.amountCents, 0);
@@ -448,11 +489,34 @@ export function Dashboard() {
 
   // Excel "Resumo" data for the selected period (used by KPI strip via periodKpis)
   const periodTx = txs.filter(inPeriod);
-  // Savings bar reflects real month savings (income - expenses); negative -> empty bar
-  const savingsBarMax = Math.max(monthIncome, monthExpense);
 
   // Excel "Resumo" KPIs for the selected period (pure helpers from core/finance)
   const kpis = periodKpis(periodTx, cats);
+
+  // Income base for % spent/saved: salaries registered in the period + extras (income tx).
+  const curYear = now.getFullYear();
+  const salaryInPeriod = period === 'year'
+    ? salaries.filter((s) => s.year === curYear && s.month === now.getMonth() + 1).reduce((a, s) => a + s.amountCents, 0)
+    : salaries.filter((s) => s.year === curYear).reduce((a, s) => a + s.amountCents, 0);
+  const periodSalaryCents = salaryInPeriod;
+  const periodExtrasCents = periodTx.filter((tx) => tx.type === 'income').reduce((a, tx) => a + tx.amountCents, 0);
+  const incomeTotal = salaryInPeriod + periodExtrasCents;
+
+  // Loan: recurring transfers (mockup shows "Empréstimo ao tio - 50% da casa").
+  const loanInfo = (() => {
+    const loanTx = monthTx.find((tx) => /tio|loan|empr[eé]stimo/i.test(tx.description ?? ''));
+    const salary = salaries.find((s) => s.year === now.getFullYear() && s.month === now.getMonth() + 1);
+    return loanTx ? { monthlyCents: loanTx.amountCents, pctOfSalary: salary ? Math.round((loanTx.amountCents / salary.amountCents) * 100) : null } : null;
+  })();
+
+  // Months of this year without a registered salary (for the AI tip card).
+  const missingSalaryMonths = (() => {
+    let n = 0;
+    for (let m = 1; m <= now.getMonth() + 1; m++) {
+      if (!salaries.some((s) => s.year === curYear && s.month === m)) n++;
+    }
+    return n;
+  })();
 
   // Budget usage
   let budgetTotal = 0, budgetUsed = 0;
@@ -463,10 +527,6 @@ export function Dashboard() {
     budgetUsed += used;
   }
 
-  const catById = (id: string) => cats.find((c) => c.id === id);
-  const catName = (id: string) => catById(id)?.name ?? '—';
-
-  const recent = [...monthTx].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6);
 
   return (
     <div className="min-h-screen bg-[#05060a] text-white"
@@ -487,9 +547,12 @@ export function Dashboard() {
           ))}
         </div>
 
-        {/* Top row: Income analysis (left) + savings/expenses (right) */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-[16px] flex-1 min-h-[260px]">
-          <GlassCard className="lg:col-span-2 p-4 flex flex-col">
+        {/* Mockup grid: 12 columns. Row 1 = chart(6) + savings/expenses(3) + donut(3);
+           Row 2 = calendar(4) + monthly table(5) + loan/AI(3). */}
+        <div className="dash-grid">
+
+        {/* Row 1 (mockup): analysis chart span 6 */}
+        <div className="mock-card dash-span-6 flex flex-col">
             <CardTitle title={t('panel.incomeAnalysis')} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 3v18h18"/><path d="M7 14l4-6 4 4 5-7"/></svg>} />
             <div className="flex items-center justify-between gap-3 mt-3 text-xs text-white/70 flex-wrap">
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -522,48 +585,45 @@ export function Dashboard() {
             <div className="mt-2 flex-1 min-h-[170px]">
               <IncomeChart monthly={monthlyBars} catTotals={catTotals} settings={settings} mode={chartMode} />
             </div>
-          </GlassCard>
-
-          <div className="grid grid-cols-1 gap-2">
-            <ProgressCard title={t('panel.monthlySavings')} value={Math.max(0, savings)} total={savingsBarMax} incomeCents={monthIncome} changePct={changePct(savings, prevSavings)} tone="blue" t={t} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 2v20"/><path d="M17 6.5A7 7 0 0 0 5 12a7 7 0 0 0 14 5.5"/></svg>} />
-            <ProgressCard title={t('panel.monthlyExpenses')} value={monthExpense} total={savingsBarMax} incomeCents={monthIncome} changePct={changePct(monthExpense, prevExpense)} tone="magenta" t={t} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/></svg>} />
           </div>
-        </div>
 
-        {/* Bottom row: recent (left) + budget (center) + calendar (right) */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-[16px] mt-[16px] flex-1 min-h-[240px]">
-          <GlassCard className="p-4">
-            <CardTitle title={t('panel.recentTransactions')} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>} />
-            <ul className="mt-4 space-y-2">
-              {recent.length === 0 && <li className="text-sm text-white/50">{t('panel.noData')}</li>}
-              {recent.map((tx) => (
-                <li key={tx.id} className="flex items-center gap-3 rounded-xl bg-white/5 border border-white/10 px-3 py-2">
-                  <img src={categoryImage(catById(tx.categoryId) ?? { name: catName(tx.categoryId) })}
-                    alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
-                  <div className="flex-1">
-                    <div className="text-sm text-white/90">{tx.description || catName(tx.categoryId)}</div>
-                    <div className="text-xs text-white/50">{tx.date}</div>
-                  </div>
-                  <div className={`text-sm font-semibold ${tx.type === 'income' ? 'text-emerald-400' : 'text-rose-400'}`}>
-                    {tx.type === 'income' ? '+' : '-'}{formatMoney(tx.amountCents, settings.currency, settings.language)}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </GlassCard>
+          {/* Row 1: savings + expenses stacked (span 3, mockup style) */}
+          <div style={{ gridColumn: 'span 3', display: 'grid', gridTemplateRows: '1fr 1fr', gap: 16 }}>
+            <SavingsCard title={t('panel.monthlySavings')} valueCents={Math.max(0, savings)}
+              perMonthCents={monthIncome - monthExpense} salaryCents={periodSalaryCents} extrasCents={periodExtrasCents}
+              pctOfIncome={incomeTotal > 0 ? Math.round((Math.max(0, savings) / incomeTotal) * 100) : null}
+              settings={settings} t={t} />
+            <ExpensesCard title={t('panel.monthlyExpenses')} valueCents={kpis.totalSpentCents}
+              count={kpis.expenseCount} avgDailyCents={kpis.avgDailyCents}
+              pctOfIncome={incomeTotal > 0 ? Math.round((kpis.totalSpentCents / incomeTotal) * 100) : null}
+              settings={settings} t={t} />
+          </div>
 
-          <GlassCard className="p-4">
-            <CardTitle title={t('panel.budgetUsage')} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/><path d="M12 3v9l6.4 6.4"/></svg>} />
-            <div className="mt-3 flex items-center justify-center">
-              <Donut used={budgetUsed} budget={budgetTotal} />
+          {/* Row 1: category donut (span 3) */}
+          <div className="mock-card dash-span-3">
+            <div className="mock-head">
+              <span className="mock-ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="8"/></svg></span>
+              {t('panel.byCategory')}
             </div>
-            <div className="mt-2 flex justify-between text-xs text-white/50">
-              <span>{formatMoney(budgetUsed, settings.currency, settings.language)}</span>
-              <span>{formatMoney(budgetTotal, settings.currency, settings.language)}</span>
-            </div>
-          </GlassCard>
+            <CategoryDonut catTotals={catTotals} totalCents={kpis.totalSpentCents} />
+          </div>
 
-          <DailySpendCalendar monthTx={monthTx} settings={settings} t={t} />
+          {/* Row 2: calendar (4) + monthly table (5) + loan/AI (3) */}
+          <div className="dash-span-4">
+            <DailySpendCalendar monthTx={monthTx} settings={settings} t={t} />
+          </div>
+          <div className="mock-card dash-span-5">
+            <div className="mock-head">
+              <span className="mock-ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h1M3 12h1M3 18h1"/></svg></span>
+              {t('panel.monthlyBreakdown')} · {now.getFullYear()}
+            </div>
+            <MonthlyTable rows={monthlyBars} settings={settings} t={t} />
+          </div>
+          <div style={{ gridColumn: 'span 3', display: 'grid', gridTemplateRows: '1fr auto', gap: 16 }}>
+            <LoanCard loan={loanInfo} settings={settings} t={t} />
+            <AiTipCard savingsPct={incomeTotal > 0 ? Math.round((Math.max(0, savings) / incomeTotal) * 100) : null}
+              missingMonths={missingSalaryMonths} topCategory={kpis.topCategoryName} t={t} />
+          </div>
         </div>
       </div>
     </div>
