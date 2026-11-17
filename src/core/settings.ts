@@ -10,7 +10,11 @@ export interface AppSettings {
   firstDayOfWeek: number; // 0 = Sunday .. 6 = Saturday (JS Date.getDay())
   dateFormat: 'DMY' | 'MDY' | 'YMD';
   account: 'none' | 'created' | 'signedin'; // auth choice from the wizard
+  updatedAt?: string; // ISO: última alteração (decide qual versão ganha ao sincronizar)
 }
+
+// Evento disparado quando as definições mudam (a App copia-as para a base de dados sincronizada).
+export const SETTINGS_EVENT = 'wallet:settings';
 
 const STORAGE_KEY = 'wallet.settings';
 
@@ -34,12 +38,18 @@ export function loadSettings(): AppSettings {
   }
 }
 
-export function saveSettings(settings: AppSettings): void {
+// opts.silent: guardar sem avisar a App (usado ao aplicar definições vindas de outro aparelho).
+export function saveSettings(settings: AppSettings, opts: { silent?: boolean } = {}): AppSettings {
+  const next = opts.silent ? settings : { ...settings, updatedAt: new Date().toISOString() };
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   } catch {
     // localStorage unavailable (private mode); keep in-memory only.
   }
+  if (!opts.silent && typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+    window.dispatchEvent(new CustomEvent(SETTINGS_EVENT, { detail: next }));
+  }
+  return next;
 }
 
 // Maps app language keys to BCP-47 locales used by Intl.

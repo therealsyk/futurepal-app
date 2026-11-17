@@ -6,82 +6,54 @@ import type { Transaction, Category } from '../db/database';
 import { transactionsOnDay, activeCategories } from '../core/finance';
 import { formatMoney } from '../core/money';
 import { loadSettings } from '../core/settings';
+import { catLabel, PageHead, EmptyState, Ic, ICON } from '../ui/fx';
 
-// Prompt 5: clicking a calendar day opens the expense detail for that day.
 export default function DayDetail() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const params = useParams<{ date: string }>();
-  const [settings, setSettings] = useState(loadSettings());
+  const settings = loadSettings();
   const [cats, setCats] = useState<Category[]>([]);
   const [txs, setTxs] = useState<Transaction[]>([]);
 
-  useEffect(() => {
-    setSettings(loadSettings());
-    activeCategories(db).then(setCats);
-  }, []);
-
-  useEffect(() => {
-    if (!params.date) return;
-    transactionsOnDay(db, params.date).then(setTxs);
-  }, [params.date]);
+  useEffect(() => { activeCategories(db).then(setCats); }, []);
+  useEffect(() => { if (params.date) transactionsOnDay(db, params.date).then(setTxs); }, [params.date]);
 
   const dayLabel = (() => {
     if (!params.date) return '';
     const [y, m, d] = params.date.split('-').map(Number);
-    return new Intl.DateTimeFormat(settings.language, { day: 'numeric', month: 'long', year: 'numeric' })
-      .format(new Date(y, m - 1, d));
+    return new Intl.DateTimeFormat(settings.language, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(y, m - 1, d));
   })();
-
-  const catName = (id: string) => cats.find((c) => c.id === id)?.name ?? '';
-  const total = txs.reduce((sum, tx) => sum + (tx.type === 'expense' ? tx.amountCents : -tx.amountCents), 0);
+  const money = (c: number) => formatMoney(c, settings.currency, settings.language);
+  const catOf = (id: string) => cats.find((c) => c.id === id);
+  const spent = txs.filter((x) => x.type === 'expense').reduce((s, x) => s + x.amountCents, 0);
+  const earned = txs.filter((x) => x.type === 'income').reduce((s, x) => s + x.amountCents, 0);
 
   return (
-    <div>
-      <div className="day-detail-head">
-        <button className="btn btn-ghost" onClick={() => navigate('/calendario')}>
-          ← {t('calendar.backToCalendar')}
-        </button>
-        <h1 className="page-title">{t('calendar.dayDetailTitle')}</h1>
-        <p className="muted">{dayLabel}</p>
+    <div className="fx-page">
+      <PageHead title={dayLabel} sub={t('calendar.dayDetailTitle')}>
+        <button type="button" className="fx-btn" onClick={() => navigate('/calendario')}><Ic d={ICON.left} size={16} />{t('calendar.backToCalendar')}</button>
+      </PageHead>
+      <div className="fx-kpis" style={{ gridTemplateColumns: 'repeat(3, minmax(0,1fr))' }}>
+        <div className="fx-card fx-kpi"><div className="fx-kpi-label">{t('overview.expenses')}</div><div className="fx-kpi-value"><span>{money(spent)}</span></div></div>
+        <div className="fx-card fx-kpi"><div className="fx-kpi-label">{t('overview.incomes')}</div><div className="fx-kpi-value"><span className="fx-pos">{money(earned)}</span></div></div>
+        <div className="fx-card fx-kpi"><div className="fx-kpi-label">{t('calendar.dayTotal')}</div><div className="fx-kpi-value"><span className={earned - spent < 0 ? 'fx-neg' : ''}>{money(earned - spent)}</span></div></div>
       </div>
-
-      <div className="card">
-        {txs.length === 0 ? (
-          <p className="empty">{t('calendar.noExpenses')}</p>
-        ) : (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>{t('transactions.date')}</th>
-                <th>{t('transactions.description')}</th>
-                <th>{t('transactions.category')}</th>
-                <th>{t('transactions.type')}</th>
-                <th className="num">{t('transactions.amount')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {txs.map((tx) => (
-                <tr key={tx.id}>
-                  <td>{tx.date}</td>
-                  <td>{tx.description || t('common.noData')}</td>
-                  <td>{catName(tx.categoryId)}</td>
-                  <td>{tx.type === 'income' ? t('transactions.typeIncome') : t('transactions.typeExpense')}</td>
-                  <td className={`num ${tx.type === 'expense' ? 'amount-negative' : 'amount-positive'}`}>
-                    {formatMoney(tx.amountCents, settings.currency, settings.language)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td colSpan={4}>{t('calendar.dayTotal', 'Total do dia')}</td>
-                <td className={`num ${total < 0 ? 'amount-negative' : 'amount-positive'}`}>
-                  {formatMoney(total, settings.currency, settings.language)}
-                </td>
-              </tr>
-            </tfoot>
-          </table>
+      <div className="fx-card">
+        {txs.length === 0 ? <EmptyState icon={ICON.search} title={t('calendar.noExpenses')} /> : (
+          <div className="fx-list">
+            {txs.map((x) => {
+              const c = catOf(x.categoryId);
+              const label = c ? catLabel(t, c) : '';
+              return (
+                <div className="fx-item" key={x.id}>
+                  <div className="fx-avatar" style={{ background: c?.color || 'var(--accent)', color: '#fff' }}>{label.charAt(0).toUpperCase() || '?'}</div>
+                  <div className="fx-item-main"><b>{x.description || label}</b><span>{label}</span></div>
+                  <span className={'fx-num ' + (x.type === 'income' ? 'fx-pos' : '')}>{x.type === 'income' ? '+' : '−'}{money(x.amountCents)}</span>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </div>

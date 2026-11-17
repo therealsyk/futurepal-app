@@ -54,6 +54,8 @@ export interface Transaction extends BaseRecord {
   currency: string; // ISO 4217
   groupId?: string;
   recurringId?: string;
+  accountId?: string; // sem valor = conta predefinida
+  transferId?: string; // preenchido quando a despesa nasce de uma transferência entre contas
 }
 
 export interface Salary extends BaseRecord {
@@ -77,7 +79,11 @@ export interface Goal extends BaseRecord {
   currentCents: number;
   startDate: string; // YYYY-MM-DD
   targetDate?: string | null;
+  notes?: string;
+  accountIds?: string[]; // contas que alimentam a meta (opcional)
 }
+
+export type RecurringFrequency = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'bimonthly' | 'quarterly' | 'semiannual' | 'yearly';
 
 export interface Recurring extends BaseRecord {
   type: 'expense' | 'income';
@@ -85,7 +91,8 @@ export interface Recurring extends BaseRecord {
   description: string;
   amountCents: number;
   currency: string;
-  frequency: 'weekly' | 'monthly' | 'yearly';
+  frequency: RecurringFrequency;
+  accountId?: string;
   nextDate: string; // YYYY-MM-DD
   endDate?: string | null;
 }
@@ -93,6 +100,33 @@ export interface Recurring extends BaseRecord {
 export interface Group extends BaseRecord {
   name: string;
   color: string;
+}
+
+// Conta (Gastos / Poupança / Dívida) — como no app do telemóvel.
+export type AccountType = 'spending' | 'savings' | 'debt';
+export interface Account extends BaseRecord {
+  name: string;
+  description: string;
+  type: AccountType;
+  currency: string; // ISO 4217
+  initialBalanceCents: number; // pode ser negativo (dívida)
+  includeInNetWorth: boolean;
+  isDefault: boolean;
+  showOnHome: boolean;
+  order: number;
+}
+
+// Transferência entre contas (ex.: salário → abate de uma dívida).
+// Conta como DESPESA na categoria escolhida (pedido do Rafael); o património líquido
+// não muda, porque a origem perde exatamente o valor transferido.
+export interface Transfer extends BaseRecord {
+  fromAccountId: string;
+  toAccountId: string;
+  amountCents: number; // inteiro >= 1
+  date: string; // YYYY-MM-DD
+  note: string;
+  categoryId?: string | null;   // categoria da despesa associada
+  transactionId?: string | null; // transação expense criada automaticamente
 }
 
 export interface ExchangeRateRow extends BaseRecord {
@@ -111,6 +145,8 @@ export class WalletDB extends Dexie {
   recurrings!: Table<Recurring>;
   groups!: Table<Group>;
   exchangeRates!: Table<ExchangeRateRow>;
+  accounts!: Table<Account>;
+  transfers!: Table<Transfer>;
 
   constructor(name = 'wallet') {
     super(name);
@@ -126,6 +162,14 @@ export class WalletDB extends Dexie {
       groups: 'id, name',
       exchangeRates: 'id, base',
     });
+    // v2: contas. Movimentos antigos (sem accountId) pertencem à conta predefinida.
+    this.version(2).stores({
+      accounts: 'id, type, order',
+    });
+    // v3: transferências entre contas.
+    this.version(3).stores({
+      transfers: 'id, date, fromAccountId, toAccountId',
+    });
   }
 }
 
@@ -133,30 +177,5 @@ export function createDatabase(name = 'wallet'): WalletDB {
   return new WalletDB(name);
 }
 
-// Default categories from SPEC §6.3, stored with i18n keys so the UI can translate them.
-const DEFAULT_CATEGORY_KEYS = [
-  ['catHome', '#2DD4BF'],
-  ['catBills', '#F87171'],
-  ['catFood', '#FFB020'],
-  ['catTransport', '#60A5FA'],
-  ['catHealth', '#34D399'],
-  ['catPets', '#A78BFA'],
-  ['catShopping', '#F472B6'],
-  ['catLeisure', '#22D3EE'],
-  ['catOther', '#9CA3AF'],
-  ['catCar', '#EAB308'],
-  ['catRent', '#FB7185'],
-];
-
-export async function seedDefaultCategories(db: WalletDB): Promise<void> {
-  const active = await db.categories.filter((c) => c.deletedAt === null).count();
-  if (active > 0) return;
-  const rows: Category[] = DEFAULT_CATEGORY_KEYS.map(([nameKey, color], i) =>
-    stampNew<Category>({ name: nameKey, color, icon: '', order: i, nameKey }),
-  );
-  await db.categories.bulkAdd(rows);
-}
-
-export async function seedSettings(db: WalletDB, defaults: Omit<SettingsRow, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>): Promise<void> {
-  await db.settings.put(stampNew<SettingsRow>(defaults));
-}
+// As categorias padrão vivem só em core/finance.ts (DEFAULT_CATEGORY_DEFS + ensureDefaultCategories);
+// as definições sincronizadas em core/settingsSync.ts.

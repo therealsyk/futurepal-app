@@ -11,7 +11,7 @@ export type SyncableRow = {
 
 // Supabase table names (see supabase/schema.sql): the local Dexie table `recurrings`
 // maps to the remote table `recurrings`.
-export type SyncTable = 'settings' | 'categories' | 'transactions' | 'salaries' | 'budgets' | 'goals' | 'recurrings' | 'groups';
+export type SyncTable = 'settings' | 'categories' | 'transactions' | 'salaries' | 'budgets' | 'goals' | 'recurrings' | 'groups' | 'accounts' | 'transfers';
 
 export const SYNC_TABLES: SyncTable[] = [
   'settings',
@@ -22,6 +22,8 @@ export const SYNC_TABLES: SyncTable[] = [
   'goals',
   'recurrings',
   'groups',
+  'accounts',
+  'transfers',
 ];
 
 // Rows that changed since the last sync (including soft-deletions, which are

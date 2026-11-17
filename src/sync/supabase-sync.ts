@@ -7,20 +7,24 @@ import { changedSince, applyRemote, type SyncableRow, type SyncTable } from '../
 // Local (camelCase) <-> remote (snake_case) field maps, mirroring supabase/schema.sql.
 const FIELD_MAP: Record<SyncTable, Record<string, string>> = {
   settings: { language: 'language', country: 'country', mainCurrency: 'main_currency', firstDayOfWeek: 'first_day_of_week', dateFormat: 'date_format', theme: 'theme', setupDone: 'setup_done' },
-  categories: { name: 'name', color: 'color', icon: 'icon', order: 'order', nameKey: 'name_key' },
-  transactions: { date: 'date', type: 'type', categoryId: 'category_id', description: 'description', amountCents: 'amount_cents', currency: 'currency', groupId: 'group_id', recurringId: 'recurring_id' },
+  categories: { name: 'name', color: 'color', icon: 'icon', order: 'order', nameKey: 'name_key', image: 'image' },
+  transactions: { date: 'date', type: 'type', categoryId: 'category_id', description: 'description', amountCents: 'amount_cents', currency: 'currency', groupId: 'group_id', recurringId: 'recurring_id', accountId: 'account_id' },
   salaries: { year: 'year', month: 'month', amountCents: 'amount_cents' },
   budgets: { categoryId: 'category_id', limitCents: 'limit_cents', period: 'period', year: 'year', month: 'month' },
-  goals: { name: 'name', targetCents: 'target_cents', currentCents: 'current_cents', startDate: 'start_date', targetDate: 'target_date' },
-  recurrings: { type: 'type', categoryId: 'category_id', description: 'description', amountCents: 'amount_cents', currency: 'currency', frequency: 'frequency', nextDate: 'next_date', endDate: 'end_date' },
+  goals: { name: 'name', targetCents: 'target_cents', currentCents: 'current_cents', startDate: 'start_date', targetDate: 'target_date', notes: 'notes', accountIds: 'account_ids' },
+  recurrings: { type: 'type', categoryId: 'category_id', description: 'description', amountCents: 'amount_cents', currency: 'currency', frequency: 'frequency', nextDate: 'next_date', endDate: 'end_date', accountId: 'account_id' },
   groups: { name: 'name', color: 'color' },
+  accounts: { name: 'name', description: 'description', type: 'type', currency: 'currency', initialBalanceCents: 'initial_balance_cents', includeInNetWorth: 'include_in_net_worth', isDefault: 'is_default', showOnHome: 'show_on_home', order: 'order' },
+  transfers: { fromAccountId: 'from_account_id', toAccountId: 'to_account_id', amountCents: 'amount_cents', date: 'date', note: 'note' },
 };
 
-const TABLES: SyncTable[] = ['settings', 'categories', 'transactions', 'salaries', 'budgets', 'goals', 'recurrings', 'groups'];
+// Ordem importa pouco (não há chaves estrangeiras entre tabelas de dados), mas contas antes de movimentos é mais legível.
+const TABLES: SyncTable[] = ['settings', 'categories', 'accounts', 'groups', 'transactions', 'transfers', 'salaries', 'budgets', 'goals', 'recurrings'];
 
-function toRemote(table: SyncTable, row: any): Record<string, unknown> {
+function toRemote(table: SyncTable, row: any, userId: string): Record<string, unknown> {
   const out: Record<string, unknown> = {
     id: row.id,
+    user_id: userId, // obrigatório: a política RLS só aceita linhas do próprio utilizador
     created_at: row.createdAt,
     updated_at: row.updatedAt,
     deleted_at: row.deletedAt ?? null,
@@ -78,15 +82,18 @@ export async function syncNow(client: SupabaseClient, db: WalletDB, userId: stri
     const remote = (data ?? []).map((r: Record<string, unknown>) => toLocal(table, r));
     // 2) Merge (newer updatedAt wins; ties keep local, we are local-first).
     const merged = remote.length > 0 ? applyRemote(local, remote as SyncableRow[]) : local;
+    // Linhas que acabaram de vir do servidor não voltam a ser enviadas.
+    const localById = new Map(local.map((r) => [r.id, r]));
+    const fromRemote = new Set(merged.filter((r) => localById.get(r.id) !== r).map((r) => r.id));
     if (remote.length > 0) {
       for (const row of merged) await localTable.put(row);
       pulled += remote.length;
     }
 
     // 3) Push only the merged rows that are newer than the last sync.
-    const dirty = changedSince(merged, lastSync);
+    const dirty = changedSince(merged, lastSync).filter((r) => !fromRemote.has(r.id));
     if (dirty.length > 0) {
-      const rows = dirty.map((r) => toRemote(table, r));
+      const rows = dirty.map((r) => toRemote(table, r, userId));
       const pushErr = await client.from(table).upsert(rows, { onConflict: 'id' });
       if (pushErr.error) return { pushed, pulled, lastSync: now, error: `${table}: ${pushErr.error.message}` };
       pushed += dirty.length;
@@ -95,7 +102,7 @@ export async function syncNow(client: SupabaseClient, db: WalletDB, userId: stri
 
   // Record lastSync on the settings row so the next run only compares newer edits.
   const settings = await db.settings.toArray();
-  for (const s of settings) {
+  for (const s of settings.filter((r) => r.deletedAt === null)) {
     await db.settings.put({ ...s, lastSync: now, updatedAt: s.updatedAt });
   }
 

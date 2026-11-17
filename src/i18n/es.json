@@ -7,7 +7,11 @@
     "goals": "Metas",
     "salaries": "Salarios",
     "settings": "Configuración",
-    "categories": "Categorías"
+    "categories": "Categorías",
+    "theme": "Tema",
+    "theme_dark": "Oscuro",
+    "theme_gray": "Gris",
+    "theme_light": "Claro"
   },
   "common": {
     "appName": "Wallet",
@@ -88,7 +92,36 @@
     "loan": "Préstamo",
     "aiAssistant": "Asistente IA",
     "savedShort": "ahorrado",
-    "monthlyBreakdown": "Gastos por mes"
+    "monthlyBreakdown": "Gastos por mes",
+    "subtitle": "Controla ingresos, gastos y metas en un solo lugar.",
+    "period": "Periodo",
+    "addExpense": "Nuevo gasto",
+    "missingSalary": "Falta el salario de {{count}} mes(es) en este periodo.",
+    "registerSalary": "Registrar salario",
+    "balanceMonth": "Ahorro de este mes",
+    "balanceYear": "Ahorro de este año",
+    "salary": "Salario",
+    "financialGoals": "Metas financieras",
+    "noGoals": "Aún no tienes metas.",
+    "createGoal": "Crear meta",
+    "deadline": "Plazo",
+    "noDeadline": "Sin plazo",
+    "goal": "Meta",
+    "overview": "Resumen general",
+    "spentThisYear": "Gastado en {{year}}",
+    "earning": "Ingresos",
+    "spending": "Gastos",
+    "allExpenses": "Gastos por categoría",
+    "noTransactions": "Aún no hay transacciones.",
+    "total": "Total",
+    "summary": "Resumen",
+    "budgetSpentOf": "{{spent}} de {{limit}}",
+    "kpiExpensesSub": "de los ingresos gastado",
+    "kpiSavingsSub": "de los ingresos ahorrado",
+    "kpiIncomeSub": "Salario {{salary}} · Extras {{extras}}",
+    "kpiTopSub": "{{value}} de los gastos",
+    "noIncome": "Sin salario registrado",
+    "vsPrevious": "vs periodo anterior"
   },
   "transactions": {
     "title": "Transacciones",
@@ -109,7 +142,8 @@
     "filterText": "Buscar texto",
     "allCategories": "Todas",
     "editTransaction": "Editar transacción",
-    "type": "Tipo"
+    "type": "Tipo",
+    "transfer": "Transferencia entre cuentas"
   },
   "settings": {
     "title": "Configuración",
@@ -125,21 +159,21 @@
     "syncReady": "Sincronización disponible. Haz clic para sincronizar tus datos.",
     "syncLocalOnly": "Modo local: configura Supabase para sincronizar entre dispositivos.",
     "syncNow": "Sincronizar ahora",
-    "syncSuccess": "Sincronizado. Enviados {pushed}, recibidos {pulled}.",
-    "syncError": "Error de sincronización: {error}",
+    "syncSuccess": "Sincronizado. Enviados {{pushed}}, recibidos {{pulled}}.",
+    "syncError": "Error de sincronización: {{error}}",
     "syncNoUser": "Inicia sesión para sincronizar.",
     "backupTitle": "Copia de seguridad",
     "backupExport": "Exportar backup (JSON)",
     "backupImport": "Importar backup (JSON)",
     "backupExported": "Backup exportado.",
-    "backupImported": "Backup importado: {count} registros.",
-    "backupError": "Error de copia de seguridad: {error}",
+    "backupImported": "Backup importado: {{count}} registros.",
+    "backupError": "Error de copia de seguridad: {{error}}",
     "excelTitle": "Importar Excel",
     "excelImport": "Elegir archivo Excel (.xlsx)",
-    "excelPreview": "Archivo leído: {count} filas válidas.",
+    "excelPreview": "Archivo leído: {{count}} filas válidas.",
     "excelConfirm": "Confirmar importación",
-    "excelImported": "Importados {count} registros de Excel.",
-    "excelError": "Error de importación: {error}"
+    "excelImported": "Importados {{count}} registros de Excel.",
+    "excelError": "Error de importación: {{error}}"
   },
   "setup": {
     "welcome": "Bienvenido a Wallet",
@@ -239,7 +273,8 @@
     "catCar": "Coche",
     "catRent": "Alquiler",
     "catSalary": "Salario",
-    "catAnimals": "Mascotas"
+    "catAnimals": "Mascotas",
+    "catClothes": "Ropa"
   },
   "budgets": {
     "title": "Presupuestos",
@@ -277,6 +312,12 @@
     "noGroups": "Aún no hay grupos.",
     "estimateLabel": "Estimación: faltan",
     "estimateDate": "finalización prevista",
-    "estimateNone": "No se observó ahorro neto â€” no se puede estimar la finalización."
+    "estimateNone": "No se observó ahorro neto â€” no se puede estimar la finalización.",
+    "deleteGoal": "Eliminar la meta {{name}}",
+    "deleteItem": "Eliminar {{name}}",
+    "confirmTitle": "¿Eliminar?",
+    "confirmText": "¿Seguro que quieres eliminar «{{name}}»?",
+    "confirmGroupNote": "Las transacciones de este grupo se conservan; solo dejan de estar agrupadas.",
+    "confirmRecurringNote": "Los movimientos ya creados por esta recurrencia se conservan."
   }
 }

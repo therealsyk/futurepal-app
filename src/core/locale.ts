@@ -31,17 +31,8 @@ export function getCountry(code: string): CountryInfo | undefined {
 }
 
 // Currencies without fractional units (JPY, etc.). Amounts are still stored in cents internally.
-const NO_CENTS = new Set(['JPY', 'KRW', 'VND', 'IDR']);
-
-export function formatMoney(cents: number, currency: string, locale: string): string {
-  const amount = NO_CENTS.has(currency) ? Math.round(cents / 100) : cents / 100;
-  return new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: NO_CENTS.has(currency) ? 0 : 2,
-    maximumFractionDigits: NO_CENTS.has(currency) ? 0 : 2,
-  }).format(amount);
-}
+// Uma só implementação de formatMoney (core/money.ts); reexportada aqui por compatibilidade.
+export { formatMoney } from './money';
 
 export function formatDate(date: Date | string, locale: string): string {
   const d = typeof date === 'string' ? new Date(date + (date.length === 10 ? 'T00:00:00' : '')) : date;

@@ -511,6 +511,14 @@ describe('calendar grid helpers (Phase 5)', () => {
     expect(w[0]).toMatch(/Mon/i);
     expect(w[6]).toMatch(/Sun/i);
   });
+
+  it('calendar can start on Sunday (BR/US): Nov 2026 starts on a Sunday -> no leading blanks', () => {
+    expect(buildCalendarGrid(2026, 11, 0)[0]).toBe(1);
+    expect(buildCalendarGrid(2026, 11, 1).indexOf(1)).toBe(6); // começando à segunda: 6 vazios
+    const w = weekdayLabels('en', 0);
+    expect(w[0]).toMatch(/Sun/i);
+    expect(w[6]).toMatch(/Sat/i);
+  });
 });
 
 describe('dailyExpenseTotals (Phase 5 calendar)', () => {

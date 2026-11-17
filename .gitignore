@@ -26,3 +26,10 @@ release/
 *.njsproj
 *.sln
 *.sw?
+
+# Lixo de builds/testes
+.pytest_cache/
+*.bak
+asartmp/
+_asar_test/
+logs/

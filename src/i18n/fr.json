@@ -7,7 +7,11 @@
     "goals": "Objectifs",
     "salaries": "Salaires",
     "settings": "Paramà¨tres",
-    "categories": "Catégories"
+    "categories": "Catégories",
+    "theme": "Thème",
+    "theme_dark": "Sombre",
+    "theme_gray": "Gris",
+    "theme_light": "Clair"
   },
   "common": {
     "appName": "Wallet",
@@ -88,7 +92,36 @@
     "loan": "Prêt",
     "aiAssistant": "Assistant IA",
     "savedShort": "économisé",
-    "monthlyBreakdown": "Dépenses par mois"
+    "monthlyBreakdown": "Dépenses par mois",
+    "subtitle": "Suivez revenus, dépenses et objectifs au même endroit.",
+    "period": "Période",
+    "addExpense": "Nouvelle dépense",
+    "missingSalary": "Salaire manquant pour {{count}} mois sur cette période.",
+    "registerSalary": "Ajouter le salaire",
+    "balanceMonth": "Épargne du mois",
+    "balanceYear": "Épargne de l'année",
+    "salary": "Salaire",
+    "financialGoals": "Objectifs financiers",
+    "noGoals": "Vous n'avez pas encore d'objectifs.",
+    "createGoal": "Créer un objectif",
+    "deadline": "Échéance",
+    "noDeadline": "Sans échéance",
+    "goal": "Objectif",
+    "overview": "Vue d'ensemble",
+    "spentThisYear": "Dépensé en {{year}}",
+    "earning": "Revenus",
+    "spending": "Dépenses",
+    "allExpenses": "Dépenses par catégorie",
+    "noTransactions": "Aucune transaction pour l'instant.",
+    "total": "Total",
+    "summary": "Résumé",
+    "budgetSpentOf": "{{spent}} sur {{limit}}",
+    "kpiExpensesSub": "des revenus dépensés",
+    "kpiSavingsSub": "des revenus épargnés",
+    "kpiIncomeSub": "Salaire {{salary}} · Extras {{extras}}",
+    "kpiTopSub": "{{value}} des dépenses",
+    "noIncome": "Aucun salaire enregistré",
+    "vsPrevious": "vs période précédente"
   },
   "transactions": {
     "title": "Transactions",
@@ -109,7 +142,8 @@
     "filterText": "Rechercher du texte",
     "allCategories": "Toutes",
     "editTransaction": "Modifier la transaction",
-    "type": "Type"
+    "type": "Type",
+    "transfer": "Virement entre comptes"
   },
   "settings": {
     "title": "Paramà¨tres",
@@ -125,21 +159,21 @@
     "syncReady": "Synchronisation disponible. Cliquez pour synchroniser vos données.",
     "syncLocalOnly": "Mode local : configurez Supabase pour synchroniser entre appareils.",
     "syncNow": "Synchroniser maintenant",
-    "syncSuccess": "Synchronisé. Envoyés {pushed}, reçus {pulled}.",
-    "syncError": "à‰chec de synchronisation : {error}",
+    "syncSuccess": "Synchronisé. Envoyés {{pushed}}, reçus {{pulled}}.",
+    "syncError": "à‰chec de synchronisation : {{error}}",
     "syncNoUser": "Connectez-vous pour synchroniser.",
     "backupTitle": "Sauvegarde",
     "backupExport": "Exporter la sauvegarde (JSON)",
     "backupImport": "Importer la sauvegarde (JSON)",
     "backupExported": "Sauvegarde exportée.",
-    "backupImported": "Sauvegarde importée : {count} éléments.",
-    "backupError": "Erreur de sauvegarde : {error}",
+    "backupImported": "Sauvegarde importée : {{count}} éléments.",
+    "backupError": "Erreur de sauvegarde : {{error}}",
     "excelTitle": "Importer Excel",
     "excelImport": "Choisir un fichier Excel (.xlsx)",
-    "excelPreview": "Fichier lu : {count} lignes valides.",
+    "excelPreview": "Fichier lu : {{count}} lignes valides.",
     "excelConfirm": "Confirmer l'importation",
-    "excelImported": "Importé {count} éléments depuis Excel.",
-    "excelError": "Erreur d'importation : {error}"
+    "excelImported": "Importé {{count}} éléments depuis Excel.",
+    "excelError": "Erreur d'importation : {{error}}"
   },
   "setup": {
     "welcome": "Bienvenue dans Wallet",
@@ -239,7 +273,8 @@
     "catCar": "Voiture",
     "catRent": "Loyer",
     "catSalary": "Salaire",
-    "catAnimals": "Animaux"
+    "catAnimals": "Animaux",
+    "catClothes": "Vêtements"
   },
   "budgets": {
     "title": "Budgets",
@@ -277,6 +312,12 @@
     "noGroups": "Aucun groupe pour le moment.",
     "estimateLabel": "Estimation : il reste",
     "estimateDate": "fin prévue",
-    "estimateNone": "Aucune épargne nette observée â€” fin impossible à  estimer."
+    "estimateNone": "Aucune épargne nette observée â€” fin impossible à  estimer.",
+    "deleteGoal": "Supprimer l'objectif {{name}}",
+    "deleteItem": "Supprimer {{name}}",
+    "confirmTitle": "Supprimer ?",
+    "confirmText": "Voulez-vous vraiment supprimer « {{name}} » ?",
+    "confirmGroupNote": "Les transactions de ce groupe sont conservées ; elles ne sont simplement plus groupées.",
+    "confirmRecurringNote": "Les opérations déjà créées par cette récurrence sont conservées."
   }
 }

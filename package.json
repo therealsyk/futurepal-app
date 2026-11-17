@@ -8,11 +8,16 @@
     "build": "tsc && vite build",
     "electron:build": "tsc && vite build && electron-builder --win portable",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "mobile:sync": "tsc && vite build && cap sync",
+    "android": "npm run mobile:sync && cap open android",
+    "ios": "npm run mobile:sync && cap open ios"
   },
   "dependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/core": "^8.6.2",
+    "@capacitor/ios": "^8.6.2",
     "@supabase/supabase-js": "^2.119.0",
-    "@vitejs/plugin-react": "^6.3.0",
     "date-fns": "^4.4.0",
     "dexie": "^4.4.7",
     "i18next": "^27.1.1",
@@ -21,13 +26,15 @@
     "react-i18next": "^18.0.1",
     "react-router-dom": "^7.18.5",
     "recharts": "^3.10.1",
-    "xlsx": "^0.18.5"
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.6.2",
     "@tailwindcss/vite": "^4.3.5",
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
     "electron": "^45.3.2",
     "electron-builder": "^26.18.0",
     "fake-indexeddb": "^6.2.8",

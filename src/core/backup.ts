@@ -1,5 +1,5 @@
 import type { WalletDB } from '../db/database';
-import type { Transaction, Salary, Category, Budget, Goal, Recurring, Group } from '../db/database';
+import type { Transaction, Salary, Category, Budget, Goal, Recurring, Group, Account, Transfer } from '../db/database';
 import * as XLSX from 'xlsx';
 
 // SPEC §6.10: export/import JSON backup. Export all active records (no soft-deleted).
@@ -13,10 +13,12 @@ export interface BackupData {
   goals: Goal[];
   recurrings: Recurring[];
   groups: Group[];
+  accounts?: Account[]; // contas (v3); backups antigos não as têm
+  transfers?: Transfer[]; // transferências entre contas
 }
 
 export async function exportBackup(db: WalletDB): Promise<BackupData> {
-  const [transactions, salaries, categories, budgets, goals, recurrings, groups] = await Promise.all([
+  const [transactions, salaries, categories, budgets, goals, recurrings, groups, accounts, transfers] = await Promise.all([
     db.transactions.filter((t) => t.deletedAt === null).toArray(),
     db.salaries.filter((s) => s.deletedAt === null).toArray(),
     db.categories.filter((c) => c.deletedAt === null).toArray(),
@@ -24,6 +26,8 @@ export async function exportBackup(db: WalletDB): Promise<BackupData> {
     db.goals.filter((g) => g.deletedAt === null).toArray(),
     db.recurrings.filter((r) => r.deletedAt === null).toArray(),
     db.groups.filter((g) => g.deletedAt === null).toArray(),
+    db.accounts.filter((a) => a.deletedAt === null).toArray(),
+    db.transfers.filter((t) => t.deletedAt === null).toArray(),
   ]);
   return {
     version: 2,
@@ -35,6 +39,8 @@ export async function exportBackup(db: WalletDB): Promise<BackupData> {
     goals,
     recurrings,
     groups,
+    accounts,
+    transfers,
   };
 }
 
@@ -67,6 +73,14 @@ export async function importBackup(db: WalletDB, data: BackupData): Promise<numb
   }
   for (const g of data.groups ?? []) {
     await db.groups.put(g);
+    count++;
+  }
+  for (const a of data.accounts ?? []) {
+    await db.accounts.put(a);
+    count++;
+  }
+  for (const tr of data.transfers ?? []) {
+    await db.transfers.put(tr);
     count++;
   }
   return count;

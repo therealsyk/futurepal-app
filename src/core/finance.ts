@@ -1,8 +1,8 @@
-import { endOfMonth } from 'date-fns';
 import type { WalletDB, Transaction, Category, Budget, Goal, Recurring, Group } from '../db/database';
 import { stampNew } from '../db/database';
 import { assertCents } from './money';
 import { autoCategoryImage } from './category-images';
+import { monthEnd, todayISO } from './dates';
 
 export const MAX_ACTIVE_CATEGORIES = 12;
 
@@ -35,7 +35,7 @@ export async function addTransaction(db: WalletDB, input: Omit<Transaction, 'id'
 }
 
 // Soft delete: mark deletedAt, never remove the row (SPEC §2/§6.2).
-export async function softDelete(db: WalletDB, table: 'transactions' | 'categories' | 'budgets' | 'salaries', id: string): Promise<void> {
+export async function softDelete(db: WalletDB, table: 'transactions' | 'categories' | 'budgets' | 'salaries' | 'goals' | 'recurrings' | 'groups', id: string): Promise<void> {
   const t = db.table(table) as any;
   await t.update(id, { deletedAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
 }
@@ -61,13 +61,16 @@ export const DEFAULT_CATEGORY_DEFS = [
   { nameKey: 'catClothes', color: '#EC4899' },
 ];
 
+// Pode ser chamada de vários sítios ao mesmo tempo (App, setup, StrictMode): a verificação e a
+// criação correm dentro de UMA transação, por isso só a primeira chamada cria as categorias.
 export async function ensureDefaultCategories(db: WalletDB): Promise<void> {
-  const existing = await activeCategories(db);
-  if (existing.length > 0) return;
-  for (let i = 0; i < DEFAULT_CATEGORY_DEFS.length; i++) {
-    const def = DEFAULT_CATEGORY_DEFS[i];
-    await addCategory(db, { name: def.nameKey, color: def.color, icon: '', order: i, nameKey: def.nameKey });
-  }
+  await db.transaction('rw', db.categories, async () => {
+    const existing = await db.categories.filter((c) => c.deletedAt === null).count();
+    if (existing > 0) return;
+    await db.categories.bulkAdd(
+      DEFAULT_CATEGORY_DEFS.map((def, i) => stampNew<Category>({ image: autoCategoryImage(def.nameKey), name: def.nameKey, color: def.color, icon: '', order: i, nameKey: def.nameKey })),
+    );
+  });
 }
 
 export async function addCategory(db: WalletDB, input: Omit<Category, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>): Promise<Category> {
@@ -81,7 +84,7 @@ export async function addCategory(db: WalletDB, input: Omit<Category, 'id' | 'cr
 
 export async function monthTransactions(db: WalletDB, year: number, month: number): Promise<Transaction[]> {
   const start = `${year}-${String(month).padStart(2, '0')}-01`;
-  const end = endOfMonth(new Date(Date.UTC(year, month - 1, 1))).toISOString().slice(0, 10); // real last day
+  const end = monthEnd(year, month); // real last day
   return db.transactions.filter((t) => t.deletedAt === null && t.date >= start && t.date <= end).toArray();
 }
 
@@ -175,7 +178,7 @@ export async function filterTransactions(db: WalletDB, filter: TxFilter): Promis
   let txs = await db.transactions.filter((t) => t.deletedAt === null).toArray();
   if (filter.year && filter.month) {
     const start = `${filter.year}-${String(filter.month).padStart(2, '0')}-01`;
-    const end = endOfMonth(new Date(Date.UTC(filter.year, filter.month - 1, 1))).toISOString().slice(0, 10);
+    const end = monthEnd(filter.year, filter.month);
     txs = txs.filter((t) => t.date >= start && t.date <= end);
   }
   if (filter.categoryId) txs = txs.filter((t) => t.categoryId === filter.categoryId);
@@ -218,7 +221,7 @@ export async function salaryInRange(db: WalletDB, startDate: string, endDate: st
   let total = 0;
   for (const s of salaries) {
     const mStart = `${s.year}-${String(s.month).padStart(2, '0')}-01`;
-    const mEnd = endOfMonth(new Date(Date.UTC(s.year, s.month - 1, 1))).toISOString().slice(0, 10);
+    const mEnd = monthEnd(s.year, s.month);
     // overlap days between [mStart,mEnd] and [startDate,endDate]
     const a = Math.max(new Date(mStart).getTime(), new Date(startDate).getTime());
     const b = Math.min(new Date(mEnd).getTime(), new Date(endDate).getTime());
@@ -291,7 +294,7 @@ export async function periodSummary(db: WalletDB, startDate: string, endDate: st
   for (let y = startD.getFullYear(); y <= endD.getFullYear(); y++) {
     for (let m = 1; m <= 12; m++) {
       const mStart = `${y}-${String(m).padStart(2, '0')}-01`;
-      const mEnd = endOfMonth(new Date(Date.UTC(y, m - 1, 1))).toISOString().slice(0, 10);
+      const mEnd = monthEnd(y, m);
       if (mEnd < startDate || mStart > endDate) continue; // month not in period
       const hasSalary = (await db.salaries.where('year').equals(y).filter((s) => s.month === m && s.deletedAt === null && s.amountCents > 0).count()) > 0;
       if (!hasSalary) missingSalaryMonths.push(m);
@@ -306,7 +309,7 @@ export async function monthlyTotals(db: WalletDB, year: number): Promise<{ expen
   const result: { expense: number; income: number }[] = [];
   for (let m = 1; m <= 12; m++) {
     const start = `${year}-${String(m).padStart(2, '0')}-01`;
-    const end = endOfMonth(new Date(Date.UTC(year, m - 1, 1))).toISOString().slice(0, 10);
+    const end = monthEnd(year, m);
     const txs = await rangeTransactions(db, start, end);
     const expense = txs.filter((t) => t.type === 'expense' && t.amountCents > 0).reduce((s, t) => s + t.amountCents, 0);
     const salary = await salaryInRange(db, start, end);
@@ -354,7 +357,7 @@ export async function dailyExpenseTotals(
   settingsCurrency: string,
 ): Promise<DailyExpenseResult> {
   const start = `${year}-${String(month).padStart(2, '0')}-01`;
-  const end = endOfMonth(new Date(Date.UTC(year, month - 1, 1))).toISOString().slice(0, 10); // real last day
+  const end = monthEnd(year, month); // real last day
   const txs = await db.transactions
     .filter((t) => t.deletedAt === null && t.type === 'expense' && t.date >= start && t.date <= end)
     .toArray();
@@ -387,13 +390,12 @@ export async function dailyExpenseTotals(
   return { byDay, unconverted };
 }
 
-// Phase 5: Monday-first 7-column calendar grid for a month. Returns day numbers (1..31)
-// with 0 for the leading/trailing empty cells, length always a multiple of 7.
-// Correct for 4/5/6-week months, February and leap years.
-export function buildCalendarGrid(year: number, month: number): number[] {
-  const first = new Date(Date.UTC(year, month - 1, 1));
-  const dow = first.getDay(); // 0 = Sunday .. 6 = Saturday
-  const leading = (dow + 6) % 7; // days before the 1st when the week starts on Monday
+// 7-column calendar grid for a month. Returns day numbers (1..31) with 0 for the
+// leading/trailing empty cells, length always a multiple of 7.
+// firstDayOfWeek: 0 = Sunday .. 6 = Saturday (settings.firstDayOfWeek); default Monday.
+export function buildCalendarGrid(year: number, month: number, firstDayOfWeek = 1): number[] {
+  const dow = new Date(Date.UTC(year, month - 1, 1)).getUTCDay(); // 0 = Sunday .. 6 = Saturday
+  const leading = (dow - firstDayOfWeek + 7) % 7; // empty cells before the 1st
   const daysInMonth = new Date(Date.UTC(year, month, 0)).getDate();
   const cells: number[] = [];
   for (let i = 0; i < leading; i++) cells.push(0);
@@ -402,18 +404,20 @@ export function buildCalendarGrid(year: number, month: number): number[] {
   return cells;
 }
 
-// Short weekday labels Monday..Sunday in the app language (Intl-based, no extra library).
-export function weekdayLabels(language: string): string[] {
+// Short weekday labels in the app language, starting at firstDayOfWeek (default Monday).
+export function weekdayLabels(language: string, firstDayOfWeek = 1): string[] {
+  const start = (firstDayOfWeek + 6) % 7; // offset from Monday
   try {
-    const fmt = new Intl.DateTimeFormat(language, { weekday: 'short' });
+    const fmt = new Intl.DateTimeFormat(language, { weekday: 'short', timeZone: 'UTC' });
     const labels: string[] = [];
     for (let i = 0; i < 7; i++) {
       // 2024-01-01 was a Monday; iterate 7 consecutive days.
-      labels.push(fmt.format(new Date(Date.UTC(2024, 0, 1 + i))));
+      labels.push(fmt.format(new Date(Date.UTC(2024, 0, 1 + start + i))));
     }
     return labels;
   } catch {
-    return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const en = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return [...en.slice(start), ...en.slice(0, start)];
   }
 }
 
@@ -481,9 +485,9 @@ export async function listGoals(db: WalletDB): Promise<Goal[]> {
 // Rate = net surplus (income - expenses) since the goal started, averaged per month.
 // If recurring incomes exist, they are added on top (they may not have been materialized yet).
 export async function estimateGoalCompletion(db: WalletDB, goal: Goal): Promise<{ months: number | null; date: string | null }> {
-  if (goal.currentCents >= goal.targetCents) return { months: 0, date: new Date().toISOString().slice(0, 10) };
+  if (goal.currentCents >= goal.targetCents) return { months: 0, date: todayISO() };
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayISO();
   const txs = (await db.transactions.toArray()).filter((t) => t.deletedAt === null && t.date >= goal.startDate && t.date <= today);
 
   let income = 0;
@@ -505,9 +509,7 @@ export async function estimateGoalCompletion(db: WalletDB, goal: Goal): Promise<
   // Add recurring incomes that are still pending expansion.
   const recs = (await db.recurrings.toArray()).filter((r) => r.deletedAt === null && r.type === 'income');
   for (const r of recs) {
-    if (r.frequency === 'monthly') monthlyRate += r.amountCents;
-    else if (r.frequency === 'weekly') monthlyRate += Math.round(r.amountCents * 52 / 12);
-    else if (r.frequency === 'yearly') monthlyRate += Math.round(r.amountCents / 12);
+    monthlyRate += monthlyEquivalentCents(r.amountCents, r.frequency);
   }
 
   if (monthlyRate <= 0) return { months: null, date: null };
@@ -529,6 +531,41 @@ function addMonths(dateISO: string, months: number): string {
   return `${ny}-${String(nm).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
+
+import type { RecurringFrequency } from '../db/database';
+
+export const RECURRING_FREQUENCIES: RecurringFrequency[] = ['daily', 'weekly', 'biweekly', 'monthly', 'bimonthly', 'quarterly', 'semiannual', 'yearly'];
+
+// Quantos meses/dias cada frequência avança.
+const FREQ_STEP: Record<RecurringFrequency, { months?: number; days?: number }> = {
+  daily: { days: 1 }, weekly: { days: 7 }, biweekly: { days: 14 },
+  monthly: { months: 1 }, bimonthly: { months: 2 }, quarterly: { months: 3 }, semiannual: { months: 6 }, yearly: { months: 12 },
+};
+
+function addDays(dateISO: string, days: number): string {
+  const [y, m, d] = dateISO.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
+// Próxima ocorrência depois de `date`. `anchorDay` (dia original) evita que 31 → 28 → 28 em meses curtos.
+export function advanceDate(date: string, freq: RecurringFrequency, anchorDay?: number): string {
+  const step = FREQ_STEP[freq] ?? FREQ_STEP.monthly;
+  if (step.days) return addDays(date, step.days);
+  const next = addMonths(date, step.months ?? 1);
+  if (anchorDay && anchorDay > Number(date.slice(8, 10))) {
+    const [y, m] = next.split('-').map(Number);
+    const dim = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    return `${next.slice(0, 8)}${String(Math.min(anchorDay, dim)).padStart(2, '0')}`;
+  }
+  return next;
+}
+
+// Valor aproximado por mês (para estimativas).
+export function monthlyEquivalentCents(amountCents: number, freq: RecurringFrequency): number {
+  const perYear: Record<RecurringFrequency, number> = { daily: 365, weekly: 52, biweekly: 26, monthly: 12, bimonthly: 6, quarterly: 4, semiannual: 2, yearly: 1 };
+  return Math.round((amountCents * (perYear[freq] ?? 12)) / 12);
+}
+
 export async function addRecurring(db: WalletDB, input: Omit<Recurring, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>): Promise<Recurring> {
   assertCents(input.amountCents);
   if (input.amountCents <= 0) throw new Error('Valor recorrente deve ser maior que zero');
@@ -542,21 +579,24 @@ export async function expandRecurring(db: WalletDB, untilDate: string): Promise<
   const out: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>[] = [];
   for (const r of recs) {
     let date = r.nextDate;
-    const end = r.endDate ?? untilDate;
+    const anchor = Number(r.nextDate.slice(8, 10));
+    const end = r.endDate && r.endDate < untilDate ? r.endDate : untilDate;
     while (date <= end) {
-      out.push({ date, type: r.type, categoryId: r.categoryId, description: r.description, amountCents: r.amountCents, currency: r.currency, recurringId: r.id });
-      if (r.frequency === 'weekly') {
-        const d = new Date(date); d.setDate(d.getDate() + 7); date = d.toISOString().slice(0, 10);
-      } else if (r.frequency === 'yearly') {
-        date = addMonths(date, 12);
-      } else {
-        date = addMonths(date, 1);
-      }
+      out.push({ date, type: r.type, categoryId: r.categoryId, description: r.description, amountCents: r.amountCents, currency: r.currency, recurringId: r.id, accountId: r.accountId });
+      date = advanceDate(date, r.frequency, anchor);
     }
     // Advance nextDate past untilDate so re-running doesn't duplicate.
     await db.recurrings.update(r.id, { nextDate: date, updatedAt: new Date().toISOString() });
   }
   return out;
+}
+
+// Cria as despesas/rendimentos recorrentes que já venceram (data <= hoje) e avança a próxima data.
+// Seguro para chamar várias vezes: cada ocorrência só é criada uma vez. Devolve quantas criou.
+export async function materializeDueRecurrings(db: WalletDB, today: string): Promise<number> {
+  const items = await expandRecurring(db, today);
+  for (const it of items) await db.transactions.add(stampNew<Transaction>(it));
+  return items.length;
 }
 
 export async function listRecurring(db: WalletDB): Promise<Recurring[]> {

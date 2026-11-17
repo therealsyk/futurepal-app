@@ -1,0 +1,17 @@
+{
+  "appId": "com.rafael.wallet",
+  "appName": "Wallet",
+  "webDir": "dist",
+  "backgroundColor": "#0a0a0d",
+  "android": {
+    "allowMixedContent": false
+  },
+  "ios": {
+    "contentInset": "never"
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}

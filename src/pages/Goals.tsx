@@ -1,24 +1,67 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
-import type { Category, Goal, Recurring, Group } from '../db/database';
+import type { Category, Goal, Recurring, Group, Transaction, Transfer } from '../db/database';
 import { newId } from '../db/database';
-import { addGoal, contributeToGoal, listGoals, estimateGoalCompletion, addRecurring, expandRecurring, addGroup, listGroups, transactionsInGroup } from '../core/finance';
+import { softDelete, addGoal, contributeToGoal, listGoals, estimateGoalCompletion, addRecurring, expandRecurring, RECURRING_FREQUENCIES, addGroup, listGroups, transactionsInGroup } from '../core/finance';
+import { accountBalanceCents, salariesUntil, loadTransfers } from '../core/accounts';
 import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
-import { PageTitle } from './index';
-import { Card, Button, ProgressBar } from '../ui/components';
+import { catLabel, PageHead, Sheet, Field, Toggle, EmptyState, Ic, ICON, useAccounts } from '../ui/fx';
+import { todayISO } from '../core/dates';
+
+function Ring({ pct, size = 92 }: { pct: number; size?: number }) {
+  const r = size / 2 - 7, c = 2 * Math.PI * r;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--track)" strokeWidth="9" />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--accent)" strokeWidth="9" strokeLinecap="round" strokeDasharray={`${(Math.min(pct, 100) / 100) * c} ${c}`} transform={`rotate(-90 ${size / 2} ${size / 2})`} />
+      <text x="50%" y="50%" dy="0.35em" textAnchor="middle" fill="var(--text)" fontSize={size / 5} fontWeight="650">{Math.round(pct)}%</text>
+    </svg>
+  );
+}
 
 export function Goals() {
   const { t } = useTranslation();
   const settings = loadSettings();
+  const { accounts } = useAccounts();
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [txs, setTxs] = useState<Transaction[]>([]);
+  const [transfers, setTransfers] = useState<Transfer[]>([]);
+  const [salaryCents, setSalaryCents] = useState(0);
   const [recurrings, setRecurrings] = useState<Recurring[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [groupTotals, setGroupTotals] = useState<Record<string, number>>({});
   const [cats, setCats] = useState<Category[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [estimates, setEstimates] = useState<Record<string, { months: number | null; date: string | null }>>({});
+  const [error, setError] = useState<string | null>(null);
+
+  const [open, setOpen] = useState(false);
+  const [gName, setGName] = useState('');
+  const [gTarget, setGTarget] = useState('');
+  const [gNotes, setGNotes] = useState('');
+  const [gStart, setGStart] = useState(todayISO());
+  const [gEnd, setGEnd] = useState('');
+  const [gAccs, setGAccs] = useState<string[]>([]);
+  const [contrib, setContrib] = useState<Record<string, string>>({});
+
+  const [rDesc, setRDesc] = useState('');
+  const [rAmount, setRAmount] = useState('');
+  const [rCat, setRCat] = useState('');
+  const [rFreq, setRFreq] = useState<Recurring['frequency']>('monthly');
+  const [rNext, setRNext] = useState(todayISO());
+  const [grpName, setGrpName] = useState('');
+
+  const money = (c: number) => formatMoney(c, settings.currency, settings.language);
+
+  // Apagar (meta, recorrência ou grupo) pede confirmação; é um soft delete, por isso também sincroniza.
+  const [toDelete, setToDelete] = useState<{ table: 'goals' | 'recurrings' | 'groups'; id: string; name: string } | null>(null);
+  const confirmDelete = async () => {
+    if (!toDelete) return;
+    await softDelete(db, toDelete.table, toDelete.id);
+    setToDelete(null);
+    await refresh();
+  };
 
   const refresh = async () => {
     const gs = await listGoals(db);
@@ -32,157 +75,173 @@ export function Goals() {
     const totals: Record<string, number> = {};
     for (const g of gs2) totals[g.id] = (await transactionsInGroup(db, g.id)).reduce((a, b) => a + b.amountCents, 0);
     setGroupTotals(totals);
-    setCats(await db.categories.filter((c) => c.deletedAt === null).toArray());
+    const cs = await db.categories.filter((c) => c.deletedAt === null).toArray();
+    setCats(cs);
+    setRCat((cur) => cur || cs[0]?.id || '');
+    setTxs((await db.transactions.toArray()).filter((x) => x.deletedAt === null));
+    setTransfers(await loadTransfers(db));
+    const now = new Date();
+    setSalaryCents(salariesUntil(await db.salaries.toArray(), now.getFullYear(), now.getMonth() + 1));
   };
+  useEffect(() => { refresh().catch((e) => setError(String(e))); }, []);
 
-  useEffect(() => {
-    refresh().catch((e) => setError(String(e)));
-  }, []);
+  const selectedValue = (ids: string[]) => accounts.filter((a) => ids.includes(a.id)).reduce((s, a) => s + accountBalanceCents(a, txs, accounts, salaryCents, transfers), 0);
+  const currentOf = (g: Goal) => (g.accountIds && g.accountIds.length ? selectedValue(g.accountIds) : g.currentCents);
 
   const createGoal = async () => {
-    const name = (document.getElementById('goal-name') as HTMLInputElement)?.value || '';
-    const targetRaw = (document.getElementById('goal-target') as HTMLInputElement)?.value || '';
-    const start = (document.getElementById('goal-start') as HTMLInputElement)?.value || new Date().toISOString().slice(0, 10);
-    const targetDate = (document.getElementById('goal-target-date') as HTMLInputElement)?.value || null;
-    const cents = parseMoneyToCents(targetRaw);
-    if (!name.trim() || cents === null || cents <= 0) {
-      setError(t('transactions.amount') + '?');
-      return;
-    }
-    await addGoal(db, name.trim(), cents, start, targetDate);
-    setError(null);
-    refresh();
+    const cents = parseMoneyToCents(gTarget);
+    if (!gName.trim() || cents === null || cents <= 0) { setError(t('goals.invalid')); return; }
+    const g = await addGoal(db, gName.trim(), cents, gStart, gEnd || null);
+    await db.goals.update(g.id, { notes: gNotes.trim() || undefined, accountIds: gAccs.length ? gAccs : undefined });
+    setError(null); setOpen(false); setGName(''); setGTarget(''); setGNotes(''); setGEnd(''); setGAccs([]);
+    await refresh();
   };
 
-  const contribute = async (goalId: string) => {
-    const raw = (document.getElementById(`goal-contribute-${goalId}`) as HTMLInputElement)?.value || '';
-    const cents = parseMoneyToCents(raw);
+  const contribute = async (id: string) => {
+    const cents = parseMoneyToCents(contrib[id] || '');
     if (cents === null || cents <= 0) return;
-    await contributeToGoal(db, goalId, cents);
-    refresh();
+    await contributeToGoal(db, id, cents);
+    setContrib((c) => ({ ...c, [id]: '' }));
+    await refresh();
   };
 
   const createRecurring = async () => {
-    const desc = (document.getElementById('rec-description') as HTMLInputElement)?.value || '';
-    const amountRaw = (document.getElementById('rec-amount') as HTMLInputElement)?.value || '';
-    const categoryId = (document.getElementById('rec-category') as HTMLSelectElement)?.value || '';
-    const frequency = ((document.getElementById('rec-frequency') as HTMLSelectElement)?.value || 'monthly') as Recurring['frequency'];
-    const nextDate = (document.getElementById('rec-next-date') as HTMLInputElement)?.value || new Date().toISOString().slice(0, 10);
-    const endDate = (document.getElementById('rec-end-date') as HTMLInputElement)?.value || null;
-    const cents = parseMoneyToCents(amountRaw);
-    if (!desc.trim() || cents === null || cents <= 0 || !categoryId) {
-      setError(t('transactions.amount') + '?');
-      return;
-    }
-    await addRecurring(db, { type: 'expense', categoryId, description: desc.trim(), amountCents: cents, currency: settings.currency, frequency, nextDate, endDate });
-    setError(null);
-    refresh();
+    const cents = parseMoneyToCents(rAmount);
+    if (!rDesc.trim() || cents === null || cents <= 0 || !rCat) { setError(t('goals.invalid')); return; }
+    await addRecurring(db, { type: 'expense', categoryId: rCat, description: rDesc.trim(), amountCents: cents, currency: settings.currency, frequency: rFreq, nextDate: rNext, endDate: null });
+    setError(null); setRDesc(''); setRAmount('');
+    await refresh();
   };
 
   const expandNow = async () => {
-    const until = new Date().toISOString().slice(0, 10);
-    const pending = await expandRecurring(db, until);
-    if (pending.length === 0) return;
-    for (const tx of pending) {
-      await db.transactions.add({ ...tx, id: newId(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), deletedAt: null });
-    }
-    refresh();
+    const pending = await expandRecurring(db, todayISO());
+    for (const tx of pending) await db.transactions.add({ ...tx, id: newId(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), deletedAt: null });
+    await refresh();
   };
 
   const createGroup = async () => {
-    const name = (document.getElementById('group-name') as HTMLInputElement)?.value || '';
-    if (!name.trim()) return;
-    await addGroup(db, name.trim(), '#60A5FA');
-    refresh();
+    if (!grpName.trim()) return;
+    await addGroup(db, grpName.trim(), '#60A5FA');
+    setGrpName('');
+    await refresh();
   };
 
   return (
-    <div className="page">
-      <PageTitle titleKey="goals.title" />
-      {error && <p className="error">{error}</p>}
+    <div className="fx-page">
+      <PageHead title={t('goals.title')} sub={t('goals.subtitle')}>
+        <button type="button" className="fx-btn primary" onClick={() => { setError(null); setOpen(true); }}><Ic d={ICON.plus} size={16} />{t('goals.createGoal')}</button>
+      </PageHead>
+      {error && !open && <p className="fx-error">{error}</p>}
 
-      <Card>
-        <h3>{t('goals.addGoal')}</h3>
-        <div className="budget-row-form">
-          <input id="goal-name" type="text" placeholder={t('goals.name')} />
-          <input id="goal-target" type="text" placeholder={t('goals.target')} />
-          <input id="goal-start" type="date" />
-          <input id="goal-target-date" type="date" placeholder={t('goals.targetDate')} />
-          <Button label={t('goals.addGoal')} onClick={createGoal} />
+      {goals.length === 0 ? (
+        <div className="fx-card">
+          <EmptyState icon={ICON.target} title={t('goals.setGoal')} sub={t('goals.setGoalSub')}
+            action={<button type="button" className="fx-btn primary" onClick={() => setOpen(true)}><Ic d={ICON.plus} size={16} />{t('goals.createGoal')}</button>} />
         </div>
-        {goals.length === 0 && <p>{t('goals.noGoals')}</p>}
-        {goals.map((g) => {
-          const pct = g.targetCents > 0 ? Math.min(100, (g.currentCents / g.targetCents) * 100) : 0;
-          return (
-            <div className="budget-row" key={g.id}>
-              <div className="budget-row-head">
-                <span>{g.name}</span>
-                <span>{formatMoney(g.currentCents, settings.currency, settings.language)} / {formatMoney(g.targetCents, settings.currency, settings.language)}</span>
+      ) : (
+        <div className="fx-goal-grid">
+          {goals.map((g) => {
+            const cur = currentOf(g);
+            const pct = g.targetCents > 0 ? (cur / g.targetCents) * 100 : 0;
+            const est = estimates[g.id];
+            const linked = !!(g.accountIds && g.accountIds.length);
+            return (
+              <div className="fx-card fx-goal" key={g.id}>
+                <div className="fx-goal-top">
+                  <Ring pct={Math.max(0, pct)} />
+                  <div className="fx-goal-info">
+                    <b>{g.name}</b>
+                    <span>{money(cur)} <em>/ {money(g.targetCents)}</em></span>
+                    <small>{g.targetDate ? `${t('goals.deadline')}: ${g.targetDate}` : t('goals.noDeadline')}</small>
+                  </div>
+                  <button type="button" className="fx-round sm fx-goal-del" onClick={() => setToDelete({ table: 'goals', id: g.id, name: g.name })} aria-label={t('goals.deleteGoal', { name: g.name })} data-testid="goal-delete"><Ic d={ICON.trash} size={15} /></button>
+                </div>
+                {est && <p className="fx-muted fx-small">{est.months === null ? t('goals.estimateNone') : `${t('goals.estimateLabel')} ${est.months} · ${t('goals.estimateDate')}: ${est.date}`}</p>}
+                {g.notes && <p className="fx-muted fx-small">{g.notes}</p>}
+                {linked ? <p className="fx-small fx-muted">{t('goals.linkedTo', { count: g.accountIds!.length })}</p> : (
+                  <div className="fx-inline">
+                    <input className="fx-input" inputMode="decimal" placeholder={t('goals.amount')} value={contrib[g.id] ?? ''} onChange={(e) => setContrib({ ...contrib, [g.id]: e.target.value })} aria-label={t('goals.amount')} />
+                    <button type="button" className="fx-btn" onClick={() => contribute(g.id)}>{t('goals.contribute')}</button>
+                  </div>
+                )}
               </div>
-              <ProgressBar value={pct} max={100} />
-              {estimates[g.id] && (
-                <p>
-                  {estimates[g.id].months === null
-                    ? t('goals.estimateNone')
-                    : `${t('goals.estimateLabel')} ${estimates[g.id].months} · ${t('goals.estimateDate')}: ${estimates[g.id].date}`}
-                </p>
-              )}
-              <div className="budget-row-form">
-                <input id={`goal-contribute-${g.id}`} type="text" placeholder={t('goals.amount')} />
-                <Button label={t('goals.contribute')} onClick={() => contribute(g.id)} />
-              </div>
-            </div>
-          );
-        })}
-      </Card>
-
-      <Card>
-        <h3>{t('goals.recurringTitle')}</h3>
-        <div className="budget-row-form">
-          <input id="rec-description" type="text" placeholder={t('transactions.description')} />
-          <input id="rec-amount" type="text" placeholder={t('goals.amount')} />
-          <select id="rec-category">
-            {cats.map((c) => (
-              <option key={c.id} value={c.id}>{c.nameKey ? t(c.nameKey) : c.name}</option>
-            ))}
-          </select>
-          <select id="rec-frequency">
-            <option value="weekly">{t('goals.weekly')}</option>
-            <option value="monthly">{t('goals.monthly')}</option>
-            <option value="yearly">{t('goals.yearly')}</option>
-          </select>
-          <input id="rec-next-date" type="date" />
-          <input id="rec-end-date" type="date" placeholder={t('goals.endDate')} />
-          <Button label={t('goals.addRecurring')} onClick={createRecurring} />
+            );
+          })}
         </div>
-        {recurrings.length === 0 && <p>{t('goals.noGroups')}</p>}
-        {recurrings.map((r) => (
-          <div className="budget-row" key={r.id}>
-            <div className="budget-row-head">
-              <span>{r.description}</span>
-              <span>{formatMoney(r.amountCents, settings.currency, settings.language)} · {t(`goals.${r.frequency}`)} · {t('goals.nextDate')}: {r.nextDate}</span>
-            </div>
-          </div>
-        ))}
-        <Button label={t('goals.addRecurring')} onClick={expandNow} />
-      </Card>
+      )}
 
-      <Card>
-        <h3>{t('goals.groupsTitle')}</h3>
-        <div className="budget-row-form">
-          <input id="group-name" type="text" placeholder={t('goals.groupName')} />
-          <Button label={t('goals.addGroup')} onClick={createGroup} />
-        </div>
-        {groups.length === 0 && <p>{t('goals.noGroups')}</p>}
-        {groups.map((g) => (
-          <div className="budget-row" key={g.id}>
-            <div className="budget-row-head">
-              <span>{g.name}</span>
-              <span>{formatMoney(groupTotals[g.id] ?? 0, settings.currency, settings.language)}</span>
-            </div>
+      <div className="fx-row2" style={{ marginTop: 16 }}>
+        <div className="fx-card">
+          <div className="fx-card-head"><h2>{t('goals.recurringTitle')}</h2><button type="button" className="fx-btn" onClick={expandNow}><Ic d={ICON.repeat} size={15} />{t('goals.applyRecurring')}</button></div>
+          <div className="fx-form-grid">
+            <input className="fx-input" placeholder={t('transactions.description')} value={rDesc} onChange={(e) => setRDesc(e.target.value)} aria-label={t('transactions.description')} />
+            <input className="fx-input" inputMode="decimal" placeholder={t('goals.amount')} value={rAmount} onChange={(e) => setRAmount(e.target.value)} aria-label={t('goals.amount')} />
+            <select className="fx-input" value={rCat} onChange={(e) => setRCat(e.target.value)} aria-label={t('transactions.category')}>{cats.map((c) => <option key={c.id} value={c.id}>{catLabel(t, c)}</option>)}</select>
+            <select className="fx-input" value={rFreq} onChange={(e) => setRFreq(e.target.value as Recurring['frequency'])} aria-label={t('goals.frequency')}>
+              {RECURRING_FREQUENCIES.map((f) => <option key={f} value={f}>{t('goals.' + f)}</option>)}
+            </select>
+            <input className="fx-input" type="date" value={rNext} onChange={(e) => setRNext(e.target.value)} aria-label={t('goals.nextDate')} />
+            <button type="button" className="fx-btn primary" onClick={createRecurring}><Ic d={ICON.plus} size={15} />{t('goals.addRecurring')}</button>
           </div>
+          {recurrings.length === 0 ? <p className="fx-empty">{t('goals.noRecurring')}</p> : (
+            <div className="fx-list" style={{ marginTop: 10 }}>
+              {recurrings.map((r) => (
+                <div className="fx-item" key={r.id}>
+                  <div className="fx-avatar"><Ic d={ICON.repeat} size={16} /></div>
+                  <div className="fx-item-main"><b>{r.description}</b><span>{t('goals.' + r.frequency)} · {t('goals.nextDate')}: {r.nextDate}</span></div>
+                  <span className="fx-num">{money(r.amountCents)}</span>
+                  <button type="button" className="fx-round sm" onClick={() => setToDelete({ table: 'recurrings', id: r.id, name: r.description })} aria-label={t('goals.deleteItem', { name: r.description })}><Ic d={ICON.trash} size={15} /></button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="fx-card">
+          <div className="fx-card-head"><h2>{t('goals.groupsTitle')}</h2></div>
+          <p className="fx-muted fx-small" style={{ marginTop: -6 }}>{t('goals.groupsHint')}</p>
+          <div className="fx-inline">
+            <input className="fx-input" placeholder={t('goals.groupName')} value={grpName} onChange={(e) => setGrpName(e.target.value)} aria-label={t('goals.groupName')} />
+            <button type="button" className="fx-btn primary" onClick={createGroup}><Ic d={ICON.plus} size={15} />{t('goals.addGroup')}</button>
+          </div>
+          {groups.length === 0 ? <p className="fx-empty">{t('goals.noGroups')}</p> : (
+            <div className="fx-list" style={{ marginTop: 10 }}>
+              {groups.map((g) => (
+                <div className="fx-item" key={g.id}>
+                  <div className="fx-avatar" style={{ background: g.color, color: '#fff' }}><Ic d={ICON.folder} size={16} /></div>
+                  <div className="fx-item-main"><b>{g.name}</b></div>
+                  <span className="fx-num">{money(groupTotals[g.id] ?? 0)}</span>
+                  <button type="button" className="fx-round sm" onClick={() => setToDelete({ table: 'groups', id: g.id, name: g.name })} aria-label={t('goals.deleteItem', { name: g.name })}><Ic d={ICON.trash} size={15} /></button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <Sheet open={toDelete !== null} onClose={() => setToDelete(null)} title={t('goals.confirmTitle')}
+        footer={<><span style={{ flex: 1 }} /><button type="button" className="fx-btn" onClick={() => setToDelete(null)}>{t('common.cancel')}</button><button type="button" className="fx-btn danger" onClick={confirmDelete} data-testid="confirm-delete"><Ic d={ICON.trash} size={16} />{t('common.delete')}</button></>}>
+        <p>{t('goals.confirmText', { name: toDelete?.name ?? '' })}</p>
+        {toDelete?.table === 'groups' && <p className="fx-muted fx-small">{t('goals.confirmGroupNote')}</p>}
+        {toDelete?.table === 'recurrings' && <p className="fx-muted fx-small">{t('goals.confirmRecurringNote')}</p>}
+      </Sheet>
+
+      <Sheet open={open} onClose={() => setOpen(false)} title={t('goals.createGoal')}
+        footer={<><span style={{ flex: 1 }} /><button type="button" className="fx-btn" onClick={() => setOpen(false)}>{t('common.cancel')}</button><button type="button" className="fx-btn primary" onClick={createGoal}>{t('goals.createGoal')}</button></>}>
+        {error && <p className="fx-error">{error}</p>}
+        <Field label={t('goals.name')}><input className="fx-input" autoFocus value={gName} placeholder={t('goals.namePlaceholder')} onChange={(e) => setGName(e.target.value)} /></Field>
+        <Field label={`${t('goals.target')} (${settings.currency})`}><input className="fx-input big" inputMode="decimal" value={gTarget} placeholder="0" onChange={(e) => setGTarget(e.target.value)} /></Field>
+        <div className="fx-two">
+          <Field label={t('goals.startDate')}><input className="fx-input" type="date" value={gStart} onChange={(e) => setGStart(e.target.value)} /></Field>
+          <Field label={t('goals.targetDate')}><input className="fx-input" type="date" value={gEnd} onChange={(e) => setGEnd(e.target.value)} /></Field>
+        </div>
+        <Field label={t('goals.notes')}><textarea className="fx-input" rows={2} value={gNotes} placeholder={t('goals.notesPlaceholder')} onChange={(e) => setGNotes(e.target.value)} /></Field>
+        <div className="fx-label" style={{ margin: '14px 0 2px' }}>{t('goals.yourAccounts')}</div>
+        {accounts.filter((a) => a.type !== 'debt').map((a) => (
+          <Toggle key={a.id} on={gAccs.includes(a.id)} onChange={(v) => setGAccs(v ? [...gAccs, a.id] : gAccs.filter((x) => x !== a.id))} label={a.name} hint={`${t('accounts.type_' + a.type)} · ${money(accountBalanceCents(a, txs, accounts, salaryCents, transfers))}`} />
         ))}
-      </Card>
+        <div className="fx-stat" style={{ marginTop: 6 }}><span>{t('goals.selectedValue')}</span><span className="fx-num fx-pos">{money(selectedValue(gAccs))}</span></div>
+      </Sheet>
     </div>
   );
 }

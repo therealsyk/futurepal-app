@@ -5,90 +5,94 @@ import type { Category } from '../db/database';
 import { activeCategories, setBudget, budgetUsage } from '../core/finance';
 import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
-import { PageTitle } from './index';
-import { Card, Button, ProgressBar } from '../ui/components';
+import { catLabel, PageHead, MonthNav, EmptyState, Ic, ICON } from '../ui/fx';
+
+type Usage = { limitCents: number; spentCents: number; remainingCents: number; overBudget: boolean };
 
 export function Budgets() {
   const { t } = useTranslation();
   const settings = loadSettings();
   const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1;
-
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
   const [cats, setCats] = useState<Category[]>([]);
-  const [usage, setUsage] = useState<Record<string, { limitCents: number; spentCents: number; remainingCents: number; overBudget: boolean }>>({});
+  const [usage, setUsage] = useState<Record<string, Usage>>({});
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
+
+  const money = (c: number) => formatMoney(c, settings.currency, settings.language);
+  const monthNames = t('calendar.monthNames', { returnObjects: true }) as string[];
 
   const refresh = async () => {
     const active = await activeCategories(db);
     setCats(active);
-    const budgets = (await db.budgets.toArray()).filter((b) => b.deletedAt === null && b.year === year && b.month === month);
-    const lim: Record<string, number> = {};
-    for (const b of budgets) lim[b.categoryId] = b.limitCents;
-    const u: Record<string, { limitCents: number; spentCents: number; remainingCents: number; overBudget: boolean }> = {};
+    const u: Record<string, Usage> = {};
     for (const c of active) u[c.id] = await budgetUsage(db, c.id, year, month);
     setUsage(u);
   };
+  useEffect(() => { refresh().catch((e) => setError(String(e))); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [year, month]);
 
-  useEffect(() => {
-    refresh().catch((e) => setError(String(e)));
-  }, []);
-
-  const submitLimit = async (categoryId: string) => {
-    const raw = document.getElementById(`budget-limit-${categoryId}`) as HTMLInputElement | null;
-    if (!raw) return;
-    const cents = parseMoneyToCents(raw.value);
-    if (cents === null || cents <= 0) {
-      setError(t('transactions.amount') + '?');
-      return;
-    }
-    await setBudget(db, categoryId, cents, year, month);
-    setError(null);
-    refresh();
+  const shift = (d: number) => {
+    let m = month + d, y = year;
+    if (m < 1) { m = 12; y -= 1; } else if (m > 12) { m = 1; y += 1; }
+    setMonth(m); setYear(y);
   };
 
-  const removeLimit = async (categoryId: string) => {
-    const budgets = (await db.budgets.toArray()).filter((b) => b.deletedAt === null && b.categoryId === categoryId && b.year === year && b.month === month);
-    for (const b of budgets) await db.budgets.update(b.id, { deletedAt: new Date().toISOString() });
-    refresh();
+  const save = async (id: string) => {
+    const cents = parseMoneyToCents(drafts[id] || '');
+    if (cents === null || cents <= 0) { setError(t('transactions.amountInvalid')); return; }
+    await setBudget(db, id, cents, year, month);
+    setError(null); setDrafts((d) => ({ ...d, [id]: '' }));
+    await refresh();
   };
+
+  const remove = async (id: string) => {
+    const rows = (await db.budgets.toArray()).filter((b) => b.deletedAt === null && b.categoryId === id && b.year === year && b.month === month);
+    for (const b of rows) await db.budgets.update(b.id, { deletedAt: new Date().toISOString() });
+    await refresh();
+  };
+
+  const list = cats.map((c) => ({ c, u: usage[c.id] ?? { limitCents: 0, spentCents: 0, remainingCents: 0, overBudget: false } }));
+  const totalLimit = list.reduce((s, x) => s + x.u.limitCents, 0);
+  const totalSpent = list.filter((x) => x.u.limitCents > 0).reduce((s, x) => s + x.u.spentCents, 0);
+  const over = list.filter((x) => x.u.overBudget).length;
 
   return (
-    <div className="page">
-      <PageTitle titleKey="budgets.title" />
-      {error && <p className="error">{error}</p>}
-      <Card>
-        <h3>{t('budgets.addBudget')}</h3>
-        {cats.length === 0 && <p>{t('budgets.noBudgets')}</p>}
-        <div className="budget-list">
-          {cats.map((c) => {
-            const label = c.nameKey ? t(c.nameKey) : c.name;
-            const u = usage[c.id] ?? { limitCents: 0, spentCents: 0, remainingCents: 0, overBudget: false };
+    <div className="fx-page">
+      <PageHead title={t('budgets.title')} sub={t('budgets.subtitle')}>
+        <MonthNav label={`${monthNames[month - 1]} ${year}`} onPrev={() => shift(-1)} onNext={() => shift(1)} />
+      </PageHead>
+      {error && <p className="fx-error">{error}</p>}
+
+      <div className="fx-kpis">
+        <div className="fx-card fx-kpi"><div className="fx-kpi-label">{t('budgets.totalLimit')}</div><div className="fx-kpi-value"><span>{money(totalLimit)}</span></div></div>
+        <div className="fx-card fx-kpi"><div className="fx-kpi-label">{t('budgets.spent')}</div><div className="fx-kpi-value"><span>{money(totalSpent)}</span></div><div className="fx-kpi-sub">{totalLimit > 0 ? `${Math.round((totalSpent / totalLimit) * 100)}%` : '—'}</div></div>
+        <div className="fx-card fx-kpi"><div className="fx-kpi-label">{t('budgets.left')}</div><div className="fx-kpi-value"><span className={totalLimit - totalSpent < 0 ? 'fx-neg' : 'fx-pos'}>{money(totalLimit - totalSpent)}</span></div></div>
+        <div className="fx-card fx-kpi"><div className="fx-kpi-label">{t('budgets.overCount')}</div><div className="fx-kpi-value"><span className={over ? 'fx-neg' : ''}>{over}</span></div></div>
+      </div>
+
+      {cats.length === 0 ? <div className="fx-card"><EmptyState icon={ICON.wallet} title={t('budgets.noBudgets')} /></div> : (
+        <div className="fx-budget-grid">
+          {list.map(({ c, u }) => {
+            const pct = u.limitCents > 0 ? Math.min(100, (u.spentCents / u.limitCents) * 100) : 0;
             return (
-              <div className="budget-row" key={c.id}>
-                <div className="budget-row-head">
-                  <span>{label}</span>
-                  {u.limitCents > 0 ? (
-                    <span className={u.overBudget ? 'over' : ''}>
-                      {formatMoney(u.spentCents, settings.currency, settings.language)}
-                      {' · '}
-                      {u.overBudget ? t('budgets.over') : `${formatMoney(u.remainingCents, settings.currency, settings.language)} ${t('budgets.left')}`}
-                    </span>
-                  ) : null}
+              <div className="fx-card fx-budget" key={c.id}>
+                <div className="fx-acc-top">
+                  <div className="fx-avatar" style={{ background: c.color || 'var(--accent)', color: '#fff' }}>{catLabel(t, c).charAt(0).toUpperCase()}</div>
+                  <div className="fx-acc-name"><b>{c.nameKey ? t(c.nameKey) : c.name}</b>
+                    <span className={u.overBudget ? 'fx-neg' : ''}>{u.limitCents > 0 ? `${money(u.spentCents)} / ${money(u.limitCents)}` : t('budgets.noLimit')}</span></div>
+                  {u.limitCents > 0 && <button type="button" className="fx-round sm" onClick={() => remove(c.id)} aria-label={t('budgets.delete')}><Ic d={ICON.trash} size={15} /></button>}
                 </div>
-                {u.limitCents > 0 && <ProgressBar value={u.spentCents} max={u.limitCents} />}
-                <div className="budget-row-form">
-                  <input id={`budget-limit-${c.id}`} type="text" placeholder={t('budgets.limit')} />
-                  <Button label={t('budgets.addBudget')} onClick={() => submitLimit(c.id)} />
-                  {u.limitCents > 0 && (
-                    <Button label={t('budgets.delete')} onClick={() => removeLimit(c.id)} />
-                  )}
+                <div className="fx-track" role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}><i className={u.overBudget ? 'over' : ''} style={{ width: `${pct}%` }} /></div>
+                <div className="fx-inline">
+                  <input className="fx-input" inputMode="decimal" placeholder={t('budgets.limit')} value={drafts[c.id] ?? ''} onChange={(e) => setDrafts({ ...drafts, [c.id]: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') save(c.id); }} aria-label={`${t('budgets.limit')} ${c.nameKey ? t(c.nameKey) : c.name}`} />
+                  <button type="button" className="fx-btn" onClick={() => save(c.id)}>{u.limitCents > 0 ? t('budgets.update') : t('budgets.addBudget')}</button>
                 </div>
               </div>
             );
           })}
         </div>
-      </Card>
+      )}
     </div>
   );
 }

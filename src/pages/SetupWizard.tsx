@@ -1,41 +1,25 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { COUNTRIES, countryName } from '../core/locale';
+import { formatMoney } from '../core/money';
 import { loadSettings, saveSettings, type AppSettings } from '../core/settings';
+import { groupCurrencies, currencySymbol } from '../core/currencies';
+import { addAccount, ensureDefaultAccount, listAccounts } from '../core/accounts';
+import { addTransaction, addGoal, activeCategories, ensureDefaultCategories } from '../core/finance';
+import { parseMoneyToCents } from '../core/money';
 import { db } from '../db/app-db';
-import { stampNew, seedSettings } from '../db/database';
+import type { Category, Transaction, Goal } from '../db/database';
+import { mirrorSettings } from '../core/settingsSync';
+import { getSupabase, hasSupabaseConfig } from '../auth/supabase';
+import { runSync } from '../sync/runSync';
+import { LoginForm } from './Login';
+import { Ic, ICON, Sheet, Seg, catLabel } from '../ui/fx';
+import { todayISO } from '../core/dates';
 
-import type { Category } from '../db/database';
-
-// Map wizard category keys to DB categories (nameKey + color), SPEC §5/§6.3.
-const CATEGORY_DEFS: Record<string, { nameKey: string; color: string }> = {
-  'catSalary': { nameKey: 'catSalary', color: '#4CAF50' },
-  'catFood': { nameKey: 'catFood', color: '#FFB020' },
-  'catTransport': { nameKey: 'catTransport', color: '#60A5FA' },
-  'catHome': { nameKey: 'catHome', color: '#2DD4BF' },
-  'catFun': { nameKey: 'catLeisure', color: '#22D3EE' },
-};
-
-async function persistCategories(keys: string[], settings: AppSettings) {
-  await db.categories.clear();
-  const rows: Category[] = keys.map((key, i) => {
-    const def = CATEGORY_DEFS[key] ?? { nameKey: key, color: '#9CA3AF' };
-    return stampNew<Category>({ name: def.nameKey, color: def.color, icon: '', order: i, nameKey: def.nameKey });
-  });
-  await db.categories.bulkAdd(rows);
-
-  // Persist settings to the Dexie settings table (SPEC §5) with setupDone=true.
-  await seedSettings(db, {
-    language: settings.language,
-    country: settings.country,
-    mainCurrency: settings.currency,
-    firstDayOfWeek: settings.firstDayOfWeek,
-    dateFormat: settings.dateFormat,
-    theme: settings.theme,
-    setupDone: true,
-    lastSync: null,
-  });
-}
+// Primeira utilização, um passo por ecrã (como numa app de telemóvel):
+// boas-vindas -> (entrar) -> moeda -> primeira conta -> transações -> meta.
+type Step = 'welcome' | 'auth' | 'currency' | 'account' | 'transactions' | 'goal';
+const ORDER: Step[] = ['welcome', 'currency', 'account', 'transactions', 'goal'];
 
 const LANGUAGES = [
   { code: 'pt-PT', label: 'Português (Portugal)' },
@@ -45,127 +29,372 @@ const LANGUAGES = [
   { code: 'fr', label: 'Français' },
 ];
 
-const DEFAULT_CATEGORY_KEYS = ['catSalary', 'catFood', 'catTransport', 'catHome', 'catFun'];
+const today = todayISO;
+
+export const ONBOARDED_FLAG = 'wallet.justOnboarded';
 
 export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings) => void }) {
   const { t, i18n } = useTranslation();
-  const settings = loadSettings();
+  const initial = loadSettings();
+  const [step, setStep] = useState<Step>('welcome');
+  const [language, setLanguage] = useState(initial.language);
+  const [country, setCountry] = useState(initial.country || 'PT');
+  const [currency, setCurrency] = useState(initial.currency || 'EUR');
+  const [signedIn, setSignedIn] = useState(false);
+  const [syncNote, setSyncNote] = useState('');
 
-  const [language, setLanguage] = useState(settings.language);
-  const [country, setCountry] = useState('');
-  const [currency, setCurrency] = useState(settings.currency);
-  const [firstDayOfWeek, setFirstDayOfWeek] = useState(settings.firstDayOfWeek);
-  const [dateFormat, setDateFormat] = useState(settings.dateFormat);
-  const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORY_KEYS.slice());
-  const [account, setAccount] = useState<'none' | 'created' | 'signedin'>('none');
+  useEffect(() => { ensureDefaultCategories(db).catch(() => {}); }, []);
+
+  function pickLanguage(code: string) {
+    setLanguage(code);
+    i18n.changeLanguage(code);
+  }
 
   function pickCountry(code: string) {
-    if (!code) return;
     setCountry(code);
     const info = COUNTRIES.find((c) => c.code === code);
-    if (info) {
-      setCurrency(info.currency);
-      setFirstDayOfWeek(info.firstDayOfWeek);
-      setDateFormat(info.dateFormat);
-    }
+    if (info) setCurrency(info.currency);
   }
 
-  function toggleCategory(key: string) {
-    setCategories((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+  function back() {
+    if (step === 'auth') { setStep('welcome'); return; }
+    const i = ORDER.indexOf(step);
+    if (i > 0) setStep(ORDER[i - 1]);
   }
 
-  function buildSettings(finalCountry: string): AppSettings {
-    const info = COUNTRIES.find((c) => c.code === finalCountry);
+  function next() {
+    const i = ORDER.indexOf(step);
+    if (i < ORDER.length - 1) setStep(ORDER[i + 1]);
+    else finish();
+  }
+
+  function buildSettings(): AppSettings {
+    const info = COUNTRIES.find((c) => c.code === country);
     return {
+      ...initial,
       language,
-      country: finalCountry,
-      currency: info ? info.currency : currency,
-      theme: settings.theme,
-      firstDayOfWeek,
-      dateFormat,
-      account,
+      country,
+      currency,
+      firstDayOfWeek: info ? info.firstDayOfWeek : initial.firstDayOfWeek,
+      dateFormat: info ? info.dateFormat : initial.dateFormat,
+      account: signedIn ? 'signedin' : 'none',
     };
   }
 
-  function finish() {
-    // Compute the final country locally so we never depend on setState timing.
-    const finalCountry = country || 'PT';
-    const next = buildSettings(finalCountry);
-    saveSettings(next);
-    persistCategories(categories, next).then(() => onDone(next));
+  async function finish(fromSync?: AppSettings) {
+    const s = fromSync ?? buildSettings();
+    await ensureDefaultAccount(db, s.currency, t('accounts.mainName'));
+    const saved = saveSettings(s);
+    await mirrorSettings(db, saved);
+    try { sessionStorage.setItem(ONBOARDED_FLAG, '1'); } catch { /* sem storage */ }
+    onDone(s);
   }
 
-  function skip() {
-    // Persist a default country so the wizard does not reappear.
-    const next = buildSettings('PT');
-    saveSettings(next);
-    persistCategories(DEFAULT_CATEGORY_KEYS, next).then(() => onDone(next));
+  // Depois de entrar: traz os dados da nuvem. Se a conta já foi configurada noutro aparelho, salta o resto.
+  async function afterLogin() {
+    setSignedIn(true);
+    const sb = getSupabase();
+    if (sb) {
+      setSyncNote(t('onboard.syncing'));
+      const { data } = await sb.auth.getUser();
+      if (data.user) {
+        const res = await runSync(sb, db, data.user.id);
+        if (!res.error && res.settings) {
+          await finish({ ...res.settings, account: 'signedin' });
+          return;
+        }
+      }
+      setSyncNote('');
+    }
+    setStep('currency');
+  }
+
+  const showBack = step !== 'welcome';
+  const dots = ORDER.indexOf(step);
+
+  return (
+    <div className="ob-screen">
+      <div className="ob-top">
+        {showBack ? (
+          <button type="button" className="ob-round" onClick={back} aria-label={t('onboard.back')}><Ic d={ICON.left} size={20} /></button>
+        ) : <span className="ob-round-spacer" />}
+        {dots > 0 && (
+          <div className="ob-dots" aria-hidden="true">
+            {ORDER.slice(1).map((s, i) => <i key={s} className={i < dots ? 'on' : ''} />)}
+          </div>
+        )}
+        <span className="ob-round-spacer" />
+      </div>
+
+      <div className="ob-body">
+        {step === 'welcome' && (
+          <Welcome
+            language={language} country={country} onLanguage={pickLanguage} onCountry={pickCountry}
+            onStart={() => setStep('currency')} onLogin={hasSupabaseConfig() ? () => setStep('auth') : undefined}
+          />
+        )}
+        {step === 'auth' && (
+          syncNote ? <p className="ob-sub" role="status">{syncNote}</p>
+            : <LoginForm initialMode="signin" onDone={() => { afterLogin().catch(() => setStep('currency')); }} onSkip={() => setStep('currency')} />
+        )}
+        {step === 'currency' && <CurrencyStep language={language} value={currency} onChange={setCurrency} />}
+        {step === 'account' && <AccountStep currency={currency} language={language} onCreated={next} />}
+        {step === 'transactions' && <TransactionsStep currency={currency} language={language} />}
+        {step === 'goal' && <GoalStep currency={currency} language={language} />}
+      </div>
+
+      {step !== 'welcome' && step !== 'auth' && step !== 'account' && (
+        <div className="ob-foot">
+          <button type="button" className="ob-cta" onClick={next} data-testid="ob-continue">{t('onboard.continue')}</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Welcome({ language, country, onLanguage, onCountry, onStart, onLogin }: {
+  language: string; country: string; onLanguage: (c: string) => void; onCountry: (c: string) => void; onStart: () => void; onLogin?: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div className="ob-welcome">
+      <div className="ob-logo" aria-hidden="true"><Ic d={ICON.wallet} size={34} /></div>
+      <h1 className="ob-title">{t('onboard.welcomeTitle')}</h1>
+      <p className="ob-sub">{t('onboard.welcomeSub')}</p>
+
+      <div className="ob-card ob-rows">
+        <label className="ob-row">
+          <span className="ob-row-text"><b>{t('settings.language')}</b><small>{t('onboard.languageHint')}</small></span>
+          <select className="ob-pill" value={language} onChange={(e) => onLanguage(e.target.value)} data-testid="ob-language">
+            {LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
+          </select>
+        </label>
+        <label className="ob-row">
+          <span className="ob-row-text"><b>{t('settings.country')}</b><small>{t('onboard.countryHint')}</small></span>
+          <select className="ob-pill" value={country} onChange={(e) => onCountry(e.target.value)} data-testid="ob-country">
+            {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{countryName(c.code, language)}</option>)}
+          </select>
+        </label>
+      </div>
+
+      <div className="ob-actions">
+        <button type="button" className="ob-cta" onClick={onStart} data-testid="ob-start">{t('onboard.start')}</button>
+        {onLogin && <button type="button" className="ob-outline" onClick={onLogin} data-testid="ob-login">{t('onboard.haveAccount')}</button>}
+      </div>
+    </div>
+  );
+}
+
+function CurrencyStep({ language, value, onChange }: { language: string; value: string; onChange: (c: string) => void }) {
+  const { t } = useTranslation();
+  const [query, setQuery] = useState('');
+  const groups = useMemo(() => groupCurrencies(language, query), [language, query]);
+  return (
+    <div>
+      <h1 className="ob-title small">{t('onboard.currencyTitle')}</h1>
+      <label className="ob-search">
+        <Ic d={ICON.search} size={18} />
+        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('onboard.search')} aria-label={t('onboard.search')} />
+      </label>
+      <div role="radiogroup" aria-label={t('onboard.currencyTitle')}>
+        {groups.map((g) => (
+          <section key={g.letter} className="ob-group">
+            <h2>{g.letter}</h2>
+            <div className="ob-card ob-list">
+              {g.items.map((c) => (
+                <button key={c.code} type="button" role="radio" aria-checked={value === c.code} className={'ob-option' + (value === c.code ? ' on' : '')} onClick={() => onChange(c.code)}>
+                  <span className="ob-radio" aria-hidden="true" />
+                  <span className="ob-coin" aria-hidden="true">{currencySymbol(c.code, language)}</span>
+                  <span>{c.name} ({c.code})</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        ))}
+        {groups.length === 0 && <p className="ob-sub">{t('onboard.noResults')}</p>}
+      </div>
+    </div>
+  );
+}
+
+function AccountStep({ currency, language, onCreated }: { currency: string; language: string; onCreated: () => void }) {
+  const { t } = useTranslation();
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [balance, setBalance] = useState('');
+  const [positive, setPositive] = useState(true);
+  const [netWorth, setNetWorth] = useState(true);
+  const [isDefault, setIsDefault] = useState(true);
+  const [showHome, setShowHome] = useState(true);
+  const [error, setError] = useState('');
+
+  async function create(useDefaultName = false) {
+    const finalName = useDefaultName ? t('accounts.mainName') : name.trim();
+    const cents = balance.trim() ? parseMoneyToCents(balance) : 0;
+    if (cents === null) { setError(t('onboard.badAmount')); return; }
+    const existing = await listAccounts(db);
+    if (useDefaultName && existing.length > 0) { onCreated(); return; }
+    await addAccount(db, {
+      name: finalName, description: description.trim(), type: 'spending', currency,
+      initialBalanceCents: positive ? Math.abs(cents) : -Math.abs(cents), includeInNetWorth: netWorth, isDefault, showOnHome: showHome,
+    });
+    onCreated();
   }
 
   return (
-    <div className="wizard">
-      <h1 className="page-title">{t('setup.welcome')}</h1>
-      <p>{t('setup.intro')}</p>
-
-      <label htmlFor="setup-language">{t('setup.language')}</label>
-      <select
-        id="setup-language"
-        value={language}
-        onChange={(e) => {
-          setLanguage(e.target.value);
-          i18n.changeLanguage(e.target.value);
-        }}
-      >
-        {LANGUAGES.map((l) => (
-          <option key={l.code} value={l.code}>{l.label}</option>
-        ))}
-      </select>
-
-      <label htmlFor="setup-country">{t('setup.country')}</label>
-      <select id="setup-country" value={country} onChange={(e) => pickCountry(e.target.value)}>
-        <option value="">{t('setup.chooseCountry')}</option>
-        {COUNTRIES.map((c) => (
-          <option key={c.code} value={c.code}>{countryName(c.code, language)}</option>
-        ))}
-      </select>
-
-      <label htmlFor="setup-currency">{t('setup.currency')}</label>
-      <input id="setup-currency" type="text" value={currency} onChange={(e) => setCurrency(e.target.value)} />
-
-      <label htmlFor="setup-firstday">{t('setup.firstDay')}</label>
-      <select id="setup-firstday" value={firstDayOfWeek} onChange={(e) => setFirstDayOfWeek(Number(e.target.value))}>
-        <option value="0">{t('setup.firstDaySunday')}</option>
-        <option value="1">{t('setup.firstDayMonday')}</option>
-      </select>
-
-      <label htmlFor="setup-dateformat">{t('setup.dateFormat')}</label>
-      <select id="setup-dateformat" value={dateFormat} onChange={(e) => setDateFormat(e.target.value as 'DMY' | 'MDY' | 'YMD')}>
-        <option value="DMY">DD/MM/YYYY</option>
-        <option value="MDY">MM/DD/YYYY</option>
-        <option value="YMD">YYYY-MM-DD</option>
-      </select>
-
-      <label>{t('setup.categories')}</label>
-      <div className="wizard-categories">
-        {DEFAULT_CATEGORY_KEYS.map((key) => (
-          <label key={key} className="wizard-cat">
-            <input type="checkbox" checked={categories.includes(key)} onChange={() => toggleCategory(key)} />
-            <span>{t('categories.' + (CATEGORY_DEFS[key]?.nameKey ?? key))}</span>
-          </label>
-        ))}
+    <div className="ob-account">
+      <h1 className="ob-title small left">{t('onboard.accountTitle')}</h1>
+      <input className="ob-huge" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('onboard.accountNamePh')} aria-label={t('onboard.accountName')} data-testid="ob-account-name" />
+      <label className="ob-label">{t('onboard.descriptionOpt')}</label>
+      <input className="ob-big" value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t('onboard.descriptionPh')} />
+      <hr className="ob-hr" />
+      <div className="ob-balance">
+        <div>
+          <label className="ob-label muted" htmlFor="ob-balance">{t('onboard.initialBalance')}</label>
+          <input id="ob-balance" className="ob-amount" inputMode="decimal" value={balance} onChange={(e) => setBalance(e.target.value)} placeholder="0" />
+        </div>
+        <span className="ob-pill static"><span className="ob-coin sm">{currencySymbol(currency, language)}</span>{currency}</span>
       </div>
-
-      <label htmlFor="setup-account">{t('setup.account')}</label>
-      <select id="setup-account" value={account} onChange={(e) => setAccount(e.target.value as 'none' | 'created' | 'signedin')}>
-        <option value="none">{t('setup.accountNone')}</option>
-        <option value="created">{t('setup.accountCreate')}</option>
-        <option value="signedin">{t('setup.accountLogin')}</option>
-      </select>
-
-      <div className="wizard-actions">
-        <button className="btn primary" data-testid="finish-btn" onClick={finish}>{t('setup.finish')}</button>
-        <button className="btn" data-testid="skip-btn" onClick={skip}>{t('setup.skip')}</button>
+      <hr className="ob-hr" />
+      <SwitchRow on={positive} onChange={setPositive} title={t('onboard.positive')} hint={t('onboard.positiveHint')} />
+      <SwitchRow on={netWorth} onChange={setNetWorth} title={t('onboard.netWorth')} hint={t('onboard.netWorthHint')} />
+      <SwitchRow on={isDefault} onChange={setIsDefault} title={t('onboard.default')} hint={t('onboard.defaultHint')} />
+      <SwitchRow on={showHome} onChange={setShowHome} title={t('onboard.showHome')} hint={t('onboard.showHomeHint')} />
+      {error && <p className="ob-error" role="alert">{error}</p>}
+      <div className="ob-foot inline">
+        <button type="button" className="ob-cta" disabled={!name.trim()} onClick={() => create()} data-testid="ob-account-create">{t('onboard.createAccount')}</button>
+        <button type="button" className="ob-ghost" onClick={() => create(true)}>{t('onboard.skipStep')}</button>
       </div>
+    </div>
+  );
+}
+
+function SwitchRow({ on, onChange, title, hint }: { on: boolean; onChange: (v: boolean) => void; title: string; hint: string }) {
+  return (
+    <div className="ob-switchrow">
+      <div><b>{title}</b><span>{hint}</span></div>
+      <button type="button" role="switch" aria-checked={on} aria-label={title} className={'ob-toggle' + (on ? ' on' : '')} onClick={() => onChange(!on)}><i /></button>
+    </div>
+  );
+}
+
+function TransactionsStep({ currency, language }: { currency: string; language: string }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [list, setList] = useState<Transaction[]>([]);
+  const [cats, setCats] = useState<Category[]>([]);
+  const [type, setType] = useState<'expense' | 'income'>('expense');
+  const [amount, setAmount] = useState('');
+  const [desc, setDesc] = useState('');
+  const [catId, setCatId] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    activeCategories(db).then((c) => { setCats(c); if (c[0]) setCatId(c[0].id); }).catch(() => {});
+  }, []);
+
+  async function save() {
+    const cents = parseMoneyToCents(amount);
+    if (!cents || cents <= 0) { setError(t('onboard.badAmount')); return; }
+    const accounts = await listAccounts(db);
+    const acc = accounts.find((a) => a.isDefault) ?? accounts[0];
+    const tx = await addTransaction(db, {
+      date: today(), type, categoryId: catId, description: desc.trim(), amountCents: cents, currency, accountId: acc?.id,
+    });
+    setList((l) => [tx, ...l]);
+    setAmount(''); setDesc(''); setError(''); setOpen(false);
+  }
+
+  return (
+    <div className="ob-center">
+      <h1 className="ob-title">{t('onboard.txTitle')}</h1>
+      <p className="ob-sub">{t('onboard.txSub')}</p>
+      <div className="ob-card ob-empty">
+        {list.length === 0 ? (
+          <>
+            <span className="ob-empty-ic"><Ic d={ICON.wallet} size={34} /></span>
+            <p>{t('onboard.noTx')}</p>
+          </>
+        ) : (
+          <ul className="ob-txlist">
+            {list.map((tx) => {
+              const c = cats.find((x) => x.id === tx.categoryId);
+              return (
+                <li key={tx.id}>
+                  <span>{tx.description || (c ? catLabel(t, c) : '')}</span>
+                  <b className={tx.type === 'income' ? 'pos' : ''}>{(tx.type === 'expense' ? '-' : '+') + formatMoney(tx.amountCents, currency, language)}</b>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <button type="button" className="ob-outline" onClick={() => setOpen(true)} data-testid="ob-add-tx">{t('onboard.addTx')}</button>
+      </div>
+      <Sheet open={open} onClose={() => setOpen(false)} title={t('onboard.addTx')}
+        footer={<button type="button" className="ob-cta" onClick={save}>{t('common.add')}</button>}>
+        <Seg<'expense' | 'income'> value={type} onChange={setType} label={t('onboard.addTx')}
+          options={[{ id: 'expense', label: t('onboard.expense') }, { id: 'income', label: t('onboard.income') }]} />
+        <input className="ob-amount center" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0,00" aria-label={t('onboard.amount')} autoFocus />
+        <input className="fx-input" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder={t('onboard.txDescPh')} aria-label={t('onboard.txDescPh')} />
+        <div className="ob-chips" role="radiogroup" aria-label={t('onboard.category')}>
+          {cats.map((c) => (
+            <button key={c.id} type="button" role="radio" aria-checked={catId === c.id} className={'ob-chip' + (catId === c.id ? ' on' : '')} onClick={() => setCatId(c.id)}>
+              <i style={{ background: c.color }} />{catLabel(t, c)}
+            </button>
+          ))}
+        </div>
+        {error && <p className="ob-error" role="alert">{error}</p>}
+      </Sheet>
+    </div>
+  );
+}
+
+function GoalStep({ currency, language }: { currency: string; language: string }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [target, setTarget] = useState('');
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [error, setError] = useState('');
+
+  async function save() {
+    const cents = parseMoneyToCents(target);
+    if (!name.trim()) { setError(t('onboard.goalNameReq')); return; }
+    if (!cents || cents <= 0) { setError(t('onboard.badAmount')); return; }
+    const g = await addGoal(db, name.trim(), cents, today());
+    setGoals((l) => [...l, g]);
+    setName(''); setTarget(''); setError(''); setOpen(false);
+  }
+
+  const features = [
+    { cls: 'green', d: ICON.target, title: t('onboard.goalF1'), sub: t('onboard.goalF1Sub') },
+    { cls: 'blue', d: 'M12 3a9 9 0 1 0 9 9h-9zM15 3.5V9h5.5A9 9 0 0 0 15 3.5z', title: t('onboard.goalF2'), sub: t('onboard.goalF2Sub') },
+    { cls: 'red', d: 'M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM4 10h16M8 3v4M16 3v4', title: t('onboard.goalF3'), sub: t('onboard.goalF3Sub') },
+  ];
+
+  return (
+    <div className="ob-center">
+      <h1 className="ob-title">{t('onboard.goalTitle')}</h1>
+      <p className="ob-sub">{t('onboard.goalSub')}</p>
+      <div className="ob-card ob-features">
+        {goals.length === 0 ? features.map((f) => (
+          <div key={f.title} className="ob-feature">
+            <span className={'ob-feat-ic ' + f.cls}><Ic d={f.d} size={24} /></span>
+            <div><b>{f.title}</b><span>{f.sub}</span></div>
+          </div>
+        )) : (
+          <ul className="ob-txlist">
+            {goals.map((g) => <li key={g.id}><span>{g.name}</span><b>{formatMoney(g.targetCents, currency, language)}</b></li>)}
+          </ul>
+        )}
+        <button type="button" className="ob-outline" onClick={() => setOpen(true)} data-testid="ob-add-goal">{t('onboard.createGoal')}</button>
+      </div>
+      <Sheet open={open} onClose={() => setOpen(false)} title={t('onboard.createGoal')}
+        footer={<button type="button" className="ob-cta" onClick={save}>{t('common.save')}</button>}>
+        <input className="fx-input" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('onboard.goalNamePh')} aria-label={t('onboard.goalNamePh')} autoFocus />
+        <input className="ob-amount center" inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value)} placeholder="0,00" aria-label={t('onboard.goalTarget')} />
+        {error && <p className="ob-error" role="alert">{error}</p>}
+      </Sheet>
     </div>
   );
 }

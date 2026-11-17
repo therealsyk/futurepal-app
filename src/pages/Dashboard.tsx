@@ -1,20 +1,28 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
-import { formatMoney } from '../core/money';
+import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
 import type { AppSettings } from '../core/settings';
-import type { Transaction, Budget, Category, Salary } from '../db/database';
-import { periodKpis } from '../core/finance';
+import type { Transaction, Budget, Category, Salary, Goal, Recurring, Account, Transfer } from '../db/database';
+import { periodKpis, contributeToGoal, materializeDueRecurrings } from '../core/finance';
+import { txsOfAccount, defaultAccountId, ALL_ACCOUNTS, accountBalanceCents, netWorthCents, salariesUntil, loadTransfers, addTransfer, suggestedSource } from '../core/accounts';
+import { loadLayout, saveLayout, moveWidget, removeWidget, swapWidget, addWidget, nudgeWidget, DEFAULT_LAYOUT, type Layout } from '../core/dashLayout';
+import { WidgetGrid } from '../ui/WidgetGrid';
+import { AccountSwitch, Sheet, ICON, catLabel, useAccounts } from '../ui/fx';
+import { todayISO } from '../core/dates';
 
-// ── Pure helpers (integer cents only, no float money) ────────────────────────
-function clamp(v: number, lo: number, hi: number): number {
-  return Math.max(lo, Math.min(hi, v));
-}
+// Painel — visual "clean" inspirado na referência Finity.
+// Toda a lógica trabalha em cêntimos inteiros; todo o texto passa por t().
 
+type Period = 'month' | 'year';
+type TFn = ReturnType<typeof useTranslation>['t'];
+
+const PALETTE = ['#8b7cf6', '#5fd4c4', '#e58fd3', '#f5b85a', '#6aa8ff', '#4ade9b', '#f87171', '#b9a7ff', '#7dd3fc', '#fca5a5', '#a3e635', '#c4b5fd'];
+const pad = (n: number) => String(n).padStart(2, '0');
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export function smoothPath(points: { x: number; y: number }[]): string {
   if (points.length === 0) return '';
@@ -34,395 +42,321 @@ export function smoothPath(points: { x: number; y: number }[]): string {
   return d;
 }
 
+const Ic = ({ d, size = 16 }: { d: string; size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d={d} />
+  </svg>
+);
+const ARROW = 'M9 6l6 6-6 6';
 
-
-// ── Card shell ────────────────────────────────────────────────────────────────
-function GlassCard({ children, className = '' }: { children: ReactNode; className?: string }) {
+function Card({ title, action, children, className = '' }: { title?: string; action?: ReactNode; children: ReactNode; className?: string }) {
   return (
-    <div
-      className={`relative rounded-2xl border border-white/10 backdrop-blur-xl bg-white/5
-        shadow-[0_28px_70px_-28px_rgba(0,0,0,0.85),0_10px_30px_-14px_rgba(139,92,246,0.35)] ${className}`}
-    >
-      <div className="absolute inset-0 rounded-2xl pointer-events-none"
-        style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.01))' }} />
-      <div className="relative">
-        {children}
-      </div>
+    <section className={`fx-card ${className}`}>
+      {title && (
+        <div className="fx-card-head">
+          <h2>{title}</h2>
+          {action}
+        </div>
+      )}
+      {children}
+    </section>
+  );
+}
+
+function Meter({ ratio }: { ratio: number | null }) {
+  const filled = ratio === null ? 0 : Math.max(0, Math.min(1, ratio));
+  const rest = Math.max(1, Math.round((1 - filled) * 8));
+  return (
+    <div className="fx-meter" aria-hidden="true">
+      {filled > 0 && <div className="fx-meter-fill" style={{ width: `${filled * 100}%` }} />}
+      <div className="fx-meter-rest">{Array.from({ length: rest }, (_, i) => <i key={i} />)}</div>
     </div>
   );
 }
 
-function CardTitle({ title, sub, icon }: { title: string; sub?: string; icon?: ReactNode }) {
+// ── Caixa de indicador (Despesas / Poupança / Rendimento / Categoria) ──
+function Kpi({ icon, color, label, value, pct, pctTone = 'neutral', sub }: {
+  icon: string; color: string; label: string; value: string;
+  pct?: string | null; pctTone?: 'good' | 'bad' | 'neutral'; sub: ReactNode;
+}) {
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        {icon && (
-          <span className="w-[34px] h-[34px] rounded-xl border border-white/10 bg-white/7 grid place-items-center text-sm">
-            {icon}
-          </span>
+    <section className="fx-card fx-kpi">
+      <div className="fx-kpi-label">{label}</div>
+      <div className="fx-kpi-row">
+        <span className="fx-kpi-ic" style={{ background: color }}><Ic d={icon} size={20} /></span>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div className="fx-kpi-value">
+            <span>{value}</span>
+            {pct && <span className={'fx-chip ' + pctTone}>{pct}</span>}
+          </div>
+          <div className="fx-kpi-sub">{sub}</div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── Gráfico de área: rendimento vs despesas por mês ─────────────────────
+function OverviewChart({ series, upTo, money, t }: {
+  series: { label: string; earning: number; spending: number }[];
+  upTo: number; // último índice com dados (meses futuros não são desenhados)
+  money: (c: number) => string;
+  t: TFn;
+}) {
+  const [hover, setHover] = useState<number | null>(null);
+  const W = 600, H = 200;
+  const max = Math.max(1, ...series.map((s) => Math.max(s.earning, s.spending)));
+  const step = Math.pow(10, Math.floor(Math.log10(max)));
+  const top = Math.ceil(max / step) * step;
+  const x = (i: number) => (series.length <= 1 ? 0 : (i / (series.length - 1)) * W);
+  const y = (v: number) => H - (v / top) * H;
+  const pts = (k: 'earning' | 'spending') => series.slice(0, upTo + 1).map((s, i) => ({ x: x(i), y: y(s[k]) }));
+  const line = (k: 'earning' | 'spending') => smoothPath(pts(k));
+  const area = (k: 'earning' | 'spending') => `${line(k)} L ${x(upTo)} ${H} L 0 ${H} Z`;
+  const ticks = [top, top * 0.75, top * 0.5, top * 0.25, 0];
+  const short = (c: number) => {
+    const v = c / 100;
+    return v >= 1000 ? `${Math.round(v / 100) / 10}k` : String(Math.round(v));
+  };
+  const hv = hover !== null ? series[hover] : null;
+
+  return (
+    <div className="fx-chart" onMouseLeave={() => setHover(null)}>
+      <div className="fx-yaxis">{ticks.map((v) => <span key={v}>{short(v)}</span>)}</div>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label={t('panel.overview')}>
+        <defs>
+          <linearGradient id="fxEarn" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.45" />
+            <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+          </linearGradient>
+          <linearGradient id="fxSpend" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--teal)" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="var(--teal)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {ticks.map((v) => (
+          <line key={v} x1="0" x2={W} y1={y(v)} y2={y(v)} stroke="var(--track)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+        ))}
+        <path d={area('earning')} fill="url(#fxEarn)" />
+        <path d={line('earning')} fill="none" stroke="var(--accent)" strokeWidth="2.5" vectorEffect="non-scaling-stroke" />
+        <path d={area('spending')} fill="url(#fxSpend)" />
+        <path d={line('spending')} fill="none" stroke="var(--teal)" strokeWidth="2.5" vectorEffect="non-scaling-stroke" />
+        {hover !== null && (
+          <line x1={x(hover)} x2={x(hover)} y1="0" y2={H} stroke="var(--muted)" strokeDasharray="4 4" strokeWidth="1" vectorEffect="non-scaling-stroke" />
         )}
-        <h3 className="text-sm font-semibold text-white/90 tracking-wide">{title}</h3>
-      </div>
-      {sub && <span className="text-xs text-white/50">{sub}</span>}
-    </div>
-  );
-}
-
-
-
-// ── Income Analysis: bar chart (Despesas/Salário/Extras, Excel-style) or category pie ─
-function IncomeChart({ monthly, catTotals, settings, mode }: {
-  monthly: { label: string; expense: number; salary: number; extras: number }[];
-  catTotals: { name: string; totalCents: number }[];
-  settings: AppSettings;
-  mode: 'bars' | 'pie';
-}) {
-  const money = (v: number) => formatMoney(v, settings.currency, settings.language);
-  if (mode === 'pie') {
-    const data = catTotals.length
-      ? catTotals.map((c) => ({ name: c.name, value: c.totalCents }))
-      : [{ name: 'empty', value: 1 }];
-    const palette = ['#22d3ee', '#f472b6', '#60a5fa', '#f59e0b', '#8b5cf6', '#34d399', '#e11d48', '#94a3b8', '#a78bfa', '#fbbf24'];
-    return (
-      <div className="h-[300px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={95}
-              stroke="rgba(255,255,255,0.15)" strokeWidth={1}>
-              {data.map((_, i) => <Cell key={i} fill={palette[i % palette.length]} />)}
-            </Pie>
-            <Tooltip cursor={false}
-              content={({ active, payload }) => {
-                if (!active || !payload || payload.length === 0) return null;
-                const total = data.reduce((s, d) => s + d.value, 0);
-                const v = Number(payload[0].value) || 0;
-                return (
-                  <div className="rounded-xl border border-white/10 bg-white/10 backdrop-blur-xl px-3 py-2 shadow-xl">
-                    <div className="text-xs text-white/50">{payload[0].name}</div>
-                    <div className="text-lg font-bold text-white">{money(v)}</div>
-                    <div className="text-xs text-[#a78bfa]">{total > 0 ? Math.round((v / total) * 100) : 0}%</div>
-                  </div>
-                );
-              }} />
-            <Legend wrapperStyle={{ fontSize: 11, color: 'rgba(255,255,255,0.7)' }} />
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
-    );
-  }
-  return (
-    <div className="h-[300px] w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={monthly} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-          <XAxis dataKey="label" tickLine={false} axisLine={false}
-            tick={{ fill: 'rgba(255,255,255,0.45)', fontSize: 11 }} />
-          <YAxis tickLine={false} axisLine={false} width={56}
-            tick={{ fill: 'rgba(255,255,255,0.45)', fontSize: 11 }}
-            tickFormatter={(v) => money(v)} />
-          <Tooltip cursor={false}
-            content={({ active, payload }) => {
-              if (!active || !payload || payload.length === 0) return null;
-              return (
-                <div className="rounded-xl border border-white/10 bg-white/10 backdrop-blur-xl px-3 py-2 shadow-xl">
-                  <div className="text-xs text-white/50">{payload[0].payload.label}</div>
-                  {payload.map((p) => (
-                    <div key={String(p.name)} className="text-xs text-white/80">{p.name}: {money(Number(p.value) || 0)}</div>
-                  ))}
-                </div>
-              );
-            }} />
-          <Legend wrapperStyle={{ fontSize: 11, color: 'rgba(255,255,255,0.7)' }} />
-          <Bar dataKey="expense" name="Despesas" fill="#22d3ee" radius={[3, 3, 0, 0]} />
-          <Bar dataKey="salary" name="Salário" fill="#34d399" radius={[3, 3, 0, 0]} />
-          <Bar dataKey="extras" name="Extras" fill="#f59e0b" radius={[3, 3, 0, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
-// ── Mockup-style KPI cards (savings / expenses) ───────────────────────────────
-function SavingsCard({ title, valueCents, perMonthCents, salaryCents, extrasCents, pctOfIncome, settings, t }: {
-  title: string; valueCents: number; perMonthCents: number; salaryCents: number;
-  extrasCents: number; pctOfIncome: number | null; settings: AppSettings; t: (k: string) => string;
-}) {
-  const money = (v: number) => formatMoney(v, settings.currency, settings.language);
-  return (
-    <div className="mock-card">
-      <div className="mock-head">
-        <span className="mock-ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 3v18h18"/><path d="M7 14l4-6 4 4 5-7"/></svg></span>
-        {title}
-      </div>
-      <div className="mock-big">{money(Math.max(0, valueCents))}</div>
-      <div className="mock-meta mt-1">
-        Salário: {money(salaryCents)} · Extras: {money(extrasCents)}
-      </div>
-      <div className="pill-bar mt-3">
-        <div className="pill-fill blue" style={{ width: `${pctOfIncome === null ? 0 : clamp(pctOfIncome, 4, 100)}%` }} />
-        <div className="tick-track" aria-hidden="true" />
-      </div>
-      <div className="mock-meta mt-2">
-        {pctOfIncome !== null ? `${pctOfIncome}% ${t('panel.percentSpent')}` : t('panel.noBase')} · {t('panel.savingsPerMonth')}: {money(Math.max(0, perMonthCents))}
-      </div>
-    </div>
-  );
-}
-
-function ExpensesCard({ title, valueCents, count, avgDailyCents, pctOfIncome, settings, t }: {
-  title: string; valueCents: number; count: number; avgDailyCents: number;
-  pctOfIncome: number | null; settings: AppSettings; t: (k: string) => string;
-}) {
-  const money = (v: number) => formatMoney(v, settings.currency, settings.language);
-  return (
-    <div className="mock-card">
-      <div className="mock-head">
-        <span className="mock-ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 3v18h18"/><path d="M7 14l4-6 4 4 5-7"/></svg></span>
-        {title}
-      </div>
-      <div className="mock-big">{money(valueCents)}</div>
-      <div className="mock-meta mt-1">
-        {count} despesas · {money(avgDailyCents)} média/dia
-      </div>
-      <div className="pill-bar mt-3">
-        <div className="pill-fill purple" style={{ width: `${pctOfIncome === null ? 0 : clamp(pctOfIncome, 4, 100)}%` }} />
-        <div className="tick-track" aria-hidden="true" />
-      </div>
-      <div className="mock-meta mt-2">{pctOfIncome !== null ? `${pctOfIncome}% ${t('panel.percentSpent')}` : t('panel.noBase')}</div>
-    </div>
-  );
-}
-
-// ── Category donut (SVG, no extra deps) ───────────────────────────────────────
-function CategoryDonut({ catTotals, totalCents }: {
-  catTotals: { name: string; totalCents: number }[]; totalCents: number;
-}) {
-  const palette = ['#22d3ee', '#f472b6', '#60a5fa', '#f59e0b', '#8b5cf6', '#34d399', '#e11d48', '#94a3b8', '#a78bfa', '#fbbf24'];
-  if (totalCents <= 0 || catTotals.length === 0) {
-    return <div className="mock-meta mt-2">—</div>;
-  }
-  const cx = 60, cy = 60, r = 46;
-  let angle = -Math.PI / 2;
-  const arcs = catTotals.map((c, i) => {
-    const frac = c.totalCents / totalCents;
-    const a0 = angle;
-    const a1 = angle + frac * Math.PI * 2;
-    angle = a1;
-    const large = a1 - a0 > Math.PI ? 1 : 0;
-    const x0 = cx + r * Math.cos(a0);
-    const y0 = cy + r * Math.sin(a0);
-    const x1 = cx + r * Math.cos(a1);
-    const y1 = cy + r * Math.sin(a1);
-    return { d: `M ${cx} ${cy} L ${x0.toFixed(2)} ${y0.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)} Z`, fill: palette[i % palette.length], pct: Math.round(frac * 100), name: c.name };
-  });
-  return (
-    <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-      <svg width="120" height="120" viewBox="0 0 120 120" role="img" aria-label="category breakdown">
-        {arcs.map((a) => (
-          <path key={a.name} d={a.d} fill={a.fill} stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
+        {series.map((_, i) => (
+          <rect key={i} x={x(i) - W / series.length / 2} y="0" width={W / series.length} height={H}
+            fill="transparent" onMouseEnter={() => setHover(i <= upTo ? i : null)} />
         ))}
       </svg>
-      <div style={{ display: 'grid', gap: 4, fontSize: 11.5 }}>
-        {arcs.slice(0, 6).map((a) => (
-          <div key={a.name} style={{ display: 'flex', gap: 6, alignItems: 'center', color: 'rgba(255,255,255,0.75)' }}>
-            <span style={{ width: 8, height: 8, borderRadius: 2, background: a.fill, flex: 'none' }} />
-            {a.name} · {a.pct}%
-          </div>
+      {hv && hover !== null && (
+        <div className="fx-bubble" style={{
+          left: `calc(44px + (100% - 44px) * ${x(hover) / W})`,
+          top: `calc((100% - 22px) * ${y(Math.max(hv.earning, hv.spending)) / H})`,
+        }}>
+          {hv.label} · {money(hv.spending)}
+          <small>{t('panel.earning')}: {money(hv.earning)}</small>
+        </div>
+      )}
+      <div className="fx-xaxis">{series.map((s) => <span key={s.label}>{s.label}</span>)}</div>
+    </div>
+  );
+}
+
+// ── Donut de despesas por categoria (segmentos arredondados) ────────────
+function ExpensesDonut({ items, total, money, t }: {
+  items: { name: string; cents: number; color: string }[];
+  total: number;
+  money: (c: number) => string;
+  t: TFn;
+}) {
+  const r = 62, C = 2 * Math.PI * r, gap = items.length > 1 ? 3 : 0;
+  let offset = 0;
+  const segs = items.map((it) => {
+    const len = (it.cents / total) * C;
+    const seg = { ...it, dash: Math.max(0.01, len - gap), offset };
+    offset += len;
+    return seg;
+  });
+  return (
+    <div style={{ display: 'grid', justifyItems: 'center', gap: 14 }}>
+      <div style={{ position: 'relative', width: 170, height: 170 }}>
+        <svg width="170" height="170" viewBox="0 0 170 170" role="img" aria-label={t('panel.allExpenses')}>
+          <circle cx="85" cy="85" r={r} fill="none" stroke="var(--track)" strokeWidth="20" />
+          <g transform="rotate(-90 85 85)">
+            {segs.map((s) => (
+              <circle key={s.name} cx="85" cy="85" r={r} fill="none" stroke={s.color} strokeWidth="20"
+                strokeDasharray={`${s.dash} ${C}`} strokeDashoffset={-s.offset - gap / 2} />
+            ))}
+          </g>
+        </svg>
+        <div style={{ position: 'absolute', inset: 0, display: 'grid', placeContent: 'center', textAlign: 'center' }}>
+          <span className="fx-label">{t('panel.total')}</span>
+          <b className="fx-num" style={{ fontSize: 18 }}>{money(total)}</b>
+        </div>
+      </div>
+      <div style={{ width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px', fontSize: 12.5 }}>
+        {items.slice(0, 4).map((it) => (
+          <span key={it.name} style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+            <i className="fx-dot" style={{ background: it.color }} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.name}</span>
+            <span className="fx-muted" style={{ marginLeft: 'auto' }}>{Math.round((it.cents / total) * 100)}%</span>
+          </span>
         ))}
       </div>
     </div>
   );
 }
 
-// ── Monthly breakdown table (Jan–Dez, mockup style) ───────────────────────────
-function MonthlyTable({ rows, settings, t }: {
-  rows: { label: string; expense: number; salary: number; extras: number }[];
-  settings: AppSettings; t: (k: string) => string;
-}) {
-  const money = (v: number) => formatMoney(v, settings.currency, settings.language);
-  const maxExp = Math.max(1, ...rows.map((r) => r.expense));
+// 'goalbar:abc' → ['goalbar', 'abc']; widgets fixos → [id, ''].
+function splitId(id: string): [string, string] {
+  const i = id.indexOf(':');
+  return i < 0 ? [id, ''] : [id.slice(0, i), id.slice(i + 1)];
+}
+// A outra variante do mesmo widget (anel ↔ barra), para não pôr as duas por engano.
+function twinOf(id: string): string {
+  const [k, r] = splitId(id);
+  const twin: Record<string, string> = { goal: 'goalbar', goalbar: 'goal', account: 'accountbar', accountbar: 'account' };
+  return twin[k] ? twin[k] + ':' + r : id;
+}
+
+// ── Anel de progresso das metas ─────────────────────────────────────────
+function Ring({ ratio, color, size = 44 }: { ratio: number; color: string; size?: number }) {
+  const sw = size >= 80 ? 8 : 4;
+  const r = size / 2 - sw / 2 - 1, C = 2 * Math.PI * r, p = Math.max(0, Math.min(1, ratio));
   return (
-    <div style={{ display: 'grid', gap: 4 }}>
-      {rows.map((r) => (
-        <div key={r.label} className="mock-row">
-          <span style={{ color: 'rgba(255,255,255,0.7)' }}>{r.label}</span>
-          <div style={{ flex: 1, height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-            <div style={{ width: `${Math.round((r.expense / maxExp) * 100)}%`, height: '100%', background: 'linear-gradient(90deg,#7a1fb8,#b14cf0)' }} />
-          </div>
-          <span style={{ color: 'rgba(255,255,255,0.9)', fontWeight: 600 }}>{money(r.expense)}</span>
-          <span style={{ color: 'rgba(255,255,255,0.45)' }}>{money(Math.max(0, r.salary + r.extras - r.expense))} {t('panel.savedShort')}</span>
-        </div>
-      ))}
+    <div style={{ position: 'relative', width: size, height: size, flex: 'none' }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--track)" strokeWidth={sw} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round"
+          strokeDasharray={`${p * C} ${C}`} transform={`rotate(-90 ${size / 2} ${size / 2})`} />
+      </svg>
+      <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', fontSize: size >= 80 ? 20 : 10.5, fontWeight: 650 }}>
+        {Math.round(p * 100)}%
+      </span>
     </div>
   );
 }
 
-// ── Loan card (recurring transfer, mockup style) ──────────────────────────────
-function LoanCard({ loan, settings, t }: {
-  loan: { monthlyCents: number; pctOfSalary: number | null } | null;
-  settings: AppSettings; t: (k: string) => string;
-}) {
-  const money = (v: number) => formatMoney(v, settings.currency, settings.language);
-  if (!loan || loan.monthlyCents <= 0) {
-    return (
-      <div className="mock-card">
-        <div className="mock-head">
-          <span className="mock-ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h1M3 12h1M3 18h1"/></svg></span>
-          {t('panel.loan') || 'Loan'}
-        </div>
-        <div className="mock-meta">{t('panel.noBase')}</div>
-      </div>
-    );
-  }
+// ── Barra de progresso segmentada (parte cheia + marcas no resto) ─────
+function SegBar({ ratio, tone = 'accent', label }: { ratio: number; tone?: 'accent' | 'amber' | 'teal'; label: string }) {
+  const p = Math.max(0, Math.min(1, ratio));
   return (
-    <div className="mock-card">
-      <div className="mock-head">
-        <span className="mock-ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h1M3 12h1M3 18h1"/></svg></span>
-        {t('panel.loan') || 'Loan'}
-      </div>
-      <div className="mock-big">{money(loan.monthlyCents)}</div>
-      <div className="mock-meta mt-1">
-        {loan.pctOfSalary !== null ? `${loan.pctOfSalary}% do salário` : money(loan.monthlyCents) + ' / mês'}
-      </div>
+    <div className={'fx-segbar ' + tone} role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(p * 100)}>
+      <div className="fx-segbar-fill" style={{ width: `max(${(p * 100).toFixed(2)}%, ${p > 0 ? '18px' : '0px'})` }} />
+      <div className="fx-segbar-ticks" />
     </div>
   );
 }
 
-// ── AI tip card (mockup style, real data only) ────────────────────────────────
-function AiTipCard({ savingsPct, missingMonths, topCategory, t }: {
-  savingsPct: number | null; missingMonths: number; topCategory: string | null; t: (k: string) => string;
-}) {
-  const tips: string[] = [];
-  if (missingMonths > 0) tips.push(`Faltam ${missingMonths} salário(s) registado(s) para calcular poupança.`);
-  if (savingsPct !== null && savingsPct < 20) tips.push('Gasto acima de 80% do rendimento — revisiona categorias.');
-  if (topCategory) tips.push(`Maior categoria: ${topCategory}.`);
-  if (tips.length === 0) tips.push('Sem dados suficientes para recomendações.');
-  return (
-    <div className="mock-card">
-      <div className="mock-head">
-        <span className="mock-ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 3a7 7 0 0 1 4 12l-1 5h-6l-1-5A7 7 0 0 1 12 3z"/></svg></span>
-        {t('panel.aiAssistant') || 'AI Assistant'}
-      </div>
-      <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.8)', display: 'grid', gap: 6 }}>
-        {tips.map((tip) => <div key={tip}>{tip}</div>)}
-      </div>
-    </div>
-  );
+// Meses (inteiros, mínimo 1) entre hoje e uma data AAAA-MM-DD; null se já passou.
+function monthsUntil(dateISO: string): number | null {
+  const now = new Date();
+  const [y, m, d] = dateISO.split('-').map(Number);
+  const diff = (y - now.getFullYear()) * 12 + (m - 1 - now.getMonth()) + (d >= now.getDate() ? 0 : -1);
+  if (diff < 0) return null;
+  return Math.max(1, diff);
 }
 
-// ── Daily Spend calendar ──────────────────────────────────────────────────────
-function DailySpendCalendar({ monthTx, settings, t }: {
-  monthTx: Transaction[];
-  settings: AppSettings;
-  t: (k: string) => string;
+// ── Calendário de gasto diário (intensidade = valor) ───────────────────
+function DailyCalendar({ txs, settings, money, t }: {
+  txs: Transaction[]; settings: AppSettings; money: (c: number) => string; t: TFn;
 }) {
   const navigate = useNavigate();
-  const [cursor, setCursor] = useState(() => {
-    const d = new Date();
+  const today = new Date();
+  const [cur, setCur] = useState({ y: today.getFullYear(), m: today.getMonth() });
+  const days = new Date(cur.y, cur.m + 1, 0).getDate();
+  const prefix = `${cur.y}-${pad(cur.m + 1)}`;
+  const spend = new Array<number>(days + 1).fill(0);
+  for (const tx of txs) {
+    if (tx.type !== 'expense' || !tx.date.startsWith(prefix)) continue;
+    spend[parseInt(tx.date.slice(8, 10), 10)] += tx.amountCents;
+  }
+  const max = Math.max(1, ...spend);
+  const total = spend.reduce((a, b) => a + b, 0);
+  const first = settings.firstDayOfWeek ?? 1;
+  const lead = (new Date(cur.y, cur.m, 1).getDay() - first + 7) % 7;
+  const wk = Array.from({ length: 7 }, (_, i) =>
+    new Date(2024, 0, 7 + ((first + i) % 7)).toLocaleDateString(settings.language, { weekday: 'narrow' }));
+  const title = new Date(cur.y, cur.m, 1).toLocaleDateString(settings.language, { month: 'long', year: 'numeric' });
+  const isToday = (d: number) => cur.y === today.getFullYear() && cur.m === today.getMonth() && d === today.getDate();
+  const move = (n: number) => setCur((c) => {
+    const d = new Date(c.y, c.m + n, 1);
     return { y: d.getFullYear(), m: d.getMonth() };
   });
 
-  const daysInMonth = new Date(cursor.y, cursor.m + 1, 0).getDate();
-  const spend = new Array(daysInMonth + 1).fill(0);
-  for (const tx of monthTx) {
-    if (tx.type !== 'expense') continue;
-    const day = parseInt(tx.date.slice(8, 10), 10);
-    if (day >= 1 && day <= daysInMonth) spend[day] += tx.amountCents;
-  }
-  const maxDay = Math.max(1, ...spend);
-  const monthLabel = new Date(cursor.y, cursor.m, 1).toLocaleString(settings.language, { month: 'long', year: 'numeric' });
-
-  const monthTotal = spend.reduce((a, b) => a + b, 0);
-
-  const cellColor = (v: number) => {
-    if (v === 0) return 'rgba(255,255,255,0.05)';
-    const intensity = clamp(v / maxDay, 0.15, 1);
-    return `rgba(139,92,246,${0.18 + intensity * 0.6})`;
-  };
-
-  const prev = () => setCursor((c) => (c.m === 0 ? { y: c.y - 1, m: 11 } : { y: c.y, m: c.m - 1 }));
-  const next = () => setCursor((c) => (c.m === 11 ? { y: c.y + 1, m: 0 } : { y: c.y, m: c.m + 1 }));
-
   return (
-    <GlassCard className="p-4">
-      <div className="flex items-center justify-between mb-3">
-        <button onClick={prev} aria-label={t('panel.prevMonth')}
-          className="rounded-xl border border-white/10 bg-white/5 backdrop-blur px-3 py-2 text-white/80 hover:bg-white/10 transition">
-          ‹
-        </button>
-        <div className="text-center">
-          <h3 className="text-sm font-semibold text-white/90">{t('panel.dailySpend')}</h3>
-          <div className="text-xs text-white/50">{monthLabel}</div>
-        </div>
-        <button onClick={next} aria-label={t('panel.nextMonth')}
-          className="rounded-xl border border-white/10 bg-white/5 backdrop-blur px-3 py-2 text-white/80 hover:bg-white/10 transition">
-          ›
-        </button>
+    <Card title={t('panel.dailySpend')} action={
+      <div style={{ display: 'flex', gap: 6 }}>
+        <button type="button" className="fx-link" onClick={() => move(-1)} aria-label={t('panel.prevMonth')}><Ic d="M15 6l-6 6 6 6" size={14} /></button>
+        <button type="button" className="fx-link" onClick={() => move(1)} aria-label={t('panel.nextMonth')}><Ic d={ARROW} size={14} /></button>
       </div>
-      <div className="cal-grid grid grid-cols-7 gap-1">
-        {Array.from({ length: daysInMonth }, (_, i) => {
-          const day = i + 1;
-          const v = spend[day];
+    }>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+        <span style={{ fontSize: 13 }}>{cap(title)}</span>
+        <span className="fx-num" style={{ fontSize: 13 }}>{money(total)}</span>
+      </div>
+      <div className="fx-cal">
+        {wk.map((w, i) => <span key={i} className="fx-cal-h">{w}</span>)}
+        {Array.from({ length: lead }, (_, i) => <span key={'e' + i} />)}
+        {Array.from({ length: days }, (_, i) => {
+          const d = i + 1, v = spend[d];
+          const a = v > 0 ? 0.25 + 0.75 * (v / max) : 0;
+          const date = `${prefix}-${pad(d)}`;
           return (
-            <div key={day}
-              role="button"
-              tabIndex={0}
-              onClick={() => navigate(`/dia/${cursor.y}-${String(cursor.m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  navigate(`/dia/${cursor.y}-${String(cursor.m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
-                }
-              }}
-              className="cal-cell border border-white/10 backdrop-blur text-center overflow-hidden transition cursor-pointer hover:border-violet-400/40"
-              style={{ background: cellColor(v), boxShadow: v > 0 ? '0 6px 16px -8px rgba(139,92,246,0.55)' : 'none' }}>
-              <div className="text-[11px] text-white/70">{day}</div>
-              <div className="text-[11px] font-semibold text-white/90 truncate">
-                {formatMoney(v, settings.currency, settings.language)}
-              </div>
-            </div>
+            <button key={d} type="button" className={'fx-cal-d' + (isToday(d) ? ' today' : '')}
+              onClick={() => navigate(`/dia/${date}`)}
+              aria-label={`${d}: ${money(v)}`} title={money(v)}
+              style={v > 0 ? { background: `color-mix(in srgb, var(--accent) ${Math.round(a * 100)}%, var(--card-2))`, color: a > 0.55 ? '#fff' : undefined } : undefined}>
+              {d}
+            </button>
           );
         })}
       </div>
-      <div className="mt-3 flex items-center justify-between text-xs text-white/50">
-        <span>{t('panel.totalSpent') || 'Total'}</span>
-        <span className="text-white/80 font-semibold">{formatMoney(monthTotal, settings.currency, settings.language)}</span>
-      </div>
-    </GlassCard>
+    </Card>
   );
 }
 
-// ── Main Dashboard ────────────────────────────────────────────────────────────
+// ── Painel ──────────────────────────────────────────────────────────────
 export function Dashboard() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [settings, setSettings] = useState<AppSettings>(loadSettings());
   const [txs, setTxs] = useState<Transaction[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [cats, setCats] = useState<Category[]>([]);
   const [salaries, setSalaries] = useState<Salary[]>([]);
+  const [transfers, setTransfers] = useState<Transfer[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [chartMode, setChartMode] = useState<'bars' | 'pie'>('bars');
-  const [period, setPeriod] = useState<'month' | 'year'>('month');
-  const [filterCat, setFilterCat] = useState('');
+  const [period, setPeriod] = useState<Period>('month');
+  const { accounts, active, setActive } = useAccounts();
+  const [recurrings, setRecurrings] = useState<Recurring[]>([]);
+  const [layout, setLayoutState] = useState<Layout>(loadLayout);
+  const [editing, setEditing] = useState(false);
+  const [gallery, setGallery] = useState(false);
+  const [contrib, setContrib] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
-        const [allTx, allB, allC, allS] = await Promise.all([
-          db.transactions.toArray(),
-          db.budgets.toArray(),
-          db.categories.toArray(),
-          db.salaries.toArray(),
+        await materializeDueRecurrings(db, todayISO()).catch(() => 0);
+        const [allTx, allB, allC, allS, allG, allR] = await Promise.all([
+          db.transactions.toArray(), db.budgets.toArray(), db.categories.toArray(),
+          db.salaries.toArray(), db.goals.toArray(), db.recurrings.toArray(),
         ]);
         if (!alive) return;
         setTxs(allTx.filter((x) => !x.deletedAt));
         setBudgets(allB.filter((x) => !x.deletedAt));
         setCats(allC.filter((x) => !x.deletedAt));
         setSalaries(allS.filter((x) => !x.deletedAt));
+        setTransfers(await loadTransfers(db));
+        setGoals(allG.filter((x) => !x.deletedAt));
+        setRecurrings(allR.filter((x) => !x.deletedAt));
         setSettings(loadSettings());
       } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
+        if (alive) setError(e instanceof Error ? e.message : String(e));
       } finally {
         if (alive) setLoading(false);
       }
@@ -430,202 +364,594 @@ export function Dashboard() {
     return () => { alive = false; };
   }, []);
 
-  if (loading) {
-    return <div className="text-white/60 text-sm">{t('panel.loading')}</div>;
-  }
-  if (error) {
-    return <div className="text-white/60 text-sm">{error}</div>;
-  }
-
+  const lang = settings.language || i18n.language;
+  const money = (c: number) => formatMoney(Math.round(c), settings.currency, lang);
   const now = new Date();
-  const curMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const monthTx = txs.filter((tx) => tx.date.startsWith(curMonth));
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
 
-  // Filtered transactions for the selected period/category (Excel-style filters)
-  const inPeriod = (tx: Transaction) => {
-    if (filterCat && tx.categoryId !== filterCat) return false;
-    if (period === 'month') return tx.date.startsWith(curMonth);
-    return tx.date.startsWith(String(now.getFullYear()));
+  const catById = useMemo(() => new Map(cats.map((c) => [c.id, c])), [cats]);
+  const catName = (c?: Category) => (c ? catLabel(t, c) : '—');
+  const catColor = (c: Category | undefined, i: number) => c?.color || PALETTE[i % PALETTE.length];
+
+  if (loading) return <div className="fx-page fx-muted">{t('panel.loading')}</div>;
+  if (error) return <div className="fx-page fx-neg">{error}</div>;
+
+  // Período escolhido (mês atual ou ano atual)
+  const prefix = period === 'month' ? `${year}-${pad(month)}` : String(year);
+  const accTxs = txsOfAccount(txs, active, accounts);
+  const periodTx = accTxs.filter((tx) => tx.date.startsWith(prefix));
+  const kpis = periodKpis(periodTx, cats);
+  const daysInPeriod = period === 'month'
+    ? new Date(year, month, 0).getDate()
+    : (new Date(year, 1, 29).getMonth() === 1 ? 366 : 365);
+
+  // Salários pertencem à conta predefinida (ou a todas).
+  const salaryHere = active === ALL_ACCOUNTS || active === defaultAccountId(accounts);
+  const salaryCents = !salaryHere ? 0 : salaries
+    .filter((s) => s.year === year && (period === 'year' || s.month === month))
+    .reduce((a, s) => a + s.amountCents, 0);
+  const extrasCents = periodTx.filter((tx) => tx.type === 'income').reduce((a, tx) => a + tx.amountCents, 0);
+  const income = salaryCents + extrasCents;
+  const spent = kpis.totalSpentCents;
+  const savings = income > 0 ? income - spent : null;
+  const pctSpent = income > 0 ? spent / income : null;
+  const avgDay = Math.round(spent / daysInPeriod);
+  const prevPrefix = period === 'month'
+    ? (month === 1 ? `${year - 1}-12` : `${year}-${pad(month - 1)}`)
+    : String(year - 1);
+  const prevSpent = accTxs.filter((tx) => tx.type === 'expense' && tx.date.startsWith(prevPrefix)).reduce((a, tx) => a + tx.amountCents, 0);
+  const deltaSpent = prevSpent > 0 ? (spent - prevSpent) / prevSpent : null;
+  const pctTxt = (r: number | null) => (r === null ? null : `${Math.round(r * 100)}%`);
+
+  // Despesas por categoria (ordenadas)
+  const byCat = new Map<string, number>();
+  for (const tx of periodTx) {
+    if (tx.type === 'expense') byCat.set(tx.categoryId, (byCat.get(tx.categoryId) ?? 0) + tx.amountCents);
+  }
+  const catItems = [...byCat.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([id, cents], i) => ({ name: catName(catById.get(id)), cents, color: catColor(catById.get(id), i) }));
+
+  // Série mensal do ano (rendimento = salário + receitas; despesas)
+  const series = Array.from({ length: 12 }, (_, i) => {
+    const key = `${year}-${pad(i + 1)}`;
+    let spending = 0, extra = 0;
+    for (const tx of accTxs) {
+      if (!tx.date.startsWith(key)) continue;
+      if (tx.type === 'expense') spending += tx.amountCents; else extra += tx.amountCents;
+    }
+    const sal = !salaryHere ? 0 : salaries.filter((s) => s.year === year && s.month === i + 1).reduce((a, s) => a + s.amountCents, 0);
+    return {
+      label: cap(new Date(year, i, 1).toLocaleDateString(lang, { month: 'short' }).replace('.', '')),
+      earning: sal + extra,
+      spending,
+    };
+  });
+  const yearSpent = series.reduce((a, s) => a + s.spending, 0);
+
+  // Orçamento do mês atual
+  const monthPrefix = `${year}-${pad(month)}`;
+  const monthBudgets = budgets.filter((b) => b.year === year && b.month === month);
+  const budgetLimit = monthBudgets.reduce((a, b) => a + b.limitCents, 0);
+  const budgetUsed = monthBudgets.reduce((a, b) => a + accTxs
+    .filter((tx) => tx.type === 'expense' && tx.categoryId === b.categoryId && tx.date.startsWith(monthPrefix))
+    .reduce((s, tx) => s + tx.amountCents, 0), 0);
+
+  // Transações recentes
+  const recent = [...accTxs].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt)).slice(0, 7);
+  const fmtDate = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString(lang, { day: 'numeric', month: 'short' });
+
+  const activeGoals = [...goals].sort((a, b) => (a.targetDate ?? '9').localeCompare(b.targetDate ?? '9')).slice(0, 3);
+  const goalColors = ['var(--accent)', 'var(--teal)', 'var(--pink)'];
+
+  // ── Janelas (widgets) ──────────────────────────────────────────────────
+  const STATIC_WIDGETS = ['goals', 'budget', 'summary', 'overview', 'categories', 'calendar', 'recent', 'accounts', 'forecast', 'last7', 'topExpenses', 'upcoming', 'checklist'];
+  const salaryToDate = salariesUntil(salaries, year, month);
+  const balOf = (a: Account) => accountBalanceCents(a, txs, accounts, salaryToDate, transfers);
+  const currentOf = (g: Goal) => (g.accountIds && g.accountIds.length
+    ? accounts.filter((a) => g.accountIds!.includes(a.id)).reduce((sum, a) => sum + balOf(a), 0)
+    : g.currentCents);
+  const defId = defaultAccountId(accounts);
+  const seeAll = (to: string, label: string) => <Link to={to} className="fx-link" aria-label={label}><Ic d={ARROW} size={14} /></Link>;
+  const typeIcon: Record<Account['type'], string> = { spending: ICON.wallet, savings: ICON.piggy, debt: ICON.debt };
+
+  const widgetLabel = (id: string): string => {
+    const [kind, ref] = splitId(id);
+    if (kind === 'goal' || kind === 'goalbar') return goals.find((g) => g.id === ref)?.name ?? '';
+    if (kind === 'account' || kind === 'accountbar') return accounts.find((a) => a.id === ref)?.name ?? '';
+    return t('panel.w_' + id);
+  };
+  const widgetValid = (id: string) => {
+    const [kind, ref] = splitId(id);
+    if (kind === 'goal' || kind === 'goalbar') return goals.some((g) => g.id === ref);
+    if (kind === 'account') return accounts.some((a) => a.id === ref);
+    if (kind === 'accountbar') return accounts.some((a) => a.id === ref && a.type === 'debt');
+    return STATIC_WIDGETS.includes(id);
+  };
+  // Botão "Anel / Barra" visível no modo Personalizar.
+  const styleSwitch = (id: string, ringId: string, barId: string) => editing ? (
+    <div className="fx-seg sm" role="group" aria-label={t('panel.widgetStyle')}>
+      <button type="button" className={id === ringId ? 'on' : ''} aria-pressed={id === ringId} onClick={() => setLayout(swapWidget(layout, id, ringId))}>{t('panel.styleRing')}</button>
+      <button type="button" className={id === barId ? 'on' : ''} aria-pressed={id === barId} onClick={() => setLayout(swapWidget(layout, id, barId))}>{t('panel.styleBar')}</button>
+    </div>
+  ) : null;
+
+  const setLayout = (l: Layout) => { setLayoutState(l); saveLayout(l); };
+  const placed = new Set(layout.flat());
+
+  const submitContribution = async (goalId: string) => {
+    const cents = parseMoneyToCents(contrib[goalId] || '');
+    if (cents === null || cents <= 0) return;
+    await contributeToGoal(db, goalId, cents);
+    setContrib((c) => ({ ...c, [goalId]: '' }));
+    setGoals((await db.goals.toArray()).filter((x) => !x.deletedAt));
   };
 
-  // Monthly bars for the bar chart: expenses / salary / extras per month of the year
-  const monthlyBars: { label: string; expense: number; salary: number; extras: number }[] = [];
-  for (let m = 0; m < 12; m++) {
-    const key = `${now.getFullYear()}-${String(m + 1).padStart(2, '0')}`;
-    let exp = 0, extra = 0;
-    for (const tx of txs) {
-      if (!tx.date.startsWith(key)) continue;
-      if (filterCat && tx.categoryId !== filterCat) continue;
-      if (tx.type === 'expense') exp += tx.amountCents;
-      else extra += tx.amountCents;
+  const renderWidget = (id: string): ReactNode | null => {
+    const [wKind, wRef] = splitId(id);
+    if (wKind === 'goal' || wKind === 'goalbar') {
+      const g = goals.find((x) => x.id === wRef);
+      if (!g) return null;
+      const cur = currentOf(g);
+      const ratio = g.targetCents > 0 ? cur / g.targetCents : 0;
+      const left = Math.max(0, g.targetCents - cur);
+      const linked = !!(g.accountIds && g.accountIds.length);
+      const action = styleSwitch(id, 'goal:' + g.id, 'goalbar:' + g.id) ?? seeAll('/metas', t('panel.seeAll'));
+      const contribRow = !linked && (
+        <div className="fx-inline">
+          <input className="fx-input" inputMode="decimal" placeholder={t('goals.amount')} aria-label={t('goals.amount')} value={contrib[g.id] ?? ''}
+            onChange={(e) => setContrib({ ...contrib, [g.id]: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') submitContribution(g.id); }} />
+          <button type="button" className="fx-btn" onClick={() => submitContribution(g.id)}>{t('goals.contribute')}</button>
+        </div>
+      );
+      if (wKind === 'goalbar') {
+        const months = g.targetDate ? monthsUntil(g.targetDate) : null;
+        const perMonth = months && left > 0 ? Math.ceil(left / months) : null;
+        const pctTxt1 = new Intl.NumberFormat(settings.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(Math.max(0, Math.min(ratio, 9.99)) * 100);
+        return (
+          <Card title={g.name} action={action} className="fx-barcard">
+            <div className="fx-bar-big">{money(cur)}</div>
+            <div className="fx-bar-sub">
+              {perMonth !== null && <>{t('panel.perMonthNeeded', { value: money(perMonth) })} · </>}
+              {t('panel.ofTarget', { value: money(g.targetCents) })} · {left > 0 ? t('panel.remaining', { value: money(left) }) : t('panel.goalReached')}
+            </div>
+            <SegBar ratio={ratio} label={g.name} />
+            <div className="fx-bar-foot">
+              <span>{t('panel.pctOfGoal', { pct: pctTxt1 })}</span>
+              <span>{g.targetDate ? `${t('panel.deadline')}: ${fmtDate(g.targetDate)}` : t('panel.noDeadline')}</span>
+            </div>
+            {contribRow}
+          </Card>
+        );
+      }
+      return (
+        <Card title={g.name} action={action}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+            <Ring ratio={ratio} color="var(--accent)" size={96} />
+            <div style={{ minWidth: 0 }}>
+              <div className="fx-big" style={{ fontSize: 24 }}>{money(cur)}</div>
+              <div className="fx-label">{t('panel.ofTarget', { value: money(g.targetCents) })}</div>
+              <div className="fx-label" style={{ marginTop: 6 }}>{left > 0 ? t('panel.remaining', { value: money(left) }) : t('panel.goalReached')}</div>
+              <div className="fx-label">{g.targetDate ? `${t('panel.deadline')}: ${fmtDate(g.targetDate)}` : t('panel.noDeadline')}</div>
+            </div>
+          </div>
+          {contribRow}
+        </Card>
+      );
     }
-    const sal = salaries.find((s) => s.year === now.getFullYear() && s.month === m + 1);
-    monthlyBars.push({
-      label: new Date(now.getFullYear(), m, 1).toLocaleString(settings.language, { month: 'short' }),
-      expense: exp,
-      salary: sal ? sal.amountCents : 0,
-      extras: extra,
-    });
-  }
 
-  // Category totals for the pie (respecting period + category filter)
-  const filteredTx = txs.filter(inPeriod);
-  const catTotals: { name: string; totalCents: number }[] = [];
-  for (const tx of filteredTx) {
-    if (tx.type !== 'expense') continue;
-    const c = cats.find((x) => x.id === tx.categoryId);
-    const name = c?.name ?? '—';
-    const found = catTotals.find((x) => x.name === name);
-    if (found) found.totalCents += tx.amountCents;
-    else catTotals.push({ name, totalCents: tx.amountCents });
-  }
-  catTotals.sort((a, b) => b.totalCents - a.totalCents);
-
-  // Prev month for the vs-last-month deltas (unchanged logic)
-
-  const monthIncome = monthTx.filter((tx) => tx.type === 'income').reduce((a, tx) => a + tx.amountCents, 0);
-  const monthExpense = monthTx.filter((tx) => tx.type === 'expense').reduce((a, tx) => a + tx.amountCents, 0);
-  const savings = monthIncome - monthExpense;
-
-  // Excel "Resumo" data for the selected period (used by KPI strip via periodKpis)
-  const periodTx = txs.filter(inPeriod);
-
-  // Excel "Resumo" KPIs for the selected period (pure helpers from core/finance)
-  const kpis = periodKpis(periodTx, cats);
-
-  // Income base for % spent/saved: salaries registered in the period + extras (income tx).
-  const curYear = now.getFullYear();
-  const salaryInPeriod = period === 'year'
-    ? salaries.filter((s) => s.year === curYear && s.month === now.getMonth() + 1).reduce((a, s) => a + s.amountCents, 0)
-    : salaries.filter((s) => s.year === curYear).reduce((a, s) => a + s.amountCents, 0);
-  const periodSalaryCents = salaryInPeriod;
-  const periodExtrasCents = periodTx.filter((tx) => tx.type === 'income').reduce((a, tx) => a + tx.amountCents, 0);
-  const incomeTotal = salaryInPeriod + periodExtrasCents;
-
-  // Loan: recurring transfers (mockup shows "Empréstimo ao tio - 50% da casa").
-  const loanInfo = (() => {
-    const loanTx = monthTx.find((tx) => /tio|loan|empr[eé]stimo/i.test(tx.description ?? ''));
-    const salary = salaries.find((s) => s.year === now.getFullYear() && s.month === now.getMonth() + 1);
-    return loanTx ? { monthlyCents: loanTx.amountCents, pctOfSalary: salary ? Math.round((loanTx.amountCents / salary.amountCents) * 100) : null } : null;
-  })();
-
-  // Months of this year without a registered salary (for the AI tip card).
-  const missingSalaryMonths = (() => {
-    let n = 0;
-    for (let m = 1; m <= now.getMonth() + 1; m++) {
-      if (!salaries.some((s) => s.year === curYear && s.month === m)) n++;
+    if (wKind === 'account' || wKind === 'accountbar') {
+      const a = accounts.find((x) => x.id === wRef);
+      if (!a) return null;
+      const bal = balOf(a);
+      const mine = txsOfAccount(txs, a.id, accounts);
+      if (a.type === 'debt') {
+        const owed = Math.max(bal, 0);
+        const total = a.initialBalanceCents;
+        const paid = Math.max(0, total - owed);
+        const payments = mine.filter((x) => x.type === 'expense').length + transfers.filter((x) => x.toAccountId === a.id).length;
+        const src = suggestedSource(accounts, a.id);
+        const abate = async () => {
+          const cents = parseMoneyToCents(contrib['abate:' + a.id] ?? '');
+          if (!src || cents === null || cents <= 0) return;
+          try {
+            await addTransfer(db, { fromAccountId: src.id, toAccountId: a.id, amountCents: cents, date: todayISO(), note: '' });
+            setContrib((c) => ({ ...c, ['abate:' + a.id]: '' }));
+            setTransfers(await loadTransfers(db));
+          } catch { /* moedas diferentes ou valor inválido: ignora */ }
+        };
+        const abateRow = src && owed > 0 && (
+          <div className="fx-inline" style={{ marginTop: 12 }}>
+            <input className="fx-input" inputMode="decimal" placeholder={t('panel.abatePlaceholder', { from: src.name })} value={contrib['abate:' + a.id] ?? ''}
+              onChange={(e) => setContrib((c) => ({ ...c, ['abate:' + a.id]: e.target.value }))} onKeyDown={(e) => { if (e.key === 'Enter') abate(); }} />
+            <button type="button" className="fx-btn primary" onClick={abate}>{t('accounts.abate')}</button>
+          </div>
+        );
+        const action = styleSwitch(id, 'account:' + a.id, 'accountbar:' + a.id) ?? seeAll('/contas', t('accounts.title'));
+        if (wKind === 'accountbar') {
+          const r = total > 0 ? paid / total : 0;
+          const pctTxt1 = new Intl.NumberFormat(settings.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(r * 100);
+          return (
+            <Card title={a.name} action={action} className="fx-barcard">
+              <div className="fx-bar-big">{money(owed)}</div>
+              <div className="fx-bar-sub">{t('panel.owed')} · {t('panel.paidOff', { value: money(paid), total: money(total) })} · {t('panel.payments', { count: payments })}</div>
+              <SegBar ratio={r} tone="amber" label={a.name} />
+              <div className="fx-bar-foot"><span>{t('panel.pctPaid', { pct: pctTxt1 })}</span><span>{owed > 0 ? t('panel.remaining', { value: money(owed) }) : t('panel.goalReached')}</span></div>
+              {abateRow}
+            </Card>
+          );
+        }
+        return (
+          <Card title={a.name} action={action}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+              <Ring ratio={total > 0 ? paid / total : 0} color="var(--amber)" size={96} />
+              <div style={{ minWidth: 0 }}>
+                <div className="fx-label">{t('panel.owed')}</div>
+                <div className="fx-big" style={{ fontSize: 24 }}>{money(owed)}</div>
+                <div className="fx-label" style={{ marginTop: 6 }}>{t('panel.paidOff', { value: money(paid), total: money(total) })}</div>
+                <div className="fx-label">{t('panel.payments', { count: payments })}</div>
+              </div>
+            </div>
+            {abateRow}
+          </Card>
+        );
+      }
+      const inc = mine.filter((x) => x.type === 'income' && x.date.startsWith(prefix)).reduce((sum, x) => sum + x.amountCents, 0)
+        + transfers.filter((x) => x.toAccountId === a.id && x.date.startsWith(prefix)).reduce((sum, x) => sum + x.amountCents, 0);
+      const out = mine.filter((x) => x.type === 'expense' && x.date.startsWith(prefix)).reduce((sum, x) => sum + x.amountCents, 0)
+        + transfers.filter((x) => x.fromAccountId === a.id && x.date.startsWith(prefix)).reduce((sum, x) => sum + x.amountCents, 0);
+      return (
+        <Card title={a.name} action={seeAll('/contas', t('accounts.title'))}>
+          <div className="fx-label">{t('accounts.type_' + a.type)}{a.id === defId ? ` · ${t('accounts.default')}` : ''}</div>
+          <div className={'fx-big' + (bal < 0 ? ' fx-neg' : '')} style={{ margin: '6px 0 12px' }}>{money(bal)}</div>
+          <div className="fx-stat"><span>{t('panel.inPeriod')}</span><span className="fx-num fx-pos">+{money(inc)}</span></div>
+          <div className="fx-stat"><span>{t('panel.outPeriod')}</span><span className="fx-num">−{money(out)}</span></div>
+        </Card>
+      );
     }
-    return n;
-  })();
 
-  // Budget usage
-  let budgetTotal = 0, budgetUsed = 0;
-  for (const b of budgets) {
-    const used = monthTx.filter((tx) => tx.type === 'expense' && tx.categoryId === b.categoryId)
-      .reduce((a, tx) => a + tx.amountCents, 0);
-    budgetTotal += b.limitCents;
-    budgetUsed += used;
-  }
+    switch (id) {
+      case 'goals':
+        return (
+          <Card title={t('panel.financialGoals')} action={seeAll('/metas', t('panel.seeAll'))}>
+            {activeGoals.length === 0 ? (
+              <div className="fx-empty">
+                {t('panel.noGoals')}<br />
+                <Link to="/metas" className="fx-btn" style={{ marginTop: 12 }}>{t('panel.createGoal')}</Link>
+              </div>
+            ) : (
+              <div className="fx-list">
+                {activeGoals.map((g, i) => (
+                  <div key={g.id} className="fx-item">
+                    <Ring ratio={g.targetCents > 0 ? currentOf(g) / g.targetCents : 0} color={goalColors[i % 3]} />
+                    <div className="fx-item-main">
+                      <b>{g.name}</b>
+                      <span>{g.targetDate ? `${t('panel.deadline')}: ${fmtDate(g.targetDate)}` : t('panel.noDeadline')}</span>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div className="fx-label">{t('panel.goal')}</div>
+                      <div className="fx-num" style={{ fontSize: 13.5 }}>{money(g.targetCents)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        );
+      case 'budget':
+        return (
+          <Card title={t('panel.budgetUsage')} action={seeAll('/orcamentos', t('panel.manageBudgets'))}>
+            {budgetLimit === 0 ? (
+              <div className="fx-muted" style={{ fontSize: 13 }}>{t('panel.budgetEmpty')}</div>
+            ) : (
+              <>
+                <Meter ratio={budgetUsed / budgetLimit} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
+                  <span className="fx-muted">{t('panel.budgetSpentOf', { spent: money(budgetUsed), limit: money(budgetLimit) })}</span>
+                  <span className={'fx-num' + (budgetUsed > budgetLimit ? ' fx-neg' : '')}>{Math.round((budgetUsed / budgetLimit) * 100)}%</span>
+                </div>
+              </>
+            )}
+          </Card>
+        );
+      case 'summary':
+        return (
+          <Card title={t('panel.summary')}>
+            <div className="fx-stat"><span>{t('panel.dailyAverage')}</span><span className="fx-num">{money(avgDay)}</span></div>
+            <div className="fx-stat"><span>{t('panel.expenseCount')}</span><span className="fx-num">{kpis.expenseCount}</span></div>
+            <div className="fx-stat"><span>{t('panel.largestExpense')}</span><span className="fx-num">{money(kpis.largestExpenseCents)}</span></div>
+            <div className="fx-stat"><span>{t('panel.salaryInPeriod')}</span><span className="fx-num">{money(salaryCents)}</span></div>
+          </Card>
+        );
+      case 'overview':
+        return (
+          <Card>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>{t('panel.overview')}</h2>
+                <div className="fx-big" style={{ marginTop: 8 }}>{money(yearSpent)}</div>
+                <div className="fx-label" style={{ marginTop: 2 }}>{t('panel.spentThisYear', { year })}</div>
+              </div>
+              <div className="fx-legend">
+                <span><i className="fx-dot" style={{ background: 'var(--accent)' }} />{t('panel.earning')}</span>
+                <span><i className="fx-dot" style={{ background: 'var(--teal)' }} />{t('panel.spending')}</span>
+              </div>
+            </div>
+            <OverviewChart series={series} upTo={month - 1} money={money} t={t} />
+          </Card>
+        );
+      case 'categories':
+        return (
+          <Card title={t('panel.allExpenses')}>
+            {catItems.length === 0
+              ? <div className="fx-empty">{t('panel.noTransactions')}</div>
+              : <ExpensesDonut items={catItems} total={spent} money={money} t={t} />}
+          </Card>
+        );
+      case 'calendar':
+        return <DailyCalendar txs={accTxs} settings={settings} money={money} t={t} />;
+      case 'recent':
+        return (
+          <Card title={t('panel.recentTransactions')} action={seeAll('/transacoes', t('panel.seeAll'))}>
+            {recent.length === 0 ? (
+              <div className="fx-empty">{t('panel.noTransactions')}</div>
+            ) : (
+              <div className="fx-list">
+                {recent.map((tx, i) => {
+                  const c = catById.get(tx.categoryId);
+                  const label = tx.description || catName(c);
+                  return (
+                    <div key={tx.id} className="fx-item">
+                      <span className="fx-avatar" style={{ background: catColor(c, i) }}>{label.charAt(0).toUpperCase()}</span>
+                      <div className="fx-item-main">
+                        <b>{label}</b>
+                        <span>{catName(c)} · {fmtDate(tx.date)}</span>
+                      </div>
+                      <span className={'fx-num ' + (tx.type === 'income' ? 'fx-pos' : '')} style={{ fontSize: 13.5 }}>
+                        {tx.type === 'income' ? '+' : '−'}{money(tx.amountCents)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+        );
+      case 'accounts':
+        return (
+          <Card title={t('panel.w_accounts')} action={seeAll('/contas', t('accounts.title'))}>
+            <div className="fx-label">{t('accounts.netWorth')}</div>
+            <div className="fx-big" style={{ margin: '4px 0 12px' }}>{money(netWorthCents(accounts, txs, salaryToDate, transfers))}</div>
+            <div className="fx-list">
+              {accounts.map((a) => (
+                <div key={a.id} className="fx-item">
+                  <span className="fx-avatar" style={{ background: a.type === 'savings' ? 'var(--teal)' : a.type === 'debt' ? 'var(--amber)' : 'var(--accent)', color: '#fff' }}><Ic d={typeIcon[a.type]} size={16} /></span>
+                  <div className="fx-item-main"><b>{a.name}</b><span>{t('accounts.type_' + a.type)}</span></div>
+                  <span className={'fx-num' + (balOf(a) < 0 ? ' fx-neg' : '')}>{money(balOf(a))}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        );
+      case 'forecast': {
+        const day = now.getDate();
+        const dim = new Date(year, month, 0).getDate();
+        const mp = `${year}-${pad(month)}`;
+        const monthTx = accTxs.filter((x) => x.date.startsWith(mp));
+        const spentNow = monthTx.filter((x) => x.type === 'expense').reduce((sum, x) => sum + x.amountCents, 0);
+        const projected = Math.round((spentNow / day) * dim);
+        const monthIncome = (salaryHere ? salaries.filter((x) => x.year === year && x.month === month).reduce((sum, x) => sum + x.amountCents, 0) : 0)
+          + monthTx.filter((x) => x.type === 'income').reduce((sum, x) => sum + x.amountCents, 0);
+        return (
+          <Card title={t('panel.w_forecast')}>
+            <div className="fx-label">{t('panel.forecastProjected')}</div>
+            <div className="fx-big" style={{ margin: '4px 0 2px' }}>{money(projected)}</div>
+            <div className="fx-label">{t('panel.forecastSpent', { value: money(spentNow), day, days: dim })}</div>
+            <Meter ratio={monthIncome > 0 ? projected / monthIncome : null} />
+            <div className="fx-stat"><span>{t('panel.forecastSavings')}</span>
+              <span className={'fx-num' + (monthIncome - projected < 0 ? ' fx-neg' : ' fx-pos')}>{monthIncome > 0 ? money(monthIncome - projected) : '—'}</span></div>
+          </Card>
+        );
+      }
+      case 'last7': {
+        const days = Array.from({ length: 7 }, (_, i) => {
+          const d = new Date(year, month - 1, now.getDate() - (6 - i));
+          const key = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+          const total = accTxs.filter((x) => x.type === 'expense' && x.date === key).reduce((sum, x) => sum + x.amountCents, 0);
+          return { label: cap(d.toLocaleDateString(lang, { weekday: 'short' }).replace('.', '')).slice(0, 3), total };
+        });
+        const max = Math.max(1, ...days.map((d) => d.total));
+        const sum = days.reduce((a, d) => a + d.total, 0);
+        return (
+          <Card title={t('panel.w_last7')}>
+            <div className="fx-big" style={{ fontSize: 24 }}>{money(sum)}</div>
+            <div className="fx-label">{t('panel.last7Avg', { value: money(Math.round(sum / 7)) })}</div>
+            <div className="fx-minibars" role="img" aria-label={t('panel.w_last7')}>
+              {days.map((d, i) => (
+                <div key={i} title={money(d.total)}>
+                  <i style={{ height: `${Math.max(4, (d.total / max) * 100)}%`, background: i === 6 ? 'var(--accent)' : 'var(--track)' }} />
+                  <em>{d.label}</em>
+                </div>
+              ))}
+            </div>
+          </Card>
+        );
+      }
+      case 'topExpenses': {
+        const top = periodTx.filter((x) => x.type === 'expense').sort((a, b) => b.amountCents - a.amountCents).slice(0, 5);
+        return (
+          <Card title={t('panel.w_topExpenses')} action={seeAll('/transacoes', t('panel.seeAll'))}>
+            {top.length === 0 ? <div className="fx-empty">{t('panel.noTransactions')}</div> : (
+              <div className="fx-list">
+                {top.map((tx, i) => {
+                  const c = catById.get(tx.categoryId);
+                  const label = tx.description || catName(c);
+                  return (
+                    <div key={tx.id} className="fx-item">
+                      <span className="fx-avatar" style={{ background: catColor(c, i) }}>{i + 1}</span>
+                      <div className="fx-item-main"><b>{label}</b><span>{catName(c)} · {fmtDate(tx.date)}</span></div>
+                      <span className="fx-num" style={{ fontSize: 13.5 }}>{money(tx.amountCents)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+        );
+      }
+      case 'upcoming': {
+        const next = [...recurrings].sort((a, b) => a.nextDate.localeCompare(b.nextDate)).slice(0, 5);
+        return (
+          <Card title={t('panel.upcomingRecurring')} action={seeAll('/metas', t('panel.seeAll'))}>
+            {next.length === 0 ? <div className="fx-empty">{t('panel.noUpcoming')}</div> : (
+              <div className="fx-list">
+                {next.map((r) => (
+                  <div key={r.id} className="fx-item">
+                    <span className="fx-avatar"><Ic d={ICON.repeat} size={16} /></span>
+                    <div className="fx-item-main"><b>{r.description}</b><span>{fmtDate(r.nextDate)} · {t('goals.' + r.frequency)}</span></div>
+                    <span className="fx-num" style={{ fontSize: 13.5 }}>{money(r.amountCents)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        );
+      }
+      case 'checklist': {
+        const steps = [
+          { done: salaries.length > 0, label: t('panel.checkSalary'), to: '/salarios' },
+          { done: txs.length > 0, label: t('panel.checkTx'), to: '/transacoes' },
+          { done: budgets.length > 0, label: t('panel.checkBudget'), to: '/orcamentos' },
+          { done: goals.length > 0, label: t('panel.checkGoal'), to: '/metas' },
+          { done: accounts.length > 1, label: t('panel.checkAccount'), to: '/contas' },
+        ];
+        const n = steps.filter((x) => x.done).length;
+        return (
+          <Card title={t('panel.w_checklist')} action={<span className="fx-chip">{n}/{steps.length}</span>}>
+            <Meter ratio={n / steps.length} />
+            <div className="fx-list">
+              {steps.map((st) => (
+                <Link key={st.to} to={st.to} className="fx-item fx-check">
+                  <span className={'fx-tick' + (st.done ? ' on' : '')}>{st.done && <Ic d={ICON.check} size={13} />}</span>
+                  <div className="fx-item-main"><b style={st.done ? { color: 'var(--muted)', textDecoration: 'line-through' } : undefined}>{st.label}</b></div>
+                </Link>
+              ))}
+            </div>
+          </Card>
+        );
+      }
+      default:
+        return null;
+    }
+  };
 
+  const galleryItems: Array<{ id: string; title: string; sub: string; group: string }> = [
+    ...STATIC_WIDGETS.map((id) => ({ id, title: t('panel.w_' + id), sub: t('panel.wd_' + id), group: t('panel.widgetsTitle') })),
+    ...goals.flatMap((g) => [
+      { id: 'goal:' + g.id, title: g.name, sub: t('panel.wd_goal'), group: t('goals.title') },
+      { id: 'goalbar:' + g.id, title: g.name, sub: t('panel.wd_goalBar'), group: t('goals.title') },
+    ]),
+    ...accounts.flatMap((a) => [
+      { id: 'account:' + a.id, title: a.name, sub: t('panel.wd_account'), group: t('accounts.title') },
+      ...(a.type === 'debt' ? [{ id: 'accountbar:' + a.id, title: a.name, sub: t('panel.wd_debtBar'), group: t('accounts.title') }] : []),
+    ]),
+  ].filter((x) => !placed.has(x.id) && !placed.has(twinOf(x.id)));
 
   return (
-    <div className="min-h-screen bg-[#05060a] text-white"
-      style={{ background: 'radial-gradient(900px 500px at 15% -10%, rgba(99,102,241,0.18), transparent 60%), radial-gradient(800px 450px at 85% 110%, rgba(236,72,153,0.14), transparent 60%), #05060a' }}>
-      <div className="dash-shell w-full mx-auto flex flex-col min-h-0">
-        <div className="kpi-strip" style={{ marginBottom: 16 }}>
-          {[
-            { label: t('panel.totalSpent'), value: formatMoney(kpis.totalSpentCents, settings.currency, settings.language) },
-            { label: t('panel.dailyAverage'), value: formatMoney(kpis.avgDailyCents, settings.currency, settings.language) },
-            { label: t('panel.expenseCount'), value: String(kpis.expenseCount) },
-            { label: t('panel.largestExpense'), value: formatMoney(kpis.largestExpenseCents, settings.currency, settings.language) },
-            { label: t('panel.topCategory'), value: kpis.topCategoryName ?? '—' },
-          ].map((m) => (
-            <div key={m.label} className="kpi-card">
-              <div className="kpi-label">{m.label}</div>
-              <div className="kpi-num">{m.value}</div>
-            </div>
-          ))}
+    <div className="fx-page">
+      <header className="fx-head">
+        <div>
+          <h1>{t('panel.title')}</h1>
+          <p>{t('panel.subtitle')}</p>
         </div>
-
-        {/* Mockup grid: 12 columns. Row 1 = chart(6) + savings/expenses(3) + donut(3);
-           Row 2 = calendar(4) + monthly table(5) + loan/AI(3). */}
-        <div className="dash-grid">
-
-        {/* Row 1 (mockup): analysis chart span 6 */}
-        <div className="mock-card dash-span-6 flex flex-col">
-            <CardTitle title={t('panel.incomeAnalysis')} icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 3v18h18"/><path d="M7 14l4-6 4 4 5-7"/></svg>} />
-            <div className="flex items-center justify-between gap-3 mt-3 text-xs text-white/70 flex-wrap">
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <button onClick={() => setChartMode('bars')} aria-label={t('panel.monthly')}
-                  className={`rounded-lg border border-white/10 px-3 py-1 transition ${chartMode === 'bars' ? 'bg-violet-500/25 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}>
-                  {t('panel.monthly')}
-                </button>
-                <button onClick={() => setChartMode('pie')} aria-label={t('panel.byCategory')}
-                  className={`rounded-lg border border-white/10 px-3 py-1 transition ${chartMode === 'pie' ? 'bg-violet-500/25 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}>
-                  {t('panel.byCategory')}
-                </button>
-              </div>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <button onClick={() => setPeriod('month')}
-                  className={`rounded-lg border border-white/10 px-3 py-1 transition ${period === 'month' ? 'bg-violet-500/25 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}>
-                  {t('panel.periodMonth')}
-                </button>
-                <button onClick={() => setPeriod('year')}
-                  className={`rounded-lg border border-white/10 px-3 py-1 transition ${period === 'year' ? 'bg-violet-500/25 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}>
-                  {t('panel.periodYear')}
-                </button>
-                <select value={filterCat} onChange={(e) => setFilterCat(e.target.value)}
-                  aria-label={t('panel.category')}
-                  className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-white/80">
-                  <option value="">{t('panel.allCategories')}</option>
-                  {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-            </div>
-            <div className="mt-2 flex-1 min-h-[170px]">
-              <IncomeChart monthly={monthlyBars} catTotals={catTotals} settings={settings} mode={chartMode} />
-            </div>
+        <div className="fx-head-actions">
+          <div className="fx-seg" role="group" aria-label={t('panel.period')}>
+            <button type="button" className={period === 'month' ? 'on' : ''} aria-pressed={period === 'month'} onClick={() => setPeriod('month')}>{t('panel.periodMonth')}</button>
+            <button type="button" className={period === 'year' ? 'on' : ''} aria-pressed={period === 'year'} onClick={() => setPeriod('year')}>{t('panel.periodYear')}</button>
           </div>
-
-          {/* Row 1: savings + expenses stacked (span 3, mockup style) */}
-          <div style={{ gridColumn: 'span 3', display: 'grid', gridTemplateRows: '1fr 1fr', gap: 16 }}>
-            <SavingsCard title={t('panel.monthlySavings')} valueCents={Math.max(0, savings)}
-              perMonthCents={monthIncome - monthExpense} salaryCents={periodSalaryCents} extrasCents={periodExtrasCents}
-              pctOfIncome={incomeTotal > 0 ? Math.round((Math.max(0, savings) / incomeTotal) * 100) : null}
-              settings={settings} t={t} />
-            <ExpensesCard title={t('panel.monthlyExpenses')} valueCents={kpis.totalSpentCents}
-              count={kpis.expenseCount} avgDailyCents={kpis.avgDailyCents}
-              pctOfIncome={incomeTotal > 0 ? Math.round((kpis.totalSpentCents / incomeTotal) * 100) : null}
-              settings={settings} t={t} />
-          </div>
-
-          {/* Row 1: category donut (span 3) */}
-          <div className="mock-card dash-span-3">
-            <div className="mock-head">
-              <span className="mock-ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="8"/></svg></span>
-              {t('panel.byCategory')}
-            </div>
-            <CategoryDonut catTotals={catTotals} totalCents={kpis.totalSpentCents} />
-          </div>
-
-          {/* Row 2: calendar (4) + monthly table (5) + loan/AI (3) */}
-          <div className="dash-span-4">
-            <DailySpendCalendar monthTx={monthTx} settings={settings} t={t} />
-          </div>
-          <div className="mock-card dash-span-5">
-            <div className="mock-head">
-              <span className="mock-ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h1M3 12h1M3 18h1"/></svg></span>
-              {t('panel.monthlyBreakdown')} · {now.getFullYear()}
-            </div>
-            <MonthlyTable rows={monthlyBars} settings={settings} t={t} />
-          </div>
-          <div style={{ gridColumn: 'span 3', display: 'grid', gridTemplateRows: '1fr auto', gap: 16 }}>
-            <LoanCard loan={loanInfo} settings={settings} t={t} />
-            <AiTipCard savingsPct={incomeTotal > 0 ? Math.round((Math.max(0, savings) / incomeTotal) * 100) : null}
-              missingMonths={missingSalaryMonths} topCategory={kpis.topCategoryName} t={t} />
-          </div>
+          <AccountSwitch accounts={accounts} active={active} onChange={setActive} />
+          <button type="button" className={'fx-btn' + (editing ? ' on' : '')} aria-pressed={editing} onClick={() => setEditing(!editing)}>
+            <Ic d={editing ? 'M5 12l5 5 9-10' : 'M4 6h16M4 12h16M4 18h10'} size={15} /> {editing ? t('panel.done') : t('panel.customize')}
+          </button>
+          <Link to="/transacoes" className="fx-btn primary"><Ic d="M12 5v14M5 12h14" /> {t('panel.addExpense')}</Link>
         </div>
+      </header>
+
+      <div className="fx-kpis">
+        <Kpi label={t('panel.expenses')} color="#4f8ff0" icon="M3 7a2 2 0 0 1 2-2h12v4M3 7v10a2 2 0 0 0 2 2h14V9H5a2 2 0 0 1-2-2zM16 14h.01"
+          value={money(spent)} pct={pctTxt(pctSpent)} pctTone={pctSpent !== null && pctSpent > 1 ? 'bad' : 'neutral'}
+          sub={<>
+            {pctSpent === null ? t('panel.noIncome') : t('panel.kpiExpensesSub')}
+            {deltaSpent !== null && (
+              <b className={deltaSpent > 0 ? 'fx-neg' : 'fx-pos'} style={{ marginLeft: 6, fontWeight: 600 }}>
+                {deltaSpent > 0 ? '↑' : '↓'} {Math.abs(Math.round(deltaSpent * 100))}% {t('panel.vsPrevious')}
+              </b>
+            )}
+          </>} />
+        <Kpi label={t('panel.savings')} color="#2fbf8a" icon="M19 7a3 3 0 0 0-3-2H9a6 6 0 0 0-6 6c0 2 1 3.5 2 4.5V19h3v-2h5v2h3v-3a6 6 0 0 0 2-3h2V9h-2zM15 10h.01"
+          value={savings === null ? '—' : money(savings)} pct={pctTxt(savings === null || income === 0 ? null : savings / income)}
+          pctTone={savings !== null && savings < 0 ? 'bad' : 'good'}
+          sub={savings === null ? t('panel.noIncome') : t('panel.kpiSavingsSub')} />
+        <Kpi label={t('panel.income')} color="#8b6cf0" icon="M12 3v18M7 8l5-5 5 5M5 21h14"
+          value={money(income)}
+          sub={t('panel.kpiIncomeSub', { salary: money(salaryCents), extras: money(extrasCents) })} />
+        <Kpi label={t('panel.topCategory')} color="#e0a53a" icon="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"
+          value={catItems[0] ? catItems[0].name : '—'} pct={catItems[0] && spent > 0 ? pctTxt(catItems[0].cents / spent) : null}
+          sub={catItems[0] ? t('panel.kpiTopSub', { value: money(catItems[0].cents) }) : t('panel.noTransactions')} />
       </div>
+
+      {editing && (
+        <div className="fx-editbar" role="status">
+          <span>{t('panel.editHint')}</span>
+          <span style={{ flex: 1 }} />
+          <button type="button" className="fx-btn" onClick={() => setLayout(DEFAULT_LAYOUT.map((c) => [...c]))}>{t('panel.resetLayout')}</button>
+          <button type="button" className="fx-btn primary" onClick={() => setGallery(true)}><Ic d="M12 5v14M5 12h14" size={15} /> {t('panel.addWidget')}</button>
+        </div>
+      )}
+
+      <WidgetGrid
+        layout={layout.map((c) => c.filter(widgetValid))}
+        editing={editing}
+        render={renderWidget}
+        labelOf={widgetLabel}
+        onMove={(id, col, before) => setLayout(moveWidget(layout, id, col, before))}
+        onRemove={(id) => setLayout(removeWidget(layout, id))}
+        onNudge={(id, dir) => setLayout(nudgeWidget(layout, id, dir))}
+      />
+
+      <Sheet open={gallery} onClose={() => setGallery(false)} title={t('panel.addWidget')} wide>
+        {(
+          ['panel.widgetsTitle', 'goals.title', 'accounts.title'].map((gk) => {
+            const rows = galleryItems.filter((x) => x.group === t(gk));
+            if (rows.length === 0 && gk === 'goals.title') {
+              return (
+                <div key={gk} style={{ marginBottom: 14 }}>
+                  <div className="fx-label" style={{ margin: '4px 0 6px' }}>{t(gk)}</div>
+                  <div className="fx-item">
+                    <div className="fx-item-main"><b>{goals.length === 0 ? t('panel.noGoals') : t('panel.allGoalsPlaced')}</b><span>{t('panel.goalWidgetHint')}</span></div>
+                    {goals.length === 0 && <Link to="/metas" className="fx-btn"><Ic d="M12 5v14M5 12h14" size={14} /> {t('panel.createGoal')}</Link>}
+                  </div>
+                </div>
+              );
+            }
+            if (rows.length === 0) return null;
+            return (
+              <div key={gk} style={{ marginBottom: 14 }}>
+                <div className="fx-label" style={{ margin: '4px 0 6px' }}>{t(gk)}</div>
+                <div className="fx-list">
+                  {rows.map((x) => (
+                    <div key={x.id} className="fx-item">
+                      <div className="fx-item-main"><b>{x.title}</b><span>{x.sub}</span></div>
+                      <button type="button" className="fx-btn" onClick={() => setLayout(addWidget(layout, x.id))}><Ic d="M12 5v14M5 12h14" size={14} /> {t('common.add')}</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </Sheet>
     </div>
   );
 }

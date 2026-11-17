@@ -19,6 +19,7 @@ import { pt } from 'date-fns/locale/pt';
 import { ptBR } from 'date-fns/locale/pt-BR';
 import { es } from 'date-fns/locale/es';
 import { fr } from 'date-fns/locale/fr';
+import { addMonthsISO, toLocalISO } from '../core/dates';
 
 // Localized month name for the calendar header (matches the UI language).
 function dateLocale(lang: string) {
@@ -68,11 +69,10 @@ export function Panel() {
   useEffect(() => {
     setSettings(loadSettings());
     const today = new Date();
-    const until = new Date(today.getFullYear() + (today.getMonth() > 9 ? 1 : 0), (today.getMonth() + 3) % 12, today.getDate())
-      .toISOString().slice(0, 10);
+    const until = addMonthsISO(today, 3);
     expandRecurring(db, until)
       .then((items) => {
-        const todayStr = today.toISOString().slice(0, 10);
+        const todayStr = toLocalISO(today);
         setUpcoming(items.filter((r) => r.date > todayStr).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 8));
       })
       .catch(() => setUpcoming([]));
@@ -343,10 +343,10 @@ export function Panel() {
                 </div>
               )}
               <div className="cal-weekdays" aria-hidden="true">
-                {weekdayLabels(settings.language).map((w) => <span key={w}>{w}</span>)}
+                {weekdayLabels(settings.language, settings.firstDayOfWeek).map((w) => <span key={w}>{w}</span>)}
               </div>
               <div className="cal-grid">
-                {buildCalendarGrid(calYear, calMonth).map((cell) => (
+                {buildCalendarGrid(calYear, calMonth, settings.firstDayOfWeek).map((cell) => (
                   <div key={`${calYear}-${calMonth}-${cell}`} className={`cal-day ${cell === 0 ? 'out' : ''} ${isToday(cell) ? 'today' : ''}`}>
                     {cell !== 0 ? (
                       <>

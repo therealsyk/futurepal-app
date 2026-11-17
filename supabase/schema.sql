@@ -1,14 +1,12 @@
--- Wallet Supabase schema (mirrors the Dexie tables in src/db/database.ts).
--- Run this in the Supabase SQL Editor after creating the project.
--- Every table mirrors SPEC §5: id (UUID text), created_at, updated_at, deleted_at, user_id.
+-- Wallet: esquema do Supabase (espelha as tabelas Dexie de src/db/database.ts).
+-- Como usar: Supabase > SQL Editor > New query > colar TUDO isto > Run.
+-- Pode correr-se mais do que uma vez (é idempotente).
+-- Cada linha pertence a um utilizador (user_id) e a RLS garante que ninguém vê as linhas dos outros.
 
-create extension if not exists "uuid-ossp";
-
--- Helper: shared columns are repeated per table for clarity and RLS.
-
-create table if not exists settings (
+-- ---------------------------------------------------------------- tabelas
+create table if not exists public.settings (
   id text primary key,
-  user_id uuid not null references auth.users(id),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   language text not null,
   country text not null,
   main_currency text not null,
@@ -22,51 +20,83 @@ create table if not exists settings (
   deleted_at timestamptz
 );
 
-create table if not exists categories (
+create table if not exists public.categories (
   id text primary key,
-  user_id uuid not null references auth.users(id),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   name text not null,
   color text not null,
   icon text not null default '',
   "order" integer not null default 0,
   name_key text,
+  image text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   deleted_at timestamptz
 );
 
-create table if not exists transactions (
+create table if not exists public.accounts (
   id text primary key,
-  user_id uuid not null references auth.users(id),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  name text not null,
+  description text not null default '',
+  type text not null check (type in ('spending','savings','debt')),
+  currency text not null,
+  initial_balance_cents bigint not null default 0,
+  include_in_net_worth boolean not null default true,
+  is_default boolean not null default false,
+  show_on_home boolean not null default true,
+  "order" integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  deleted_at timestamptz
+);
+
+create table if not exists public.transactions (
+  id text primary key,
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   date date not null,
   type text not null check (type in ('expense','income')),
   category_id text not null,
   description text not null default '',
-  amount_cents integer not null check (amount_cents >= 1),
+  amount_cents bigint not null check (amount_cents >= 1),
   currency text not null,
   group_id text,
   recurring_id text,
+  account_id text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   deleted_at timestamptz
 );
 
-create table if not exists salaries (
+create table if not exists public.transfers (
   id text primary key,
-  user_id uuid not null references auth.users(id),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  from_account_id text not null,
+  to_account_id text not null,
+  amount_cents bigint not null check (amount_cents >= 1),
+  date date not null,
+  note text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  deleted_at timestamptz
+);
+
+create table if not exists public.salaries (
+  id text primary key,
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   year integer not null,
   month integer not null check (month between 1 and 12),
-  amount_cents integer not null check (amount_cents >= 0),
+  amount_cents bigint not null check (amount_cents >= 0),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   deleted_at timestamptz
 );
 
-create table if not exists budgets (
+create table if not exists public.budgets (
   id text primary key,
-  user_id uuid not null references auth.users(id),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   category_id text not null,
-  limit_cents integer not null check (limit_cents >= 0),
+  limit_cents bigint not null check (limit_cents >= 0),
   period text not null default 'month',
   year integer not null,
   month integer not null check (month between 1 and 12),
@@ -75,38 +105,41 @@ create table if not exists budgets (
   deleted_at timestamptz
 );
 
-create table if not exists goals (
+create table if not exists public.goals (
   id text primary key,
-  user_id uuid not null references auth.users(id),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   name text not null,
-  target_cents integer not null check (target_cents >= 0),
-  current_cents integer not null default 0,
+  target_cents bigint not null check (target_cents >= 0),
+  current_cents bigint not null default 0,
   start_date date not null,
   target_date date,
+  notes text,
+  account_ids jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   deleted_at timestamptz
 );
 
-create table if not exists recurrings (
+create table if not exists public.recurrings (
   id text primary key,
-  user_id uuid not null references auth.users(id),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   type text not null check (type in ('expense','income')),
   category_id text not null,
   description text not null default '',
-  amount_cents integer not null check (amount_cents >= 1),
+  amount_cents bigint not null check (amount_cents >= 1),
   currency text not null,
-  frequency text not null check (frequency in ('weekly','monthly','yearly')),
+  frequency text not null check (frequency in ('daily','weekly','biweekly','monthly','bimonthly','quarterly','semiannual','yearly')),
   next_date date not null,
   end_date date,
+  account_id text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   deleted_at timestamptz
 );
 
-create table if not exists groups (
+create table if not exists public.groups (
   id text primary key,
-  user_id uuid not null references auth.users(id),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   name text not null,
   color text not null default '#9CA3AF',
   created_at timestamptz not null default now(),
@@ -114,52 +147,32 @@ create table if not exists groups (
   deleted_at timestamptz
 );
 
-create table if not exists exchange_rates (
-  id text primary key,
-  user_id uuid not null references auth.users(id),
-  base text not null,
-  rates jsonb not null default '{}'::jsonb,
-  fetched_at timestamptz not null default now(),
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  deleted_at timestamptz
-);
+-- Projetos criados com a versão antiga deste ficheiro: acrescenta as colunas novas.
+alter table public.categories add column if not exists image text;
+alter table public.transactions add column if not exists account_id text;
+alter table public.goals add column if not exists notes text;
+alter table public.goals add column if not exists account_ids jsonb;
+alter table public.recurrings add column if not exists account_id text;
+alter table public.recurrings drop constraint if exists recurrings_frequency_check;
+alter table public.recurrings add constraint recurrings_frequency_check
+  check (frequency in ('daily','weekly','biweekly','monthly','bimonthly','quarterly','semiannual','yearly'));
 
--- Row Level Security: each user only sees their own rows.
-alter table settings enable row level security;
-alter table categories enable row level security;
-alter table transactions enable row level security;
-alter table salaries enable row level security;
-alter table budgets enable row level security;
-alter table goals enable row level security;
-alter table recurrings enable row level security;
-alter table groups enable row level security;
-alter table exchange_rates enable row level security;
+-- ---------------------------------------------------------------- RLS + índices
+-- Nota: o Postgres NÃO tem "create policy if not exists" nem políticas "for insert,update,delete";
+-- por isso: apagar se existir e criar uma política "for all" com using + with check.
+do $$
+declare t text;
+begin
+  foreach t in array array['settings','categories','accounts','transactions','transfers','salaries','budgets','goals','recurrings','groups']
+  loop
+    execute format('alter table public.%I enable row level security', t);
+    execute format('drop policy if exists user_read on public.%I', t);
+    execute format('drop policy if exists user_write on public.%I', t);
+    execute format('drop policy if exists own_rows on public.%I', t);
+    execute format(
+      'create policy own_rows on public.%I for all to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id)', t);
+    execute format('create index if not exists %I on public.%I (user_id, updated_at)', t || '_user_updated_idx', t);
+  end loop;
+end $$;
 
--- Policies (one per table, plain statements — no DO blocks).
-create policy if not exists user_read on settings for select using (user_id = auth.uid());
-create policy if not exists user_write on settings for insert,update,delete using (user_id = auth.uid());
-
-create policy if not exists user_read on categories for select using (user_id = auth.uid());
-create policy if not exists user_write on categories for insert,update,delete using (user_id = auth.uid());
-
-create policy if not exists user_read on transactions for select using (user_id = auth.uid());
-create policy if not exists user_write on transactions for insert,update,delete using (user_id = auth.uid());
-
-create policy if not exists user_read on salaries for select using (user_id = auth.uid());
-create policy if not exists user_write on salaries for insert,update,delete using (user_id = auth.uid());
-
-create policy if not exists user_read on budgets for select using (user_id = auth.uid());
-create policy if not exists user_write on budgets for insert,update,delete using (user_id = auth.uid());
-
-create policy if not exists user_read on goals for select using (user_id = auth.uid());
-create policy if not exists user_write on goals for insert,update,delete using (user_id = auth.uid());
-
-create policy if not exists user_read on recurrings for select using (user_id = auth.uid());
-create policy if not exists user_write on recurrings for insert,update,delete using (user_id = auth.uid());
-
-create policy if not exists user_read on groups for select using (user_id = auth.uid());
-create policy if not exists user_write on groups for insert,update,delete using (user_id = auth.uid());
-
-create policy if not exists user_read on exchange_rates for select using (user_id = auth.uid());
-create policy if not exists user_write on exchange_rates for insert,update,delete using (user_id = auth.uid());
+-- A tabela antiga exchange_rates nunca foi usada pela sincronização; não é criada aqui.
