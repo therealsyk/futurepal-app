@@ -80,4 +80,13 @@ describe('addTransfer cria despesa na categoria', () => {
     await removeTransfer(db, tr.id);
     expect(rows.transactions[0].deletedAt).not.toBeNull();
   });
+
+  it('transferência com categoria: a despesa não sai outra vez do saldo', () => {
+    const main = acc({ id: 'main', isDefault: true, initialBalanceCents: 100000 });
+    const loan = acc({ id: 'loan', type: 'debt', initialBalanceCents: 50000 });
+    const t = { ...tr('main', 'loan', 20000), transactionId: 'tr-x' };
+    const linked = { ...base, id: 'tr-x', date: '2026-01-10', type: 'expense' as const, categoryId: 'c', description: '', amountCents: 20000, currency: 'EUR', accountId: 'main' };
+    expect(accountBalanceCents(main, [linked], [main, loan], 0, [t])).toBe(80000);
+    expect(accountBalanceCents(main, [{ ...linked, id: 'other', transferId: 'x' }], [main, loan], 0, [tr('main', 'loan', 20000)])).toBe(80000);
+  });
 });

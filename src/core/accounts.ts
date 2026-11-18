@@ -89,9 +89,13 @@ export function txsOfAccount(txs: Transaction[], accountId: string, accounts: Ac
 export function accountBalanceCents(acc: Account, txs: Transaction[], accounts: Account[], salaryCents = 0, transfers: Transfer[] = []): number {
   const def = defaultAccountId(accounts);
   let bal = acc.initialBalanceCents + (acc.id === def ? salaryCents : 0);
+  // Despesa criada por uma transferência com categoria: conta nas estatísticas, mas o dinheiro já saiu pela
+  // própria transferência (senão saía duas vezes do saldo).
+  const fromTransfer = new Set(transfers.map((tr) => tr.transactionId).filter(Boolean) as string[]);
   for (const t of txs) {
     if (t.deletedAt !== null) continue;
     if (t.id.startsWith('sal-')) continue; // salário: já entra em salaryCents
+    if (t.transferId || t.id.startsWith('tr-') || fromTransfer.has(t.id)) continue;
     if ((t.accountId ?? def) !== acc.id) continue;
     bal += t.type === 'income' ? t.amountCents : -t.amountCents;
   }
@@ -147,6 +151,7 @@ export async function addTransfer(db: WalletDB, input: NewTransfer): Promise<Tra
       currency: (await listAccounts(db)).find((a) => a.id === input.fromAccountId)?.currency ?? 'EUR',
       accountId: input.fromAccountId, transferId: row.id,
     });
+    tx.id = 'tr-' + row.id; // id ligado à transferência: os outros aparelhos reconhecem-na depois de sincronizar
     await db.transactions.add(tx);
     row.transactionId = tx.id;
   }
