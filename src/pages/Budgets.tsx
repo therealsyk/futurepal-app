@@ -81,13 +81,13 @@ export function Budgets() {
               <div className="fx-card fx-budget" key={c.id}>
                 <div className="fx-acc-top">
                   <div className="fx-avatar" style={{ background: c.color || 'var(--accent)', color: '#fff' }}>{catLabel(t, c).charAt(0).toUpperCase()}</div>
-                  <div className="fx-acc-name"><b>{c.nameKey ? t(c.nameKey) : c.name}</b>
+                  <div className="fx-acc-name"><b>{catLabel(t, c)}</b>
                     <span className={u.overBudget ? 'fx-neg' : ''}>{u.limitCents > 0 ? `${money(u.spentCents)} / ${money(u.limitCents)}` : t('budgets.noLimit')}</span></div>
                   {u.limitCents > 0 && <button type="button" className="fx-round sm" onClick={() => remove(c.id)} aria-label={t('budgets.delete')}><Ic d={ICON.trash} size={15} /></button>}
                 </div>
                 <div className="fx-track" role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}><i className={u.overBudget ? 'over' : ''} style={{ width: `${pct}%` }} /></div>
                 <div className="fx-inline">
-                  <input className="fx-input" inputMode="decimal" placeholder={t('budgets.limit')} value={drafts[c.id] ?? ''} onChange={(e) => setDrafts({ ...drafts, [c.id]: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') save(c.id); }} aria-label={`${t('budgets.limit')} ${c.nameKey ? t(c.nameKey) : c.name}`} />
+                  <input className="fx-input" inputMode="decimal" placeholder={t('budgets.limit')} value={drafts[c.id] ?? ''} onChange={(e) => setDrafts({ ...drafts, [c.id]: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') save(c.id); }} aria-label={`${t('budgets.limit')} ${catLabel(t, c)}`} />
                   <button type="button" className="fx-btn" onClick={() => save(c.id)}>{u.limitCents > 0 ? t('budgets.update') : t('budgets.addBudget')}</button>
                 </div>
               </div>

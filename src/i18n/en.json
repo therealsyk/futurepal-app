@@ -1030,5 +1030,22 @@
     "publish": "Publish version notice",
     "published": "Published ✓",
     "privacy": "You only see counts and emails, never people's expense amounts. Handle this data with care (GDPR)."
+  },
+  "acct": {
+    "guest": "Guest",
+    "notifications": "Notifications",
+    "noNotes": "No notifications.",
+    "upgrade": "Upgrade plan",
+    "myPlan": "My plan",
+    "backup": "Backup",
+    "signOut": "Sign out",
+    "signIn": "Sign in or create account",
+    "nTrial_one": "Your Plus trial ends in {{count}} day.",
+    "nTrial_other": "Your Plus trial ends in {{count}} days.",
+    "nSub_one": "{{name}} renews in {{count}} day.",
+    "nSub_other": "{{name}} renews in {{count}} days.",
+    "nWarranty_one": "The {{name}} warranty ends in {{count}} day.",
+    "nWarranty_other": "The {{name}} warranty ends in {{count}} days.",
+    "nIrs": "Validate pending invoices on e-Fatura by 25 February."
   }
 }

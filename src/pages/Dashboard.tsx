@@ -13,6 +13,7 @@ import { loadLayout, saveLayout, moveWidget, removeWidget, swapWidget, addWidget
 import { WidgetGrid } from '../ui/WidgetGrid';
 import { AccountSwitch, PickMenu, Sheet, ICON, catLabel, useAccounts, CategorySelect } from '../ui/fx';
 import { todayISO, monthStart, monthEnd } from '../core/dates';
+import { AccountBar } from '../ui/AccountBar';
 
 // Painel — visual "clean".
 // Toda a lógica trabalha em cêntimos inteiros; todo o texto passa por t().
@@ -927,7 +928,7 @@ export function Dashboard() {
     <div className="fx-page">
       <header className="fx-head">
         <div>
-          <h1>{t('panel.title')}</h1>
+          <AccountBar />
           <p data-testid="period-label">{period === 'month' ? t('panel.showingMonth', { period: periodLabel }) : t('panel.showingYear', { year })}</p>
         </div>
         <div className="fx-head-actions">

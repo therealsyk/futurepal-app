@@ -1034,5 +1034,22 @@
     "publish": "Publicar aviso de versão",
     "published": "Publicado ✓",
     "privacy": "Só vês contagens e emails, nunca os valores das despesas das pessoas. Trata estes dados com cuidado (RGPD)."
+  },
+  "acct": {
+    "guest": "Convidado",
+    "notifications": "Notificações",
+    "noNotes": "Não tens notificações.",
+    "upgrade": "Fazer upgrade do plano",
+    "myPlan": "O meu plano",
+    "backup": "Cópia de segurança",
+    "signOut": "Terminar sessão",
+    "signIn": "Entrar ou criar conta",
+    "nTrial_one": "O teu teste do Plus acaba em {{count}} dia.",
+    "nTrial_other": "O teu teste do Plus acaba em {{count}} dias.",
+    "nSub_one": "{{name}} renova em {{count}} dia.",
+    "nSub_other": "{{name}} renova em {{count}} dias.",
+    "nWarranty_one": "A garantia de {{name}} acaba em {{count}} dia.",
+    "nWarranty_other": "A garantia de {{name}} acaba em {{count}} dias.",
+    "nIrs": "Valida as faturas pendentes no e-Fatura até 25 de fevereiro."
   }
 }

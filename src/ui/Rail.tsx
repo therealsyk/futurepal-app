@@ -24,7 +24,6 @@ const ITEMS = [
   { path: '/orcamentos', key: 'nav.budgets', d: 'M4 20V10M10 20V4M16 20v-7M22 20H2' },
   { path: '/metas', key: 'nav.goals', d: 'M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8z' },
   { path: '/salarios', key: 'nav.salaries', d: 'M3 7h18v12H3zM3 11h18M7 15h3' },
-  { path: '/plus', key: 'nav.plus', d: 'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z' },
   { path: '/categorias', key: 'nav.categories', d: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM16.5 13.5a3 3 0 1 1 0 6 3 3 0 0 1 0-6z' },
 ];
 
