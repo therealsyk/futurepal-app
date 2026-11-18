@@ -28,7 +28,8 @@
     "net": "Ahorro",
     "title": "Panel",
     "periodMonth": "Mes",
-    "periodYear": "Aà±o",
+    "periodYear": "Año",
+    "month": "Mes",
     "period30": "30 días",
     "period60": "60 días",
     "period90": "90 días",
@@ -274,7 +275,16 @@
     "catRent": "Alquiler",
     "catSalary": "Salario",
     "catAnimals": "Mascotas",
-    "catClothes": "Ropa"
+    "catClothes": "Ropa",
+    "catGroceries": "Supermercado",
+    "catCoffee": "Café",
+    "catDrinks": "Bebidas",
+    "catElectricity": "Electricidad",
+    "catInternet": "Internet",
+    "catMaintenance": "Mantenimiento",
+    "catTravel": "Viajes",
+    "catEducation": "Educación",
+    "catPhone": "Teléfono"
   },
   "budgets": {
     "title": "Presupuestos",

@@ -31,6 +31,7 @@
     "title": "Dashboard",
     "periodMonth": "Month",
     "periodYear": "Year",
+    "month": "Month",
     "period30": "30 days",
     "period60": "60 days",
     "period90": "90 days",
@@ -370,7 +371,16 @@
     "catAnimals": "Pets",
     "subtitle": "{{count}} categories",
     "color": "Color",
-    "catClothes": "Clothes"
+    "catClothes": "Clothes",
+    "catGroceries": "Groceries",
+    "catCoffee": "Coffee",
+    "catDrinks": "Drinks",
+    "catElectricity": "Electricity",
+    "catInternet": "Internet",
+    "catMaintenance": "Maintenance",
+    "catTravel": "Travel",
+    "catEducation": "Education",
+    "catPhone": "Phone"
   },
   "budgets": {
     "title": "Budgets",

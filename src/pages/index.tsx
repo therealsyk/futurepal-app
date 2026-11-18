@@ -184,7 +184,9 @@ export function Panel() {
   const catName = (id: string) => {
     const c = cats.find((x) => x.id === id);
     if (!c) return '—';
-    return t(`categories.${c.nameKey ?? c.name}`);
+    const key = c.nameKey ?? ('cat' + c.name.charAt(0).toUpperCase() + c.name.slice(1));
+    const v = t(`categories.${key}`);
+    return v === `categories.${key}` ? c.name : v;
   };
 
 

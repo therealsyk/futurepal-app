@@ -31,6 +31,7 @@
     "title": "Painel",
     "periodMonth": "Mês",
     "periodYear": "Ano",
+    "month": "Mês",
     "period30": "30 dias",
     "period60": "60 dias",
     "period90": "90 dias",
@@ -441,7 +442,16 @@
     "catAnimals": "Animais",
     "subtitle": "{{count}} categorias",
     "color": "Cor",
-    "catClothes": "Roupas"
+    "catClothes": "Roupas",
+    "catGroceries": "Supermercado",
+    "catCoffee": "Café",
+    "catDrinks": "Bebidas",
+    "catElectricity": "Eletricidade",
+    "catInternet": "Internet",
+    "catMaintenance": "Manutenção",
+    "catTravel": "Viagens",
+    "catEducation": "Educação",
+    "catPhone": "Telefone"
   },
   "accounts": {
     "mainName": "Principal",

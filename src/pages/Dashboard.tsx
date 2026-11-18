@@ -258,13 +258,14 @@ function monthsUntil(dateISO: string): number | null {
   return Math.max(1, diff);
 }
 
-// ── Calendário de gasto diário (intensidade = valor) ───────────────────
-function DailyCalendar({ txs, settings, money, t }: {
+// ── Calendário de gasto diário (dia + valor debaixo, como no Excel) ────
+function DailyCalendar({ txs, settings, money, t, selYear, selMonth }: {
   txs: Transaction[]; settings: AppSettings; money: (c: number) => string; t: TFn;
+  selYear: number; selMonth: number;
 }) {
   const navigate = useNavigate();
   const today = new Date();
-  const [cur, setCur] = useState({ y: today.getFullYear(), m: today.getMonth() });
+  const [cur, setCur] = useState({ y: selYear, m: selMonth - 1 });
   const days = new Date(cur.y, cur.m + 1, 0).getDate();
   const prefix = `${cur.y}-${pad(cur.m + 1)}`;
   const spend = new Array<number>(days + 1).fill(0);
@@ -272,7 +273,6 @@ function DailyCalendar({ txs, settings, money, t }: {
     if (tx.type !== 'expense' || !tx.date.startsWith(prefix)) continue;
     spend[parseInt(tx.date.slice(8, 10), 10)] += tx.amountCents;
   }
-  const max = Math.max(1, ...spend);
   const total = spend.reduce((a, b) => a + b, 0);
   const first = settings.firstDayOfWeek ?? 1;
   const lead = (new Date(cur.y, cur.m, 1).getDay() - first + 7) % 7;
@@ -301,14 +301,13 @@ function DailyCalendar({ txs, settings, money, t }: {
         {Array.from({ length: lead }, (_, i) => <span key={'e' + i} />)}
         {Array.from({ length: days }, (_, i) => {
           const d = i + 1, v = spend[d];
-          const a = v > 0 ? 0.25 + 0.75 * (v / max) : 0;
           const date = `${prefix}-${pad(d)}`;
           return (
             <button key={d} type="button" className={'fx-cal-d' + (isToday(d) ? ' today' : '')}
               onClick={() => navigate(`/dia/${date}`)}
-              aria-label={`${d}: ${money(v)}`} title={money(v)}
-              style={v > 0 ? { background: `color-mix(in srgb, var(--accent) ${Math.round(a * 100)}%, var(--card-2))`, color: a > 0.55 ? '#fff' : undefined } : undefined}>
-              {d}
+              aria-label={`${d}: ${money(v)}`} title={money(v)}>
+              <span>{d}</span>
+              <b>{v > 0 ? money(v) : ''}</b>
             </button>
           );
         })}
@@ -330,6 +329,8 @@ export function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [period, setPeriod] = useState<Period>('month');
+  const [selY, setSelY] = useState(new Date().getFullYear());
+  const [selM, setSelM] = useState(new Date().getMonth() + 1);
   const { accounts, active, setActive } = useAccounts();
   const [recurrings, setRecurrings] = useState<Recurring[]>([]);
   const [layout, setLayoutState] = useState<Layout>(loadLayout);
@@ -367,8 +368,8 @@ export function Dashboard() {
   const lang = settings.language || i18n.language;
   const money = (c: number) => formatMoney(Math.round(c), settings.currency, lang);
   const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1;
+  const year = selY;
+  const month = selM;
 
   const catById = useMemo(() => new Map(cats.map((c) => [c.id, c])), [cats]);
   const catName = (c?: Category) => (c ? catLabel(t, c) : '—');
@@ -384,7 +385,7 @@ export function Dashboard() {
   const kpis = periodKpis(periodTx, cats);
   const daysInPeriod = period === 'month'
     ? new Date(year, month, 0).getDate()
-    : (new Date(year, 1, 29).getMonth() === 1 ? 366 : 365);
+    : (year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0) ? 366 : 365);
 
   // Salários pertencem à conta predefinida (ou a todas).
   const salaryHere = active === ALL_ACCOUNTS || active === defaultAccountId(accounts);
@@ -695,7 +696,7 @@ export function Dashboard() {
           </Card>
         );
       case 'calendar':
-        return <DailyCalendar txs={accTxs} settings={settings} money={money} t={t} />;
+        return <DailyCalendar txs={accTxs} settings={settings} money={money} t={t} selYear={year} selMonth={month} />;
       case 'recent':
         return (
           <Card title={t('panel.recentTransactions')} action={seeAll('/transacoes', t('panel.seeAll'))}>
@@ -875,6 +876,14 @@ export function Dashboard() {
             <button type="button" className={period === 'month' ? 'on' : ''} aria-pressed={period === 'month'} onClick={() => setPeriod('month')}>{t('panel.periodMonth')}</button>
             <button type="button" className={period === 'year' ? 'on' : ''} aria-pressed={period === 'year'} onClick={() => setPeriod('year')}>{t('panel.periodYear')}</button>
           </div>
+          <select className="fx-sel fx-periodsel" aria-label={t('panel.period')} value={selY} onChange={(e) => setSelY(parseInt(e.target.value, 10))}>
+            {Array.from({ length: 6 }, (_, i) => now.getFullYear() - i).map((y) => <option key={y} value={y}>{y}</option>)}
+          </select>
+          {period === 'month' && (
+            <select className="fx-sel fx-periodsel" aria-label={t('panel.month')} value={selM} onChange={(e) => setSelM(parseInt(e.target.value, 10))}>
+              {Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={i + 1}>{cap(new Date(now.getFullYear(), i, 1).toLocaleDateString(lang, { month: 'long' }))}</option>)}
+            </select>
+          )}
           <AccountSwitch accounts={accounts} active={active} onChange={setActive} />
           <button type="button" className={'fx-btn' + (editing ? ' on' : '')} aria-pressed={editing} onClick={() => setEditing(!editing)}>
             <Ic d={editing ? 'M5 12l5 5 9-10' : 'M4 6h16M4 12h16M4 18h10'} size={15} /> {editing ? t('panel.done') : t('panel.customize')}

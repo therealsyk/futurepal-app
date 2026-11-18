@@ -29,6 +29,7 @@
     "title": "Tableau de bord",
     "periodMonth": "Mois",
     "periodYear": "Année",
+    "month": "Mois",
     "period30": "30 jours",
     "period60": "60 jours",
     "period90": "90 jours",
@@ -274,7 +275,16 @@
     "catRent": "Loyer",
     "catSalary": "Salaire",
     "catAnimals": "Animaux",
-    "catClothes": "Vêtements"
+    "catClothes": "Vêtements",
+    "catGroceries": "Courses",
+    "catCoffee": "Café",
+    "catDrinks": "Boissons",
+    "catElectricity": "Électricité",
+    "catInternet": "Internet",
+    "catMaintenance": "Entretien",
+    "catTravel": "Voyages",
+    "catEducation": "Éducation",
+    "catPhone": "Téléphone"
   },
   "budgets": {
     "title": "Budgets",

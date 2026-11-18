@@ -5,7 +5,7 @@ import type { Account, AccountType, Transaction, Transfer } from '../db/database
 import { addAccount, updateAccount, removeAccount, accountBalanceCents, netWorthCents, salariesUntil, CURRENCIES, loadTransfers, addTransfer, removeTransfer, suggestedSource, validateTransfer } from '../core/accounts';
 import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
-import { PageHead, Seg, Sheet, Toggle, Field, EmptyState, Ic, ICON, useAccounts } from '../ui/fx';
+import { PageHead, Seg, Sheet, Toggle, Field, EmptyState, Ic, ICON, useAccounts, catLabel } from '../ui/fx';
 import type { Category } from '../db/database';
 import { todayISO } from '../core/dates';
 
@@ -217,7 +217,7 @@ export function Accounts() {
             <Field label={t('accounts.category')}>
               <select className="fx-input" value={tdraft.categoryId} onChange={(e) => setTdraft({ ...tdraft, categoryId: e.target.value })}>
                 <option value="">{t('accounts.noCategory')}</option>
-                {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                {cats.map((c) => <option key={c.id} value={c.id}>{catLabel(t, c)}</option>)}
               </select>
             </Field>
             <Field label={t('accounts.note')}>

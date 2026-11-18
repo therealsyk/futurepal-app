@@ -126,7 +126,8 @@ body {
 .fx-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
 .fx-head h1 { margin: 0; font-size: 26px; font-weight: 650; letter-spacing: -0.02em; }
 .fx-head p { margin: 4px 0 0; font-size: 13.5px; color: var(--muted); }
-.fx-head-actions { display: flex; align-items: center; gap: 10px; }
+.fx-head-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.fx-periodsel { background: var(--card); border: 1px solid var(--border); border-radius: 999px; padding: 7px 12px; color: var(--text); font-size: 13px; }
 
 .fx-seg { display: flex; gap: 2px; padding: 4px; border-radius: 999px; background: var(--card); border: 1px solid var(--border); }
 .fx-seg button {
@@ -231,11 +232,14 @@ body {
 .fx-cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
 .fx-cal-h { font-size: 10.5px; text-align: center; color: var(--muted); padding-bottom: 2px; text-transform: uppercase; }
 .fx-cal-d {
-  aspect-ratio: 1 / 0.72; border-radius: 9px; border: 0; cursor: pointer; padding: 0;
+  aspect-ratio: 1 / 0.72; border-radius: 9px; border: 0; cursor: pointer; padding: 6px 8px;
   font: inherit; font-size: 11.5px; color: var(--text); background: var(--card-2);
-  display: grid; place-items: center; font-variant-numeric: tabular-nums;
+  display: flex; flex-direction: column; align-items: center; gap: 3px; font-variant-numeric: tabular-nums;
 }
-.fx-cal-d.today { outline: 1.5px solid var(--accent); outline-offset: -1.5px; }
+.fx-cal-d span { font-size: 11.5px; }
+.fx-cal-d b { font-size: 10.5px; font-weight: 600; color: var(--accent); min-height: 12px; }
+.fx-cal-d.today { background: var(--accent); color: #fff; }
+.fx-cal-d.today b { color: #fff; }
 .fx-cal-d:hover { filter: brightness(1.2); }
 .fx-empty { font-size: 13px; color: var(--muted); padding: 18px 0; text-align: center; }
 
