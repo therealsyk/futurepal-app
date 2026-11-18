@@ -6,6 +6,7 @@ import { addAccount, updateAccount, removeAccount, accountBalanceCents, netWorth
 import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
 import { PageHead, Seg, Sheet, Toggle, Field, EmptyState, Ic, ICON, useAccounts, CategorySelect } from '../ui/fx';
+import { DatePicker } from '../ui/DatePicker';
 import type { Category } from '../db/database';
 import { todayISO } from '../core/dates';
 import { FREE_LIMITS, withinFreeLimit } from '../core/plan';
@@ -215,7 +216,7 @@ export function Accounts() {
                 <input className="fx-input big" autoFocus inputMode="decimal" value={tdraft.amount} placeholder="0,00" onChange={(e) => setTdraft({ ...tdraft, amount: e.target.value })} />
               </Field>
               <Field label={t('accounts.date')}>
-                <input className="fx-input" type="date" value={tdraft.date} onChange={(e) => setTdraft({ ...tdraft, date: e.target.value })} />
+                <DatePicker value={tdraft.date} onChange={(v) => setTdraft({ ...tdraft, date: v })} />
               </Field>
             </div>
             <Field label={t('accounts.category')}>

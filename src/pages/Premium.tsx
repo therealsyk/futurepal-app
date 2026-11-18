@@ -12,6 +12,7 @@ import {
   warrantyDaysLeft, warrantyEnd, yearReview, type Challenge, type ChallengeType,
 } from '../core/premium';
 import { catLabel, CatIcon, EmptyState, Field, Ic, ICON, PageHead, Sheet } from '../ui/fx';
+import { DatePicker } from '../ui/DatePicker';
 
 // ---------------------------------------------------------------- comum
 const LOCK = 'M6 11h12v9H6zM8 11V8a4 4 0 0 1 8 0v3';
@@ -331,7 +332,7 @@ export function WarrantiesPage() {
         footer={<><span style={{ flex: 1 }} /><button type="button" className="fx-btn" onClick={() => setOpen(false)}>{t('common.cancel')}</button><button type="button" className="fx-btn primary" onClick={save}>{t('common.add')}</button></>}>
         <Field label={t('plus.wName')}><input className="fx-input" value={f.name} placeholder={t('plus.wNamePh')} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
         <div className="fx-two">
-          <Field label={t('plus.wDate')}><input className="fx-input" type="date" value={f.purchaseDate} onChange={(e) => setF({ ...f, purchaseDate: e.target.value })} /></Field>
+          <Field label={t('plus.wDate')}><DatePicker value={f.purchaseDate} onChange={(v) => setF({ ...f, purchaseDate: v })} /></Field>
           <Field label={t('plus.wMonths')}><input className="fx-input" inputMode="numeric" value={f.months} onChange={(e) => setF({ ...f, months: e.target.value })} /></Field>
         </div>
         <div className="fx-two">

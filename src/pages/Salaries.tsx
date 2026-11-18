@@ -7,6 +7,7 @@ import type { Category, Transaction } from '../db/database';
 import { parseMoneyToCents, formatMoney } from '../core/money';
 import { loadSettings } from '../core/settings';
 import { PageHead, Sheet, Field, MonthNav, EmptyState, Ic, ICON } from '../ui/fx';
+import { DatePicker } from '../ui/DatePicker';
 import { todayISO } from '../core/dates';
 
 // SPEC §6.4: grelha de meses × ano com o salário de cada mês + extras (rendimentos complementares).
@@ -122,7 +123,7 @@ export const Salaries = () => {
         {error && <p className="fx-error">{error}</p>}
         <Field label={t('salaries.extraName')}><input className="fx-input" autoFocus value={eName} onChange={(e) => setEName(e.target.value)} /></Field>
         <Field label={t('transactions.amount')}><input className="fx-input big" inputMode="decimal" value={eAmount} placeholder="0,00" onChange={(e) => setEAmount(e.target.value)} /></Field>
-        <Field label={t('transactions.date')}><input className="fx-input" type="date" value={eDate} onChange={(e) => setEDate(e.target.value)} /></Field>
+        <Field label={t('transactions.date')}><DatePicker value={eDate} onChange={(v) => setEDate(v)} /></Field>
       </Sheet>
     </div>
   );

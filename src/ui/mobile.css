@@ -704,3 +704,16 @@ html[data-theme="light"] .mv-acc.spending { --acc: #b7771b; }
 .fx-dp-grid .fx-cal-d.sel b { color: var(--mv-ink); }
 .fx-dp-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 10px; }
 .fx-dp-foot .fx-btn { padding: 7px 14px; font-size: 13px; }
+/* Calendário: vista de ano (12 mini-meses) */
+.cal-year { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-content: start; }
+.cal-ym { display: flex; flex-direction: column; gap: 10px; padding: 14px; text-align: left; font: inherit; color: var(--text); cursor: pointer; border: 1px solid var(--border); }
+.cal-ym:hover { border-color: color-mix(in srgb, var(--accent) 50%, var(--border)); }
+.cal-ym.now { box-shadow: inset 0 0 0 1.5px var(--accent); }
+.cal-ym-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.cal-ym-head b { font-size: 14px; }
+.cal-ym-head span { font-size: 12.5px; color: var(--muted); }
+.cal-ym-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; width: 100%; max-width: 168px; }
+.cal-ym-grid i { aspect-ratio: 1; border-radius: 3px; background: var(--card-2); }
+.cal-ym-grid i.blank { background: none; }
+@media (max-width: 1100px) { .cal-year { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 768px) { .cal-year { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } .cal-ym { padding: 10px; } .cal-ym-grid { gap: 2px; } }

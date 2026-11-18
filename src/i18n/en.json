@@ -328,7 +328,10 @@
     "dayTotal": "Day total",
     "subtitle": "How much you spend each day.",
     "monthTotal": "Month total",
-    "topDay": "Most expensive day"
+    "topDay": "Most expensive day",
+    "monthAverage": "Average per month",
+    "topMonth": "Top month",
+    "yearHint": "Tap a month to see its days."
   },
   "salaries": {
     "title": "Salaries",
@@ -469,7 +472,9 @@
     "addNew": "Add budget",
     "pickCategory": "Choose a category.",
     "noBudgetsSub": "Pick a category and set how much you want to spend on it this month.",
-    "monthlyLimit": "Limit for {{month}}"
+    "monthlyLimit": "Limit for {{month}}",
+    "monthlyLimitYear": "Monthly limit (every month of {{year}})",
+    "yearNote": "Yearly totals: the sum of each month’s limit and everything you spent in {{year}}."
   },
   "goals": {
     "title": "Goals",

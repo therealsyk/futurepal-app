@@ -16,6 +16,7 @@ export function Budgets() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
+  const [period, setPeriod] = useState<'month' | 'year'>('month'); // no Ano: soma dos limites mensais vs. gasto do ano
   const [cats, setCats] = useState<Category[]>([]);
   const [usage, setUsage] = useState<Record<string, Usage>>({});
   const [drafts, setDrafts] = useState<Record<string, string>>({});
@@ -33,12 +34,28 @@ export function Budgets() {
     const active = await activeCategories(db);
     setCats(active);
     const u: Record<string, Usage> = {};
-    for (const c of active) u[c.id] = await budgetUsage(db, c.id, year, month);
+    if (period === 'month') {
+      for (const c of active) u[c.id] = await budgetUsage(db, c.id, year, month);
+    } else {
+      const bs = (await db.budgets.toArray()).filter((b) => b.deletedAt === null && b.year === year);
+      const y = `${year}-`;
+      const txs = (await db.transactions.where('date').between(`${year}-01-01`, `${year}-12-31`, true, true).toArray())
+        .filter((x) => x.deletedAt === null && x.type === 'expense' && x.date.startsWith(y));
+      for (const c of active) {
+        // um limite por mês (se houver repetidos no mesmo mês conta o mais recente)
+        const perMonth = new Map<number, { cents: number; at: string }>();
+        for (const b of bs) if (b.categoryId === c.id) { const cur = perMonth.get(b.month); if (!cur || b.updatedAt > cur.at) perMonth.set(b.month, { cents: b.limitCents, at: b.updatedAt }); }
+        const limit = [...perMonth.values()].reduce((a, v) => a + v.cents, 0);
+        const spent = txs.filter((x) => x.categoryId === c.id).reduce((a, x) => a + x.amountCents, 0);
+        u[c.id] = { limitCents: limit, spentCents: spent, remainingCents: limit - spent, overBudget: limit > 0 && spent > limit };
+      }
+    }
     setUsage(u);
   };
-  useEffect(() => { refresh().catch((e) => setError(String(e))); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [year, month]);
+  useEffect(() => { refresh().catch((e) => setError(String(e))); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [year, month, period]);
 
   const shift = (d: number) => {
+    if (period === 'year') { setYear((y) => y + d); return; }
     let m = month + d, y = year;
     if (m < 1) { m = 12; y -= 1; } else if (m > 12) { m = 1; y += 1; }
     setMonth(m); setYear(y);
@@ -48,13 +65,14 @@ export function Budgets() {
     const cents = parseMoneyToCents(drafts[id] || '');
     if (cents === null || cents <= 0) { setError(t('transactions.amountInvalid')); return; }
     if (!(usage[id]?.limitCents > 0) && !withinFreeLimit('budgets', Object.values(usage).filter((u) => u.limitCents > 0).length)) { setError(t('plus.limitBudgets', { n: FREE_LIMITS.budgets })); return; }
-    await setBudget(db, id, cents, year, month);
+    if (period === 'year') { for (let m = 1; m <= 12; m++) await setBudget(db, id, cents, year, m); }
+    else await setBudget(db, id, cents, year, month);
     setError(null); setDrafts((d) => ({ ...d, [id]: '' }));
     await refresh();
   };
 
   const remove = async (id: string) => {
-    const rows = (await db.budgets.toArray()).filter((b) => b.deletedAt === null && b.categoryId === id && b.year === year && b.month === month);
+    const rows = (await db.budgets.toArray()).filter((b) => b.deletedAt === null && b.categoryId === id && b.year === year && (period === 'year' || b.month === month));
     for (const b of rows) await db.budgets.update(b.id, { deletedAt: new Date().toISOString() });
     await refresh();
   };
@@ -73,7 +91,8 @@ export function Budgets() {
     if (!newCat) { setAddError(t('budgets.pickCategory')); return; }
     if (cents === null || cents <= 0) { setAddError(t('transactions.amountInvalid')); return; }
     if (!withinFreeLimit('budgets', list.length)) { setAddError(t('plus.limitBudgets', { n: FREE_LIMITS.budgets })); return; }
-    await setBudget(db, newCat, cents, year, month);
+    if (period === 'year') { for (let m = 1; m <= 12; m++) await setBudget(db, newCat, cents, year, m); }
+    else await setBudget(db, newCat, cents, year, month);
     setAdding(false);
     await refresh();
   };
@@ -81,10 +100,15 @@ export function Budgets() {
   return (
     <div className="fx-page">
       <PageHead title={t('budgets.title')} sub={t('budgets.subtitle')}>
-        <MonthNav label={`${monthNames[month - 1]} ${year}`} onPrev={() => shift(-1)} onNext={() => shift(1)} />
+        <div className="fx-seg" role="group" aria-label={t('panel.period')}>
+          <button type="button" className={period === 'month' ? 'on' : ''} aria-pressed={period === 'month'} onClick={() => setPeriod('month')}>{t('panel.periodMonth')}</button>
+          <button type="button" className={period === 'year' ? 'on' : ''} aria-pressed={period === 'year'} onClick={() => setPeriod('year')}>{t('panel.periodYear')}</button>
+        </div>
+        <MonthNav label={period === 'month' ? `${monthNames[month - 1]} ${year}` : String(year)} onPrev={() => shift(-1)} onNext={() => shift(1)} />
         <button type="button" className="fx-btn primary" onClick={openAdd} disabled={free.length === 0} data-testid="budget-add"><Ic d={ICON.plus} size={16} />{t('budgets.addNew')}</button>
       </PageHead>
       {error && <p className="fx-error">{error}</p>}
+      {period === 'year' && <p className="fx-muted fx-small" style={{ margin: '0 0 12px' }}>{t('budgets.yearNote', { year })}</p>}
 
       <div className="fx-kpis">
         <div className="fx-card fx-kpi"><div className="fx-kpi-label">{t('budgets.totalLimit')}</div><div className="fx-kpi-value"><span>{money(totalLimit)}</span></div></div>
@@ -125,7 +149,7 @@ export function Budgets() {
         <Field label={t('transactions.category')}>
           <CategorySelect cats={free} value={newCat} onChange={setNewCat} ariaLabel={t('transactions.category')} />
         </Field>
-        <Field label={t('budgets.monthlyLimit', { month: `${monthNames[month - 1]} ${year}` })}>
+        <Field label={period === 'year' ? t('budgets.monthlyLimitYear', { year }) : t('budgets.monthlyLimit', { month: `${monthNames[month - 1]} ${year}` })}>
           <input className="fx-input big" inputMode="decimal" placeholder="0,00" value={newAmount} onChange={(e) => setNewAmount(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addBudget(); }} />
         </Field>
       </Sheet>

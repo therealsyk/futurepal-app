@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { getSupabase } from '../auth/supabase';
 import { useAuth } from '../auth/AuthContext';
 import { PageHead, Field } from '../ui/fx';
+import { DatePicker } from '../ui/DatePicker';
 
 // Painel de administração (só para contas na tabela "admins" do Supabase; ver supabase/admin.sql).
 // Mostra números agregados, as últimas contas criadas e permite publicar o aviso de versão nova.
@@ -125,7 +126,7 @@ export function AdminPage() {
             </select>
           </Field>
         </div>
-        {sub.plan !== 'free' && <Field label={t('admin.subUntil')}><input className="fx-input" type="date" value={sub.until} onChange={(e) => setSub({ ...sub, until: e.target.value })} /></Field>}
+        {sub.plan !== 'free' && <Field label={t('admin.subUntil')}><DatePicker value={sub.until} onChange={(v) => setSub({ ...sub, until: v })} allowEmpty /></Field>}
         <button type="button" className="fx-btn primary" onClick={saveSub}>{t('admin.subSave')}</button>
         {subMsg && <p className="fx-muted">{subMsg}</p>}
         <div className="as-input" style={{ marginTop: 14 }}>

@@ -10,6 +10,7 @@ import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
 import { dayTransactions, matchCategory, normalizeIntent, normalizeReceipt, quickIntent, shrinkImage, spendSummary, type Intent } from '../core/assistant';
 import { catFitsKind, catLabel, Field, Ic, PageHead, Sheet } from '../ui/fx';
+import { DatePicker } from '../ui/DatePicker';
 import { Locked } from './Premium';
 
 // Assistente FuturePal: perguntas sobre despesas/poupança e fotos de faturas.
@@ -178,7 +179,7 @@ function AssistantInner() {
           <Field label={t('family.what')}><input className="fx-input" value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} /></Field>
           <div className="fx-two">
             <Field label={t('family.amount')}><input className="fx-input" inputMode="decimal" value={draft.amount} onChange={(e) => setDraft({ ...draft, amount: e.target.value })} /></Field>
-            <Field label={t('family.date')}><input className="fx-input" type="date" value={draft.date} onChange={(e) => setDraft({ ...draft, date: e.target.value })} /></Field>
+            <Field label={t('family.date')}><DatePicker value={draft.date} onChange={(v) => setDraft({ ...draft, date: v })} /></Field>
           </div>
           <Field label={t('assistant.category')}>
             <select className="fx-input" value={draft.categoryId} onChange={(e) => setDraft({ ...draft, categoryId: e.target.value })}>

@@ -11,6 +11,7 @@ import { loadSettings } from '../core/settings';
 import { hasFeature } from '../core/plan';
 import { billStatus, myPending, parseContact, toBills, type SplitBill } from '../core/split';
 import { catFitsKind, catLabel, EmptyState, Field, Ic, ICON, PageHead, Sheet } from '../ui/fx';
+import { DatePicker } from '../ui/DatePicker';
 import { usePlan } from './Premium';
 
 // Divisão de contas: grupos com convite por email/telemóvel (a pessoa aceita), contas divididas em partes iguais
@@ -257,7 +258,7 @@ export function SplitPage() {
           <Field label={t('family.what')}><input className="fx-input" value={bill.description} placeholder={t('split.billPh')} onChange={(e) => setBill({ ...bill, description: e.target.value })} /></Field>
           <div className="fx-two">
             <Field label={t('split.total')}><input className="fx-input" inputMode="decimal" value={bill.amount} placeholder="0,00" onChange={(e) => setBill({ ...bill, amount: e.target.value })} /></Field>
-            <Field label={t('family.date')}><input className="fx-input" type="date" value={bill.date} onChange={(e) => setBill({ ...bill, date: e.target.value })} /></Field>
+            <Field label={t('family.date')}><DatePicker value={bill.date} onChange={(v) => setBill({ ...bill, date: v })} /></Field>
           </div>
           <Field label={t('family.splitWith')}>
             <div className="fm-split">
@@ -278,7 +279,7 @@ export function SplitPage() {
           <p>{t('split.personalText', { amount: money(personal.cents) })}</p>
           <Field label={t('family.what')}><input className="fx-input" value={personal.description} onChange={(e) => setPersonal({ ...personal, description: e.target.value })} /></Field>
           <div className="fx-two">
-            <Field label={t('family.date')}><input className="fx-input" type="date" value={personal.date} onChange={(e) => setPersonal({ ...personal, date: e.target.value })} /></Field>
+            <Field label={t('family.date')}><DatePicker value={personal.date} onChange={(v) => setPersonal({ ...personal, date: v })} /></Field>
             <Field label={t('assistant.category')}>
               <select className="fx-input" value={personal.categoryId} onChange={(e) => setPersonal({ ...personal, categoryId: e.target.value })}>
                 {labeled.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}

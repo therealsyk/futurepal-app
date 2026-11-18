@@ -406,7 +406,10 @@
     "dayTotal": "Total do dia",
     "subtitle": "Quanto gastas em cada dia.",
     "monthTotal": "Total do mês",
-    "topDay": "Dia mais caro"
+    "topDay": "Dia mais caro",
+    "monthAverage": "Média por mês",
+    "topMonth": "Mês com mais gastos",
+    "yearHint": "Toca num mês para ver os dias."
   },
   "salaries": {
     "title": "Salários",
@@ -469,7 +472,9 @@
     "addNew": "Adicionar orçamento",
     "pickCategory": "Escolhe uma categoria.",
     "noBudgetsSub": "Escolhe uma categoria e define quanto queres gastar nela este mês.",
-    "monthlyLimit": "Limite para {{month}}"
+    "monthlyLimit": "Limite para {{month}}",
+    "monthlyLimitYear": "Limite por mês (todos os meses de {{year}})",
+    "yearNote": "Valores do ano: soma dos limites de cada mês e tudo o que gastaste em {{year}}."
   },
   "goals": {
     "title": "Metas",

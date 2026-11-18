@@ -7,6 +7,7 @@ import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
 import { balances, householdSpent, MAX_MEMBERS, settleUp, type HouseholdExpense, type HouseholdMember } from '../core/family';
 import { EmptyState, Field, Ic, ICON, PageHead, Sheet } from '../ui/fx';
+import { DatePicker } from '../ui/DatePicker';
 import { Locked } from './Premium';
 
 // Família: carteira da casa partilhada (online, no Supabase; ver supabase/family.sql).
@@ -215,7 +216,7 @@ function FamilyInner() {
         <Field label={t('family.what')}><input className="fx-input" value={f.description} placeholder={t('family.whatPh')} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field>
         <div className="fx-two">
           <Field label={t('family.amount')}><input className="fx-input" inputMode="decimal" value={f.amount} placeholder="0,00" onChange={(e) => setF({ ...f, amount: e.target.value })} /></Field>
-          <Field label={t('family.date')}><input className="fx-input" type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></Field>
+          <Field label={t('family.date')}><DatePicker value={f.date} onChange={(v) => setF({ ...f, date: v })} /></Field>
         </div>
         <Field label={t('family.whoPaid')}>
           <select className="fx-input" value={f.paidBy} onChange={(e) => setF({ ...f, paidBy: e.target.value })}>

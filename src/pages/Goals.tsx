@@ -8,6 +8,7 @@ import { accountBalanceCents, salariesUntil, loadTransfers } from '../core/accou
 import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
 import { PageHead, Sheet, Field, Toggle, EmptyState, Ic, ICON, useAccounts, CategorySelect } from '../ui/fx';
+import { DatePicker } from '../ui/DatePicker';
 import { todayISO } from '../core/dates';
 import { FREE_LIMITS, withinFreeLimit } from '../core/plan';
 
@@ -182,7 +183,7 @@ export function Goals() {
             <select className="fx-input" value={rFreq} onChange={(e) => setRFreq(e.target.value as Recurring['frequency'])} aria-label={t('goals.frequency')}>
               {RECURRING_FREQUENCIES.map((f) => <option key={f} value={f}>{t('goals.' + f)}</option>)}
             </select>
-            <input className="fx-input" type="date" value={rNext} onChange={(e) => setRNext(e.target.value)} aria-label={t('goals.nextDate')} />
+            <DatePicker value={rNext} onChange={(v) => setRNext(v)} ariaLabel={t('goals.nextDate')} />
             <button type="button" className="fx-btn primary" onClick={createRecurring}><Ic d={ICON.plus} size={15} />{t('goals.addRecurring')}</button>
           </div>
           {recurrings.length === 0 ? <p className="fx-empty">{t('goals.noRecurring')}</p> : (
@@ -234,8 +235,8 @@ export function Goals() {
         <Field label={t('goals.name')}><input className="fx-input" autoFocus value={gName} placeholder={t('goals.namePlaceholder')} onChange={(e) => setGName(e.target.value)} /></Field>
         <Field label={`${t('goals.target')} (${settings.currency})`}><input className="fx-input big" inputMode="decimal" value={gTarget} placeholder="0" onChange={(e) => setGTarget(e.target.value)} /></Field>
         <div className="fx-two">
-          <Field label={t('goals.startDate')}><input className="fx-input" type="date" value={gStart} onChange={(e) => setGStart(e.target.value)} /></Field>
-          <Field label={t('goals.targetDate')}><input className="fx-input" type="date" value={gEnd} onChange={(e) => setGEnd(e.target.value)} /></Field>
+          <Field label={t('goals.startDate')}><DatePicker value={gStart} onChange={(v) => setGStart(v)} /></Field>
+          <Field label={t('goals.targetDate')}><DatePicker value={gEnd} onChange={(v) => setGEnd(v)} allowEmpty /></Field>
         </div>
         <Field label={t('goals.notes')}><textarea className="fx-input" rows={2} value={gNotes} placeholder={t('goals.notesPlaceholder')} onChange={(e) => setGNotes(e.target.value)} /></Field>
         <div className="fx-label" style={{ margin: '14px 0 2px' }}>{t('goals.yourAccounts')}</div>
