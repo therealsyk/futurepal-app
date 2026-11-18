@@ -21,3 +21,13 @@ describe('auth helpers', () => {
     expect(authErrorKey('???')).toBe('auth.err_generic');
   });
 });
+
+import { normalizePhone } from './supabase';
+describe('normalizePhone', () => {
+  it('normalizes Portuguese and international numbers', () => {
+    expect(normalizePhone('912 345 678')).toBe('351912345678');
+    expect(normalizePhone('+351 912 345 678')).toBe('351912345678');
+    expect(normalizePhone('0044 7700 900123')).toBe('447700900123');
+    expect(normalizePhone('123')).toBeNull();
+  });
+});

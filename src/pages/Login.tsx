@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { signIn, signUp, resetPassword, authErrorKey, hasSupabaseConfig } from '../auth/supabase';
+import { signIn, signUp, resetPassword, authErrorKey, hasSupabaseConfig, enabledProviders, normalizePhone } from '../auth/supabase';
 import { signInWithProvider, type OAuthProvider } from '../auth/oauth';
 
 type Mode = 'signin' | 'signup' | 'reset';
@@ -18,9 +18,14 @@ export function LoginForm({ initialMode = 'signin', onDone, onSkip }: { initialM
   const [info, setInfo] = useState('');
   const configured = hasSupabaseConfig();
   const [social, setSocial] = useState<OAuthProvider | null>(null);
+  const [phone, setPhone] = useState('');
+  const [providers, setProviders] = useState<Record<string, boolean> | null>(null);
+  useEffect(() => { enabledProviders().then(setProviders).catch(() => setProviders({})); }, []);
 
   async function withProvider(p: OAuthProvider) {
-    setError(''); setInfo(''); setSocial(p);
+    setError(''); setInfo('');
+    if (providers && providers[p] === false) { setError(t('auth.err_providerOff')); return; }
+    setSocial(p);
     try {
       await signInWithProvider(p);
       setInfo(t('auth.socialContinue')); // no Windows/telemóvel o login acaba no browser e a app atualiza sozinha
@@ -36,13 +41,15 @@ export function LoginForm({ initialMode = 'signin', onDone, onSkip }: { initialM
     setError(''); setInfo('');
     if (!email.includes('@')) { setError(t('auth.err_email')); return; }
     if (mode !== 'reset' && password.length < 6) { setError(t('auth.err_weak')); return; }
+    const phoneNorm = phone.trim() ? normalizePhone(phone) : null;
+    if (mode === 'signup' && phone.trim() && !phoneNorm) { setError(t('auth.err_phone')); return; }
     setBusy(true);
     try {
       if (mode === 'signin') {
         await signIn(email.trim(), password);
         onDone();
       } else if (mode === 'signup') {
-        const r = await signUp(email.trim(), password, name.trim() || undefined);
+        const r = await signUp(email.trim(), password, name.trim() || undefined, phoneNorm ?? undefined);
         if (r.needsConfirmation) { setInfo(t('auth.checkEmail')); setMode('signin'); }
         else onDone();
       } else {
@@ -90,6 +97,12 @@ export function LoginForm({ initialMode = 'signin', onDone, onSkip }: { initialM
           <label className="ob-input">
             <span>{t('auth.name')}</span>
             <input autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('auth.namePh')} />
+          </label>
+        )}
+        {mode === 'signup' && (
+          <label className="ob-input">
+            <span>{t('auth.phone')}</span>
+            <input type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="912 345 678" />
           </label>
         )}
         <label className="ob-input">

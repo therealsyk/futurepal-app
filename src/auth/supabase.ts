@@ -36,8 +36,11 @@ function need(): SupabaseClient {
 
 // Devolve { user, needsConfirmation }: com "Confirm email" ligado no Supabase o registo
 // não cria sessão até a pessoa clicar no link do email.
-export async function signUp(email: string, password: string, name?: string): Promise<{ user: User | null; needsConfirmation: boolean }> {
-  const res = await need().auth.signUp({ email, password, options: { data: name ? { name } : undefined } });
+export async function signUp(email: string, password: string, name?: string, phone?: string): Promise<{ user: User | null; needsConfirmation: boolean }> {
+  const data: Record<string, string> = {};
+  if (name) data.name = name;
+  if (phone) data.phone = phone; // guardado no perfil (sem SMS); serve, p.ex., para receber convites de divisão de contas
+  const res = await need().auth.signUp({ email, password, options: { data: Object.keys(data).length ? data : undefined } });
   if (res.error) throw res.error;
   return { user: res.data.user, needsConfirmation: !res.data.session };
 }
@@ -77,6 +80,7 @@ export function authErrorKey(err: unknown): string {
   const msg = String((err as { message?: string })?.message ?? err ?? '').toLowerCase();
   const code = String((err as { code?: string })?.code ?? '').toLowerCase();
   if (msg === 'not-configured') return 'auth.err_notConfigured';
+  if (msg === 'provider-disabled' || msg.includes('provider is not enabled') || msg.includes('unsupported provider')) return 'auth.err_providerOff';
   if (code === 'invalid_credentials' || msg.includes('invalid login')) return 'auth.err_invalid';
   if (code === 'email_not_confirmed' || msg.includes('not confirmed')) return 'auth.err_notConfirmed';
   if (code === 'user_already_exists' || msg.includes('already registered')) return 'auth.err_exists';
@@ -84,4 +88,23 @@ export function authErrorKey(err: unknown): string {
   if (code === 'over_email_send_rate_limit' || msg.includes('rate limit')) return 'auth.err_rate';
   if (msg.includes('failed to fetch') || msg.includes('network')) return 'auth.err_network';
   return 'auth.err_generic';
+}
+
+/** Que fornecedores de login (google, facebook, apple…) estão ativos no Supabase. */
+export async function enabledProviders(): Promise<Record<string, boolean>> {
+  if (!hasSupabaseConfig()) return {};
+  try {
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/settings`, { headers: { apikey: SUPABASE_KEY } });
+    const j = await r.json();
+    return (j?.external ?? {}) as Record<string, boolean>;
+  } catch { return {}; }
+}
+
+/** Telemóvel em formato internacional só com dígitos (assume +351 para 9 dígitos portugueses). null se inválido. */
+export function normalizePhone(raw: string): string | null {
+  const d = raw.replace(/\D/g, '');
+  if (!d) return null;
+  if (d.length === 9 && /^[29]/.test(d)) return '351' + d;
+  if (d.length >= 10 && d.length <= 15) return d.replace(/^00/, '');
+  return null;
 }

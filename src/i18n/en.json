@@ -655,7 +655,10 @@
     "withFacebook": "Continue with Facebook",
     "withApple": "Continue with Apple",
     "or": "or with email",
-    "socialContinue": "Finish signing in in the window that opened; the app will update by itself."
+    "socialContinue": "Finish signing in in the window that opened; the app will update by itself.",
+    "phone": "Phone (optional)",
+    "err_phone": "That phone number doesn't look valid.",
+    "err_providerOff": "This sign-in option isn't active yet. For now, use email and password."
   },
   "onboard": {
     "back": "Back",

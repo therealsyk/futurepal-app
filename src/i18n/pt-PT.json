@@ -659,7 +659,10 @@
     "withFacebook": "Continuar com Facebook",
     "withApple": "Continuar com Apple",
     "or": "ou com email",
-    "socialContinue": "Acaba o login na janela que abriu; a app atualiza sozinha."
+    "socialContinue": "Acaba o login na janela que abriu; a app atualiza sozinha.",
+    "phone": "Telemóvel (opcional)",
+    "err_phone": "Esse número de telemóvel não parece válido.",
+    "err_providerOff": "Este tipo de login ainda não está ativo. Por agora entra com email e palavra-passe."
   },
   "onboard": {
     "back": "Voltar",
