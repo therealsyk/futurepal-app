@@ -42,11 +42,12 @@ let windowsUrl = '';
 if (!has('--skip-windows')) {
   const publishFlags = owner ? `-c.publish.provider=github -c.publish.owner=${owner} -c.publish.repo=${repo} -c.publish.releaseType=release` : '';
   const publish = owner && process.env.GH_TOKEN ? 'always' : 'never';
-  run(`${npx} electron-builder --win nsis --publish ${publish} ${publishFlags}`.trim());
+  // Cada versão na sua pasta (release/x.y.z): uma app aberta de uma versão anterior já não bloqueia a compilação.
+  run(`${npx} electron-builder --win nsis --publish ${publish} ${publishFlags} -c.directories.output=release/${version}`.trim());
   if (!owner) {
     console.log('\n[!] release.config.json sem "github.owner": o instalador foi criado em release/, mas as apps instaladas NÃO se vão atualizar sozinhas.');
   } else if (publish === 'never') {
-    console.log('\n[!] Sem GH_TOKEN: o instalador NÃO foi publicado. Carrega release/FuturePal-Setup-' + version + '.exe e release/latest.yml');
+    console.log('\n[!] Sem GH_TOKEN: o instalador NÃO foi publicado. Carrega release/' + version + '/FuturePal-Setup-' + version + '.exe, o .blockmap e release/' + version + '/latest.yml');
     console.log(`    numa release "v${version}" em https://github.com/${owner}/${repo}/releases/new (ou define GH_TOKEN e corre de novo).`);
   }
   if (owner) windowsUrl = `https://github.com/${owner}/${repo}/releases/latest`;
