@@ -10,7 +10,7 @@ win:
   # Instalador (NSIS): é o único formato do Windows que se atualiza sozinho.
   # O "publish" (para onde vão as versões novas) é passado pelo scripts/release.mjs a partir do release.config.json.
   target: nsis
-  icon: dist/favicon.ico
+  icon: build/icon.png
   artifactName: FuturePal-Setup-${version}.${ext}
 # Liga futurepal:// à app (volta do login com Google/Facebook/Apple).
 protocols:

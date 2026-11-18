@@ -1,6 +1,7 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "wallet-dev", "runtimeExecutable": "npm.cmd", "runtimeArgs": ["run", "dev", "--", "--port", "5173", "--strictPort"], "port": 5173 }
+    { "name": "wallet-dev", "runtimeExecutable": "npm.cmd", "runtimeArgs": ["run", "dev", "--", "--port", "5173", "--strictPort"], "port": 5173 },
+    { "name": "website", "runtimeExecutable": "python", "runtimeArgs": ["-m", "http.server", "5180", "--bind", "127.0.0.1", "--directory", "../website"], "port": 5180 }
   ]
 }

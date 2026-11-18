@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { loadSettings, saveSettings, setTheme } from '../core/settings';
 import type { AppSettings } from '../core/settings';
+import logoUrl from '../assets/logo.svg';
 
 // Barra lateral de ícones. O nome de cada
 // secção aparece como dica ao passar o rato ou ao focar com o teclado.
@@ -48,7 +49,7 @@ export default function Rail() {
 
   return (
     <aside className="fx-rail">
-      <div className="fx-logo" aria-hidden="true">W</div>
+      <img className="fx-logo-img" src={logoUrl} alt="" aria-hidden="true" />
       <nav aria-label={t('common.appName')}>
         {ITEMS.map((it) => (
           <NavLink
