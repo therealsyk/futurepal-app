@@ -736,3 +736,11 @@ html[data-theme="light"] .mv-acc.spending { --acc: #b7771b; }
 /* Calendário "Gasto por dia": o valor fica sempre dentro do quadrado (em ecrãs mais estreitos encolhe) */
 .fx-cal-d { min-width: 0; overflow: hidden; padding-left: 3px; padding-right: 3px; }
 .fx-cal-d b { max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: clip; font-size: clamp(8.5px, .62vw, 10.5px); }
+/* Calendário no telemóvel: quadrados mais altos, com o número e o gasto do dia por baixo */
+@media (max-width: 768px) {
+  .fx-cal.big { gap: 5px; }
+  .fx-cal.big .fx-cal-d { aspect-ratio: auto; min-height: 50px; padding: 6px 2px; align-items: center; justify-content: flex-start; gap: 4px; text-align: center; }
+  .fx-cal.big .fx-cal-d span { font-size: 12.5px; }
+  .fx-cal.big .fx-cal-d b { font-size: 9.5px; }
+  .fx-cal.big .fx-cal-h { font-size: 11px; }
+}

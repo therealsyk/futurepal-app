@@ -6,6 +6,7 @@ import { dailyTotals, buildCalendarGrid, weekdayLabels } from '../core/finance';
 import { formatMoney } from '../core/money';
 import { loadSettings } from '../core/settings';
 import { PageHead, MonthNav } from '../ui/fx';
+import { useIsMobile } from '../ui/useIsMobile';
 
 // SPEC §6.5: grelha por dia com o gasto sob o número; clicar abre o detalhe do dia.
 export default function Calendar() {
@@ -17,6 +18,7 @@ export default function Calendar() {
   const [period, setPeriod] = useState<'month' | 'year'>('month'); // um mês, ou os 12 meses do ano
   const [totals, setTotals] = useState<Record<string, number>>({});
   const settings = loadSettings();
+  const isMobile = useIsMobile();
 
   useEffect(() => { dailyTotals(db, calYear).then(setTotals).catch(() => setTotals({})); }, [calYear]);
 
@@ -25,6 +27,10 @@ export default function Calendar() {
   const iso = (day: number) => `${calYear}-${String(calMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   const isToday = (day: number) => calYear === now.getFullYear() && calMonth === now.getMonth() + 1 && day === now.getDate();
   const money = (c: number) => formatMoney(c, settings.currency, settings.language);
+  // No telemóvel os quadrados são pequenos: o valor do dia aparece arredondado ao euro (ex.: 650 €).
+  const dayMoney = (c: number) => (isMobile
+    ? new Intl.NumberFormat(settings.language, { style: 'currency', currency: settings.currency, maximumFractionDigits: 0 }).format(Math.round(c / 100))
+    : money(c));
   const shift = (d: number) => {
     if (period === 'year') { setCalYear((y) => y + d); return; }
     let m = calMonth + d, y = calYear;
@@ -38,7 +44,9 @@ export default function Calendar() {
   const yearTotal = Object.values(totals).reduce((a, b) => a + b, 0);
   const best = monthValues.sort((a, b) => b[1] - a[1])[0];
   const max = Math.max(1, ...monthValues.map(([, v]) => v));
-  const weekdays = weekdayLabels(settings.language, settings.firstDayOfWeek);
+  const weekdays = isMobile
+    ? Array.from({ length: 7 }, (_, i) => new Date(2024, 0, 7 + ((settings.firstDayOfWeek + i) % 7)).toLocaleDateString(settings.language, { weekday: 'narrow' }))
+    : weekdayLabels(settings.language, settings.firstDayOfWeek);
 
   // Vista de ano: cada mês com o total e um mini-calendário colorido pelo gasto de cada dia.
   const yearMonths = Array.from({ length: 12 }, (_, i) => {
@@ -97,7 +105,7 @@ export default function Calendar() {
                 <button type="button" key={day} className={'fx-cal-d' + (isToday(day) ? ' today' : '')}
                   style={spent > 0 ? { background: `color-mix(in srgb, var(--accent) ${12 + Math.round((spent / max) * 48)}%, var(--card-2))` } : undefined}
                   aria-label={`${day} ${monthNames[calMonth - 1]} — ${money(spent)}`} onClick={() => navigate(`/dia/${iso(day)}`)}>
-                  <span>{day}</span><b>{spent > 0 ? money(spent) : ''}</b>
+                  <span>{day}</span><b>{spent > 0 ? dayMoney(spent) : ''}</b>
                 </button>
               );
             })}
