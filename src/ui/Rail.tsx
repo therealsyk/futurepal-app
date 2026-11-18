@@ -25,6 +25,8 @@ const ITEMS = [
   { path: '/metas', key: 'nav.goals', d: 'M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8z' },
   { path: '/salarios', key: 'nav.salaries', d: 'M3 7h18v12H3zM3 11h18M7 15h3' },
   { path: '/categorias', key: 'nav.categories', d: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM16.5 13.5a3 3 0 1 1 0 6 3 3 0 0 1 0-6z' },
+  { path: '/assistente', key: 'plus.short_assistant', d: 'M4 5h16v11H9l-5 4zM9 10h.01M12 10h.01M15 10h.01' },
+  { path: '/dividir', key: 'split.title', d: 'M12 3v18M5 8h7M12 16h7M4 21h16' },
 ];
 
 const THEME_ORDER: AppSettings['theme'][] = ['dark', 'gray', 'light'];
