@@ -4,16 +4,16 @@ import { useTranslation } from 'react-i18next';
 import { Ic, ICON } from './fx';
 
 // Navegação do telemóvel (só aparece em ecrãs estreitos, ver mobile.css):
-// barra de separadores em baixo, botão "+" para nova transação e folha "Mais" com o resto.
+// barra flutuante em baixo com o botão "+" (nova transação) ao centro e folha "Mais" com o resto.
 
 const TABS = [
-  { path: '/', key: 'mobile.home', d: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z' },
+  { path: '/', key: 'mobile.home', d: 'M3 11l9-7 9 7M5 10v10h5v-6h4v6h5V10' },
   { path: '/metas', key: 'nav.goals', d: 'M12 21a9 9 0 1 1 0-18M12 16a4 4 0 1 1 0-8M12 12l8-8M16 4h4v4' },
-  { path: '/orcamentos', key: 'nav.budgets', d: 'M12 3a9 9 0 1 0 9 9h-9zM15 3.5V9h5.5A9 9 0 0 0 15 3.5z' },
   { path: '/contas', key: 'nav.accounts', d: ICON.wallet },
 ];
 
 const MORE = [
+  { path: '/orcamentos', key: 'nav.budgets', d: 'M12 3a9 9 0 1 0 9 9h-9zM15 3.5V9h5.5A9 9 0 0 0 15 3.5z' },
   { path: '/painel', key: 'mobile.fullPanel', d: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z' },
   { path: '/transacoes', key: 'nav.transactions', d: 'M4 7h13l-3-3M20 17H7l3 3' },
   { path: '/visao-mensal', key: 'nav.overview', d: 'M4 20V10M10 20V4M16 20v-7M22 20H2' },
@@ -33,21 +33,22 @@ export default function MobileNav() {
 
   return (
     <>
-      {pathname !== '/definicoes' && !pathname.startsWith('/transacoes') && (
-        <button type="button" className="mb-fab" onClick={() => navigate('/transacoes?nova=1')} aria-label={t('transactions.addTransaction')} data-testid="mb-fab">
-          <Ic d={ICON.plus} size={26} />
-        </button>
-      )}
-
       <nav className="mb-tabbar" aria-label={t('common.appName')}>
-        {TABS.map((it) => (
-          <NavLink key={it.path} to={it.path} end={it.path === '/'} className={({ isActive }) => 'mb-tab' + (isActive ? ' active' : '')}>
-            <Ic d={it.d} size={24} />
-            <span>{t(it.key)}</span>
-          </NavLink>
+        {TABS.map((it, i) => (
+          <span key={it.path} style={{ display: 'contents' }}>
+            {i === 2 && (
+              <button type="button" className="mb-plus" onClick={() => navigate('/transacoes?nova=1')} aria-label={t('transactions.addTransaction')} data-testid="mb-fab" data-tour="add">
+                <Ic d={ICON.plus} size={26} />
+              </button>
+            )}
+            <NavLink to={it.path} end={it.path === '/'} data-tour={it.path === '/metas' ? 'goals' : undefined} className={({ isActive }) => 'mb-tab' + (isActive ? ' active' : '')}>
+              <Ic d={it.d} size={22} />
+              <span>{t(it.key)}</span>
+            </NavLink>
+          </span>
         ))}
-        <button type="button" className={'mb-tab' + (inMore || more ? ' active' : '')} onClick={() => setMore(true)} aria-haspopup="dialog" data-testid="mb-more">
-          <Ic d="M5 12h.01M12 12h.01M19 12h.01" size={24} />
+        <button type="button" className={'mb-tab' + (inMore || more ? ' active' : '')} onClick={() => setMore(true)} aria-haspopup="dialog" data-testid="mb-more" data-tour="more">
+          <Ic d="M5 12h.01M12 12h.01M19 12h.01" size={22} />
           <span>{t('mobile.more')}</span>
         </button>
       </nav>
@@ -59,8 +60,8 @@ export default function MobileNav() {
             <div className="mb-grid">
               {MORE.map((it) => (
                 <button key={it.path} type="button" className={'mb-tile' + (pathname.startsWith(it.path) ? ' active' : '')} onClick={() => go(it.path)}>
-                  <span><Ic d={it.d} size={24} /></span>
-                  {t(it.key)}
+                  <span><Ic d={it.d} size={20} /></span>
+                  <b>{t(it.key)}</b>
                 </button>
               ))}
             </div>

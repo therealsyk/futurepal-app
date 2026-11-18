@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import Rail from './ui/Rail';
 import MobileNav from './ui/MobileNav';
 import { UpdateNotice } from './ui/UpdateNotice';
+import { MobileTutorial } from './ui/MobileTutorial';
 import { Dashboard, Transactions, Budgets, Goals, Salaries, Categories } from './pages';
 import { Accounts } from './pages/Accounts';
 import { Overview } from './pages/Overview';
@@ -139,6 +140,7 @@ export default function App() {
         </Routes>
       </main>
       <MobileNav />
+      <MobileTutorial enabled={isMobile} />
       <UpdateNotice />
       <Sheet open={mergeCount > 0} onClose={() => { if (!merging) decideMerge(false); }} title={t('accountData.title')}>
         <p>{t('accountData.text', { count: mergeCount, email: auth.user?.email ?? '' })}</p>

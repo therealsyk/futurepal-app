@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useIsMobile } from '../ui/useIsMobile';
 import { useSearchParams } from 'react-router-dom';
 import { db } from '../db/app-db';
 import type { Transaction, Transfer, Category, Group, RecurringFrequency } from '../db/database';
@@ -89,7 +90,10 @@ export function Transactions() {
     setMonth(m); setYear(y);
   };
 
+  const isMobile = useIsMobile();
+  const [moreOpts, setMoreOpts] = useState(false);
   const openNew = () => {
+    setMoreOpts(false);
     setError(null); setAmount(''); setDescription('');
     setAccountId(active !== ALL_ACCOUNTS ? active : defaultAccountId(accounts) ?? '');
     setOpen(true);
@@ -203,27 +207,31 @@ export function Transactions() {
           </Field>
           <Field label={t('transactions.date')}><input className="fx-input" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
         </div>
-        <div className="fx-two">
-          <Field label={t('accounts.account')}>
-            <select className="fx-input" value={accountId} onChange={(e) => setAccountId(e.target.value)}>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
-          </Field>
-          <Field label={t('goals.groupName')}>
-            <select className="fx-input" value={groupId} onChange={(e) => setGroupId(e.target.value)}><option value="">—</option>{groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}</select>
-          </Field>
-        </div>
-        <Toggle on={recurring} onChange={setRecurring} label={t('transactions.recurring')} hint={t('transactions.recurringHint')} />
-        {recurring && (
+        {isMobile && !moreOpts ? (
+          <button type="button" className="tx-moreopts" onClick={() => setMoreOpts(true)}>+ {t('mobile.moreOptions')}</button>
+        ) : (<>
           <div className="fx-two">
-            <Field label={t('goals.frequency')}>
-              <select className="fx-input" value={freq} onChange={(e) => setFreq(e.target.value as RecurringFrequency)}>
-                {RECURRING_FREQUENCIES.map((f) => <option key={f} value={f}>{t('goals.' + f)}</option>)}
-              </select>
+            <Field label={t('accounts.account')}>
+              <select className="fx-input" value={accountId} onChange={(e) => setAccountId(e.target.value)}>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
             </Field>
-            <Field label={t('transactions.recurringEnd')}>
-              <input className="fx-input" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            <Field label={t('goals.groupName')}>
+              <select className="fx-input" value={groupId} onChange={(e) => setGroupId(e.target.value)}><option value="">—</option>{groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}</select>
             </Field>
           </div>
-        )}
+          <Toggle on={recurring} onChange={setRecurring} label={t('transactions.recurring')} hint={t('transactions.recurringHint')} />
+          {recurring && (
+            <div className="fx-two">
+              <Field label={t('goals.frequency')}>
+                <select className="fx-input" value={freq} onChange={(e) => setFreq(e.target.value as RecurringFrequency)}>
+                  {RECURRING_FREQUENCIES.map((f) => <option key={f} value={f}>{t('goals.' + f)}</option>)}
+                </select>
+              </Field>
+              <Field label={t('transactions.recurringEnd')}>
+                <input className="fx-input" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+              </Field>
+            </div>
+          )}
+        </>)}
       </Sheet>
     </div>
   );
