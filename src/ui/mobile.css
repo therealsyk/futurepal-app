@@ -557,3 +557,50 @@ html[data-theme="light"] .mv-acc.spending { --acc: #b7771b; }
 
 /* logótipo FuturePal no menu lateral do computador */
 .fx-logo-img { display: block; width: 40px; height: 40px; margin: 0 auto 18px; border-radius: 12px; box-shadow: 0 6px 18px -6px rgba(47,210,127,.45); }
+
+/* ---------------------------------------------------------------- FuturePal Plus (pm-*) */
+.pm-banner { margin: 0 0 14px; padding: 10px 14px; border-radius: 14px; background: var(--mv-soft); color: var(--text); font-weight: 600; }
+.pm-plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 14px; }
+.pm-plan { position: relative; padding: 18px; border-radius: 22px; background: var(--card); border: 1px solid var(--border); }
+.pm-plan.best { border-color: color-mix(in srgb, var(--mv) 55%, var(--border)); }
+.pm-plan.on { box-shadow: 0 0 0 2px var(--mv) inset; }
+.pm-plan h3 { margin: 0 0 4px; font-size: 19px; }
+.pm-price { margin: 0; font-size: 15px; color: var(--muted); } .pm-price b { font-size: 26px; color: var(--text); letter-spacing: -.02em; }
+.pm-badge { position: absolute; top: -10px; right: 14px; padding: 3px 10px; border-radius: 99px; background: var(--mv); color: var(--mv-ink); font-size: 12px; font-weight: 800; }
+.pm-current { display: inline-block; margin-top: 10px; padding: 4px 10px; border-radius: 99px; background: var(--mv-soft); color: var(--mv); font-weight: 700; font-size: 13px; }
+.pm-ticks { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 6px; font-size: 14px; }
+.pm-ticks li::before { content: "✓ "; color: var(--mv); font-weight: 800; }
+.pm-trial { margin: 4px 0 8px; }
+.pm-dev { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 10px 0; padding: 10px; border: 1px dashed var(--border); border-radius: 14px; }
+.pm-h2 { margin: 26px 0 12px; font-size: 20px; }
+.pm-tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.pm-tool { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 16px; border-radius: 20px; background: var(--card); border: 1px solid var(--border); color: var(--text); text-decoration: none; font: inherit; text-align: left; cursor: pointer; }
+.pm-tool:disabled { opacity: .5; cursor: default; }
+.pm-tool > span:first-child { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; background: var(--mv-soft); color: var(--mv); }
+.pm-tool small { color: var(--muted); font-size: 13.5px; line-height: 1.35; }
+.pm-mini-lock { position: absolute; top: 12px; right: 12px; color: var(--muted); }
+.pm-locked { text-align: center; padding: 40px 20px; border-radius: 24px; border: 1px dashed color-mix(in srgb, var(--mv) 40%, var(--border)); }
+.pm-locked h3 { margin: 12px 0 6px; } .pm-locked p { color: var(--muted); max-width: 420px; margin: 0 auto 16px; }
+.pm-lock-ic { display: inline-grid; place-items: center; width: 58px; height: 58px; border-radius: 18px; background: var(--mv-soft); color: var(--mv); }
+.pm-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; } .pm-year { font-size: 20px; min-width: 60px; text-align: center; }
+.pm-hero { display: flex; flex-direction: column; gap: 2px; padding: 18px; margin-bottom: 14px; border-radius: 22px; background: radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--mv) 25%, transparent), transparent 60%), var(--card); border: 1px solid var(--border); }
+.pm-hero small, .pm-hero span { color: var(--muted); } .pm-hero strong { font-size: 34px; letter-spacing: -.03em; }
+.pm-list { display: grid; gap: 10px; margin-bottom: 14px; }
+.pm-irs { display: flex; flex-direction: column; gap: 6px; }
+.pm-irs-top { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+.pm-bar { height: 8px; border-radius: 99px; background: var(--track); overflow: hidden; } .pm-bar i { display: block; height: 100%; border-radius: 99px; background: var(--mv); }
+.pm-sub { display: flex; align-items: center; gap: 12px; }
+.pm-sub-main { flex: 1; min-width: 0; } .pm-sub-main b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pm-sub-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; } .pm-sub-right small { color: var(--muted); font-weight: 500; }
+.pm-chip { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 12.5px; font-weight: 700; background: var(--mv-soft); color: var(--mv); }
+.pm-chip.warn { background: rgba(245,184,90,.16); color: var(--amber); } .pm-chip.lost { background: rgba(248,113,113,.15); color: var(--red); } .pm-chip.won { background: rgba(94,224,160,.16); color: var(--pos); }
+.pm-click { cursor: pointer; } .pm-click input { width: 20px; height: 20px; accent-color: var(--mv); }
+.pm-wrapped { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.pm-wcard { display: flex; flex-direction: column; gap: 4px; padding: 18px; border-radius: 22px; background: linear-gradient(150deg, color-mix(in srgb, var(--mv) 14%, var(--card)), var(--card)); border: 1px solid var(--border); }
+.pm-wcard small { color: var(--muted); } .pm-wcard strong { font-size: 24px; letter-spacing: -.02em; text-transform: capitalize; } .pm-wcard span { color: var(--muted); font-size: 14px; }
+.pm-ch { display: flex; flex-direction: column; gap: 8px; } .pm-ch .fx-link { align-self: flex-start; }
+.pm-weeks { display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); gap: 4px; }
+.pm-weeks button { aspect-ratio: 1; border-radius: 8px; border: 1px solid var(--border); background: var(--card-2); color: var(--muted); font: inherit; font-size: 11px; cursor: pointer; padding: 0; }
+.pm-weeks button.on { background: var(--mv); color: var(--mv-ink); border-color: transparent; }
+.mv-forecast { margin: 8px 0 0; font-size: 13.5px; color: var(--text); } .mv-forecast.locked { display: block; color: var(--mv); font-weight: 700; text-decoration: none; }
+@media (max-width: 520px) { .pm-weeks { grid-template-columns: repeat(7, minmax(0, 1fr)); } .pm-sub { flex-wrap: wrap; } }

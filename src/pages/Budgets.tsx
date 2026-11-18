@@ -5,6 +5,7 @@ import type { Category } from '../db/database';
 import { activeCategories, setBudget, budgetUsage } from '../core/finance';
 import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
+import { FREE_LIMITS, withinFreeLimit } from '../core/plan';
 import { catLabel, PageHead, MonthNav, EmptyState, Ic, ICON } from '../ui/fx';
 
 type Usage = { limitCents: number; spentCents: number; remainingCents: number; overBudget: boolean };
@@ -41,6 +42,7 @@ export function Budgets() {
   const save = async (id: string) => {
     const cents = parseMoneyToCents(drafts[id] || '');
     if (cents === null || cents <= 0) { setError(t('transactions.amountInvalid')); return; }
+    if (!(usage[id]?.limitCents > 0) && !withinFreeLimit('budgets', Object.values(usage).filter((u) => u.limitCents > 0).length)) { setError(t('plus.limitBudgets', { n: FREE_LIMITS.budgets })); return; }
     await setBudget(db, id, cents, year, month);
     setError(null); setDrafts((d) => ({ ...d, [id]: '' }));
     await refresh();

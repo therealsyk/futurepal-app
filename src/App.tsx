@@ -12,6 +12,7 @@ import Calendar from './pages/Calendar';
 import DayDetail from './pages/DayDetail';
 import { Settings } from './pages/Settings';
 import { MobileHome } from './pages/MobileHome';
+import { PlusPage, IrsPage, SubscriptionsPage, YearPage, ChallengesPage, WarrantiesPage, FreelancePage } from './pages/Premium';
 import { useIsMobile } from './ui/useIsMobile';
 import { DemoPage } from './ui/components';
 import SetupWizard, { ONBOARDED_FLAG } from './pages/SetupWizard';
@@ -136,6 +137,13 @@ export default function App() {
           <Route path="/salarios" element={<Salaries />} />
           <Route path="/categorias" element={<Categories />} />
           <Route path="/definicoes" element={<Settings />} />
+          <Route path="/plus" element={<PlusPage />} />
+          <Route path="/irs" element={<IrsPage />} />
+          <Route path="/subscricoes" element={<SubscriptionsPage />} />
+          <Route path="/ano" element={<YearPage />} />
+          <Route path="/desafios" element={<ChallengesPage />} />
+          <Route path="/garantias" element={<WarrantiesPage />} />
+          <Route path="/independentes" element={<FreelancePage />} />
           {import.meta.env.DEV && <Route path="/demo" element={<DemoPage />} />}
         </Routes>
       </main>

@@ -130,6 +130,21 @@ export interface Transfer extends BaseRecord {
   transactionId?: string | null; // transação expense criada automaticamente
 }
 
+// Garantia de um produto (Plus): guardada só neste aparelho.
+export interface Warranty extends BaseRecord {
+  name: string;
+  purchaseDate: string; // YYYY-MM-DD
+  months: number;
+  store: string;
+  note: string;
+  priceCents: number;
+}
+
+// Marca de uma transação como profissional (plano Pro): id = id da transação.
+export interface TxTag extends BaseRecord {
+  business: boolean;
+}
+
 export interface ExchangeRateRow extends BaseRecord {
   base: string;
   rates: Record<string, number>;
@@ -148,6 +163,8 @@ export class WalletDB extends Dexie {
   exchangeRates!: Table<ExchangeRateRow>;
   accounts!: Table<Account>;
   transfers!: Table<Transfer>;
+  warranties!: Table<Warranty>;
+  txTags!: Table<TxTag>;
 
   constructor(name = 'wallet') {
     super(name);
@@ -170,6 +187,11 @@ export class WalletDB extends Dexie {
     // v3: transferências entre contas.
     this.version(3).stores({
       transfers: 'id, date, fromAccountId, toAccountId',
+    });
+    // v4: garantias e marcas de transações profissionais (FuturePal Plus/Pro; ainda não sincronizadas).
+    this.version(4).stores({
+      warranties: 'id, purchaseDate',
+      txTags: 'id',
     });
   }
 }

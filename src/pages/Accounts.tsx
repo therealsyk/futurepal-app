@@ -8,6 +8,7 @@ import { loadSettings } from '../core/settings';
 import { PageHead, Seg, Sheet, Toggle, Field, EmptyState, Ic, ICON, useAccounts, CategorySelect } from '../ui/fx';
 import type { Category } from '../db/database';
 import { todayISO } from '../core/dates';
+import { FREE_LIMITS, withinFreeLimit } from '../core/plan';
 
 const TYPE_ICON: Record<AccountType, string> = { spending: ICON.wallet, savings: ICON.piggy, debt: ICON.debt };
 const TYPE_COLOR: Record<AccountType, string> = { spending: 'var(--accent)', savings: 'var(--teal)', debt: 'var(--amber)' };
@@ -66,7 +67,10 @@ export function Accounts() {
     const sign = draft.initial.trim().startsWith('-') ? -1 : 1;
     const payload = { name: draft.name, description: draft.description, type: draft.type, currency: draft.currency, initialBalanceCents: sign * initial, includeInNetWorth: draft.includeInNetWorth, isDefault: draft.isDefault, showOnHome: draft.showOnHome };
     if (draft.id) await updateAccount(db, draft.id, payload);
-    else await addAccount(db, payload);
+    else {
+      if (!withinFreeLimit('accounts', accounts.length)) { setError(t('plus.limitAccounts', { n: FREE_LIMITS.accounts })); return; }
+      await addAccount(db, payload);
+    }
     setDraft(null);
     await load();
   };

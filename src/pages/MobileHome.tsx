@@ -10,6 +10,8 @@ import { loadSettings } from '../core/settings';
 import { useAuth } from '../auth/AuthContext';
 import { Ic, ICON, CatIcon, catLabel } from '../ui/fx';
 import { openTutorial } from '../ui/MobileTutorial';
+import { hasFeature } from '../core/plan';
+import { monthForecast } from '../core/premium';
 
 // Início no telemóvel (variante): resumo do mês num cartão de destaque, ações rápidas,
 // mapa de calor dos gastos diários, categorias onde se gasta mais, últimas transações agrupadas
@@ -146,6 +148,13 @@ export function MobileHome() {
           <i style={{ width: `${Math.min(100, pct ?? 0)}%` }} className={pct !== null && pct > 100 ? 'over' : ''} />
         </div>
         <small className="mv-hero-sub">{pct === null ? t('mobile.noIncome') : t('mobile.ofIncome', { pct })}</small>
+        {(() => {
+          const fc = monthForecast(spent, income, year, month);
+          if (!fc) return null;
+          return hasFeature('forecast')
+            ? <p className="mv-forecast">{t('plus.forecast', { spend: money(fc.projectedSpendCents), bal: money(fc.projectedBalanceCents) })}</p>
+            : <Link to="/plus" className="mv-forecast locked">{t('plus.forecastLocked')}</Link>;
+        })()}
         <div className="mv-stats">
           <div><small>{t('mobile.incomeShort')}</small><b>{money(income)}</b></div>
           <div><small>{t('mobile.savingsShort')}</small><b className={(summary?.savingsCents ?? 0) < 0 ? 'neg' : 'pos'}>{income > 0 ? money(summary?.savingsCents ?? 0) : '—'}</b></div>

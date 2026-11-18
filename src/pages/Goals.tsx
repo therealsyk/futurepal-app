@@ -9,6 +9,7 @@ import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
 import { PageHead, Sheet, Field, Toggle, EmptyState, Ic, ICON, useAccounts, CategorySelect } from '../ui/fx';
 import { todayISO } from '../core/dates';
+import { FREE_LIMITS, withinFreeLimit } from '../core/plan';
 
 function Ring({ pct, size = 92 }: { pct: number; size?: number }) {
   const r = size / 2 - 7, c = 2 * Math.PI * r;
@@ -91,6 +92,7 @@ export function Goals() {
   const createGoal = async () => {
     const cents = parseMoneyToCents(gTarget);
     if (!gName.trim() || cents === null || cents <= 0) { setError(t('goals.invalid')); return; }
+    if (!withinFreeLimit('goals', goals.length)) { setError(t('plus.limitGoals', { n: FREE_LIMITS.goals })); return; }
     const g = await addGoal(db, gName.trim(), cents, gStart, gEnd || null);
     await db.goals.update(g.id, { notes: gNotes.trim() || undefined, accountIds: gAccs.length ? gAccs : undefined });
     setError(null); setOpen(false); setGName(''); setGTarget(''); setGNotes(''); setGEnd(''); setGAccs([]);
