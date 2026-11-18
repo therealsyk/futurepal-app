@@ -52,6 +52,11 @@ export function DatePicker({ value, onChange, ariaLabel, allowEmpty, className =
   useEffect(() => { if (open) setCur({ y: +base.slice(0, 4), m: +base.slice(5, 7) - 1 }); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   const spend = useMonthSpend(cur.y, cur.m, open);
   const money = (c: number) => formatMoney(c, settings.currency, lang);
+  // No telemóvel os dias são estreitos: o gasto do dia aparece arredondado ao euro (ex.: 1235 €)
+  const narrow = typeof window !== 'undefined' && window.innerWidth < 768;
+  const dayMoney = (c: number) => (narrow
+    ? new Intl.NumberFormat(lang, { style: 'currency', currency: settings.currency, maximumFractionDigits: 0 }).format(Math.round(c / 100))
+    : money(c));
 
   const days = new Date(cur.y, cur.m + 1, 0).getDate();
   const first = settings.firstDayOfWeek ?? 1;
@@ -87,7 +92,7 @@ export function DatePicker({ value, onChange, ariaLabel, allowEmpty, className =
               <button key={d} type="button" className={'fx-cal-d' + (iso === value ? ' sel' : '') + (iso === today ? ' now' : '')}
                 onClick={() => pick(iso)} aria-label={`${d}: ${money(v)}`} aria-pressed={iso === value}>
                 <span>{d}</span>
-                <b>{v > 0 ? money(v) : ''}</b>
+                <b>{v > 0 ? dayMoney(v) : ''}</b>
               </button>
             );
           })}

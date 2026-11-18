@@ -772,3 +772,22 @@ html[data-theme="light"] .mv-acc.spending { --acc: #b7771b; }
 .ad-fb-kind.idea { background: var(--mv-soft); color: var(--mv); }
 .ob-last { display: flex; flex-direction: column; align-items: stretch; gap: 12px; width: 100%; }
 .ob-last > .ob-outline { align-self: center; width: min(420px, 100%); }
+/* Visita guiada: o texto dos botões nunca parte em duas linhas; em ecrãs estreitos os pontos encolhem */
+.tu-btn { white-space: nowrap; flex: none; padding: 0 16px; }
+.tu-dots { min-width: 0; overflow: hidden; }
+@media (max-width: 380px) { .tu-dots i { width: 5px; } .tu-dots i.on { width: 12px; } .tu-btn { padding: 0 13px; font-size: 14.5px; } }
+/* Transações: cartões dos dias nunca mais largos do que o ecrã (no telemóvel, uma coluna) */
+.fx-days { grid-template-columns: repeat(auto-fill, minmax(min(420px, 100%), 1fr)); }
+.fx-days > .fx-card, .fx-item { min-width: 0; }
+.fx-item .fx-num { flex: none; white-space: nowrap; }
+@media (max-width: 768px) { .fx-days { grid-template-columns: minmax(0, 1fr); } }
+/* Visão mensal: as 12 barras cabem sempre na largura do ecrã */
+.fx-bars { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+.fx-bar { min-width: 0; }
+@media (max-width: 768px) {
+  .fx-bars { gap: 2px; }
+  .fx-bar { padding: 4px 0 0; }
+  .fx-bar-cols { gap: 1px; }
+  .fx-bar-cols i { width: auto; flex: 1; max-width: 9px; }
+  .fx-bar em { font-size: 9.5px; }
+}
