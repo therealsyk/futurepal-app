@@ -79,7 +79,7 @@ export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings
   function next() {
     const i = ORDER.indexOf(step);
     if (i < ORDER.length - 1) setStep(ORDER[i + 1]);
-    else if (step === 'goal' && hasSupabaseConfig()) setStep('signup'); // último passo: convite para criar conta
+    else if (step === 'goal' && hasSupabaseConfig()) { setAuthMode('signup'); setStep('signup'); } // último passo: criar conta ou entrar
     else finish();
   }
 
@@ -150,12 +150,16 @@ export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings
           <Welcome
             language={language} country={country} onLanguage={pickLanguage} onCountry={pickCountry}
             onStart={() => setStep('currency')}
-            onLogin={hasSupabaseConfig() ? () => { setAuthMode('signin'); setStep('auth'); } : undefined}
           />
         )}
         {step === 'signup' && (
           // Os dados do setup ficam neste aparelho; ao entrar na conta, a app pergunta se os quer levar para lá.
-          <LoginForm initialMode="signup" onDone={() => { setSignedIn(true); finish({ ...buildSettings(), account: 'signedin' }).catch(() => {}); }} onSkip={() => { finish().catch(() => {}); }} />
+          <div className="ob-last">
+            <LoginForm key={authMode} initialMode={authMode} onDone={() => { setSignedIn(true); finish({ ...buildSettings(), account: 'signedin' }).catch(() => {}); }} onSkip={() => { finish().catch(() => {}); }} />
+            <button type="button" className="ob-outline" onClick={() => setAuthMode(authMode === 'signup' ? 'signin' : 'signup')} data-testid="ob-login">
+              {authMode === 'signup' ? t('onboard.haveAccount') : t('onboard.signup')}
+            </button>
+          </div>
         )}
         {step === 'auth' && (
           syncNote ? <p className="ob-sub" role="status">{syncNote}</p>

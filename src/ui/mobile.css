@@ -770,3 +770,5 @@ html[data-theme="light"] .mv-acc.spending { --acc: #b7771b; }
 .ad-fb-kind { padding: 2px 9px; border-radius: 99px; font-size: 12px; font-weight: 650; background: var(--card); }
 .ad-fb-kind.bug { background: color-mix(in srgb, #ef4444 18%, transparent); color: #f87171; }
 .ad-fb-kind.idea { background: var(--mv-soft); color: var(--mv); }
+.ob-last { display: flex; flex-direction: column; align-items: stretch; gap: 12px; width: 100%; }
+.ob-last > .ob-outline { align-self: center; width: min(420px, 100%); }
