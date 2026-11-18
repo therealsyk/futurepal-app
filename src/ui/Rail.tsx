@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { loadSettings, saveSettings, setTheme } from '../core/settings';
 import type { AppSettings } from '../core/settings';
 import logoUrl from '../assets/logo.svg';
+import { useIsAdmin } from '../pages/Admin';
 
 // Barra lateral de ícones. O nome de cada
 // secção aparece como dica ao passar o rato ou ao focar com o teclado.
@@ -46,6 +47,7 @@ export default function Rail() {
     setThemeState(next);
   };
 
+  const isAdmin = useIsAdmin();
   const themeLabel = `${t('nav.theme')}: ${t('nav.theme_' + theme)}`;
 
   return (
@@ -64,6 +66,12 @@ export default function Rail() {
             <span className="fx-tip">{t(it.key)}</span>
           </NavLink>
         ))}
+        {isAdmin && (
+          <NavLink to="/admin" aria-label={t('admin.title')} className={({ isActive }) => 'fx-rail-btn' + (isActive ? ' active' : '')}>
+            {svg('M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4')}
+            <span className="fx-tip">{t('admin.title')}</span>
+          </NavLink>
+        )}
       </nav>
       <div className="fx-rail-bottom">
         <button type="button" className="fx-rail-btn" onClick={cycleTheme} aria-label={themeLabel}>

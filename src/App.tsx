@@ -12,6 +12,7 @@ import Calendar from './pages/Calendar';
 import DayDetail from './pages/DayDetail';
 import { Settings } from './pages/Settings';
 import { MobileHome } from './pages/MobileHome';
+import { AdminPage } from './pages/Admin';
 import { PlusPage, IrsPage, SubscriptionsPage, YearPage, ChallengesPage, WarrantiesPage, FreelancePage } from './pages/Premium';
 import { useIsMobile } from './ui/useIsMobile';
 import { DemoPage } from './ui/components';
@@ -138,6 +139,7 @@ export default function App() {
           <Route path="/categorias" element={<Categories />} />
           <Route path="/definicoes" element={<Settings />} />
           <Route path="/plus" element={<PlusPage />} />
+          <Route path="/admin" element={<AdminPage />} />
           <Route path="/irs" element={<IrsPage />} />
           <Route path="/subscricoes" element={<SubscriptionsPage />} />
           <Route path="/ano" element={<YearPage />} />
