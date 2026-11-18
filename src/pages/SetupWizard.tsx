@@ -4,11 +4,11 @@ import { COUNTRIES, countryName } from '../core/locale';
 import { formatMoney } from '../core/money';
 import { loadSettings, saveSettings, type AppSettings } from '../core/settings';
 import { groupCurrencies, currencySymbol } from '../core/currencies';
-import { addAccount, ensureDefaultAccount, listAccounts } from '../core/accounts';
+import { addAccount, ensureDefaultAccount, listAccounts, updateAccount } from '../core/accounts';
 import { addTransaction, addGoal, activeCategories, ensureDefaultCategories } from '../core/finance';
 import { parseMoneyToCents } from '../core/money';
 import { db, activateDatabaseFor } from '../db/app-db';
-import type { Category, Transaction, Goal } from '../db/database';
+import type { Account, Category, Transaction, Goal } from '../db/database';
 import { mirrorSettings } from '../core/settingsSync';
 import { getSupabase, hasSupabaseConfig } from '../auth/supabase';
 import { runSync } from '../sync/runSync';
@@ -42,6 +42,8 @@ export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings
   const [country, setCountry] = useState(initial.country || 'PT');
   const [currency, setCurrency] = useState(initial.currency || 'EUR');
   const [signedIn, setSignedIn] = useState(false);
+  // Conta de gastos criada neste setup: ao voltar atrás e avançar de novo é editada, não duplicada.
+  const [setupAccount, setSetupAccount] = useState<Account | null>(null);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [syncNote, setSyncNote] = useState('');
   const auth = useAuth();
@@ -153,7 +155,7 @@ export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings
             : <LoginForm key={authMode} initialMode={authMode} onDone={() => { afterLogin().catch(() => setStep('currency')); }} onSkip={() => setStep('currency')} />
         )}
         {step === 'currency' && <CurrencyStep language={language} value={currency} onChange={setCurrency} />}
-        {step === 'account' && <AccountStep currency={currency} language={language} onCreated={next} />}
+        {step === 'account' && <AccountStep currency={currency} language={language} existing={setupAccount} onCreated={(a) => { setSetupAccount(a); next(); }} />}
         {step === 'transactions' && <TransactionsStep currency={currency} language={language} />}
         {step === 'goal' && <GoalStep currency={currency} language={language} />}
       </div>
@@ -233,28 +235,35 @@ function CurrencyStep({ language, value, onChange }: { language: string; value: 
   );
 }
 
-function AccountStep({ currency, language, onCreated }: { currency: string; language: string; onCreated: () => void }) {
+function AccountStep({ currency, language, existing, onCreated }: {
+  currency: string; language: string; existing: Account | null; onCreated: (acc: Account | null) => void;
+}) {
   const { t } = useTranslation();
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [balance, setBalance] = useState('');
-  const [positive, setPositive] = useState(true);
-  const [netWorth, setNetWorth] = useState(true);
-  const [isDefault, setIsDefault] = useState(true);
-  const [showHome, setShowHome] = useState(true);
+  const [name, setName] = useState(existing?.name ?? '');
+  const [description, setDescription] = useState(existing?.description ?? '');
+  const [balance, setBalance] = useState(existing && existing.initialBalanceCents !== 0 ? (Math.abs(existing.initialBalanceCents) / 100).toFixed(2).replace('.', ',') : '');
+  const [positive, setPositive] = useState(existing ? existing.initialBalanceCents >= 0 : true);
+  const [netWorth, setNetWorth] = useState(existing?.includeInNetWorth ?? true);
+  const [isDefault, setIsDefault] = useState(existing?.isDefault ?? true);
+  const [showHome, setShowHome] = useState(existing?.showOnHome ?? true);
   const [error, setError] = useState('');
 
   async function create(useDefaultName = false) {
     const finalName = useDefaultName ? t('accounts.mainName') : name.trim();
     const cents = balance.trim() ? parseMoneyToCents(balance) : 0;
     if (cents === null) { setError(t('onboard.badAmount')); return; }
-    const existing = await listAccounts(db);
-    if (useDefaultName && existing.length > 0) { onCreated(); return; }
-    await addAccount(db, {
-      name: finalName, description: description.trim(), type: 'spending', currency,
+    if (useDefaultName && existing) { onCreated(existing); return; } // já criada neste setup: não cria outra
+    if (useDefaultName && (await listAccounts(db)).length > 0) { onCreated(null); return; }
+    const input = {
+      name: finalName, description: description.trim(), type: 'spending' as const, currency,
       initialBalanceCents: positive ? Math.abs(cents) : -Math.abs(cents), includeInNetWorth: netWorth, isDefault, showOnHome: showHome,
-    });
-    onCreated();
+    };
+    if (existing) {
+      await updateAccount(db, existing.id, input);
+      onCreated({ ...existing, ...input });
+    } else {
+      onCreated(await addAccount(db, input));
+    }
   }
 
   return (
@@ -352,7 +361,7 @@ function TransactionsStep({ currency, language }: { currency: string; language: 
           options={[{ id: 'expense', label: t('onboard.expense') }, { id: 'income', label: t('onboard.income') }]} />
         <input className="ob-amount center" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0,00" aria-label={t('onboard.amount')} autoFocus />
         <input className="fx-input" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder={t('onboard.txDescPh')} aria-label={t('onboard.txDescPh')} />
-        <CategorySelect cats={cats} value={catId} onChange={setCatId} ariaLabel={t('onboard.category')} />
+        <CategorySelect cats={cats} kind={type} value={catId} onChange={setCatId} ariaLabel={t('onboard.category')} />
         {error && <p className="ob-error" role="alert">{error}</p>}
       </Sheet>
     </div>

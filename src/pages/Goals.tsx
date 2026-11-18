@@ -178,7 +178,7 @@ export function Goals() {
           <div className="fx-form-grid">
             <input className="fx-input" placeholder={t('transactions.description')} value={rDesc} onChange={(e) => setRDesc(e.target.value)} aria-label={t('transactions.description')} />
             <input className="fx-input" inputMode="decimal" placeholder={t('goals.amount')} value={rAmount} onChange={(e) => setRAmount(e.target.value)} aria-label={t('goals.amount')} />
-            <CategorySelect cats={cats} value={rCat} onChange={setRCat} ariaLabel={t('transactions.category')} />
+            <CategorySelect cats={cats} kind="expense" value={rCat} onChange={setRCat} ariaLabel={t('transactions.category')} />
             <select className="fx-input" value={rFreq} onChange={(e) => setRFreq(e.target.value as Recurring['frequency'])} aria-label={t('goals.frequency')}>
               {RECURRING_FREQUENCIES.map((f) => <option key={f} value={f}>{t('goals.' + f)}</option>)}
             </select>

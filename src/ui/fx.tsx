@@ -172,12 +172,28 @@ export function CatIcon({ cat, size = 40 }: { cat: { icon?: string; nameKey?: st
 
 // <select> de categorias agrupado (com 60+ categorias, a lista fica legível por grupos).
 type CatLike = Pick<Category, 'id' | 'name'> & { nameKey?: string; group?: string };
-export function CategorySelect({ cats, value, onChange, className = 'fx-input', ariaLabel, emptyLabel, optionValue }: {
+// Rendimentos só mostram categorias de rendimento (e poupança/outros/próprias); despesas nunca mostram as de rendimento.
+const INCOME_GROUPS = new Set(['income', 'savings', 'misc', 'custom']);
+export function catFitsKind(c: { group?: string; nameKey?: string }, kind: 'expense' | 'income'): boolean {
+  const g = groupOf(c);
+  return kind === 'income' ? INCOME_GROUPS.has(g) : g !== 'income';
+}
+
+export function CategorySelect({ cats: all, value, onChange, className = 'fx-input', ariaLabel, emptyLabel, optionValue, kind }: {
   cats: CatLike[]; value: string; onChange: (v: string) => void; className?: string; ariaLabel?: string; emptyLabel?: string;
-  optionValue?: (c: CatLike) => string;
+  optionValue?: (c: CatLike) => string; kind?: 'expense' | 'income';
 }) {
   const { t } = useTranslation();
   const val = optionValue ?? ((c: CatLike) => c.id);
+  const cats = kind ? all.filter((c) => catFitsKind(c, kind)) : all;
+  // Ao trocar entre despesa e rendimento, se a categoria escolhida deixar de servir, passa para a primeira que serve.
+  useEffect(() => {
+    if (!kind || cats.length === 0 || (value === '' && emptyLabel !== undefined)) return;
+    if (!cats.some((c) => val(c) === value)) {
+      const first = kind === 'income' ? (cats.find((c) => groupOf(c) === 'income') ?? cats[0]) : cats[0];
+      onChange(val(first));
+    }
+  }, [kind, value, all.length]); // eslint-disable-line react-hooks/exhaustive-deps
   const groups = GROUP_ORDER.map((g) => ({ g, items: cats.filter((c) => groupOf(c) === g).sort((a, b) => catLabel(t, a).localeCompare(catLabel(t, b))) }))
     .filter((x) => x.items.length > 0);
   return (

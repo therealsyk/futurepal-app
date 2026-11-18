@@ -9,7 +9,7 @@ import { activeCategories, addTransaction, periodSummary } from '../core/finance
 import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
 import { dayTransactions, matchCategory, normalizeIntent, normalizeReceipt, quickIntent, shrinkImage, spendSummary, type Intent } from '../core/assistant';
-import { catLabel, Field, Ic, PageHead, Sheet } from '../ui/fx';
+import { catFitsKind, catLabel, Field, Ic, PageHead, Sheet } from '../ui/fx';
 import { Locked } from './Premium';
 
 // Assistente FuturePal: perguntas sobre despesas/poupança e fotos de faturas.
@@ -48,6 +48,8 @@ function AssistantInner() {
   useEffect(() => { endRef.current?.scrollIntoView({ block: 'end' }); }, [msgs]);
 
   const labeled = cats.map((c) => ({ id: c.id, label: catLabel(t, c) }));
+  // Faturas são sempre despesas: só categorias de despesa.
+  const expenseCats = cats.filter((c) => catFitsKind(c, 'expense')).map((c) => ({ id: c.id, label: catLabel(t, c) }));
   const catName = (id: string) => labeled.find((c) => c.id === id)?.label ?? '—';
   const today = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD local
   const say = (m: Msg) => setMsgs((x) => [...x, m]);
@@ -130,7 +132,7 @@ function AssistantInner() {
       if (raw === null) return;
       const r = normalizeReceipt(raw, today);
       if (!r) { say({ from: 'bot', text: t('assistant.photoFail') }); return; }
-      const cat = matchCategory(r.category, labeled) ?? labeled.find((c) => /outr|other/i.test(c.label)) ?? labeled[0];
+      const cat = matchCategory(r.category, expenseCats) ?? expenseCats.find((c) => /outr|other/i.test(c.label)) ?? expenseCats[0];
       setDraft({ description: r.description, amount: (r.amountCents / 100).toFixed(2).replace('.', ','), date: r.date, categoryId: cat?.id ?? '' });
       say({ from: 'bot', text: t('assistant.photoRead', { total: money(r.amountCents), date: fmtDate(r.date) }) });
     } catch {
@@ -180,7 +182,7 @@ function AssistantInner() {
           </div>
           <Field label={t('assistant.category')}>
             <select className="fx-input" value={draft.categoryId} onChange={(e) => setDraft({ ...draft, categoryId: e.target.value })}>
-              {labeled.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+              {expenseCats.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
             </select>
           </Field>
         </>}

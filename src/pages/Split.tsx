@@ -10,7 +10,7 @@ import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
 import { hasFeature } from '../core/plan';
 import { billStatus, myPending, parseContact, toBills, type SplitBill } from '../core/split';
-import { catLabel, EmptyState, Field, Ic, ICON, PageHead, Sheet } from '../ui/fx';
+import { catFitsKind, catLabel, EmptyState, Field, Ic, ICON, PageHead, Sheet } from '../ui/fx';
 import { usePlan } from './Premium';
 
 // Divisão de contas: grupos com convite por email/telemóvel (a pessoa aceita), contas divididas em partes iguais
@@ -49,7 +49,7 @@ export function SplitPage() {
   const group = groups.find((g) => g.id === sel) ?? null;
   const money = (c: number) => formatMoney(c, group?.currency ?? s.currency, s.language);
   const nameOf = (id: string) => (id === me ? t('family.you') : members.find((m) => m.userId === id)?.displayName ?? '?');
-  const labeled = useMemo(() => cats.map((c) => ({ id: c.id, label: catLabel(t, c) })), [cats, t]);
+  const labeled = useMemo(() => cats.filter((c) => catFitsKind(c, 'expense')).map((c) => ({ id: c.id, label: catLabel(t, c) })), [cats, t]);
 
   const loadList = useCallback(async () => {
     const sb = getSupabase();

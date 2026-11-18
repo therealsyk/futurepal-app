@@ -203,7 +203,7 @@ export function Transactions() {
         <Field label={t('transactions.description')}><input className="fx-input" value={description} placeholder={t('transactions.descriptionPlaceholder')} onChange={(e) => setDescription(e.target.value)} /></Field>
         <div className="fx-two">
           <Field label={t('transactions.category')}>
-            <CategorySelect cats={cats} value={categoryId} onChange={setCategoryId} ariaLabel={t('transactions.category')} />
+            <CategorySelect cats={cats} kind={type} value={categoryId} onChange={setCategoryId} ariaLabel={t('transactions.category')} />
           </Field>
           <Field label={t('transactions.date')}><input className="fx-input" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
         </div>
