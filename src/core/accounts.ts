@@ -91,6 +91,7 @@ export function accountBalanceCents(acc: Account, txs: Transaction[], accounts: 
   let bal = acc.initialBalanceCents + (acc.id === def ? salaryCents : 0);
   for (const t of txs) {
     if (t.deletedAt !== null) continue;
+    if (t.id.startsWith('sal-')) continue; // salário: já entra em salaryCents
     if ((t.accountId ?? def) !== acc.id) continue;
     bal += t.type === 'income' ? t.amountCents : -t.amountCents;
   }

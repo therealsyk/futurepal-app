@@ -38,6 +38,7 @@ export async function addTransaction(db: WalletDB, input: Omit<Transaction, 'id'
 export async function softDelete(db: WalletDB, table: 'transactions' | 'categories' | 'budgets' | 'salaries' | 'goals' | 'recurrings' | 'groups', id: string): Promise<void> {
   const t = db.table(table) as any;
   await t.update(id, { deletedAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+  if (table === 'transactions') await deleteSalaryOfTx(db, id); // apagar o salário nas Transações apaga-o também nos Salários
 }
 
 export async function activeCategories(db: WalletDB): Promise<Category[]> {
@@ -296,7 +297,7 @@ export async function periodSummary(db: WalletDB, startDate: string, endDate: st
   let salaryCents = await salaryInRange(db, startDate, endDate);
 
   // extras = income transactions (besides salary rows) counted by date
-  const extraIncomeCents = txs.filter((t) => t.type === 'income').reduce((s, t) => s + t.amountCents, 0);
+  const extraIncomeCents = txs.filter((t) => t.type === 'income' && !isSalaryTx(t)).reduce((s, t) => s + t.amountCents, 0);
   const incomeCents = salaryCents + extraIncomeCents;
   const savingsCents = incomeCents - totalSpentCents;
   const pctSpent = incomeCents > 0 ? totalSpentCents / incomeCents : 0;
@@ -549,6 +550,7 @@ function addMonths(dateISO: string, months: number): string {
 
 
 import type { RecurringFrequency } from '../db/database';
+import { deleteSalaryOfTx, isSalaryTx } from './salaryTx';
 
 export const RECURRING_FREQUENCIES: RecurringFrequency[] = ['daily', 'weekly', 'biweekly', 'monthly', 'bimonthly', 'quarterly', 'semiannual', 'yearly'];
 

@@ -9,6 +9,7 @@ import { loadSettings } from '../core/settings';
 import { PageHead, Sheet, Field, MonthNav, EmptyState, Ic, ICON } from '../ui/fx';
 import { DatePicker } from '../ui/DatePicker';
 import { todayISO } from '../core/dates';
+import { syncSalaryTransactions } from '../core/salaryTx';
 
 // SPEC §6.4: grelha de meses × ano com o salário de cada mês + extras (rendimentos complementares).
 export const Salaries = () => {
@@ -44,10 +45,11 @@ export const Salaries = () => {
   const expense = summary?.expenseCents ?? 0;
 
   const commit = async (month: number, raw: string) => {
-    if (raw.trim() === '') { await setSalary(db, year, month, 0); await load(); return; }
+    if (raw.trim() === '') { await setSalary(db, year, month, 0); await syncSalaryTransactions(db).catch(() => {}); await load(); return; }
     const cents = parseMoneyToCents(raw);
     if (cents === null) { setDrafts((d) => { const n = { ...d }; delete n[month]; return n; }); return; }
     await setSalary(db, year, month, cents);
+    await syncSalaryTransactions(db).catch(() => {}); // aparece nas Transações como rendimento
     await load();
   };
 

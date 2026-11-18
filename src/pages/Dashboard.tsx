@@ -14,6 +14,7 @@ import { WidgetGrid } from '../ui/WidgetGrid';
 import { AccountSwitch, PickMenu, Sheet, ICON, catLabel, useAccounts, CategorySelect } from '../ui/fx';
 import { todayISO, monthStart, monthEnd } from '../core/dates';
 import { AccountBar } from '../ui/AccountBar';
+import { withoutSalaryTx } from '../core/salaryTx';
 
 // Painel — visual "clean".
 // Toda a lógica trabalha em cêntimos inteiros; todo o texto passa por t().
@@ -393,7 +394,7 @@ export function Dashboard() {
           db.salaries.toArray(), db.goals.toArray(), db.recurrings.toArray(),
         ]);
         if (!alive) return;
-        setTxs(allTx.filter((x) => !x.deletedAt));
+        setTxs(withoutSalaryTx(allTx.filter((x) => !x.deletedAt))); // os salários entram à parte (tabela de salários)
         setBudgets(allB.filter((x) => !x.deletedAt));
         setCats(allC.filter((x) => !x.deletedAt));
         setSalaries(allS.filter((x) => !x.deletedAt));

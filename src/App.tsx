@@ -31,6 +31,7 @@ import { applyPendingAvatar } from './core/avatar';
 import { runSync } from './sync/runSync';
 import { mirrorSettings } from './core/settingsSync';
 import { SETTINGS_EVENT } from './core/settings';
+import { syncSalaryTransactions } from './core/salaryTx';
 
 export default function App() {
   const { t } = useTranslation();
@@ -49,7 +50,10 @@ export default function App() {
   const syncNowSilently = (uid: string) => {
     const sb = getSupabase();
     if (!sb || !loadSettings().country) return;
-    runSync(sb, db, uid).then((r) => { if (r.settings) setSettings(r.settings); }).catch(() => {});
+    runSync(sb, db, uid).then(async (r) => {
+      if (r.settings) setSettings(r.settings);
+      await syncSalaryTransactions(db).catch(() => {}); // salários vindos de outro aparelho
+    }).catch(() => {});
   };
 
   // Plano: com sessão iniciada, a subscrição guardada no servidor é que manda (ex.: mudada no painel admin).
@@ -74,6 +78,7 @@ export default function App() {
       await addMissingCatalogCategories(db);
       const cur = loadSettings();
       if (cur.country) await mirrorSettings(db, cur).catch(() => {});
+      await syncSalaryTransactions(db).catch(() => {}); // salários -> transações de rendimento
       if (!alive) return;
       setDbName(r.name);
       if (!userId) { setMergeCount(0); return; }

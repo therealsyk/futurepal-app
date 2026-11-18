@@ -94,7 +94,7 @@ export function yearReview(txs: Transaction[], cats: Category[], year: number, s
   const list = txs.filter((t) => t.deletedAt === null && t.date.startsWith(y));
   const exp = list.filter((t) => t.type === 'expense');
   const spentCents = exp.reduce((s, t) => s + t.amountCents, 0);
-  const incomeCents = salaryCents + list.filter((t) => t.type === 'income').reduce((s, t) => s + t.amountCents, 0);
+  const incomeCents = salaryCents + list.filter((t) => t.type === 'income' && !t.id.startsWith('sal-')).reduce((s, t) => s + t.amountCents, 0);
   const byCat = new Map<string, number>(), byDay = new Map<string, number>(), byMonth = new Map<number, number>();
   for (const t of exp) {
     byCat.set(t.categoryId, (byCat.get(t.categoryId) ?? 0) + t.amountCents);
