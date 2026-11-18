@@ -238,7 +238,10 @@
     "recurringHint": "Repeats automatically: daily, every 2 weeks, monthly, quarterly…",
     "recurringEnd": "Ends on (optional)",
     "endBeforeStart": "The end date is before the start date.",
-    "transfer": "Transfer between accounts"
+    "transfer": "Transfer between accounts",
+    "searchCategory": "Search category",
+    "noCategoryFound": "No category found.",
+    "emptyYear": "No transactions this year yet."
   },
   "settings": {
     "title": "Settings",
@@ -462,7 +465,11 @@
     "overCount": "Over limit",
     "noLimit": "No limit set",
     "update": "Update",
-    "delete": "Remove"
+    "delete": "Remove",
+    "addNew": "Add budget",
+    "pickCategory": "Choose a category.",
+    "noBudgetsSub": "Pick a category and set how much you want to spend on it this month.",
+    "monthlyLimit": "Limit for {{month}}"
   },
   "goals": {
     "title": "Goals",
@@ -1222,5 +1229,12 @@
     "error": "Couldn't save the photo. Please try again.",
     "notImage": "Choose an image file.",
     "addOptional": "Add a photo (optional)"
+  },
+  "datePicker": {
+    "none": "No date",
+    "spent": "Spent: {{value}}",
+    "noSpend": "No spending this month",
+    "today": "Today",
+    "clear": "Clear"
   }
 }

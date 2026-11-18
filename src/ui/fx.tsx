@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
@@ -194,17 +194,112 @@ export function CategorySelect({ cats: all, value, onChange, className = 'fx-inp
       onChange(val(first));
     }
   }, [kind, value, all.length]); // eslint-disable-line react-hooks/exhaustive-deps
-  const groups = GROUP_ORDER.map((g) => ({ g, items: cats.filter((c) => groupOf(c) === g).sort((a, b) => catLabel(t, a).localeCompare(catLabel(t, b))) }))
-    .filter((x) => x.items.length > 0);
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const [hi, setHi] = useState(0); // opção realçada pelo teclado
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const groups = GROUP_ORDER.map((g) => ({
+    g,
+    items: cats.filter((c) => groupOf(c) === g && (!q || norm(catLabel(t, c)).includes(norm(q)) || norm(t('categoryGroups.' + g)).includes(norm(q))))
+      .sort((a, b) => catLabel(t, a).localeCompare(catLabel(t, b))),
+  })).filter((x) => x.items.length > 0);
+  // lista plana (para o teclado): [vazio?, ...categorias por grupo]
+  const flat: Array<{ v: string; label: string }> = [
+    ...(emptyLabel !== undefined && !q ? [{ v: '', label: emptyLabel }] : []),
+    ...groups.flatMap((x) => x.items.map((c) => ({ v: val(c), label: catLabel(t, c) }))),
+  ];
+  const current = value === '' && emptyLabel !== undefined ? emptyLabel : (() => { const c = all.find((x) => val(x) === value); return c ? catLabel(t, c) : ''; })();
+  const pick = (v: string) => { onChange(v); setOpen(false); setQ(''); btnRef.current?.focus(); };
+  useEffect(() => { if (open) { setHi(Math.max(0, flat.findIndex((o) => o.v === value))); } }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (q) setHi(0); }, [q]);
+  useEffect(() => { listRef.current?.querySelector('[data-hi="1"]')?.scrollIntoView({ block: 'nearest' }); }, [hi, open]);
+  const onKey = (e: ReactKeyboardEvent) => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); setHi((i) => Math.min(flat.length - 1, i + 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setHi((i) => Math.max(0, i - 1)); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (flat[hi]) pick(flat[hi].v); }
+    else if (e.key === 'Escape') { e.preventDefault(); setOpen(false); setQ(''); btnRef.current?.focus(); }
+  };
+  let n = -1;
   return (
-    <select className={className} value={value} onChange={(e) => onChange(e.target.value)} aria-label={ariaLabel}>
-      {emptyLabel !== undefined && <option value="">{emptyLabel}</option>}
-      {groups.map(({ g, items }) => (
-        <optgroup key={g} label={t('categoryGroups.' + g)}>
-          {items.map((c) => <option key={c.id} value={val(c)}>{catLabel(t, c)}</option>)}
-        </optgroup>
-      ))}
-    </select>
+    <>
+      <button ref={btnRef} type="button" className={className + ' fx-selectbtn'} aria-haspopup="listbox" aria-expanded={open} aria-label={ariaLabel ? `${ariaLabel}: ${current}` : current}
+        onClick={() => setOpen(!open)}>
+        <span>{current || '—'}</span>
+        <Ic d={ICON.down} size={14} />
+      </button>
+      <Popover anchor={btnRef} open={open} onClose={() => { setOpen(false); setQ(''); }} minWidth={260}>
+        <div className="fx-pop-search">
+          <Ic d={ICON.search} size={15} />
+          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onKey} placeholder={t('transactions.searchCategory')} aria-label={t('transactions.searchCategory')} />
+        </div>
+        <div className="fx-pop-list" role="listbox" aria-label={ariaLabel} ref={listRef}>
+          {emptyLabel !== undefined && !q && (() => { n++; const i = n; return (
+            <button type="button" role="option" aria-selected={value === ''} data-hi={hi === i ? '1' : undefined} className={(value === '' ? 'on' : '') + (hi === i ? ' hi' : '')}
+              onMouseEnter={() => setHi(i)} onClick={() => pick('')}>{emptyLabel}</button>
+          ); })()}
+          {groups.map(({ g, items }) => (
+            <div key={g} role="group" aria-label={t('categoryGroups.' + g)}>
+              <div className="fx-pop-group">{t('categoryGroups.' + g)}</div>
+              {items.map((c) => { n++; const i = n; const v = val(c); return (
+                <button key={c.id} type="button" role="option" aria-selected={v === value} data-hi={hi === i ? '1' : undefined}
+                  className={(v === value ? 'on' : '') + (hi === i ? ' hi' : '')} onMouseEnter={() => setHi(i)} onClick={() => pick(v)}>
+                  {catLabel(t, c)}
+                </button>
+              ); })}
+            </div>
+          ))}
+          {flat.length === 0 && <p className="fx-pop-empty">{t('transactions.noCategoryFound')}</p>}
+        </div>
+      </Popover>
+    </>
+  );
+}
+
+/** Painel flutuante preso a um botão (abre para baixo, ou para cima se não houver espaço). Vai para o <body>,
+ *  por isso não fica cortado dentro de janelas com scroll. */
+export function Popover({ anchor, open, onClose, children, minWidth = 220, className = '' }: {
+  anchor: { current: HTMLElement | null }; open: boolean; onClose: () => void; children: ReactNode; minWidth?: number; className?: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ left: number; top?: number; bottom?: number; width: number; maxH: number } | null>(null);
+  useLayoutEffect(() => {
+    if (!open) { setPos(null); return; }
+    const place = () => {
+      const a = anchor.current?.getBoundingClientRect();
+      if (!a) return;
+      const vw = window.innerWidth, vh = window.innerHeight;
+      const width = Math.min(Math.max(a.width, minWidth), vw - 16);
+      const left = Math.min(Math.max(8, a.left), vw - width - 8);
+      const below = vh - a.bottom - 12, above = a.top - 12;
+      if (below >= 300 || below >= above) setPos({ left, top: a.bottom + 6, width, maxH: Math.min(420, below) });
+      else setPos({ left, bottom: vh - a.top + 6, width, maxH: Math.min(420, above) });
+    };
+    place();
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', place, true);
+    return () => { window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true); };
+  }, [open, anchor, minWidth]);
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => {
+      const tg = e.target as Node;
+      if (ref.current?.contains(tg) || anchor.current?.contains(tg)) return;
+      onClose();
+    };
+    const k = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
+    document.addEventListener('mousedown', h, true);
+    document.addEventListener('keydown', k, true);
+    return () => { document.removeEventListener('mousedown', h, true); document.removeEventListener('keydown', k, true); };
+  }, [open, onClose, anchor]);
+  if (!open || !pos) return null;
+  return createPortal(
+    <div ref={ref} className={'fx-pop ' + className} onMouseDown={(e) => e.stopPropagation()}
+      style={{ left: pos.left, top: pos.top, bottom: pos.bottom, width: pos.width, maxHeight: pos.maxH }}>
+      {children}
+    </div>,
+    document.body,
   );
 }
 

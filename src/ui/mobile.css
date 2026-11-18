@@ -675,3 +675,32 @@ html[data-theme="light"] .mv-acc.spending { --acc: #b7771b; }
 .ob-photo-btn img { width: 100%; height: 100%; object-fit: cover; }
 .ob-photo-text { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
 .ob-photo-text b { font-size: 14px; }
+/* Botão que abre um menu (categoria, data): parece um campo, com a seta à direita */
+.fx-selectbtn { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; text-align: left; }
+.fx-selectbtn > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fx-selectbtn > svg { flex: none; color: var(--muted); transition: rotate .2s; }
+.fx-selectbtn[aria-expanded="true"] > svg { rotate: 180deg; }
+/* Painel flutuante (mesmo visual das listas <select> arredondadas) */
+.fx-pop { position: fixed; z-index: 80; display: flex; flex-direction: column; padding: 6px; border: 1px solid var(--border); border-radius: 18px;
+  background: var(--card); color: var(--text); box-shadow: 0 22px 50px -18px rgba(0,0,0,.65); animation: fx-fade .12s ease both; overflow: hidden; }
+.fx-pop-search { display: flex; align-items: center; gap: 8px; margin: 2px 2px 6px; padding: 9px 12px; border-radius: 12px; background: var(--card-2); border: 1px solid var(--border); color: var(--muted); }
+.fx-pop-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; color: var(--text); font: inherit; font-size: 14px; }
+.fx-pop-list { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; min-height: 0; }
+.fx-pop-list button { display: block; width: 100%; border: 0; background: none; color: var(--text); font: inherit; font-size: 14.5px; text-align: left; padding: 10px 12px; border-radius: 12px; cursor: pointer; }
+.fx-pop-list button.hi { background: var(--card-2); }
+.fx-pop-list button.on { background: var(--mv-soft); font-weight: 650; }
+.fx-pop-group { padding: 10px 12px 4px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.fx-pop-empty { padding: 12px; margin: 0; color: var(--muted); font-size: 13.5px; }
+/* Calendário de escolher data (igual ao do Painel, com o gasto de cada dia) */
+.fx-datepop { padding: 12px; overflow-y: auto; }
+.fx-dp-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.fx-dp-title { display: flex; flex-direction: column; align-items: center; line-height: 1.25; }
+.fx-dp-title b { font-size: 14.5px; }
+.fx-dp-title small { font-size: 12px; color: var(--muted); }
+.fx-dp-grid .fx-cal-d { aspect-ratio: 1 / 0.82; padding: 5px 2px; }
+.fx-dp-grid .fx-cal-d b { font-size: 9.5px; max-width: 100%; overflow: hidden; text-overflow: clip; white-space: nowrap; }
+.fx-dp-grid .fx-cal-d.now { box-shadow: inset 0 0 0 1.5px var(--accent); }
+.fx-dp-grid .fx-cal-d.sel { background: var(--accent); color: var(--mv-ink); }
+.fx-dp-grid .fx-cal-d.sel b { color: var(--mv-ink); }
+.fx-dp-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 10px; }
+.fx-dp-foot .fx-btn { padding: 7px 14px; font-size: 13px; }

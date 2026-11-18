@@ -238,7 +238,10 @@
     "recurringHint": "Repete-se automaticamente: diário, quinzenal, mensal, trimestral…",
     "recurringEnd": "Termina em (opcional)",
     "endBeforeStart": "A data final é anterior à data de início.",
-    "transfer": "Transferência entre contas"
+    "transfer": "Transferência entre contas",
+    "searchCategory": "Pesquisar categoria",
+    "noCategoryFound": "Nenhuma categoria encontrada.",
+    "emptyYear": "Ainda não há transações este ano."
   },
   "settings": {
     "title": "Definições",
@@ -462,7 +465,11 @@
     "overCount": "Acima do limite",
     "noLimit": "Sem limite definido",
     "update": "Atualizar",
-    "delete": "Remover"
+    "delete": "Remover",
+    "addNew": "Adicionar orçamento",
+    "pickCategory": "Escolhe uma categoria.",
+    "noBudgetsSub": "Escolhe uma categoria e define quanto queres gastar nela este mês.",
+    "monthlyLimit": "Limite para {{month}}"
   },
   "goals": {
     "title": "Metas",
@@ -1216,5 +1223,12 @@
     "error": "Não foi possível guardar a foto. Tenta novamente.",
     "notImage": "Escolhe um ficheiro de imagem.",
     "addOptional": "Adicionar foto (opcional)"
+  },
+  "datePicker": {
+    "none": "Sem data",
+    "spent": "Gasto: {{value}}",
+    "noSpend": "Sem gastos neste mês",
+    "today": "Hoje",
+    "clear": "Limpar"
   }
 }

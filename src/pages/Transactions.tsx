@@ -9,6 +9,7 @@ import { txsOfAccount, defaultAccountId, ALL_ACCOUNTS, loadTransfers, removeTran
 import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
 import { catLabel, PageHead, Seg, Sheet, Toggle, Field, MonthNav, EmptyState, AccountSwitch, Ic, ICON, useAccounts, CategorySelect, CatIcon } from '../ui/fx';
+import { DatePicker } from '../ui/DatePicker';
 import { todayISO } from '../core/dates';
 
 const COLORS = ['#8b7cf6', '#5fd4c4', '#e58fd3', '#f5b85a', '#60a5fa', '#4ade9b', '#f87171'];
@@ -19,6 +20,7 @@ export function Transactions() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
+  const [period, setPeriod] = useState<'month' | 'year'>('month'); // ver um mês ou o ano inteiro
   const { accounts, active, setActive } = useAccounts();
 
   const [txs, setTxs] = useState<Transaction[]>([]);
@@ -43,7 +45,7 @@ export function Transactions() {
   const [error, setError] = useState<string | null>(null);
 
   const refresh = async () => {
-    const rows = await filterTransactions(db, { year, month, categoryId: filterCat || undefined, text: filterText });
+    const rows = await filterTransactions(db, { year, month: period === 'month' ? month : undefined, categoryId: filterCat || undefined, text: filterText });
     setTxs(rows);
     const cs = await activeCategories(db);
     setCats(cs);
@@ -51,7 +53,7 @@ export function Transactions() {
     setTransfers(await loadTransfers(db));
     setCategoryId((cur) => cur || cs[0]?.id || '');
   };
-  useEffect(() => { refresh().catch((e) => setError(String(e))); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [year, month, filterCat, filterText]);
+  useEffect(() => { refresh().catch((e) => setError(String(e))); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [year, month, period, filterCat, filterText]);
 
   const visible = useMemo(
     () => txsOfAccount(txs, active, accounts).filter((x) => kind === 'all' || x.type === kind).sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt)),
@@ -65,13 +67,13 @@ export function Transactions() {
   const nameOf = (id: string) => accounts.find((a) => a.id === id)?.name ?? '?';
   const visibleTransfers = useMemo(() => {
     if (kind !== 'all' || filterCat) return [];
-    const prefix = `${year}-${String(month).padStart(2, '0')}`;
+    const prefix = period === 'month' ? `${year}-${String(month).padStart(2, '0')}` : `${year}-`;
     const q = filterText.trim().toLowerCase();
     return transfers.filter((tr) => tr.date.startsWith(prefix)
       && (active === ALL_ACCOUNTS || tr.fromAccountId === active || tr.toAccountId === active)
       && (!q || `${tr.note} ${nameOf(tr.fromAccountId)} ${nameOf(tr.toAccountId)}`.toLowerCase().includes(q)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transfers, year, month, active, kind, filterCat, filterText, accounts]);
+  }, [transfers, year, month, period, active, kind, filterCat, filterText, accounts]);
 
   const byDay = useMemo(() => {
     const m = new Map<string, { txs: Transaction[]; trs: Transfer[] }>();
@@ -85,6 +87,7 @@ export function Transactions() {
 
   const monthNames = t('calendar.monthNames', { returnObjects: true }) as string[];
   const shift = (d: number) => {
+    if (period === 'year') { setYear((y) => y + d); return; }
     let m = month + d, y = year;
     if (m < 1) { m = 12; y -= 1; } else if (m > 12) { m = 1; y += 1; }
     setMonth(m); setYear(y);
@@ -146,7 +149,11 @@ export function Transactions() {
       </div>
 
       <div className="fx-toolbar">
-        <MonthNav label={`${monthNames[month - 1]} ${year}`} onPrev={() => shift(-1)} onNext={() => shift(1)} />
+        <div className="fx-seg" role="group" aria-label={t('panel.period')}>
+          <button type="button" className={period === 'month' ? 'on' : ''} aria-pressed={period === 'month'} onClick={() => setPeriod('month')}>{t('panel.periodMonth')}</button>
+          <button type="button" className={period === 'year' ? 'on' : ''} aria-pressed={period === 'year'} onClick={() => setPeriod('year')} data-testid="tx-period-year">{t('panel.periodYear')}</button>
+        </div>
+        <MonthNav label={period === 'month' ? `${monthNames[month - 1]} ${year}` : String(year)} onPrev={() => shift(-1)} onNext={() => shift(1)} />
         <Seg value={kind} onChange={setKind} label={t('transactions.type')}
           options={[{ id: 'all', label: t('transactions.all') }, { id: 'expense', label: t('transactions.typeExpense') }, { id: 'income', label: t('transactions.typeIncome') }]} />
         <CategorySelect className="fx-input pill" ariaLabel={t('transactions.filterCategory')} cats={cats} value={filterCat} onChange={setFilterCat} emptyLabel={t('transactions.allCategories')} />
@@ -154,7 +161,7 @@ export function Transactions() {
       </div>
 
       {byDay.length === 0 ? (
-        <div className="fx-card"><EmptyState icon={ICON.wallet} title={t('transactions.empty')} sub={t('transactions.emptySub')}
+        <div className="fx-card"><EmptyState icon={ICON.wallet} title={period === 'year' ? t('transactions.emptyYear') : t('transactions.empty')} sub={t('transactions.emptySub')}
           action={<button type="button" className="fx-btn primary" onClick={openNew}><Ic d={ICON.plus} size={16} />{t('transactions.new')}</button>} /></div>
       ) : (
         <div className="fx-days">
@@ -205,7 +212,7 @@ export function Transactions() {
           <Field label={t('transactions.category')}>
             <CategorySelect cats={cats} kind={type} value={categoryId} onChange={setCategoryId} ariaLabel={t('transactions.category')} />
           </Field>
-          <Field label={t('transactions.date')}><input className="fx-input" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
+          <Field label={t('transactions.date')}><DatePicker value={date} onChange={setDate} ariaLabel={t('transactions.date')} testId="tx-date" /></Field>
         </div>
         {isMobile && !moreOpts ? (
           <button type="button" className="tx-moreopts" onClick={() => setMoreOpts(true)}>+ {t('mobile.moreOptions')}</button>
@@ -227,7 +234,7 @@ export function Transactions() {
                 </select>
               </Field>
               <Field label={t('transactions.recurringEnd')}>
-                <input className="fx-input" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                <DatePicker value={endDate} onChange={setEndDate} allowEmpty ariaLabel={t('transactions.recurringEnd')} />
               </Field>
             </div>
           )}

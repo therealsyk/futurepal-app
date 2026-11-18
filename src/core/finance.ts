@@ -193,6 +193,9 @@ export async function filterTransactions(db: WalletDB, filter: TxFilter): Promis
     const start = `${filter.year}-${String(filter.month).padStart(2, '0')}-01`;
     const end = monthEnd(filter.year, filter.month);
     txs = txs.filter((t) => t.date >= start && t.date <= end);
+  } else if (filter.year) {
+    const y = String(filter.year) + '-'; // ano inteiro
+    txs = txs.filter((t) => t.date.startsWith(y));
   }
   if (filter.categoryId) txs = txs.filter((t) => t.categoryId === filter.categoryId);
   if (filter.groupId) txs = txs.filter((t) => t.groupId === filter.groupId);
