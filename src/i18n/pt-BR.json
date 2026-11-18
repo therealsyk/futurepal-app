@@ -191,7 +191,15 @@
     "pctOfGoal": "{{pct}} % do objetivo",
     "pctPaid": "{{pct}} % pago",
     "allGoalsPlaced": "Todas as metas já estão no painel",
-    "goalWidgetHint": "Cada meta pode ser mostrada em anel ou em barra."
+    "goalWidgetHint": "Cada meta pode ser mostrada em anel ou em barra.",
+    "showingMonth": "Mostrando: {{period}}",
+    "showingYear": "Mostrando: resumo do ano de {{year}}",
+    "year": "Ano",
+    "prevYear": "Ano anterior",
+    "nextYear": "Próximo ano",
+    "monthlySpend": "Gasto por mês",
+    "openMonth": "Ver este mês",
+    "budgetEmptyYear": "Nenhum orçamento definido em {{year}}."
   },
   "transactions": {
     "title": "Transaçàµes",

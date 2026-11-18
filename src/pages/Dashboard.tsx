@@ -12,7 +12,7 @@ import { txsOfAccount, defaultAccountId, ALL_ACCOUNTS, accountBalanceCents, netW
 import { loadLayout, saveLayout, moveWidget, removeWidget, swapWidget, addWidget, nudgeWidget, DEFAULT_LAYOUT, type Layout } from '../core/dashLayout';
 import { WidgetGrid } from '../ui/WidgetGrid';
 import { AccountSwitch, Sheet, ICON, catLabel, useAccounts } from '../ui/fx';
-import { todayISO } from '../core/dates';
+import { todayISO, monthStart, monthEnd } from '../core/dates';
 
 // Painel — visual "clean" inspirado na referência Finity.
 // Toda a lógica trabalha em cêntimos inteiros; todo o texto passa por t().
@@ -34,9 +34,12 @@ export function smoothPath(points: { x: number; y: number }[]): string {
     const p2 = points[i + 1];
     const p3 = points[i + 2] ?? p2;
     const c1x = p1.x + (p2.x - p0.x) / 6;
-    const c1y = p1.y + (p2.y - p0.y) / 6;
+    // y dos pontos de controlo limitado ao intervalo [p1, p2]: a curva não "passa" abaixo de 0 nem acima do valor real.
+    const lo = Math.min(p1.y, p2.y), hi = Math.max(p1.y, p2.y);
+    const clampY = (v: number) => Math.min(hi, Math.max(lo, v));
+    const c1y = clampY(p1.y + (p2.y - p0.y) / 6);
     const c2x = p2.x - (p3.x - p1.x) / 6;
-    const c2y = p2.y - (p3.y - p1.y) / 6;
+    const c2y = clampY(p2.y - (p3.y - p1.y) / 6);
     d += ` C ${c1x.toFixed(2)} ${c1y.toFixed(2)}, ${c2x.toFixed(2)} ${c2y.toFixed(2)}, ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`;
   }
   return d;
@@ -259,13 +262,44 @@ function monthsUntil(dateISO: string): number | null {
 }
 
 // ── Calendário de gasto diário (dia + valor debaixo, como no Excel) ────
-function DailyCalendar({ txs, settings, money, t, selYear, selMonth }: {
+function DailyCalendar({ txs, settings, money, t, selYear, selMonth, period, onPick }: {
   txs: Transaction[]; settings: AppSettings; money: (c: number) => string; t: TFn;
-  selYear: number; selMonth: number;
+  selYear: number; selMonth: number; period: Period; onPick: (year: number, month: number) => void;
 }) {
   const navigate = useNavigate();
   const today = new Date();
   const [cur, setCur] = useState({ y: selYear, m: selMonth - 1 });
+  // Acompanha o período escolhido no topo do Painel.
+  useEffect(() => { setCur({ y: selYear, m: selMonth - 1 }); }, [selYear, selMonth]);
+
+  if (period === 'year') {
+    const months = Array.from({ length: 12 }, (_, i) => {
+      const p = `${selYear}-${pad(i + 1)}`;
+      const v = txs.filter((tx) => tx.type === 'expense' && tx.date.startsWith(p)).reduce((a, tx) => a + tx.amountCents, 0);
+      return { i, v, label: cap(new Date(selYear, i, 1).toLocaleDateString(settings.language, { month: 'short' }).replace('.', '')) };
+    });
+    const max = Math.max(1, ...months.map((m) => m.v));
+    const total = months.reduce((a, m) => a + m.v, 0);
+    return (
+      <Card title={t('panel.monthlySpend')}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+          <span style={{ fontSize: 13 }}>{selYear}</span>
+          <span className="fx-num" style={{ fontSize: 13 }}>{money(total)}</span>
+        </div>
+        <div className="fx-cal-year">
+          {months.map((m) => (
+            <button key={m.i} type="button" className={'fx-cal-m' + (selYear === today.getFullYear() && m.i === today.getMonth() ? ' today' : '')}
+              onClick={() => onPick(selYear, m.i + 1)} aria-label={`${m.label}: ${money(m.v)}`} title={t('panel.openMonth')}>
+              <span>{m.label}</span>
+              <b>{m.v > 0 ? money(m.v) : '—'}</b>
+              <i style={{ width: `${Math.round((m.v / max) * 100)}%` }} />
+            </button>
+          ))}
+        </div>
+      </Card>
+    );
+  }
+
   const days = new Date(cur.y, cur.m + 1, 0).getDate();
   const prefix = `${cur.y}-${pad(cur.m + 1)}`;
   const spend = new Array<number>(days + 1).fill(0);
@@ -280,10 +314,11 @@ function DailyCalendar({ txs, settings, money, t, selYear, selMonth }: {
     new Date(2024, 0, 7 + ((first + i) % 7)).toLocaleDateString(settings.language, { weekday: 'narrow' }));
   const title = new Date(cur.y, cur.m, 1).toLocaleDateString(settings.language, { month: 'long', year: 'numeric' });
   const isToday = (d: number) => cur.y === today.getFullYear() && cur.m === today.getMonth() && d === today.getDate();
-  const move = (n: number) => setCur((c) => {
-    const d = new Date(c.y, c.m + n, 1);
-    return { y: d.getFullYear(), m: d.getMonth() };
-  });
+  // As setas do calendário mudam o período de todo o Painel (assim tudo fica coerente).
+  const move = (n: number) => {
+    const d = new Date(cur.y, cur.m + n, 1);
+    onPick(d.getFullYear(), d.getMonth() + 1);
+  };
 
   return (
     <Card title={t('panel.dailySpend')} action={
@@ -328,9 +363,18 @@ export function Dashboard() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [period, setPeriod] = useState<Period>('month');
-  const [selY, setSelY] = useState(new Date().getFullYear());
-  const [selM, setSelM] = useState(new Date().getMonth() + 1);
+  const saved = loadPeriod();
+  const [period, setPeriod] = useState<Period>(saved.period);
+  const [selY, setSelY] = useState(saved.year);
+  const [selM, setSelM] = useState(saved.month);
+  useEffect(() => { savePeriod({ period, year: selY, month: selM }); }, [period, selY, selM]);
+  // Avança/recua um mês ou um ano, conforme o modo.
+  const stepPeriod = (n: number) => {
+    if (period === 'year') { setSelY((y) => y + n); return; }
+    const d = new Date(selY, selM - 1 + n, 1);
+    setSelY(d.getFullYear()); setSelM(d.getMonth() + 1);
+  };
+  const pickMonth = (y: number, m: number) => { setPeriod('month'); setSelY(y); setSelM(m); };
   const { accounts, active, setActive } = useAccounts();
   const [recurrings, setRecurrings] = useState<Recurring[]>([]);
   const [layout, setLayoutState] = useState<Layout>(loadLayout);
@@ -386,6 +430,22 @@ export function Dashboard() {
   const daysInPeriod = period === 'month'
     ? new Date(year, month, 0).getDate()
     : (year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0) ? 366 : 365);
+  const periodStart = period === 'month' ? monthStart(year, month) : `${year}-01-01`;
+  const periodEnd = period === 'month' ? monthEnd(year, month) : `${year}-12-31`;
+  const todayStr = todayISO();
+  // Dias já decorridos do período (0 = período no futuro; todos = período no passado).
+  const elapsedDays = todayStr < periodStart ? 0 : todayStr > periodEnd ? daysInPeriod
+    : Math.round((Date.parse(todayStr + 'T00:00:00Z') - Date.parse(periodStart + 'T00:00:00Z')) / 86400000) + 1;
+  // Saldos "à data": fim do período, ou hoje se o período ainda não acabou.
+  const asOf = periodEnd < todayStr ? periodEnd : todayStr;
+  const txsAsOf = txs.filter((x) => x.date <= asOf);
+  const transfersAsOf = transfers.filter((x) => x.date <= asOf);
+  const periodLabel = period === 'month'
+    ? cap(new Date(year, month - 1, 1).toLocaleDateString(lang, { month: 'long', year: 'numeric' }))
+    : String(year);
+  const firstDataYear = txs.reduce((min, x) => Math.min(min, parseInt(x.date.slice(0, 4), 10) || min), now.getFullYear());
+  const yearOptions = Array.from({ length: Math.max(year, now.getFullYear() + 1) - Math.min(firstDataYear, year) + 1 },
+    (_, i) => Math.max(year, now.getFullYear() + 1) - i);
 
   // Salários pertencem à conta predefinida (ou a todas).
   const salaryHere = active === ALL_ACCOUNTS || active === defaultAccountId(accounts);
@@ -397,7 +457,7 @@ export function Dashboard() {
   const spent = kpis.totalSpentCents;
   const savings = income > 0 ? income - spent : null;
   const pctSpent = income > 0 ? spent / income : null;
-  const avgDay = Math.round(spent / daysInPeriod);
+  const avgDay = Math.round(spent / Math.max(1, elapsedDays || daysInPeriod));
   const prevPrefix = period === 'month'
     ? (month === 1 ? `${year - 1}-12` : `${year}-${pad(month - 1)}`)
     : String(year - 1);
@@ -431,16 +491,15 @@ export function Dashboard() {
   });
   const yearSpent = series.reduce((a, s) => a + s.spending, 0);
 
-  // Orçamento do mês atual
-  const monthPrefix = `${year}-${pad(month)}`;
-  const monthBudgets = budgets.filter((b) => b.year === year && b.month === month);
-  const budgetLimit = monthBudgets.reduce((a, b) => a + b.limitCents, 0);
-  const budgetUsed = monthBudgets.reduce((a, b) => a + accTxs
-    .filter((tx) => tx.type === 'expense' && tx.categoryId === b.categoryId && tx.date.startsWith(monthPrefix))
+  // Orçamento do período: o mês escolhido, ou a soma de todos os meses do ano
+  const periodBudgets = budgets.filter((b) => b.year === year && (period === 'year' || b.month === month));
+  const budgetLimit = periodBudgets.reduce((a, b) => a + b.limitCents, 0);
+  const budgetUsed = periodBudgets.reduce((a, b) => a + accTxs
+    .filter((tx) => tx.type === 'expense' && tx.categoryId === b.categoryId && tx.date.startsWith(`${b.year}-${pad(b.month)}`))
     .reduce((s, tx) => s + tx.amountCents, 0), 0);
 
   // Transações recentes
-  const recent = [...accTxs].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt)).slice(0, 7);
+  const recent = [...periodTx].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt)).slice(0, 7);
   const fmtDate = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString(lang, { day: 'numeric', month: 'short' });
 
   const activeGoals = [...goals].sort((a, b) => (a.targetDate ?? '9').localeCompare(b.targetDate ?? '9')).slice(0, 3);
@@ -448,8 +507,8 @@ export function Dashboard() {
 
   // ── Janelas (widgets) ──────────────────────────────────────────────────
   const STATIC_WIDGETS = ['goals', 'budget', 'summary', 'overview', 'categories', 'calendar', 'recent', 'accounts', 'forecast', 'last7', 'topExpenses', 'upcoming', 'checklist'];
-  const salaryToDate = salariesUntil(salaries, year, month);
-  const balOf = (a: Account) => accountBalanceCents(a, txs, accounts, salaryToDate, transfers);
+  const salaryToDate = salariesUntil(salaries, parseInt(asOf.slice(0, 4), 10), parseInt(asOf.slice(5, 7), 10));
+  const balOf = (a: Account) => accountBalanceCents(a, txsAsOf, accounts, salaryToDate, transfersAsOf);
   const currentOf = (g: Goal) => (g.accountIds && g.accountIds.length
     ? accounts.filter((a) => g.accountIds!.includes(a.id)).reduce((sum, a) => sum + balOf(a), 0)
     : g.currentCents);
@@ -546,12 +605,12 @@ export function Dashboard() {
       const a = accounts.find((x) => x.id === wRef);
       if (!a) return null;
       const bal = balOf(a);
-      const mine = txsOfAccount(txs, a.id, accounts);
+      const mine = txsOfAccount(txsAsOf, a.id, accounts);
       if (a.type === 'debt') {
         const owed = Math.max(bal, 0);
         const total = a.initialBalanceCents;
         const paid = Math.max(0, total - owed);
-        const payments = mine.filter((x) => x.type === 'expense').length + transfers.filter((x) => x.toAccountId === a.id).length;
+        const payments = mine.filter((x) => x.type === 'expense').length + transfersAsOf.filter((x) => x.toAccountId === a.id).length;
         const src = suggestedSource(accounts, a.id);
         const abate = async () => {
           const cents = parseMoneyToCents(contrib['abate:' + a.id] ?? '');
@@ -649,7 +708,7 @@ export function Dashboard() {
         return (
           <Card title={t('panel.budgetUsage')} action={seeAll('/orcamentos', t('panel.manageBudgets'))}>
             {budgetLimit === 0 ? (
-              <div className="fx-muted" style={{ fontSize: 13 }}>{t('panel.budgetEmpty')}</div>
+              <div className="fx-muted" style={{ fontSize: 13 }}>{period === 'year' ? t('panel.budgetEmptyYear', { year }) : t('panel.budgetEmpty')}</div>
             ) : (
               <>
                 <Meter ratio={budgetUsed / budgetLimit} />
@@ -684,7 +743,8 @@ export function Dashboard() {
                 <span><i className="fx-dot" style={{ background: 'var(--teal)' }} />{t('panel.spending')}</span>
               </div>
             </div>
-            <OverviewChart series={series} upTo={month - 1} money={money} t={t} />
+            <OverviewChart series={series} money={money} t={t}
+              upTo={period === 'month' ? month - 1 : year < now.getFullYear() ? 11 : year === now.getFullYear() ? now.getMonth() : 0} />
           </Card>
         );
       case 'categories':
@@ -696,7 +756,7 @@ export function Dashboard() {
           </Card>
         );
       case 'calendar':
-        return <DailyCalendar txs={accTxs} settings={settings} money={money} t={t} selYear={year} selMonth={month} />;
+        return <DailyCalendar txs={accTxs} settings={settings} money={money} t={t} selYear={year} selMonth={month} period={period} onPick={pickMonth} />;
       case 'recent':
         return (
           <Card title={t('panel.recentTransactions')} action={seeAll('/transacoes', t('panel.seeAll'))}>
@@ -728,7 +788,7 @@ export function Dashboard() {
         return (
           <Card title={t('panel.w_accounts')} action={seeAll('/contas', t('accounts.title'))}>
             <div className="fx-label">{t('accounts.netWorth')}</div>
-            <div className="fx-big" style={{ margin: '4px 0 12px' }}>{money(netWorthCents(accounts, txs, salaryToDate, transfers))}</div>
+            <div className="fx-big" style={{ margin: '4px 0 12px' }}>{money(netWorthCents(accounts, txsAsOf, salaryToDate, transfersAsOf))}</div>
             <div className="fx-list">
               {accounts.map((a) => (
                 <div key={a.id} className="fx-item">
@@ -741,14 +801,11 @@ export function Dashboard() {
           </Card>
         );
       case 'forecast': {
-        const day = now.getDate();
-        const dim = new Date(year, month, 0).getDate();
-        const mp = `${year}-${pad(month)}`;
-        const monthTx = accTxs.filter((x) => x.date.startsWith(mp));
-        const spentNow = monthTx.filter((x) => x.type === 'expense').reduce((sum, x) => sum + x.amountCents, 0);
-        const projected = Math.round((spentNow / day) * dim);
-        const monthIncome = (salaryHere ? salaries.filter((x) => x.year === year && x.month === month).reduce((sum, x) => sum + x.amountCents, 0) : 0)
-          + monthTx.filter((x) => x.type === 'income').reduce((sum, x) => sum + x.amountCents, 0);
+        const day = elapsedDays;
+        const dim = daysInPeriod;
+        const spentNow = spent;
+        const projected = day > 0 ? Math.round((spentNow / day) * dim) : spentNow;
+        const monthIncome = income;
         return (
           <Card title={t('panel.w_forecast')}>
             <div className="fx-label">{t('panel.forecastProjected')}</div>
@@ -762,7 +819,8 @@ export function Dashboard() {
       }
       case 'last7': {
         const days = Array.from({ length: 7 }, (_, i) => {
-          const d = new Date(year, month - 1, now.getDate() - (6 - i));
+          const end = new Date(asOf + 'T00:00:00');
+          const d = new Date(end.getFullYear(), end.getMonth(), end.getDate() - (6 - i));
           const key = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
           const total = accTxs.filter((x) => x.type === 'expense' && x.date === key).reduce((sum, x) => sum + x.amountCents, 0);
           return { label: cap(d.toLocaleDateString(lang, { weekday: 'short' }).replace('.', '')).slice(0, 3), total };
@@ -869,21 +927,25 @@ export function Dashboard() {
       <header className="fx-head">
         <div>
           <h1>{t('panel.title')}</h1>
-          <p>{t('panel.subtitle')}</p>
+          <p data-testid="period-label">{period === 'month' ? t('panel.showingMonth', { period: periodLabel }) : t('panel.showingYear', { year })}</p>
         </div>
         <div className="fx-head-actions">
           <div className="fx-seg" role="group" aria-label={t('panel.period')}>
             <button type="button" className={period === 'month' ? 'on' : ''} aria-pressed={period === 'month'} onClick={() => setPeriod('month')}>{t('panel.periodMonth')}</button>
             <button type="button" className={period === 'year' ? 'on' : ''} aria-pressed={period === 'year'} onClick={() => setPeriod('year')}>{t('panel.periodYear')}</button>
           </div>
-          <select className="fx-sel fx-periodsel" aria-label={t('panel.period')} value={selY} onChange={(e) => setSelY(parseInt(e.target.value, 10))}>
-            {Array.from({ length: 6 }, (_, i) => now.getFullYear() - i).map((y) => <option key={y} value={y}>{y}</option>)}
-          </select>
-          {period === 'month' && (
-            <select className="fx-sel fx-periodsel" aria-label={t('panel.month')} value={selM} onChange={(e) => setSelM(parseInt(e.target.value, 10))}>
-              {Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={i + 1}>{cap(new Date(now.getFullYear(), i, 1).toLocaleDateString(lang, { month: 'long' }))}</option>)}
+          <div className="fx-periodnav">
+            <button type="button" className="fx-round sm" onClick={() => stepPeriod(-1)} aria-label={period === 'month' ? t('panel.prevMonth') : t('panel.prevYear')} data-testid="period-prev"><Ic d="M15 6l-6 6 6 6" size={15} /></button>
+            {period === 'month' && (
+              <select className="fx-sel fx-periodsel" aria-label={t('panel.month')} value={selM} onChange={(e) => setSelM(parseInt(e.target.value, 10))} data-testid="period-month">
+                {Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={i + 1}>{cap(new Date(2026, i, 1).toLocaleDateString(lang, { month: 'long' }))}</option>)}
+              </select>
+            )}
+            <select className="fx-sel fx-periodsel" aria-label={t('panel.year')} value={selY} onChange={(e) => setSelY(parseInt(e.target.value, 10))} data-testid="period-year">
+              {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
             </select>
-          )}
+            <button type="button" className="fx-round sm" onClick={() => stepPeriod(1)} aria-label={period === 'month' ? t('panel.nextMonth') : t('panel.nextYear')} data-testid="period-next"><Ic d={ARROW} size={15} /></button>
+          </div>
           <AccountSwitch accounts={accounts} active={active} onChange={setActive} />
           <button type="button" className={'fx-btn' + (editing ? ' on' : '')} aria-pressed={editing} onClick={() => setEditing(!editing)}>
             <Ic d={editing ? 'M5 12l5 5 9-10' : 'M4 6h16M4 12h16M4 18h10'} size={15} /> {editing ? t('panel.done') : t('panel.customize')}
@@ -968,4 +1030,19 @@ export function Dashboard() {
       </Sheet>
     </div>
   );
+}
+
+// Período do Painel lembrado durante a sessão (ao sair e voltar ao Painel mantém-se).
+const PERIOD_KEY = 'wallet.dashPeriod';
+function loadPeriod(): { period: Period; year: number; month: number } {
+  const now = new Date();
+  const def = { period: 'month' as Period, year: now.getFullYear(), month: now.getMonth() + 1 };
+  try {
+    const v = JSON.parse(sessionStorage.getItem(PERIOD_KEY) || 'null');
+    if (v && (v.period === 'month' || v.period === 'year') && Number.isInteger(v.year) && v.month >= 1 && v.month <= 12) return v;
+  } catch { /* sem storage */ }
+  return def;
+}
+function savePeriod(v: { period: Period; year: number; month: number }): void {
+  try { sessionStorage.setItem(PERIOD_KEY, JSON.stringify(v)); } catch { /* sem storage */ }
 }

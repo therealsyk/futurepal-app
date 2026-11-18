@@ -122,7 +122,15 @@
     "kpiIncomeSub": "Salario {{salary}} · Extras {{extras}}",
     "kpiTopSub": "{{value}} de los gastos",
     "noIncome": "Sin salario registrado",
-    "vsPrevious": "vs periodo anterior"
+    "vsPrevious": "vs periodo anterior",
+    "showingMonth": "Mostrando: {{period}}",
+    "showingYear": "Mostrando: resumen del año {{year}}",
+    "year": "Año",
+    "prevYear": "Año anterior",
+    "nextYear": "Año siguiente",
+    "monthlySpend": "Gasto por mes",
+    "openMonth": "Ver este mes",
+    "budgetEmptyYear": "Sin presupuesto definido en {{year}}."
   },
   "transactions": {
     "title": "Transacciones",

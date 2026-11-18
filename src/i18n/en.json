@@ -191,7 +191,15 @@
     "pctOfGoal": "{{pct}}% of goal",
     "pctPaid": "{{pct}}% paid",
     "allGoalsPlaced": "All goals are already on the dashboard",
-    "goalWidgetHint": "Each goal can be shown as a ring or a bar."
+    "goalWidgetHint": "Each goal can be shown as a ring or a bar.",
+    "showingMonth": "Showing: {{period}}",
+    "showingYear": "Showing: {{year}} summary",
+    "year": "Year",
+    "prevYear": "Previous year",
+    "nextYear": "Next year",
+    "monthlySpend": "Spending by month",
+    "openMonth": "Open this month",
+    "budgetEmptyYear": "No budget set in {{year}}."
   },
   "transactions": {
     "title": "Transactions",
