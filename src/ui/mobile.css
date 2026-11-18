@@ -723,3 +723,6 @@ html[data-theme="light"] .mv-acc.spending { --acc: #b7771b; }
 .fx-datepop::-webkit-scrollbar, .ab-pop::-webkit-scrollbar { display: none; }
 .fx-sheet-body, .ct-icons { scrollbar-width: none; }
 .fx-sheet-body::-webkit-scrollbar, .ct-icons::-webkit-scrollbar { display: none; }
+/* Todas as caixas com scroll interno (menus, listas, janelas): sem barra visível. A página continua com a sua. */
+*:not(html):not(body):not(.app-main) { scrollbar-width: none; }
+*:not(html):not(body):not(.app-main)::-webkit-scrollbar { display: none; }
