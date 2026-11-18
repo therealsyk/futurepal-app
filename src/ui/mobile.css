@@ -198,7 +198,7 @@ button.st-row:focus-visible { outline: 2px solid var(--go); outline-offset: 2px;
 html[data-theme="light"] { --mv: #0b7a85; --mv-ink: #ffffff; --accent-2: #12a3ae; --go: var(--mv); --go-ink: var(--mv-ink); --pos: #15a259; --muted: #4b4e5a; --teal: #4f5bd5; }
 
 /* botões e realces que usavam texto branco sobre o acento */
-.fx-btn.primary, .seg button.active, .btn-primary, .fx-cal-d.today, .fx-cal-d.today b, .fx-tip { color: var(--mv-ink); }
+.fx-btn.primary, .seg button.active, .btn-primary, .fx-cal-d.today, .fx-cal-d.today b { color: var(--mv-ink); }
 .fx-logo { color: var(--mv-ink) !important; }
 
 /* Listas de escolha (<select>) com caixa arredondada em vez da lista quadrada do sistema.
