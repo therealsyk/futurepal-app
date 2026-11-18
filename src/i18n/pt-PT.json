@@ -691,7 +691,7 @@
     "defaultHint": "Usada por omissão nas novas transações",
     "showHome": "Mostrar no início",
     "showHomeHint": "Aparece no separador inicial",
-    "createAccount": "Criar conta",
+    "createAccount": "Adicionar conta de gastos",
     "skipStep": "Saltar por agora",
     "badAmount": "Valor inválido.",
     "txTitle": "Adiciona as tuas transações",
@@ -716,7 +716,8 @@
     "goalTarget": "Valor alvo",
     "goalNameReq": "Dá um nome à meta.",
     "doneTitle": "Está tudo pronto!",
-    "doneSub": "Já podes começar a usar o FuturePal."
+    "doneSub": "Já podes começar a usar o FuturePal.",
+    "signup": "Criar conta FuturePal"
   },
   "settings2": {
     "account": "Conta",

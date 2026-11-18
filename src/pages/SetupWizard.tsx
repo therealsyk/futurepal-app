@@ -42,6 +42,7 @@ export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings
   const [country, setCountry] = useState(initial.country || 'PT');
   const [currency, setCurrency] = useState(initial.currency || 'EUR');
   const [signedIn, setSignedIn] = useState(false);
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [syncNote, setSyncNote] = useState('');
   const auth = useAuth();
   const loginHandled = useRef(false); // o login (formulário ou social) só é tratado uma vez
@@ -142,12 +143,14 @@ export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings
         {step === 'welcome' && (
           <Welcome
             language={language} country={country} onLanguage={pickLanguage} onCountry={pickCountry}
-            onStart={() => setStep('currency')} onLogin={hasSupabaseConfig() ? () => setStep('auth') : undefined}
+            onStart={() => setStep('currency')}
+            onLogin={hasSupabaseConfig() ? () => { setAuthMode('signin'); setStep('auth'); } : undefined}
+            onSignup={hasSupabaseConfig() ? () => { setAuthMode('signup'); setStep('auth'); } : undefined}
           />
         )}
         {step === 'auth' && (
           syncNote ? <p className="ob-sub" role="status">{syncNote}</p>
-            : <LoginForm initialMode="signin" onDone={() => { afterLogin().catch(() => setStep('currency')); }} onSkip={() => setStep('currency')} />
+            : <LoginForm key={authMode} initialMode={authMode} onDone={() => { afterLogin().catch(() => setStep('currency')); }} onSkip={() => setStep('currency')} />
         )}
         {step === 'currency' && <CurrencyStep language={language} value={currency} onChange={setCurrency} />}
         {step === 'account' && <AccountStep currency={currency} language={language} onCreated={next} />}
@@ -164,8 +167,8 @@ export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings
   );
 }
 
-function Welcome({ language, country, onLanguage, onCountry, onStart, onLogin }: {
-  language: string; country: string; onLanguage: (c: string) => void; onCountry: (c: string) => void; onStart: () => void; onLogin?: () => void;
+function Welcome({ language, country, onLanguage, onCountry, onStart, onLogin, onSignup }: {
+  language: string; country: string; onLanguage: (c: string) => void; onCountry: (c: string) => void; onStart: () => void; onLogin?: () => void; onSignup?: () => void;
 }) {
   const { t } = useTranslation();
   return (
@@ -191,6 +194,7 @@ function Welcome({ language, country, onLanguage, onCountry, onStart, onLogin }:
 
       <div className="ob-actions">
         <button type="button" className="ob-cta" onClick={onStart} data-testid="ob-start">{t('onboard.start')}</button>
+        {onSignup && <button type="button" className="ob-outline" onClick={onSignup} data-testid="ob-signup">{t('onboard.signup')}</button>}
         {onLogin && <button type="button" className="ob-outline" onClick={onLogin} data-testid="ob-login">{t('onboard.haveAccount')}</button>}
       </div>
     </div>

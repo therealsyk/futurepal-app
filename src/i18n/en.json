@@ -687,7 +687,7 @@
     "defaultHint": "Used by default for new transactions",
     "showHome": "Show on home screen",
     "showHomeHint": "Show this account on the home tab",
-    "createAccount": "Create account",
+    "createAccount": "Add spending account",
     "skipStep": "Skip for now",
     "badAmount": "Invalid amount.",
     "txTitle": "Add your transactions",
@@ -712,7 +712,8 @@
     "goalTarget": "Target amount",
     "goalNameReq": "Give the goal a name.",
     "doneTitle": "You're all set!",
-    "doneSub": "You can start using FuturePal now."
+    "doneSub": "You can start using FuturePal now.",
+    "signup": "Create a FuturePal account"
   },
   "settings2": {
     "account": "Account",
