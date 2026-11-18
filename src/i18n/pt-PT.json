@@ -998,7 +998,9 @@
     "limitGoals": "No plano grátis podes ter {{n}} meta. Com o Plus não há limite.",
     "limitBudgets": "No plano grátis podes ter {{n}} limites de gastos por mês. Com o Plus não há limite.",
     "forecast": "Ao ritmo atual, acabas o mês com {{spend}} gastos ({{bal}} de saldo).",
-    "forecastLocked": "Ver previsão do fim do mês (Plus)"
+    "forecastLocked": "Ver previsão do fim do mês (Plus)",
+    "short_split": "Dividir contas",
+    "feat_split": "Divide jantares e contas da casa em partes iguais e vê quem já pagou."
   },
   "admin": {
     "title": "Administração",
@@ -1050,7 +1052,8 @@
     "nSub_other": "{{name}} renova em {{count}} dias.",
     "nWarranty_one": "A garantia de {{name}} acaba em {{count}} dia.",
     "nWarranty_other": "A garantia de {{name}} acaba em {{count}} dias.",
-    "nIrs": "Valida as faturas pendentes no e-Fatura até 25 de fevereiro."
+    "nIrs": "Valida as faturas pendentes no e-Fatura até 25 de fevereiro.",
+    "nSplitInvite": "{{name}} convidou-te para o grupo \"{{group}}\""
   },
   "family": {
     "title": "Casa partilhada",
@@ -1134,5 +1137,49 @@
     "err_paused": "O assistente está em pausa por uns dias. Pedimos desculpa.",
     "err_bad_image": "Essa imagem não serve. Tenta outra foto.",
     "err_ai_error": "Algo correu mal. Tenta outra vez daqui a pouco."
+  },
+  "split": {
+    "title": "Dividir contas",
+    "sub": "Jantares, contas da casa do mês, viagens: divide em partes iguais e vê quem já pagou.",
+    "needLogin": "Inicia sessão para dividir contas com outras pessoas.",
+    "newGroup": "Novo grupo",
+    "createNeedsFamily": "Criar grupos (plano Família)",
+    "groupName": "Nome do grupo",
+    "groupNamePh": "ex.: Contas de casa, Jantar de sexta",
+    "invitesTitle": "Convites para ti",
+    "invitedBy": "Convidado por {{name}}",
+    "accept": "Aceitar",
+    "decline": "Recusar",
+    "empty": "Ainda não tens grupos",
+    "emptySub": "Cria um grupo e convida as pessoas pelo email ou telemóvel. Se te convidaram, o convite aparece aqui.",
+    "youOwe": "Tens {{amount}} por pagar em {{count}} conta(s)",
+    "youOweNothing": "Não tens nada por pagar.",
+    "newBill": "Nova conta",
+    "bills": "Contas",
+    "noBills": "Ainda sem contas neste grupo.",
+    "perPerson": "{{amount}} por pessoa ({{n}})",
+    "allPaid": "Tudo pago",
+    "missing": "Falta {{amount}}",
+    "markPaid": "Marcar como pago",
+    "markUnpaid": "Marcar como não pago",
+    "deleteConfirm": "Apagar esta conta para todo o grupo?",
+    "leaveConfirm": "Sair deste grupo?",
+    "leave": "Sair do grupo",
+    "waiting": "À espera de aceitar",
+    "inviteLabel": "Convidar por email ou telemóvel",
+    "invitePh": "ana@email.pt ou 912 345 678",
+    "invite": "Convidar",
+    "inviteHint": "A pessoa vê o convite quando entrar no FuturePal com esse email ou telemóvel, e tem de o aceitar.",
+    "badContact": "Escreve um email ou um número de telemóvel válido.",
+    "invited": "Convite enviado.",
+    "billPh": "ex.: Jantar, Luz + água + gás de novembro",
+    "total": "Total",
+    "eachPays": "Cada pessoa paga cerca de {{amount}}.",
+    "iPaidMine": "Já paguei a minha parte",
+    "personalTitle": "Adicionar às tuas despesas?",
+    "personalText": "Pagaste {{amount}}. Queres registar isto também nas tuas despesas pessoais?",
+    "personalYes": "Adicionar",
+    "personalNo": "Agora não",
+    "addedPersonal": "{{amount}} adicionado às tuas despesas."
   }
 }

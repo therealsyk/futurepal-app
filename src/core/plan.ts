@@ -5,7 +5,7 @@
 export type PlanId = 'free' | 'plus' | 'family' | 'pro';
 export type Feature =
   | 'unlimited' | 'irs' | 'subscriptions' | 'forecast' | 'yearReview' | 'challenges' | 'warranties'
-  | 'shared' | 'freelance' | 'assistant';
+  | 'shared' | 'split' | 'freelance' | 'assistant';
 
 export const FREE_LIMITS = { accounts: 2, goals: 1, budgets: 3 } as const;
 
@@ -13,7 +13,7 @@ const PLUS: Feature[] = ['unlimited', 'irs', 'subscriptions', 'forecast', 'yearR
 export const PLAN_FEATURES: Record<PlanId, Feature[]> = {
   free: [],
   plus: PLUS,
-  family: [...PLUS, 'shared'],
+  family: [...PLUS, 'shared', 'split'],
   pro: [...PLUS, 'freelance'],
 };
 

@@ -994,7 +994,9 @@
     "limitGoals": "The free plan allows {{n}} goal. Plus has no limit.",
     "limitBudgets": "The free plan allows {{n}} spending limits per month. Plus has no limit.",
     "forecast": "At this pace you end the month with {{spend}} spent ({{bal}} balance).",
-    "forecastLocked": "See end-of-month forecast (Plus)"
+    "forecastLocked": "See end-of-month forecast (Plus)",
+    "short_split": "Split bills",
+    "feat_split": "Split dinners and home bills equally and see who has paid."
   },
   "admin": {
     "title": "Admin",
@@ -1046,7 +1048,8 @@
     "nSub_other": "{{name}} renews in {{count}} days.",
     "nWarranty_one": "The {{name}} warranty ends in {{count}} day.",
     "nWarranty_other": "The {{name}} warranty ends in {{count}} days.",
-    "nIrs": "Validate pending invoices on e-Fatura by 25 February."
+    "nIrs": "Validate pending invoices on e-Fatura by 25 February.",
+    "nSplitInvite": "{{name}} invited you to the group \"{{group}}\""
   },
   "family": {
     "title": "Shared home",
@@ -1130,5 +1133,49 @@
     "err_paused": "The assistant is paused for a few days. Sorry about that.",
     "err_bad_image": "That image won't work. Try another photo.",
     "err_ai_error": "Something went wrong. Please try again shortly."
+  },
+  "split": {
+    "title": "Split bills",
+    "sub": "Dinners, monthly home bills, trips: split equally and see who has paid.",
+    "needLogin": "Sign in to split bills with other people.",
+    "newGroup": "New group",
+    "createNeedsFamily": "Create groups (Family plan)",
+    "groupName": "Group name",
+    "groupNamePh": "e.g. Home bills, Friday dinner",
+    "invitesTitle": "Invitations for you",
+    "invitedBy": "Invited by {{name}}",
+    "accept": "Accept",
+    "decline": "Decline",
+    "empty": "You have no groups yet",
+    "emptySub": "Create a group and invite people by email or phone. If someone invited you, it shows up here.",
+    "youOwe": "You have {{amount}} to pay across {{count}} bill(s)",
+    "youOweNothing": "You have nothing to pay.",
+    "newBill": "New bill",
+    "bills": "Bills",
+    "noBills": "No bills in this group yet.",
+    "perPerson": "{{amount}} per person ({{n}})",
+    "allPaid": "All paid",
+    "missing": "{{amount}} left",
+    "markPaid": "Mark as paid",
+    "markUnpaid": "Mark as unpaid",
+    "deleteConfirm": "Delete this bill for the whole group?",
+    "leaveConfirm": "Leave this group?",
+    "leave": "Leave group",
+    "waiting": "Waiting to accept",
+    "inviteLabel": "Invite by email or phone",
+    "invitePh": "ana@email.com or +351 912 345 678",
+    "invite": "Invite",
+    "inviteHint": "They'll see the invitation when they sign in to FuturePal with that email or phone, and must accept it.",
+    "badContact": "Enter a valid email or phone number.",
+    "invited": "Invitation sent.",
+    "billPh": "e.g. Dinner, November power + water + gas",
+    "total": "Total",
+    "eachPays": "Each person pays about {{amount}}.",
+    "iPaidMine": "I've already paid my share",
+    "personalTitle": "Add to your expenses?",
+    "personalText": "You paid {{amount}}. Do you also want to record it in your personal expenses?",
+    "personalYes": "Add",
+    "personalNo": "Not now",
+    "addedPersonal": "{{amount}} added to your expenses."
   }
 }

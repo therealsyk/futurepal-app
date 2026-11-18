@@ -653,3 +653,11 @@ html[data-theme="light"] .mv-acc.spending { --acc: #b7771b; }
 .as-typing { opacity: .6; }
 .as-examples { display: flex; flex-wrap: wrap; gap: 8px; } .as-examples button { border: 0; cursor: pointer; }
 .as-input { display: flex; gap: 8px; } .as-input .fx-input { flex: 1; min-width: 0; }
+/* Dividir contas */
+.sp-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.sp-invites { margin-bottom: 14px; display: grid; gap: 10px; } .sp-invites h3 { margin: 0; }
+.sp-bill { display: grid; gap: 8px; }
+.sp-people { display: flex; flex-wrap: wrap; gap: 6px; }
+.sp-person { border: 1px solid var(--line, rgba(127,127,127,.3)); background: transparent; color: inherit; border-radius: 99px; padding: 4px 10px; font-size: 13px; cursor: pointer; }
+.sp-person.paid { background: var(--mv-soft); color: var(--mv); border-color: transparent; font-weight: 700; }
+.sp-person:disabled { cursor: default; }

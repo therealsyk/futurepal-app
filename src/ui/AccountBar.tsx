@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../auth/AuthContext';
-import { signOut } from '../auth/supabase';
+import { getSupabase, signOut } from '../auth/supabase';
 import { db } from '../db/app-db';
 import { activePlan, hasFeature, loadPlan, trialDaysLeft } from '../core/plan';
 import { detectSubscriptions, warrantyDaysLeft } from '../core/premium';
@@ -45,6 +45,13 @@ function useNotifications(): Note[] {
       }
       const m = new Date().getMonth();
       if (m <= 1) out.push({ id: 'irs', text: t('acct.nIrs'), to: '/irs' });
+      // convites para grupos de divisão de contas (qualquer plano)
+      const sb = getSupabase();
+      if (sb && (await sb.auth.getSession()).data.session) {
+        const { data } = await sb.rpc('my_split_invites');
+        for (const i of (data ?? []) as Array<{ id: string; group_name: string; invited_by_name: string }>)
+          out.unshift({ id: 'inv' + i.id, text: t('acct.nSplitInvite', { name: i.invited_by_name, group: i.group_name }), to: '/dividir' });
+      }
       setNotes(out);
     })().catch(() => {});
   }, [t]);
