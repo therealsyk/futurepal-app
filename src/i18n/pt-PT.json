@@ -1035,7 +1035,22 @@
     "notes": "Novidades",
     "publish": "Publicar aviso de versão",
     "published": "Publicado ✓",
-    "privacy": "Só vês contagens e emails, nunca os valores das despesas das pessoas. Trata estes dados com cuidado (RGPD)."
+    "privacy": "Só vês contagens e emails, nunca os valores das despesas das pessoas. Trata estes dados com cuidado (RGPD).",
+    "subsTitle": "Subscrições",
+    "subsHint": "Muda o plano de qualquer conta (ex.: ofertas, testes, suporte). A pessoa vê a mudança da próxima vez que abrir a app com sessão iniciada.",
+    "subPlan": "Plano",
+    "subUntil": "Válido até",
+    "subSave": "Guardar plano",
+    "subSearch": "Procurar por email…",
+    "subSearchBtn": "Procurar",
+    "subSource": "Origem",
+    "subChange": "Mudar",
+    "subNotFound": "Não existe nenhuma conta com esse email.",
+    "subSaved": "{{email}} está agora no plano {{plan}}.",
+    "plan_free": "Grátis",
+    "plan_plus": "Plus",
+    "plan_family": "Família",
+    "plan_pro": "Pro"
   },
   "acct": {
     "guest": "Convidado",

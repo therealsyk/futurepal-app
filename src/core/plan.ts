@@ -54,3 +54,17 @@ export function startTrial(days = 14, now = new Date()): PlanState {
 export function withinFreeLimit(kind: keyof typeof FREE_LIMITS, currentCount: number): boolean {
   return hasFeature('unlimited') || currentCount < FREE_LIMITS[kind];
 }
+
+/**
+ * Aplica a subscrição do servidor (tabela subscriptions) a este aparelho.
+ * Ativa -> esse plano. Sem linha ou expirada -> Grátis (o teste de 14 dias, se houver, continua a contar).
+ * Em modo de desenvolvimento não mexe, para o seletor de planos de teste continuar a funcionar.
+ */
+export function applyServerPlan(row: { plan: string; status: string; current_period_end: string } | null, now = new Date()): void {
+  if (import.meta.env?.DEV) return;
+  const s = loadPlan();
+  const active = !!row && ['active', 'trialing'].includes(row.status) && new Date(row.current_period_end) > now
+    && ['plus', 'family', 'pro'].includes(row.plan);
+  const plan: PlanId = active ? (row!.plan as PlanId) : 'free';
+  if (plan !== s.plan) savePlan({ ...s, plan });
+}

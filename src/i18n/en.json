@@ -1031,7 +1031,22 @@
     "notes": "What's new",
     "publish": "Publish version notice",
     "published": "Published ✓",
-    "privacy": "You only see counts and emails, never people's expense amounts. Handle this data with care (GDPR)."
+    "privacy": "You only see counts and emails, never people's expense amounts. Handle this data with care (GDPR).",
+    "subsTitle": "Subscriptions",
+    "subsHint": "Change any account's plan (e.g. gifts, testing, support). They'll see it next time they open the app signed in.",
+    "subPlan": "Plan",
+    "subUntil": "Valid until",
+    "subSave": "Save plan",
+    "subSearch": "Search by email…",
+    "subSearchBtn": "Search",
+    "subSource": "Source",
+    "subChange": "Change",
+    "subNotFound": "No account with that email.",
+    "subSaved": "{{email}} is now on {{plan}}.",
+    "plan_free": "Free",
+    "plan_plus": "Plus",
+    "plan_family": "Family",
+    "plan_pro": "Pro"
   },
   "acct": {
     "guest": "Guest",

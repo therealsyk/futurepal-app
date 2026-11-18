@@ -26,6 +26,7 @@ import { ensureDefaultCategories, addMissingCatalogCategories } from './core/fin
 import { loadSettings, setTheme, type AppSettings } from './core/settings';
 import { useAuth } from './auth/AuthContext';
 import { getSupabase } from './auth/supabase';
+import { applyServerPlan } from './core/plan';
 import { runSync } from './sync/runSync';
 import { mirrorSettings } from './core/settingsSync';
 import { SETTINGS_EVENT } from './core/settings';
@@ -49,6 +50,14 @@ export default function App() {
     if (!sb || !loadSettings().country) return;
     runSync(sb, db, uid).then((r) => { if (r.settings) setSettings(r.settings); }).catch(() => {});
   };
+
+  // Plano: com sessão iniciada, a subscrição guardada no servidor é que manda (ex.: mudada no painel admin).
+  useEffect(() => {
+    const sb = getSupabase();
+    if (!sb || !userId) return;
+    sb.from('subscriptions').select('plan,status,current_period_end').eq('user_id', userId).maybeSingle()
+      .then(({ data, error }) => { if (!error) applyServerPlan(data); }, () => {});
+  }, [userId]);
 
   useEffect(() => {
     if (!auth.ready) return;

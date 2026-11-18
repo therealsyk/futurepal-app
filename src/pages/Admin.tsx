@@ -9,6 +9,7 @@ import { PageHead, Field } from '../ui/fx';
 
 type Stats = Record<string, number> & { providers: Record<string, number>; languages: Record<string, number>; signups_by_day: Array<{ day: string; n: number }> };
 type UserRow = { email: string; created_at: string; last_sign_in_at: string | null; provider: string; confirmed: boolean; tx_count: number };
+type SubRow = { email: string; plan: string; status: string; current_period_end: string | null; source: string; created_at: string };
 type VersionRow = { platform: string; latest_version: string; min_version: string; notes: string; download_url: string; published_at: string };
 
 /** true se a conta com sessão iniciada é administradora. */
@@ -34,6 +35,10 @@ export function AdminPage() {
   const [error, setError] = useState<string | null>(null);
   const [v, setV] = useState({ platform: 'windows', version: '', min: '', notes: '', url: '' });
   const [saved, setSaved] = useState(false);
+  const [subs, setSubs] = useState<SubRow[]>([]);
+  const [subSearch, setSubSearch] = useState('');
+  const [sub, setSub] = useState({ email: '', plan: 'plus', until: '' });
+  const [subMsg, setSubMsg] = useState<string | null>(null);
 
   const load = async () => {
     const sb = getSupabase();
@@ -43,6 +48,26 @@ export function AdminPage() {
     setStats(s.data as Stats); setUsers((u.data ?? []) as UserRow[]); setVersions((ver.data ?? []) as VersionRow[]);
   };
   useEffect(() => { if (isAdmin) load().catch((e) => setError(String(e))); }, [isAdmin]);
+
+  const loadSubs = async (q = subSearch) => {
+    const sb = getSupabase();
+    if (!sb) return;
+    const { data, error: e } = await sb.rpc('admin_subscriptions', { p_search: q.trim(), max_rows: 100 });
+    if (e) { setError(e.message); return; }
+    setSubs((data ?? []) as SubRow[]);
+  };
+  useEffect(() => { if (isAdmin) loadSubs('').catch((e) => setError(String(e))); }, [isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const saveSub = async () => {
+    const sb = getSupabase();
+    if (!sb || !sub.email.trim()) return;
+    setSubMsg(null);
+    const until = sub.until ? new Date(sub.until + 'T23:59:59').toISOString() : null;
+    const { error: e } = await sb.rpc('admin_set_subscription', { p_email: sub.email.trim(), p_plan: sub.plan, p_until: until });
+    if (e) { setSubMsg(e.message.includes('user not found') ? t('admin.subNotFound') : e.message); return; }
+    setSubMsg(t('admin.subSaved', { email: sub.email.trim(), plan: t('admin.plan_' + sub.plan) }));
+    await loadSubs();
+  };
 
   const publish = async () => {
     const sb = getSupabase();
@@ -85,6 +110,40 @@ export function AdminPage() {
           <table className="ad-table">
             <thead><tr><th>{t('admin.email')}</th><th>{t('admin.created')}</th><th>{t('admin.lastSeen')}</th><th>{t('admin.provider')}</th><th>{t('admin.tx')}</th></tr></thead>
             <tbody>{users.map((u) => <tr key={u.email + u.created_at}><td>{u.email}{!u.confirmed && <small> · {t('admin.notConfirmed')}</small>}</td><td>{date(u.created_at)}</td><td>{date(u.last_sign_in_at)}</td><td>{u.provider}</td><td>{u.tx_count}</td></tr>)}</tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="fx-card ad-card">
+        <h3>{t('admin.subsTitle')}</h3>
+        <p className="fx-muted fx-small">{t('admin.subsHint')}</p>
+        <div className="fx-two">
+          <Field label={t('admin.email')}><input className="fx-input" value={sub.email} placeholder="pessoa@email.pt" onChange={(e) => setSub({ ...sub, email: e.target.value })} /></Field>
+          <Field label={t('admin.subPlan')}>
+            <select className="fx-input" value={sub.plan} onChange={(e) => setSub({ ...sub, plan: e.target.value })}>
+              {['free', 'plus', 'family', 'pro'].map((p) => <option key={p} value={p}>{t('admin.plan_' + p)}</option>)}
+            </select>
+          </Field>
+        </div>
+        {sub.plan !== 'free' && <Field label={t('admin.subUntil')}><input className="fx-input" type="date" value={sub.until} onChange={(e) => setSub({ ...sub, until: e.target.value })} /></Field>}
+        <button type="button" className="fx-btn primary" onClick={saveSub}>{t('admin.subSave')}</button>
+        {subMsg && <p className="fx-muted">{subMsg}</p>}
+        <div className="as-input" style={{ marginTop: 14 }}>
+          <input className="fx-input" value={subSearch} placeholder={t('admin.subSearch')} onChange={(e) => setSubSearch(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') loadSubs(); }} />
+          <button type="button" className="fx-btn" onClick={() => loadSubs()}>{t('admin.subSearchBtn')}</button>
+        </div>
+        <div className="ad-table-wrap">
+          <table className="ad-table">
+            <thead><tr><th>{t('admin.email')}</th><th>{t('admin.subPlan')}</th><th>{t('admin.subUntil')}</th><th>{t('admin.subSource')}</th><th /></tr></thead>
+            <tbody>{subs.map((r) => (
+              <tr key={r.email}>
+                <td>{r.email}</td>
+                <td><b>{t('admin.plan_' + r.plan)}</b>{r.plan === 'free' && r.status !== '—' && <small> · {r.status}</small>}</td>
+                <td>{r.plan === 'free' ? '—' : date(r.current_period_end)}</td>
+                <td>{r.source}</td>
+                <td><button type="button" className="fx-link" onClick={() => setSub({ email: r.email, plan: r.plan === 'free' ? 'plus' : r.plan, until: '' })}>{t('admin.subChange')}</button></td>
+              </tr>
+            ))}</tbody>
           </table>
         </div>
       </div>
