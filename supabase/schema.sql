@@ -1,4 +1,4 @@
--- Wallet: esquema do Supabase (espelha as tabelas Dexie de src/db/database.ts).
+-- Plannest: esquema do Supabase (espelha as tabelas Dexie de src/db/database.ts).
 -- Como usar: Supabase > SQL Editor > New query > colar TUDO isto > Run.
 -- Pode correr-se mais do que uma vez (é idempotente).
 -- Cada linha pertence a um utilizador (user_id) e a RLS garante que ninguém vê as linhas dos outros.
@@ -198,7 +198,7 @@ create policy app_versions_read on public.app_versions for select to anon, authe
 
 insert into public.app_versions (platform, latest_version, download_url) values
   ('windows', '0.1.0', ''),
-  ('android', '0.1.0', 'https://play.google.com/store/apps/details?id=com.rafael.wallet'),
+  ('android', '0.1.0', 'https://play.google.com/store/apps/details?id=com.plannest.app'),
   ('ios',     '0.1.0', '')
 on conflict (platform) do nothing;
 

@@ -6,7 +6,7 @@ contextBridge.exposeInMainWorld('__electronBridge', {
   version: process.versions.electron,
   // Pedidos HTTP feitos pelo processo principal (sem CORS): usado pela ligação à IA.
   httpRequest: (req) => ipcRenderer.invoke('wallet:http', req),
-  // Login social: abrir o fornecedor no browser do sistema e receber o link de volta (wallet://auth-callback).
+  // Login social: abrir o fornecedor no browser do sistema e receber o link de volta (plannest://auth-callback).
   openExternal: (url) => ipcRenderer.invoke('wallet:open-external', url),
   onAuthCallback: (cb) => {
     const h = (_e, url) => cb(url);

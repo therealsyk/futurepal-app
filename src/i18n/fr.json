@@ -14,7 +14,7 @@
     "theme_light": "Clair"
   },
   "common": {
-    "appName": "Wallet",
+    "appName": "Plannest",
     "comingSoon": "Bientà´t disponible",
     "close": "Fermer",
     "save": "Enregistrer",
@@ -187,7 +187,7 @@
     "excelError": "Erreur d'importation : {{error}}"
   },
   "setup": {
-    "welcome": "Bienvenue dans Wallet",
+    "welcome": "Bienvenue dans Plannest",
     "intro": "Configurons votre langue, pays et monnaie.",
     "language": "Langue",
     "country": "Pays",
@@ -403,7 +403,7 @@
     "error": "Téléchargement impossible. Réessayez plus tard.",
     "noLink": "Cette mise à jour n'a pas encore de lien de téléchargement.",
     "about": "À propos",
-    "version": "Wallet {{version}}",
+    "version": "Plannest {{version}}",
     "checkSub": "Touchez pour rechercher des mises à jour",
     "checking": "Recherche de mises à jour…",
     "upToDate": "Vous avez la dernière version.",
@@ -475,7 +475,7 @@
   },
   "settings2": {
     "licenses": "Licences open source",
-    "licensesSub": "Bibliothèques utilisées par Wallet et leurs licences"
+    "licensesSub": "Bibliothèques utilisées par Plannest et leurs licences"
   },
   "accountData": {
     "title": "Données de cet appareil",

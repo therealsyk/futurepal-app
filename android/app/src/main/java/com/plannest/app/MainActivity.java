@@ -1,4 +1,4 @@
-package com.rafael.wallet;
+package com.plannest.app;
 
 import com.getcapacitor.BridgeActivity;
 

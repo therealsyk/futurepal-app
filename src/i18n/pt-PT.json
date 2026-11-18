@@ -16,7 +16,7 @@
     "accounts": "Contas"
   },
   "common": {
-    "appName": "Wallet",
+    "appName": "Plannest",
     "comingSoon": "Em breve",
     "close": "Fechar",
     "save": "Guardar",
@@ -271,7 +271,7 @@
     "syncTitle": "Sincronização"
   },
   "setup": {
-    "welcome": "Bem-vindo ao Wallet",
+    "welcome": "Bem-vindo ao Plannest",
     "intro": "Vamos configurar o teu idioma, país e moeda.",
     "language": "Idioma",
     "country": "País",
@@ -665,7 +665,7 @@
     "continue": "Continuar",
     "start": "Começar",
     "haveAccount": "Já tenho conta",
-    "welcomeTitle": "Bem-vindo à Wallet",
+    "welcomeTitle": "Bem-vindo ao Plannest",
     "welcomeSub": "Controla despesas, rendimentos e metas no computador e no telemóvel.",
     "languageHint": "Idioma da app",
     "countryHint": "Define a moeda e o formato das datas",
@@ -712,7 +712,7 @@
     "goalTarget": "Valor alvo",
     "goalNameReq": "Dá um nome à meta.",
     "doneTitle": "Está tudo pronto!",
-    "doneSub": "Já podes começar a usar a Wallet."
+    "doneSub": "Já podes começar a usar o Plannest."
   },
   "settings2": {
     "account": "Conta",
@@ -729,13 +729,13 @@
     "exportSub": "Criar um ficheiro de cópia de segurança",
     "importSub": "Repor uma cópia anterior",
     "licenses": "Licenças de código aberto",
-    "licensesSub": "Bibliotecas usadas pela Wallet e as suas licenças"
+    "licensesSub": "Bibliotecas usadas pelo Plannest e as suas licenças"
   },
   "ai": {
     "section": "IA",
     "rowTitle": "Modelos de IA",
     "rowSub": "Liga o teu próprio modelo (OpenAI, Claude, Gemini, local…)",
-    "intro": "Usa a tua própria chave de API. A chave fica guardada só neste aparelho e nunca é enviada para a nuvem da Wallet.",
+    "intro": "Usa a tua própria chave de API. A chave fica guardada só neste aparelho e nunca é enviada para a nuvem do Plannest.",
     "enable": "Ativar assistente de IA",
     "enableHint": "Desliga para não usar IA sem apagar a configuração",
     "provider": "Fornecedor",
@@ -773,7 +773,7 @@
     "error": "Não foi possível descarregar. Tenta mais tarde.",
     "noLink": "A atualização ainda não tem link de download.",
     "about": "Sobre",
-    "version": "Wallet {{version}}",
+    "version": "Plannest {{version}}",
     "checkSub": "Toca para procurar atualizações",
     "checking": "A procurar atualizações…",
     "upToDate": "Tens a versão mais recente.",

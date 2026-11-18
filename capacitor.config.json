@@ -1,6 +1,6 @@
 {
-  "appId": "com.rafael.wallet",
-  "appName": "Wallet",
+  "appId": "com.plannest.app",
+  "appName": "Plannest",
   "webDir": "dist",
   "backgroundColor": "#0a0a0d",
   "android": {

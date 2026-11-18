@@ -1,5 +1,5 @@
-appId: com.rafael.wallet
-productName: Wallet
+appId: com.plannest.app
+productName: Plannest
 directories:
   output: release
 files:
@@ -11,12 +11,12 @@ win:
   # O "publish" (para onde vão as versões novas) é passado pelo scripts/release.mjs a partir do release.config.json.
   target: nsis
   icon: dist/favicon.ico
-  artifactName: Wallet-Setup-${version}.${ext}
-# Liga wallet:// à app (volta do login com Google/Facebook/Apple).
+  artifactName: Plannest-Setup-${version}.${ext}
+# Liga plannest:// à app (volta do login com Google/Facebook/Apple).
 protocols:
-  - name: Wallet
+  - name: Plannest
     schemes:
-      - wallet
+      - plannest
 nsis:
   oneClick: true
   perMachine: false

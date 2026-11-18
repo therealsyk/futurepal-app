@@ -1,6 +1,9 @@
 const { app, BrowserWindow, ipcMain, net, shell } = require('electron');
 const path = require('path');
 
+// A app chamava-se "Wallet": continua a usar a mesma pasta de dados para não se perder nada ao mudar de nome.
+app.setPath('userData', path.join(app.getPath('appData'), 'Wallet'));
+
 function resolveAppUrl() {
   const dist = path.join(app.getAppPath(), 'dist', 'index.html');
   return 'file://' + dist;
@@ -11,7 +14,7 @@ function createWindow() {
     width: 1280,
     height: 800,
     minWidth: 360,
-    title: 'Wallet',
+    title: 'Plannest',
     backgroundColor: '#0a0a0d',
     webPreferences: {
       preload: path.join(app.getAppPath(), 'electron', 'preload.js'),
@@ -105,8 +108,8 @@ ipcMain.on('wallet:update-install', () => {
 });
 
 // ---------------------------------------------------------------- login social (Google/Facebook/Apple)
-// O fornecedor devolve a pessoa a wallet://auth-callback?code=…; o Windows entrega esse link à app já aberta.
-const PROTOCOL = 'wallet';
+// O fornecedor devolve a pessoa a plannest://auth-callback?code=…; o Windows entrega esse link à app já aberta.
+const PROTOCOL = 'plannest';
 if (process.defaultApp && process.argv.length >= 2) {
   app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [path.resolve(process.argv[1])]); // em desenvolvimento
 } else {

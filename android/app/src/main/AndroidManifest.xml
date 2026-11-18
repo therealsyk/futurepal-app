@@ -22,12 +22,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Volta do login com Google/Facebook/Apple: com.rafael.wallet://auth-callback -->
+            <!-- Volta do login com Google/Facebook/Apple: com.plannest.app://auth-callback -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="com.rafael.wallet" android:host="auth-callback" />
+                <data android:scheme="com.plannest.app" android:host="auth-callback" />
             </intent-filter>
 
         </activity>

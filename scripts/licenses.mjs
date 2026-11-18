@@ -29,7 +29,7 @@ for (const dir of paths) {
 }
 const list = [...seen.values()].sort((a, b) => a.name.localeCompare(b.name));
 const out = [
-  'Wallet — avisos de software de terceiros / third-party software notices',
+  'Plannest — avisos de software de terceiros / third-party software notices',
   `Gerado em ${new Date().toISOString().slice(0, 10)} · ${list.length} bibliotecas`,
   '',
   ...list.map((p) => `${'='.repeat(78)}\n${p.name} ${p.version} — ${p.license}\n${'='.repeat(78)}\n${p.text || '(sem ficheiro de licença no pacote; licença: ' + p.license + ')'}\n`),
