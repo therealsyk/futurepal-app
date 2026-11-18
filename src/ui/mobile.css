@@ -637,3 +637,10 @@ html[data-theme="light"] .mv-acc.spending { --acc: #b7771b; }
 .ab-item.danger { color: var(--red); } .ab-item.danger svg { color: var(--red); }
 .ab-pop hr { border: 0; border-top: 1px solid var(--border); margin: 6px 4px; }
 @media (prefers-reduced-motion: reduce) { .ab-pop { animation: none; } }
+/* Família: casa partilhada */
+.fm-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.fm-name { display: block; font-size: 18px; }
+.fm-code { font-family: ui-monospace, monospace; letter-spacing: 1px; }
+.fm-split { display: flex; flex-wrap: wrap; gap: 10px 16px; }
+.fm-split label { display: flex; align-items: center; gap: 6px; }
+.fm-setup .fx-card h3 { margin-top: 0; }
