@@ -18,8 +18,8 @@ import { Ic, ICON, Sheet, Seg, catLabel, CategorySelect } from '../ui/fx';
 import { todayISO } from '../core/dates';
 
 // Primeira utilização, um passo por ecrã (como numa app de telemóvel):
-// boas-vindas -> (entrar) -> moeda -> primeira conta -> transações -> meta.
-type Step = 'welcome' | 'auth' | 'currency' | 'account' | 'transactions' | 'goal';
+// boas-vindas -> (entrar) -> moeda -> primeira conta -> transações -> meta -> criar conta (opcional).
+type Step = 'welcome' | 'auth' | 'currency' | 'account' | 'transactions' | 'goal' | 'signup';
 const ORDER: Step[] = ['welcome', 'currency', 'account', 'transactions', 'goal'];
 
 const LANGUAGES = [
@@ -51,6 +51,8 @@ export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings
   // Login social (Google/Facebook/Apple): acaba fora da app; quando a sessão chega, o setup continua sozinho.
   useEffect(() => {
     if (step === 'auth' && auth.user && !signedIn && !syncNote) afterLogin().catch(() => setStep('currency'));
+    // último passo (criar conta) com Google/Facebook/Apple: quando a sessão chega, termina o setup
+    if (step === 'signup' && auth.user && !signedIn) { setSignedIn(true); finish({ ...buildSettings(), account: 'signedin' }).catch(() => {}); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.user?.id, step]);
 
@@ -69,6 +71,7 @@ export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings
 
   function back() {
     if (step === 'auth') { setStep('welcome'); return; }
+    if (step === 'signup') { setStep('goal'); return; }
     const i = ORDER.indexOf(step);
     if (i > 0) setStep(ORDER[i - 1]);
   }
@@ -76,6 +79,7 @@ export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings
   function next() {
     const i = ORDER.indexOf(step);
     if (i < ORDER.length - 1) setStep(ORDER[i + 1]);
+    else if (step === 'goal' && hasSupabaseConfig()) setStep('signup'); // último passo: convite para criar conta
     else finish();
   }
 
@@ -147,8 +151,11 @@ export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings
             language={language} country={country} onLanguage={pickLanguage} onCountry={pickCountry}
             onStart={() => setStep('currency')}
             onLogin={hasSupabaseConfig() ? () => { setAuthMode('signin'); setStep('auth'); } : undefined}
-            onSignup={hasSupabaseConfig() ? () => { setAuthMode('signup'); setStep('auth'); } : undefined}
           />
+        )}
+        {step === 'signup' && (
+          // Os dados do setup ficam neste aparelho; ao entrar na conta, a app pergunta se os quer levar para lá.
+          <LoginForm initialMode="signup" onDone={() => { setSignedIn(true); finish({ ...buildSettings(), account: 'signedin' }).catch(() => {}); }} onSkip={() => { finish().catch(() => {}); }} />
         )}
         {step === 'auth' && (
           syncNote ? <p className="ob-sub" role="status">{syncNote}</p>
@@ -160,7 +167,7 @@ export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings
         {step === 'goal' && <GoalStep currency={currency} language={language} />}
       </div>
 
-      {step !== 'welcome' && step !== 'auth' && step !== 'account' && (
+      {step !== 'welcome' && step !== 'auth' && step !== 'account' && step !== 'signup' && (
         <div className="ob-foot">
           <button type="button" className="ob-cta" onClick={next} data-testid="ob-continue">{t('onboard.continue')}</button>
         </div>
@@ -169,8 +176,8 @@ export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings
   );
 }
 
-function Welcome({ language, country, onLanguage, onCountry, onStart, onLogin, onSignup }: {
-  language: string; country: string; onLanguage: (c: string) => void; onCountry: (c: string) => void; onStart: () => void; onLogin?: () => void; onSignup?: () => void;
+function Welcome({ language, country, onLanguage, onCountry, onStart, onLogin }: {
+  language: string; country: string; onLanguage: (c: string) => void; onCountry: (c: string) => void; onStart: () => void; onLogin?: () => void;
 }) {
   const { t } = useTranslation();
   return (
@@ -196,7 +203,6 @@ function Welcome({ language, country, onLanguage, onCountry, onStart, onLogin, o
 
       <div className="ob-actions">
         <button type="button" className="ob-cta" onClick={onStart} data-testid="ob-start">{t('onboard.start')}</button>
-        {onSignup && <button type="button" className="ob-outline" onClick={onSignup} data-testid="ob-signup">{t('onboard.signup')}</button>}
         {onLogin && <button type="button" className="ob-outline" onClick={onLogin} data-testid="ob-login">{t('onboard.haveAccount')}</button>}
       </div>
     </div>
