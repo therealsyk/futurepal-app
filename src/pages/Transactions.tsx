@@ -11,6 +11,7 @@ import { loadSettings } from '../core/settings';
 import { catLabel, PageHead, Seg, Sheet, Toggle, Field, MonthNav, EmptyState, AccountSwitch, Ic, ICON, useAccounts, CategorySelect, CatIcon } from '../ui/fx';
 import { DatePicker } from '../ui/DatePicker';
 import { todayISO } from '../core/dates';
+import { syncSalaryTransactions } from '../core/salaryTx';
 
 const COLORS = ['#8b7cf6', '#5fd4c4', '#e58fd3', '#f5b85a', '#60a5fa', '#4ade9b', '#f87171'];
 
@@ -124,6 +125,7 @@ export function Transactions() {
         await materializeDueRecurrings(db, todayISO());
       } else {
         await addTransaction(db, { date, type, categoryId, description: description.trim(), amountCents: cents, currency: settings.currency, groupId: groupId || undefined, accountId: accountId || undefined });
+        if (type === 'income') await syncSalaryTransactions(db).catch(() => {}); // categoria Salário -> aba Salários
       }
       setRecurring(false); setEndDate(''); setAmount(''); setDescription('');
       setOpen(false);

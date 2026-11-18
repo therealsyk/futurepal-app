@@ -3,13 +3,14 @@ import { useTranslation } from 'react-i18next';
 import * as XLSX from 'xlsx';
 import { db } from '../db/app-db';
 import type { Category, Transaction } from '../db/database';
-import { activeCategories, addTransaction } from '../core/finance';
+import { activeCategories, addTransaction, setSalary } from '../core/finance';
+import { syncSalaryTransactions } from '../core/salaryTx';
 import { listAccounts, ensureDefaultAccount } from '../core/accounts';
 import { formatMoney } from '../core/money';
 import { loadSettings } from '../core/settings';
 import { chat, isConfigured, loadAiConfig } from '../core/ai';
 import {
-  bestTable, decodeText, parseOFX, parseQIF, rowsFromText, pdfText, suggestCategory, dupKey, rowsFromAiJson,
+  bestTable, decodeText, parseOFX, parseQIF, rowsFromText, pdfText, suggestCategory, dupKey, rowsFromAiJson, detectSalaryRows,
   AI_EXTRACT_PROMPT, type StatementRow,
 } from '../core/statementImport';
 import { CategorySelect, catLabel, Ic, ICON } from '../ui/fx';
@@ -60,12 +61,20 @@ export function ImportStatement({ onDone }: { onDone?: () => void }) {
       return cats.find((c) => catLabel(t, c).toLowerCase() === n || c.name.toLowerCase() === n)?.id;
     };
     const inFile = new Set<string>();
-    return rows.map((r, i) => {
-      const type = r.signed === false ? positiveAre : r.type;
+    // Salários: pelas palavras ou por se repetirem todos os meses; vão para a aba Salários.
+    const typed = rows.map((r) => ({ ...r, type: r.signed === false ? positiveAre : r.type }));
+    const salaryIdx = detectSalaryRows(typed);
+    const salaryCat = cats.find((c) => c.nameKey === 'catSalary')?.id;
+    // meses que já têm salário na aba Salários: o salário do extrato desse mês seria repetido
+    const salaryMonths = new Set((await db.salaries.toArray()).filter((x) => x.deletedAt === null && x.amountCents > 0).map((x) => `${x.year}-${String(x.month).padStart(2, '0')}`));
+    return typed.map((r, i) => {
+      const type = r.type;
       const key = dupKey(r);
-      const dup = seen.has(key);
+      const isSalary = type === 'income' && salaryIdx.has(i) && !!salaryCat;
+      const dup = seen.has(key) || (isSalary && salaryMonths.has(r.date.slice(0, 7)));
       inFile.add(key);
-      return { ...r, type, key: key + '#' + i, dup, selected: !dup, categoryId: byName(r.category) ?? suggestCategory(r.description, type, cats, history) ?? cats[0]?.id ?? '' };
+      const categoryId = isSalary ? salaryCat! : byName(r.category) ?? suggestCategory(r.description, type, cats, history) ?? cats[0]?.id ?? '';
+      return { ...r, type, key: key + '#' + i, dup, selected: !dup, categoryId };
     });
   }
 
@@ -145,7 +154,23 @@ export function ImportStatement({ onDone }: { onDone?: () => void }) {
 
   async function doImport() {
     let n = 0;
+    // Salários: somados por mês e guardados na aba Salários (que cria a transação de rendimento).
+    // Um mês que já tenha salário não é mexido, para não duplicar.
+    const salaryCat = cats.find((c) => c.nameKey === 'catSalary')?.id;
+    const isSal = (l: Line) => l.type === 'income' && !!salaryCat && l.categoryId === salaryCat;
+    const perMonth = new Map<string, number>();
+    for (const l of selected.filter(isSal)) perMonth.set(l.date.slice(0, 7), (perMonth.get(l.date.slice(0, 7)) ?? 0) + l.amountCents);
+    if (perMonth.size) {
+      const have = new Set((await db.salaries.toArray()).filter((x) => x.deletedAt === null && x.amountCents > 0).map((x) => `${x.year}-${String(x.month).padStart(2, '0')}`));
+      for (const [ym, cents] of perMonth) {
+        if (have.has(ym)) continue;
+        await setSalary(db, +ym.slice(0, 4), +ym.slice(5, 7), cents);
+        n++;
+      }
+      await syncSalaryTransactions(db).catch(() => {});
+    }
     for (const l of selected) {
+      if (isSal(l)) continue;
       try {
         await addTransaction(db, { date: l.date, type: l.type, categoryId: l.categoryId, description: l.description, amountCents: l.amountCents, currency: settings.currency, accountId: accountId || undefined });
         n++;

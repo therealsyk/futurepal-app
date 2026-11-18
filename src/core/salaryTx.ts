@@ -30,6 +30,42 @@ export function salaryTxFor(s: Salary, opts: { categoryId: string; currency: str
   };
 }
 
+/**
+ * Rendimentos normais na categoria Salário (ex.: de uma importação antiga, ou criados nas Transações) passam
+ * para a aba Salários: se o mês ainda não tem salário, cria-o com a soma; se já tem e o valor é o mesmo, a
+ * transação era repetida e é apagada. Se o valor for diferente, fica como está (pode ser um prémio, etc.).
+ */
+export async function adoptSalaryTransactions(db: WalletDB): Promise<number> {
+  const cats = await db.categories.toArray();
+  const salaryCats = new Set(cats.filter((c) => c.deletedAt === null && c.nameKey === 'catSalary').map((c) => c.id));
+  if (!salaryCats.size) return 0;
+  const plain = (await db.transactions.toArray()).filter((t) => t.deletedAt === null && t.type === 'income' && !isSalaryTx(t) && salaryCats.has(t.categoryId));
+  if (!plain.length) return 0;
+  const byMonth = new Map<string, Transaction[]>();
+  for (const t of plain) byMonth.set(t.date.slice(0, 7), [...(byMonth.get(t.date.slice(0, 7)) ?? []), t]);
+  const now = new Date().toISOString();
+  let moved = 0;
+  await db.transaction('rw', db.transactions, db.salaries, async () => {
+    const salaries = (await db.salaries.toArray()).filter((s) => s.deletedAt === null && s.amountCents > 0);
+    for (const [ym, txs] of byMonth) {
+      const y = +ym.slice(0, 4), m = +ym.slice(5, 7);
+      const sum = txs.reduce((a, t) => a + t.amountCents, 0);
+      const have = salaries.filter((s) => s.year === y && s.month === m).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0];
+      let drop: Transaction[] = [];
+      if (!have) {
+        await db.salaries.add({ id: crypto.randomUUID(), year: y, month: m, amountCents: sum, createdAt: now, updatedAt: now, deletedAt: null });
+        drop = txs;
+      } else if (sum === have.amountCents) {
+        drop = txs; // o mesmo salário já está na aba Salários
+      } else {
+        drop = txs.filter((t) => t.amountCents === have.amountCents).slice(0, 1); // só o que é igual ao salário
+      }
+      for (const t of drop) { await db.transactions.update(t.id, { deletedAt: now, updatedAt: now }); moved++; }
+    }
+  });
+  return moved;
+}
+
 /** Acerta as transações dos salários com a tabela de salários (cria, atualiza ou apaga). */
 const SALARY_WORD: Record<string, string> = { 'pt-PT': 'Salário', 'pt-BR': 'Salário', en: 'Salary', es: 'Salario', fr: 'Salaire' };
 
@@ -37,6 +73,7 @@ export async function syncSalaryTransactions(db: WalletDB, currency?: string, de
   const st = loadSettings();
   currency = currency ?? st.currency;
   description = description ?? SALARY_WORD[st.language] ?? 'Salary';
+  await adoptSalaryTransactions(db);
   const [salaries, cats, accounts] = await Promise.all([db.salaries.toArray(), db.categories.toArray(), db.accounts.toArray()]);
   const cat = cats.find((c) => c.deletedAt === null && c.nameKey === 'catSalary') ?? cats.find((c) => c.deletedAt === null && c.nameKey === 'catOtherIncome');
   if (!cat) return;

@@ -122,6 +122,8 @@ export function rowsFromTable(rows: unknown[][], map: ColumnMap, header: number,
   const body = rows.slice(header + 1);
   const ord = order ?? guessDateOrder(body.map((r) => r[map.date]));
   const out: StatementRow[] = [];
+  // Se a coluna do valor tem negativos, os positivos são entradas (o sinal conta); só sem negativos é que é incerto.
+  const colHasNegatives = map.amount !== undefined && body.some((r) => (parseSignedAmount(r[map.amount!]) ?? 0) < 0);
   for (const r of body) {
     const date = parseDate(r[map.date], ord);
     if (!date) continue;
@@ -129,7 +131,7 @@ export function rowsFromTable(rows: unknown[][], map: ColumnMap, header: number,
     let signed = true;
     if (map.amount !== undefined) {
       cents = parseSignedAmount(r[map.amount]);
-      signed = cents !== null && (cents < 0 || /^[\s]*[-−(+]/.test(String(r[map.amount] ?? '')));
+      signed = cents !== null && (colHasNegatives || cents < 0 || /^[\s]*[-−(+]/.test(String(r[map.amount] ?? '')));
     } else {
       const d = map.debit !== undefined ? parseSignedAmount(r[map.debit]) : null;
       const c = map.credit !== undefined ? parseSignedAmount(r[map.credit]) : null;
@@ -337,7 +339,43 @@ export function rowsFromText(text: string, order: DateOrder = 'DMY'): StatementR
     return { date: r.date, description: r.desc.replace(/\s*(EUR|€)\s*$/i, '').trim(), amountCents: Math.abs(r.amt), type };
   }).filter((r) => r.amountCents > 0);
 }
+/** Palavras que indicam salário nos extratos (PT, BR, EN, ES, FR). */
+export const SALARY_WORDS = /sal[aá]rio|\bsal\b|vencimento|\bvenc\b|ordenado|remunera[cç]|payroll|salary|\bwages?\b|n[oó]mina|salaire|\bpaie\b|subs[ií]dio (de )?(f[eé]rias|natal)|13[ºo.]? ?m[eê]s/i;
+
+/** Chave do pagador: descrição sem números, datas e palavras de transferência (para ver se o mesmo pagador se repete). */
+function payerKey(desc: string): string {
+  return desc.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/\d+/g, ' ')
+    .replace(/\b(trf|transf|transferencia|transfer|sepa|inst|instantanea|de|da|do|from|p\/o|po|ref|mb way|mbway|cred|credito|ordem|deposito)\b/g, ' ')
+    .replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim().split(' ').slice(0, 3).join(' ');
+}
+
+/**
+ * Quais linhas de rendimento são salário: pelas palavras (SALARY_WORDS) ou porque o mesmo pagador paga
+ * um valor parecido (±25%) em 2+ meses diferentes, com valor ≥ minCents (por omissão 300).
+ */
+export function detectSalaryRows(rows: Array<{ date: string; description: string; amountCents: number; type: 'expense' | 'income' }>, minCents = 30000): Set<number> {
+  const out = new Set<number>();
+  const groups = new Map<string, number[]>();
+  rows.forEach((r, i) => {
+    if (r.type !== 'income') return;
+    if (SALARY_WORDS.test(r.description)) { out.add(i); return; }
+    const k = payerKey(r.description);
+    if (k.length >= 3) groups.set(k, [...(groups.get(k) ?? []), i]);
+  });
+  for (const idx of groups.values()) {
+    const big = idx.filter((i) => rows[i].amountCents >= minCents);
+    const months = new Set(big.map((i) => rows[i].date.slice(0, 7)));
+    if (months.size < 2 || big.length > months.size * 2) continue; // muitos pagamentos por mês: não é salário
+    const sorted = big.map((i) => rows[i].amountCents).sort((a, b) => a - b);
+    const median = sorted[Math.floor(sorted.length / 2)];
+    for (const i of big) if (Math.abs(rows[i].amountCents - median) <= median * 0.25) out.add(i);
+  }
+  return out;
+}
+
 function guessIncome(desc: string): boolean {
+  if (SALARY_WORDS.test(desc)) return true;
   return /sal[aá]rio|vencimento|ordenado|transf.*(rec|cr[eé]dito)|reembolso|devolu|payroll|salary|refund|dep[oó]sito/i.test(desc);
 }
 
@@ -402,7 +440,7 @@ const KEYWORDS: Array<[RegExp, string]> = [
   [/cinema|nos cinemas|ticketline|bilhete|steam|playstation|xbox|nintendo/i, 'catLeisure'],
   [/hotel|booking\.com|airbnb|alojamento/i, 'catHotel'],
   [/escola|propina|universid|curso|livraria|bertrand|education/i, 'catEducation'],
-  [/sal[aá]rio|vencimento|ordenado|payroll|salary/i, 'catSalary'],
+  [SALARY_WORDS, 'catSalary'],
 ];
 
 /** Sugere uma categoria: primeiro pelo histórico (mesma descrição), depois por palavras-chave. */

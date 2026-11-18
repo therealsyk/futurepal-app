@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   parseSignedAmount, parseDate, guessDateOrder, detectColumns, rowsFromTable, parseOFX, parseQIF, rowsFromText,
-  suggestCategory, rowsFromAiJson, dupKey,
+  suggestCategory, rowsFromAiJson, dupKey, detectSalaryRows,
 } from './statementImport';
 
 describe('amounts', () => {
@@ -170,5 +170,21 @@ describe('files', () => {
     const summary = [['Data', 'Descrição', 'Valor'], ['Total', '', '100']];
     const registo = [['DATA', 'DESCRIÇÃO', 'VALOR'], ['01/11/2026', 'A', '-1'], ['02/11/2026', 'B', '-2']];
     expect(bestTable([summary, registo]).length).toBe(2);
+  });
+});
+
+describe('salary detection', () => {
+  const row = (date: string, description: string, eur: number, type: 'income' | 'expense' = 'income') => ({ date, description, amountCents: Math.round(eur * 100), type });
+  it('by keywords', () => {
+    const rows = [row('2026-01-28', 'TRF VENCIMENTO JAN', 1200), row('2026-01-05', 'PROC VENC ACME', 900), row('2026-01-09', 'REEMBOLSO SEGURO', 50)];
+    expect([...detectSalaryRows(rows)].sort()).toEqual([0, 1]);
+  });
+  it('by the same payer paying a similar amount every month', () => {
+    const rows = [
+      row('2026-01-27', 'TRF SEPA DE ACME LDA 0001', 1450.2), row('2026-02-26', 'TRF SEPA DE ACME LDA 0002', 1460),
+      row('2026-03-27', 'TRF SEPA DE ACME LDA 0003', 1450.2), row('2026-02-10', 'TRF DE JOAO SILVA', 20),
+      row('2026-03-02', 'MB WAY DE ANA', 400), row('2026-02-03', 'CONTINENTE', 45, 'expense'),
+    ];
+    expect([...detectSalaryRows(rows)].sort()).toEqual([0, 1, 2]);
   });
 });

@@ -48,3 +48,21 @@ describe('salários como transações de rendimento', () => {
     expect((await db.salaries.toArray()).filter((s) => s.deletedAt === null)).toEqual([]);
   });
 });
+
+describe('rendimentos na categoria Salário vão para a aba Salários', () => {
+  const salaryCat = async () => (await db.categories.toArray()).find((c) => c.nameKey === 'catSalary')!.id;
+  it('cria o salário do mês e não duplica quando o mês já tem o mesmo salário', async () => {
+    const cat = await salaryCat();
+    const now = new Date().toISOString();
+    const add = (id: string, date: string, cents: number) => db.transactions.add({ id, date, type: 'income', categoryId: cat, description: 'ACME', amountCents: cents, currency: 'EUR', createdAt: now, updatedAt: now, deletedAt: null });
+    await add('a', '2026-10-27', 145000); // mês sem salário -> passa para Salários
+    await setSalary(db, 2026, 9, 140000);
+    await add('b', '2026-09-26', 140000); // igual ao salário de setembro -> repetido, sai
+    await syncSalaryTransactions(db, 'EUR', 'Salário');
+    const live = (await db.transactions.toArray()).filter((t) => t.deletedAt === null);
+    expect(live.map((t) => [t.date, t.amountCents]).sort()).toEqual([['2026-09-01', 140000], ['2026-10-01', 145000]]);
+    expect(live.every(isSalaryTx)).toBe(true);
+    const sal = (await db.salaries.toArray()).filter((s) => s.deletedAt === null).map((s) => [s.month, s.amountCents]).sort();
+    expect(sal).toEqual([[10, 145000], [9, 140000]].sort());
+  });
+});
