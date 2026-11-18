@@ -202,7 +202,8 @@
     "openMonth": "Open this month",
     "budgetEmptyYear": "No budget set in {{year}}.",
     "avgMonthlySavings": "Savings / month (average)",
-    "avgPerMonthLong": "average {{value}} per month"
+    "avgPerMonthLong": "average {{value}} per month",
+    "error": "Something went wrong while loading. Try again."
   },
   "transactions": {
     "title": "Transactions",
@@ -339,7 +340,11 @@
     "editHint": "Type the amount and press Enter",
     "noExtras": "No extras this year",
     "noExtrasSub": "Add bonuses, side jobs or other income.",
-    "extraName": "Extra name"
+    "extraName": "Extra name",
+    "annualSalaries": "Salaries this year",
+    "annualExpenses": "Expenses this year",
+    "annualSavings": "Savings this year",
+    "savingsPercent": "% saved"
   },
   "demo": {
     "title": "Component demo",
@@ -1196,5 +1201,11 @@
     "personalYes": "Add",
     "personalNo": "Not now",
     "addedPersonal": "{{amount}} added to your expenses."
+  },
+  "account": {
+    "title": "Account",
+    "accountNone": "Continue without an account",
+    "accountCreate": "Create account",
+    "accountLogin": "Sign in"
   }
 }

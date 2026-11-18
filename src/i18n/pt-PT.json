@@ -202,7 +202,8 @@
     "openMonth": "Ver este mês",
     "budgetEmptyYear": "Sem orçamento definido em {{year}}.",
     "avgMonthlySavings": "Poupança / mês (média)",
-    "avgPerMonthLong": "média de {{value}} por mês"
+    "avgPerMonthLong": "média de {{value}} por mês",
+    "error": "Ocorreu um erro ao carregar. Tenta novamente."
   },
   "transactions": {
     "title": "Transações",

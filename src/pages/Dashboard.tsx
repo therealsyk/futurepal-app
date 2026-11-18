@@ -938,8 +938,13 @@ export function Dashboard() {
               <PickMenu<number> value={selM} onChange={setSelM} label={t('panel.month')} testId="period-month" compact
                 options={Array.from({ length: 12 }, (_, i) => ({ value: i + 1, label: cap(new Date(2026, i, 1).toLocaleDateString(lang, { month: 'long' })) }))} />
             )}
-            <PickMenu<number> value={selY} onChange={setSelY} label={t('panel.year')} testId="period-year" compact
-              options={yearOptions.map((y) => ({ value: y, label: String(y) }))} />
+            {period === 'month' ? (
+              <PickMenu<number> value={selY} onChange={setSelY} label={t('panel.year')} testId="period-year" compact
+                options={yearOptions.map((y) => ({ value: y, label: String(y) }))} />
+            ) : (
+              // No modo Ano só as setas laterais mudam o ano (sem menu).
+              <span className="fx-periodyear" aria-live="polite" data-testid="period-year">{selY}</span>
+            )}
             <button type="button" className="fx-round sm" onClick={() => stepPeriod(1)} aria-label={period === 'month' ? t('panel.nextMonth') : t('panel.nextYear')} data-testid="period-next"><Ic d={ARROW} size={15} /></button>
           </div>
           <AccountSwitch accounts={accounts} active={active} onChange={setActive} />
