@@ -48,6 +48,9 @@ export async function activeCategories(db: WalletDB): Promise<Category[]> {
 // SPEC §6.1/§6.3: default categories (nameKey + color). Seeded when the DB has none,
 // so Transações works even if the Setup Wizard was skipped. Pure/testable.
 // Categorias padrão = todo o catálogo (grupos e ícones em core/categoryCatalog.ts).
+// Têm id FIXO (cat-<chave>): todos os aparelhos da mesma conta criam os mesmos ids, e a sincronização
+// junta-as em vez de as duplicar.
+export const defaultCategoryId = (nameKey: string) => `cat-${nameKey}`;
 export const DEFAULT_CATEGORY_DEFS = CATALOG_ITEMS.map((i) => ({ nameKey: i.key, color: i.color, icon: i.icon, group: i.group }));
 
 // Instalações antigas: acrescenta as categorias do catálogo que ainda não existem (nem foram apagadas pela pessoa)
@@ -64,7 +67,7 @@ export async function addMissingCatalogCategories(db: WalletDB): Promise<number>
         if (!c.group || !c.icon) await db.categories.put({ ...c, group: c.group || def.group, icon: c.icon || def.icon, updatedAt: now });
       }
       if (existing.length > 0) continue; // existe (ou foi apagada de propósito)
-      await db.categories.add(stampNew<Category>({ name: def.nameKey, color: def.color, icon: def.icon, group: def.group, order: order++, nameKey: def.nameKey }));
+      await db.categories.put({ ...stampNew<Category>({ name: def.nameKey, color: def.color, icon: def.icon, group: def.group, order: order++, nameKey: def.nameKey }), id: defaultCategoryId(def.nameKey) });
       added++;
     }
     return added;
@@ -78,7 +81,7 @@ export async function ensureDefaultCategories(db: WalletDB): Promise<void> {
     const existing = await db.categories.filter((c) => c.deletedAt === null).count();
     if (existing > 0) return;
     await db.categories.bulkAdd(
-      DEFAULT_CATEGORY_DEFS.map((def, i) => stampNew<Category>({ name: def.nameKey, color: def.color, icon: def.icon, group: def.group, order: i, nameKey: def.nameKey })),
+      DEFAULT_CATEGORY_DEFS.map((def, i) => ({ ...stampNew<Category>({ name: def.nameKey, color: def.color, icon: def.icon, group: def.group, order: i, nameKey: def.nameKey }), id: defaultCategoryId(def.nameKey) })),
     );
   });
 }

@@ -808,8 +808,15 @@
     "deleteAccount": "Apagar conta",
     "deleteDevice": "Apagar dados deste aparelho",
     "deviceSub": "Recomeça a app do zero neste aparelho",
-    "accountText": "Apaga a tua conta e todos os dados guardados na nuvem (transações, contas, metas…). Não pode ser desfeito. Se quiseres, exporta primeiro uma cópia de segurança.",
+    "accountText": "Apaga a tua conta e todos os dados dela, na nuvem e neste aparelho (transações, contas, metas…). Não pode ser desfeito. Se quiseres, exporta primeiro uma cópia de segurança.",
     "deviceText": "Apaga todos os dados guardados neste aparelho e volta ao ecrã inicial. Os dados na nuvem (se tiveres conta) não são apagados. Não pode ser desfeito.",
-    "alsoDevice": "Apagar também os dados deste aparelho"
+    "alsoDevice": "Apagar também os dados sem conta e de outras contas neste aparelho"
+  },
+  "accountData": {
+    "title": "Dados deste aparelho",
+    "text": "Neste aparelho há {{count}} registos criados sem conta. Queres levá-los para a conta {{email}}?",
+    "note": "Se os levares, passam a ser desta conta (e sincronizam) e deixam de existir fora dela. Se não, ficam separados e só aparecem quando usares a app sem conta. Os dados de uma conta nunca passam para outra.",
+    "bring": "Levar para esta conta",
+    "keepApart": "Deixar separados"
   }
 }

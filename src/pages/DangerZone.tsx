@@ -1,21 +1,37 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { db } from '../db/app-db';
+import Dexie from 'dexie';
+import { db, GUEST_DB, userDbName, currentDbName } from '../db/app-db';
 import { deleteMyAccount, authErrorKey } from '../auth/supabase';
 import { Ic, ICON } from '../ui/fx';
 
 // "Apagar conta" (exigido pelas lojas) e "Apagar dados deste aparelho". Ambos pedem confirmação escrita.
 
-/** Apaga a base de dados local e as definições deste aparelho, e recomeça a app. */
+/** Apaga TODOS os dados deste aparelho (sem conta e de todas as contas que entraram aqui) e recomeça a app. */
 export async function wipeThisDevice(): Promise<void> {
+  let known: string[] = [];
+  try { known = JSON.parse(localStorage.getItem('wallet.knownAccounts') || '[]'); } catch { /* sem storage */ }
   db.close();
-  await db.delete();
+  for (const name of [GUEST_DB, ...known.map(userDbName)]) await Dexie.delete(name);
   try {
     for (const k of Object.keys(localStorage)) if (k.startsWith('wallet.') || k.startsWith('sb-')) localStorage.removeItem(k);
     sessionStorage.clear();
   } catch { /* sem storage */ }
   window.location.hash = '#/';
   window.location.reload();
+}
+
+/** Depois de apagar a conta: apaga também a cópia local dessa conta neste aparelho. */
+async function forgetAccountLocally(): Promise<void> {
+  const name = currentDbName();
+  if (name === GUEST_DB) return;
+  db.close();
+  await Dexie.delete(name);
+  try {
+    const id = name.replace(/^wallet-u-/, '');
+    const known: string[] = JSON.parse(localStorage.getItem('wallet.knownAccounts') || '[]');
+    localStorage.setItem('wallet.knownAccounts', JSON.stringify(known.filter((k) => k !== id)));
+  } catch { /* sem storage */ }
 }
 
 export function DangerZone({ mode, onClose }: { mode: 'account' | 'device'; onClose: () => void }) {
@@ -33,7 +49,9 @@ export function DangerZone({ mode, onClose }: { mode: 'account' | 'device'; onCl
       if (mode === 'account') {
         await deleteMyAccount();
         if (alsoDevice) { await wipeThisDevice(); return; }
-        onClose();
+        await forgetAccountLocally();
+        window.location.hash = '#/';
+        window.location.reload(); // volta à app sem conta
       } else {
         await wipeThisDevice();
       }

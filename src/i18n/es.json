@@ -467,12 +467,19 @@
     "deleteAccount": "Eliminar cuenta",
     "deleteDevice": "Borrar datos de este dispositivo",
     "deviceSub": "Empieza la app de cero en este dispositivo",
-    "accountText": "Elimina tu cuenta y todos los datos guardados en la nube. No se puede deshacer. Puedes exportar antes una copia de seguridad.",
+    "accountText": "Elimina tu cuenta y todos sus datos, en la nube y en este dispositivo. No se puede deshacer.",
     "deviceText": "Borra todos los datos de este dispositivo y vuelve a la pantalla inicial. Los datos en la nube no se borran. No se puede deshacer.",
-    "alsoDevice": "Borrar también los datos de este dispositivo"
+    "alsoDevice": "Borrar también los datos sin cuenta y de otras cuentas en este dispositivo"
   },
   "settings2": {
     "licenses": "Licencias de código abierto",
     "licensesSub": "Bibliotecas que usa Wallet y sus licencias"
+  },
+  "accountData": {
+    "title": "Datos de este dispositivo",
+    "text": "Este dispositivo tiene {{count}} registros creados sin cuenta. ¿Llevarlos a la cuenta {{email}}?",
+    "note": "Si los llevas, pasan a esta cuenta (y se sincronizan). Si no, quedan separados. Los datos de una cuenta nunca pasan a otra.",
+    "bring": "Llevar a esta cuenta",
+    "keepApart": "Dejar separados"
   }
 }

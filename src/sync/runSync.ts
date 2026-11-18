@@ -6,8 +6,13 @@ import type { WalletDB } from '../db/database';
 import { syncNow, type SyncResult } from './supabase-sync';
 import { getLastSync, remoteSettingsIfNewer } from '../core/settingsSync';
 import { loadSettings, saveSettings, setTheme, type AppSettings } from '../core/settings';
+import { currentDbName, userDbName } from '../db/app-db';
 
 export async function runSync(client: SupabaseClient, db: WalletDB, userId: string): Promise<SyncResult & { settings: AppSettings | null }> {
+  // Guarda: só sincroniza a base local DESTA conta (nunca a base sem conta nem a de outra conta).
+  if (currentDbName() !== userDbName(userId)) {
+    return { pushed: 0, pulled: 0, lastSync: new Date().toISOString(), error: 'local data belongs to another account', settings: null };
+  }
   const result = await syncNow(client, db, userId, await getLastSync(db));
   let settings: AppSettings | null = null;
   if (!result.error) {

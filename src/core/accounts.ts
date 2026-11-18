@@ -21,13 +21,17 @@ export async function listAccounts(db: WalletDB): Promise<Account[]> {
 }
 
 // Transação: evita duas contas "Principal" quando várias páginas chamam isto ao mesmo tempo.
+export const DEFAULT_ACCOUNT_ID = 'acc-default';
+
 export async function ensureDefaultAccount(db: WalletDB, currency: string, name: string): Promise<void> {
   await db.transaction('rw', db.accounts, async () => {
     const rows = await db.accounts.filter((a) => a.deletedAt === null).count();
     if (rows > 0) return;
-    await db.accounts.add(
-      stampNew<Account>({ name, description: '', type: 'spending', currency, initialBalanceCents: 0, includeInNetWorth: true, isDefault: true, showOnHome: true, order: 0 }),
-    );
+    // id fixo: os aparelhos da mesma conta criam a mesma conta "Principal" (a sincronização não a duplica)
+    await db.accounts.put({
+      ...stampNew<Account>({ name, description: '', type: 'spending', currency, initialBalanceCents: 0, includeInNetWorth: true, isDefault: true, showOnHome: true, order: 0 }),
+      id: DEFAULT_ACCOUNT_ID,
+    });
   });
 }
 

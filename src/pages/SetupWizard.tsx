@@ -7,7 +7,7 @@ import { groupCurrencies, currencySymbol } from '../core/currencies';
 import { addAccount, ensureDefaultAccount, listAccounts } from '../core/accounts';
 import { addTransaction, addGoal, activeCategories, ensureDefaultCategories } from '../core/finance';
 import { parseMoneyToCents } from '../core/money';
-import { db } from '../db/app-db';
+import { db, activateDatabaseFor } from '../db/app-db';
 import type { Category, Transaction, Goal } from '../db/database';
 import { mirrorSettings } from '../core/settingsSync';
 import { getSupabase, hasSupabaseConfig } from '../auth/supabase';
@@ -108,6 +108,8 @@ export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings
       setSyncNote(t('onboard.syncing'));
       const { data } = await sb.auth.getUser();
       if (data.user) {
+        await activateDatabaseFor(data.user.id); // a partir daqui, os dados são os desta conta
+        await ensureDefaultCategories(db);
         const res = await runSync(sb, db, data.user.id);
         if (!res.error && res.settings) {
           await finish({ ...res.settings, account: 'signedin' });

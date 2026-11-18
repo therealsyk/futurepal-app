@@ -467,12 +467,19 @@
     "deleteAccount": "Supprimer le compte",
     "deleteDevice": "Effacer les données de cet appareil",
     "deviceSub": "Recommencer l’app à zéro sur cet appareil",
-    "accountText": "Supprime votre compte et toutes les données dans le cloud. Action irréversible. Pensez à exporter une sauvegarde avant.",
+    "accountText": "Supprime votre compte et toutes ses données, dans le cloud et sur cet appareil. Action irréversible.",
     "deviceText": "Efface toutes les données de cet appareil et revient à l’écran d’accueil. Les données dans le cloud ne sont pas supprimées. Action irréversible.",
-    "alsoDevice": "Effacer aussi les données de cet appareil"
+    "alsoDevice": "Effacer aussi les données sans compte et des autres comptes sur cet appareil"
   },
   "settings2": {
     "licenses": "Licences open source",
     "licensesSub": "Bibliothèques utilisées par Wallet et leurs licences"
+  },
+  "accountData": {
+    "title": "Données de cet appareil",
+    "text": "Cet appareil contient {{count}} éléments créés sans compte. Les déplacer vers le compte {{email}} ?",
+    "note": "Si vous les déplacez, ils appartiennent à ce compte (et se synchronisent). Sinon, ils restent séparés. Les données d'un compte ne passent jamais à un autre.",
+    "bring": "Déplacer vers ce compte",
+    "keepApart": "Garder séparés"
   }
 }

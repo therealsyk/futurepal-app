@@ -14,7 +14,8 @@ import { MobileHome } from './pages/MobileHome';
 import { useIsMobile } from './ui/useIsMobile';
 import { DemoPage } from './ui/components';
 import SetupWizard, { ONBOARDED_FLAG } from './pages/SetupWizard';
-import { db } from './db/app-db';
+import { db, activateDatabaseFor, guestDataCount, moveGuestDataIntoCurrent, DB_CHANGED_EVENT, currentDbName } from './db/app-db';
+import { Sheet } from './ui/fx';
 import { ensureDefaultCategories, addMissingCatalogCategories } from './core/finance';
 import { loadSettings, setTheme, type AppSettings } from './core/settings';
 import { useAuth } from './auth/AuthContext';
@@ -30,33 +31,66 @@ export default function App() {
   const [toast, setToast] = useState(false);
   const isMobile = useIsMobile();
 
-  // Categorias padrão (instalação nova) e as do catálogo que faltem (instalações antigas).
-  // As páginas só aparecem depois disto, para nenhuma abrir com a lista de categorias vazia.
-  const [catsReady, setCatsReady] = useState(false);
+  // Uma base de dados local por conta: ao entrar/sair de uma conta, a app muda para a base dessa conta
+  // (ou para a base sem conta). Depois disso garante as categorias e só então mostra as páginas.
+  const [dbName, setDbName] = useState<string | null>(null);
+  const [mergeCount, setMergeCount] = useState(0); // dados feitos sem conta, à espera da decisão da pessoa
+  const [merging, setMerging] = useState(false);
+  const userId = auth.user?.id ?? null;
+
+  const syncNowSilently = (uid: string) => {
+    const sb = getSupabase();
+    if (!sb || !loadSettings().country) return;
+    runSync(sb, db, uid).then((r) => { if (r.settings) setSettings(r.settings); }).catch(() => {});
+  };
+
   useEffect(() => {
-    ensureDefaultCategories(db).then(() => addMissingCatalogCategories(db)).catch(() => {}).finally(() => setCatsReady(true));
+    if (!auth.ready) return;
+    let alive = true;
+    (async () => {
+      const r = await activateDatabaseFor(userId);
+      await ensureDefaultCategories(db);
+      await addMissingCatalogCategories(db);
+      const cur = loadSettings();
+      if (cur.country) await mirrorSettings(db, cur).catch(() => {});
+      if (!alive) return;
+      setDbName(r.name);
+      if (!userId) { setMergeCount(0); return; }
+      const pending = r.firstTime ? await guestDataCount() : 0;
+      if (pending > 0) setMergeCount(pending); // pergunta antes de sincronizar
+      else syncNowSilently(userId);
+    })().catch(() => setDbName(currentDbName()));
+    return () => { alive = false; };
+  }, [auth.ready, userId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Outra parte da app pode mudar de base (ex.: setup); acompanha para recarregar as páginas.
+  useEffect(() => {
+    const on = (e: Event) => setDbName((e as CustomEvent<string>).detail);
+    window.addEventListener(DB_CHANGED_EVENT, on);
+    return () => window.removeEventListener(DB_CHANGED_EVENT, on);
   }, []);
 
-  // Cada mudança das definições (saveSettings) é copiada para a tabela sincronizada.
+  async function decideMerge(bring: boolean) {
+    setMerging(true);
+    try {
+      if (bring) await moveGuestDataIntoCurrent();
+    } finally {
+      setMerging(false);
+      setMergeCount(0);
+      setDbName(currentDbName() + (bring ? '#merged' : '')); // recarrega as páginas com os dados novos
+      if (userId) syncNowSilently(userId);
+    }
+  }
+
+  // Cada mudança das definições (saveSettings) é copiada para a tabela sincronizada da base ativa.
   useEffect(() => {
     const onChange = (e: Event) => {
       const next = (e as CustomEvent<AppSettings>).detail;
       if (next?.country) mirrorSettings(db, next).catch(() => {});
     };
     window.addEventListener(SETTINGS_EVENT, onChange);
-    const cur = loadSettings();
-    if (cur.country) mirrorSettings(db, cur).catch(() => {}); // migra instalações antigas para a linha única
     return () => window.removeEventListener(SETTINGS_EVENT, onChange);
   }, []);
-
-  // Com sessão iniciada, sincroniza em silêncio ao abrir a app (local-first: se falhar, nada se perde).
-  useEffect(() => {
-    const sb = getSupabase();
-    if (!sb || !auth.user || !settings.country) return;
-    runSync(sb, db, auth.user.id)
-      .then((r) => { if (r.settings) setSettings(r.settings); })
-      .catch(() => {});
-  }, [auth.user?.id, settings.country]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cada página abre no topo (sem isto ficava a posição do scroll da página anterior).
   const { pathname } = useLocation();
@@ -82,12 +116,12 @@ export default function App() {
     );
   }
 
-  if (!catsReady) return <div className="app-shell" aria-busy="true" />;
+  if (!dbName) return <div className="app-shell" aria-busy="true" />;
 
   return (
     <div className="app-shell">
       <Rail />
-      <main className="app-main">
+      <main className="app-main" key={dbName}>
         <Routes>
           <Route path="/" element={isMobile ? <MobileHome /> : <Dashboard />} />
           <Route path="/painel" element={<Dashboard />} />
@@ -106,6 +140,15 @@ export default function App() {
       </main>
       <MobileNav />
       <UpdateNotice />
+      <Sheet open={mergeCount > 0} onClose={() => { if (!merging) decideMerge(false); }} title={t('accountData.title')}>
+        <p>{t('accountData.text', { count: mergeCount, email: auth.user?.email ?? '' })}</p>
+        <p className="fx-muted fx-small">{t('accountData.note')}</p>
+        <div className="ai-actions">
+          <span style={{ flex: 1 }} />
+          <button type="button" className="fx-btn" disabled={merging} onClick={() => decideMerge(false)} data-testid="merge-no">{t('accountData.keepApart')}</button>
+          <button type="button" className="fx-btn primary" disabled={merging} onClick={() => decideMerge(true)} data-testid="merge-yes">{t('accountData.bring')}</button>
+        </div>
+      </Sheet>
       {toast && (
         <div className="mb-toast" role="status" onClick={() => setToast(false)}>
           <b>{t('onboard.doneTitle')}</b>

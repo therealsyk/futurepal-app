@@ -804,8 +804,15 @@
     "deleteAccount": "Delete account",
     "deleteDevice": "Erase data on this device",
     "deviceSub": "Start the app from scratch on this device",
-    "accountText": "Deletes your account and all data stored in the cloud (transactions, accounts, goals…). This cannot be undone. You may want to export a backup first.",
+    "accountText": "Deletes your account and all its data, in the cloud and on this device (transactions, accounts, goals…). This cannot be undone. You may want to export a backup first.",
     "deviceText": "Erases all data stored on this device and returns to the start screen. Cloud data (if you have an account) is not deleted. This cannot be undone.",
-    "alsoDevice": "Also erase the data on this device"
+    "alsoDevice": "Also erase data without an account and from other accounts on this device"
+  },
+  "accountData": {
+    "title": "Data on this device",
+    "text": "This device has {{count}} records created without an account. Move them to {{email}}?",
+    "note": "If you move them, they belong to this account (and sync). Otherwise they stay separate and only show when you use the app without an account. One account's data never goes to another account.",
+    "bring": "Move to this account",
+    "keepApart": "Keep separate"
   }
 }
