@@ -72,7 +72,8 @@ export function UpdateNotice() {
   const label = phase === 'downloading' ? t('updates.downloading', { percent })
     : phase === 'ready' ? t('updates.restart')
     : nativeWin ? t('updates.downloadInstall')
-    : info.platform === 'android' || info.platform === 'ios' ? t('updates.openStore')
+    // Android fora da Play Store (APK no GitHub): o link descarrega a versão nova, não abre a loja
+    : (info.platform === 'android' || info.platform === 'ios') && !/github\.com|\.apk(\?|$)/i.test(info.url || '') ? t('updates.openStore')
     : t('updates.download');
   const canAct = phase !== 'downloading' && (nativeWin || !!info.url);
   const body = (
