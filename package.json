@@ -13,7 +13,8 @@
     "android": "npm run mobile:sync && cap open android",
     "ios": "npm run mobile:sync && cap open ios",
     "version:set": "node scripts/set-version.mjs",
-    "release": "node scripts/release.mjs"
+    "release": "node scripts/release.mjs",
+    "demo:build": "vite build --mode demo --outDir ../website/demo --emptyOutDir"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.2",

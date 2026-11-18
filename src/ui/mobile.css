@@ -498,11 +498,11 @@ html[data-theme="light"] .mv-acc.spending { --acc: #b7771b; }
 .im-acc { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); }
 .im-note { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border-radius: 14px; background: color-mix(in srgb, var(--amber) 12%, var(--card-2)); font-size: 13px; }
 .im-table { max-height: 52vh; overflow: auto; border: 1px solid var(--border); border-radius: 14px; }
-.im-row { display: grid; grid-template-columns: 34px 92px minmax(140px, 1fr) 170px 96px 110px; align-items: center; gap: 8px; padding: 6px 10px; border-top: 1px solid var(--border); font-size: 13px; }
+.im-row { display: grid; grid-template-columns: 30px 82px minmax(100px, 1fr) minmax(120px, 150px) 84px max-content; align-items: center; gap: 8px; padding: 6px 10px; border-top: 1px solid var(--border); font-size: 13px; }
 .im-row.head { position: sticky; top: 0; z-index: 1; border-top: 0; background: var(--card); color: var(--muted); font-size: 12px; }
 .im-row.off { opacity: .45; }
-.im-row .num { text-align: right; font-variant-numeric: tabular-nums; }
-.im-row select { padding: 6px 8px; font-size: 12.5px; }
+.im-row .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; padding-right: 4px; }
+.im-row select, .im-row .fx-selectbtn { padding: 6px 8px; font-size: 12.5px; border-radius: 10px; min-width: 0; }
 .im-desc { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .im-desc em { margin-left: 6px; padding: 1px 6px; border-radius: 6px; background: var(--card-2); color: var(--amber); font-style: normal; font-size: 11px; }
 .im-date { color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -726,3 +726,10 @@ html[data-theme="light"] .mv-acc.spending { --acc: #b7771b; }
 /* Todas as caixas com scroll interno (menus, listas, janelas): sem barra visível. A página continua com a sua. */
 *:not(html):not(body):not(.app-main) { scrollbar-width: none; }
 *:not(html):not(body):not(.app-main)::-webkit-scrollbar { display: none; }
+/* Demonstração (website): convite para descarregar */
+.demo-gate { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 20px; background: rgba(0,0,0,.72); backdrop-filter: blur(6px); animation: fx-fade .2s ease both; }
+.demo-gate-card { width: min(340px, 100%); display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding: 26px 20px 20px; border-radius: 24px; background: var(--card); border: 1px solid var(--border); box-shadow: 0 30px 70px -20px rgba(0,0,0,.8); }
+.demo-gate-card img { border-radius: 16px; }
+.demo-gate-card h2 { margin: 4px 0 0; font-size: 20px; letter-spacing: -.01em; }
+.demo-gate-card p { margin: 0 0 8px; color: var(--muted); font-size: 14px; line-height: 1.45; }
+.demo-gate-card .fx-btn { width: 100%; justify-content: center; }

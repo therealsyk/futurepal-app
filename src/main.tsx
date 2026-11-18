@@ -14,7 +14,9 @@ import './ui/theme.css';
 import './ui/finity.css';
 import './ui/mobile.css';
 import { loadSettings, setTheme } from './core/settings';
+import { prepareDemo } from './demo/demo';
 
+prepareDemo(); // modo demonstração do website: língua, setup feito, sem tutorial
 const settings = loadSettings();
 
 i18n.use(initReactI18next).init({

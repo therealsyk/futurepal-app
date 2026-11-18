@@ -32,6 +32,8 @@ import { runSync } from './sync/runSync';
 import { mirrorSettings } from './core/settingsSync';
 import { SETTINGS_EVENT } from './core/settings';
 import { syncSalaryTransactions } from './core/salaryTx';
+import { IS_DEMO, seedDemo } from './demo/demo';
+import { DemoGate } from './demo/DemoGate';
 
 export default function App() {
   const { t } = useTranslation();
@@ -76,6 +78,7 @@ export default function App() {
       const r = await activateDatabaseFor(userId);
       await ensureDefaultCategories(db);
       await addMissingCatalogCategories(db);
+      if (IS_DEMO) await seedDemo(db, t('accounts.mainName')).catch(() => {});
       const cur = loadSettings();
       if (cur.country) await mirrorSettings(db, cur).catch(() => {});
       await syncSalaryTransactions(db).catch(() => {}); // salários -> transações de rendimento
@@ -177,7 +180,8 @@ export default function App() {
       </main>
       <MobileNav />
       <MobileTutorial enabled={isMobile} />
-      <UpdateNotice />
+      {!IS_DEMO && <UpdateNotice />}
+      {IS_DEMO && <DemoGate />}
       <Sheet open={mergeCount > 0} onClose={() => { if (!merging) decideMerge(false); }} title={t('accountData.title')}>
         <p>{t('accountData.text', { count: mergeCount, email: auth.user?.email ?? '' })}</p>
         <p className="fx-muted fx-small">{t('accountData.note')}</p>

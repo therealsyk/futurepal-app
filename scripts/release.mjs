@@ -36,6 +36,8 @@ const version = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).ver
 // 2. testes + build web
 run(`${npm} test`);
 run(`${npm} run build`);
+// Demonstração do website (website/demo): sempre igual à versão nova da app.
+try { run(`${npm} run demo:build`); } catch { console.log('[!] Não foi possível atualizar a demonstração do website.'); }
 
 // 3. Windows
 let windowsUrl = '';
