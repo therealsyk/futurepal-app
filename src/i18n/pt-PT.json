@@ -1201,5 +1201,18 @@
     "personalYes": "Adicionar",
     "personalNo": "Agora não",
     "addedPersonal": "{{amount}} adicionado às tuas despesas."
+  },
+  "profile": {
+    "title": "Foto de perfil",
+    "subCloud": "Aparece em todos os teus aparelhos.",
+    "subLocal": "Sem conta, fica só neste aparelho.",
+    "add": "Escolher foto",
+    "change": "Mudar",
+    "remove": "Remover",
+    "saving": "A guardar…",
+    "savedCloud": "Foto guardada.",
+    "savedLocal": "Foto guardada neste aparelho.",
+    "error": "Não foi possível guardar a foto. Tenta novamente.",
+    "notImage": "Escolhe um ficheiro de imagem."
   }
 }

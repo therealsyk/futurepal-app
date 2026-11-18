@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { UserAvatar } from './UserAvatar';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../auth/AuthContext';
@@ -77,10 +78,9 @@ export function AccountBar() {
     return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
   }, [open]);
 
-  const meta = (auth.user?.user_metadata ?? {}) as { name?: string; full_name?: string; avatar_url?: string; picture?: string };
+  const meta = (auth.user?.user_metadata ?? {}) as { name?: string; full_name?: string };
   const email = auth.user?.email ?? '';
   const name = meta.full_name || meta.name || (email ? email.split('@')[0] : t('acct.guest'));
-  const photo = meta.avatar_url || meta.picture;
   const masked = email ? '•••••@' + email.split('@')[1] : t('settings2.localMode');
   const go = (to: string) => { setOpen(null); navigate(to); };
   const planName = t('plus.plan_' + activePlan());
@@ -88,7 +88,7 @@ export function AccountBar() {
   return (
     <div className="ab" ref={ref}>
       <button type="button" className="ab-chip" onClick={() => setOpen(open === 'menu' ? null : 'menu')} aria-haspopup="menu" aria-expanded={open === 'menu'}>
-        {photo ? <img src={photo} alt="" referrerPolicy="no-referrer" /> : <span className="ab-initials">{name.slice(0, 2).toUpperCase()}</span>}
+        <UserAvatar user={auth.user} name={name} />
         <span className="ab-who"><b>{name}</b><small>{masked}</small></span>
         <Ic d={GEAR} size={18} />
       </button>
@@ -109,7 +109,7 @@ export function AccountBar() {
       {open === 'menu' && (
         <div className="ab-pop" role="menu">
           <div className="ab-head">
-            {photo ? <img src={photo} alt="" referrerPolicy="no-referrer" /> : <span className="ab-initials">{name.slice(0, 2).toUpperCase()}</span>}
+            <UserAvatar user={auth.user} name={name} />
             <div><b>{name}</b><small>{email || t('settings2.localMode')}</small></div>
             <span className={'ab-plan' + (plan === 'free' ? '' : ' paid')}>{planName}</span>
           </div>

@@ -1207,5 +1207,18 @@
     "accountNone": "Continue without an account",
     "accountCreate": "Create account",
     "accountLogin": "Sign in"
+  },
+  "profile": {
+    "title": "Profile photo",
+    "subCloud": "Shown on all your devices.",
+    "subLocal": "Without an account, it stays on this device only.",
+    "add": "Choose photo",
+    "change": "Change",
+    "remove": "Remove",
+    "saving": "Saving…",
+    "savedCloud": "Photo saved.",
+    "savedLocal": "Photo saved on this device.",
+    "error": "Couldn't save the photo. Please try again.",
+    "notImage": "Choose an image file."
   }
 }

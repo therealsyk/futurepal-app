@@ -18,6 +18,8 @@ import { loadAiConfig, isConfigured, getPreset } from '../core/ai';
 import { todayISO } from '../core/dates';
 import { APP_VERSION } from '../core/version';
 import { fullCheck, UPDATE_CHECK_EVENT } from '../ui/UpdateNotice';
+import { UserAvatar } from '../ui/UserAvatar';
+import { localAvatar, removeAvatar, saveAvatar } from '../core/avatar';
 
 const LANGUAGES = [
   { code: 'pt-PT', label: 'Português (Portugal)' },
@@ -40,6 +42,51 @@ const I = {
   sheet: 'M4 4h16v16H4zM4 9h16M4 14h16M10 4v16',
   logout: 'M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 17l-5-5 5-5M5 12h11',
 };
+
+// Foto de perfil: escolher uma imagem (recortada em quadrado) ou voltar à do Google / às iniciais.
+function ProfilePhotoRow() {
+  const { t } = useTranslation();
+  const auth = useAuth();
+  const ref = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+  const meta = (auth.user?.user_metadata ?? {}) as { name?: string; full_name?: string; avatar_custom?: string | null };
+  const name = meta.full_name || meta.name || auth.user?.email?.split('@')[0] || t('acct.guest');
+  const hasOwn = auth.user ? Boolean(meta.avatar_custom) : Boolean(localAvatar());
+
+  async function pick(e: ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    if (!f.type.startsWith('image/')) { setMsg(t('profile.notImage')); return; }
+    setBusy(true); setMsg('');
+    try {
+      const where = await saveAvatar(f, getSupabase(), auth.user);
+      setMsg(where === 'cloud' ? t('profile.savedCloud') : t('profile.savedLocal'));
+    } catch {
+      setMsg(t('profile.error'));
+    } finally { setBusy(false); }
+  }
+
+  async function remove() {
+    setBusy(true); setMsg('');
+    try { await removeAvatar(getSupabase(), auth.user); setMsg(''); } catch { setMsg(t('profile.error')); } finally { setBusy(false); }
+  }
+
+  return (
+    <div className="st-row st-photo" data-testid="st-photo">
+      <span className="st-photo-img"><UserAvatar user={auth.user} name={name} /></span>
+      <span className="st-text"><b>{t('profile.title')}</b><small>{msg || (auth.user ? t('profile.subCloud') : t('profile.subLocal'))}</small></span>
+      <span className="st-photo-actions">
+        {hasOwn && <button type="button" className="fx-btn" disabled={busy} onClick={remove}>{t('profile.remove')}</button>}
+        <button type="button" className="fx-btn primary" disabled={busy} onClick={() => ref.current?.click()} data-testid="st-photo-change">
+          {busy ? t('profile.saving') : hasOwn ? t('profile.change') : t('profile.add')}
+        </button>
+      </span>
+      <input ref={ref} hidden type="file" accept="image/*" onChange={pick} />
+    </div>
+  );
+}
 
 function Row({ icon, title, sub, children, onClick, testId }: { icon: string; title: string; sub?: string; children?: ReactNode; onClick?: () => void; testId?: string }) {
   const body = (
@@ -170,6 +217,7 @@ export function Settings() {
 
       <h2 className="st-section">{t('settings2.account')}</h2>
       <div className="st-group">
+        <ProfilePhotoRow />
         {!auth.configured ? (
           <Row icon={I.user} title={t('settings2.localMode')} sub={t('settings.syncLocalOnly')} />
         ) : auth.user ? (

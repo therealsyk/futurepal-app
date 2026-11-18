@@ -662,3 +662,9 @@ html[data-theme="light"] .mv-acc.spending { --acc: #b7771b; }
 .sp-person { border: 1px solid var(--line, rgba(127,127,127,.3)); background: transparent; color: inherit; border-radius: 99px; padding: 4px 10px; font-size: 13px; cursor: pointer; }
 .sp-person.paid { background: var(--mv-soft); color: var(--mv); border-color: transparent; font-weight: 700; }
 .sp-person:disabled { cursor: default; }
+
+/* Foto de perfil nas definições */
+.st-photo .st-photo-img img, .st-photo .st-photo-img .ab-initials { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; display: grid; place-items: center; }
+.st-photo .st-photo-img { flex: none; }
+.st-photo-actions { display: flex; gap: 8px; margin-left: auto; flex: none; }
+@media (max-width: 560px) { .st-photo { flex-wrap: wrap; } .st-photo-actions { width: 100%; justify-content: flex-end; } }
