@@ -203,7 +203,8 @@
     "budgetEmptyYear": "No budget set in {{year}}.",
     "avgMonthlySavings": "Savings / month (average)",
     "avgPerMonthLong": "average {{value}} per month",
-    "error": "Something went wrong while loading. Try again."
+    "error": "Something went wrong while loading. Try again.",
+    "spentInMonth": "Spent in {{month}}"
   },
   "transactions": {
     "title": "Transactions",

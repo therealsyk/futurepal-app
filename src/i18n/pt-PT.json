@@ -203,7 +203,8 @@
     "budgetEmptyYear": "Sem orçamento definido em {{year}}.",
     "avgMonthlySavings": "Poupança / mês (média)",
     "avgPerMonthLong": "média de {{value}} por mês",
-    "error": "Ocorreu um erro ao carregar. Tenta novamente."
+    "error": "Ocorreu um erro ao carregar. Tenta novamente.",
+    "spentInMonth": "Gasto em {{month}}"
   },
   "transactions": {
     "title": "Transações",

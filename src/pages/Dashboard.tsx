@@ -102,7 +102,7 @@ function Kpi({ icon, color, label, value, pct, pctTone = 'neutral', sub }: {
 
 // ── Gráfico de área: rendimento vs despesas por mês ─────────────────────
 function OverviewChart({ series, upTo, money, t }: {
-  series: { label: string; earning: number; spending: number }[];
+  series: { label: string; tick?: string; earning: number; spending: number }[];
   upTo: number; // último índice com dados (meses futuros não são desenhados)
   money: (c: number) => string;
   t: TFn;
@@ -162,7 +162,7 @@ function OverviewChart({ series, upTo, money, t }: {
           <small>{t('panel.earning')}: {money(hv.earning)}</small>
         </div>
       )}
-      <div className="fx-xaxis">{series.map((s) => <span key={s.label}>{s.label}</span>)}</div>
+      <div className="fx-xaxis">{series.map((s, i) => <span key={i}>{s.tick ?? s.label}</span>)}</div>
     </div>
   );
 }
@@ -491,6 +491,31 @@ export function Dashboard() {
   });
   const yearSpent = series.reduce((a, s) => a + s.spending, 0);
 
+  // Filtro Mês: o gráfico mostra os dias desse mês (valores acumulados; o salário entra no dia 1).
+  const monthDays = new Date(year, month, 0).getDate();
+  const monthKey = `${year}-${pad(month)}`;
+  const monthSalary = !salaryHere ? 0 : salaries.filter((s) => s.year === year && s.month === month).reduce((a, s) => a + s.amountCents, 0);
+  const daySeries = (() => {
+    const spend = new Array(monthDays).fill(0), earn = new Array(monthDays).fill(0);
+    for (const tx of accTxs) {
+      if (!tx.date.startsWith(monthKey)) continue;
+      const d = parseInt(tx.date.slice(8, 10), 10) - 1;
+      if (d < 0 || d >= monthDays) continue;
+      if (tx.type === 'expense') spend[d] += tx.amountCents; else earn[d] += tx.amountCents;
+    }
+    earn[0] += monthSalary;
+    let cs = 0, ce = 0;
+    return spend.map((v, i) => {
+      cs += v; ce += earn[i];
+      const label = new Date(year, month - 1, i + 1).toLocaleDateString(lang, { day: 'numeric', month: 'short' }).replace('.', '');
+      return { label, tick: i === 0 || (i + 1) % 5 === 0 ? String(i + 1) : '', earning: ce, spending: cs };
+    });
+  })();
+  const monthSpentTotal = daySeries.length ? daySeries[daySeries.length - 1].spending : 0;
+  const isThisMonth = year === now.getFullYear() && month === now.getMonth() + 1;
+  const isPastMonth = year < now.getFullYear() || (year === now.getFullYear() && month < now.getMonth() + 1);
+  const monthLabel = cap(new Date(year, month - 1, 1).toLocaleDateString(lang, { month: 'long', year: 'numeric' }));
+
   // Orçamento do período: o mês escolhido, ou a soma de todos os meses do ano
   const periodBudgets = budgets.filter((b) => b.year === year && (period === 'year' || b.month === month));
   const budgetLimit = periodBudgets.reduce((a, b) => a + b.limitCents, 0);
@@ -734,16 +759,21 @@ export function Dashboard() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>{t('panel.overview')}</h2>
-                <div className="fx-big" style={{ marginTop: 8 }}>{money(yearSpent)}</div>
-                <div className="fx-label" style={{ marginTop: 2 }}>{t('panel.spentThisYear', { year })}</div>
+                <div className="fx-big" style={{ marginTop: 8 }}>{money(period === 'month' ? monthSpentTotal : yearSpent)}</div>
+                <div className="fx-label" style={{ marginTop: 2 }}>{period === 'month' ? t('panel.spentInMonth', { month: monthLabel }) : t('panel.spentThisYear', { year })}</div>
               </div>
               <div className="fx-legend">
                 <span><i className="fx-dot" style={{ background: 'var(--accent)' }} />{t('panel.earning')}</span>
                 <span><i className="fx-dot" style={{ background: 'var(--teal)' }} />{t('panel.spending')}</span>
               </div>
             </div>
-            <OverviewChart series={series} money={money} t={t}
-              upTo={period === 'month' ? month - 1 : year < now.getFullYear() ? 11 : year === now.getFullYear() ? now.getMonth() : 0} />
+            {period === 'month' ? (
+              <OverviewChart series={daySeries} money={money} t={t}
+                upTo={isPastMonth ? monthDays - 1 : isThisMonth ? now.getDate() - 1 : 0} />
+            ) : (
+              <OverviewChart series={series} money={money} t={t}
+                upTo={year < now.getFullYear() ? 11 : year === now.getFullYear() ? now.getMonth() : 0} />
+            )}
           </Card>
         );
       case 'categories':
