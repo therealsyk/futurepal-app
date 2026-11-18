@@ -27,6 +27,7 @@ import { loadSettings, setTheme, type AppSettings } from './core/settings';
 import { useAuth } from './auth/AuthContext';
 import { getSupabase } from './auth/supabase';
 import { applyServerPlan } from './core/plan';
+import { applyPendingAvatar } from './core/avatar';
 import { runSync } from './sync/runSync';
 import { mirrorSettings } from './core/settingsSync';
 import { SETTINGS_EVENT } from './core/settings';
@@ -58,6 +59,11 @@ export default function App() {
     sb.from('subscriptions').select('plan,status,current_period_end').eq('user_id', userId).maybeSingle()
       .then(({ data, error }) => { if (!error) applyServerPlan(data); }, () => {});
   }, [userId]);
+
+  // Foto escolhida no registo (antes de haver sessão): envia-a no primeiro login.
+  useEffect(() => {
+    if (userId) applyPendingAvatar(getSupabase(), auth.user).catch(() => {});
+  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!auth.ready) return;

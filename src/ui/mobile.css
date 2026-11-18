@@ -663,8 +663,15 @@ html[data-theme="light"] .mv-acc.spending { --acc: #b7771b; }
 .sp-person.paid { background: var(--mv-soft); color: var(--mv); border-color: transparent; font-weight: 700; }
 .sp-person:disabled { cursor: default; }
 
-/* Foto de perfil nas definições */
+/* Foto de perfil nas definições (linha da conta) */
+.st-photo .st-photo-img { position: relative; flex: none; padding: 0; border: 0; background: none; cursor: pointer; border-radius: 50%; }
 .st-photo .st-photo-img img, .st-photo .st-photo-img .ab-initials { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; display: grid; place-items: center; }
-.st-photo .st-photo-img { flex: none; }
-.st-photo-actions { display: flex; gap: 8px; margin-left: auto; flex: none; }
-@media (max-width: 560px) { .st-photo { flex-wrap: wrap; } .st-photo-actions { width: 100%; justify-content: flex-end; } }
+.st-photo .st-photo-img:hover img, .st-photo .st-photo-img:hover .ab-initials { filter: brightness(.85); }
+.st-photo-cam { position: absolute; right: -2px; bottom: -2px; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: #0b0b0f; border: 2px solid var(--card); }
+/* Foto opcional no registo */
+.ob-photo { display: flex; align-items: center; gap: 14px; margin-bottom: 4px; }
+.ob-photo-btn { width: 64px; height: 64px; border-radius: 50%; flex: none; display: grid; place-items: center; padding: 0; overflow: hidden; cursor: pointer;
+  background: var(--card-2, rgba(255,255,255,.04)); border: 1.5px dashed var(--border); color: var(--muted); font-size: 26px; }
+.ob-photo-btn img { width: 100%; height: 100%; object-fit: cover; }
+.ob-photo-text { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.ob-photo-text b { font-size: 14px; }

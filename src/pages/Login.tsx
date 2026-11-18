@@ -1,4 +1,5 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
+import { setPendingAvatar } from '../core/avatar';
 import { useTranslation } from 'react-i18next';
 import { signIn, signUp, resetPassword, authErrorKey, hasSupabaseConfig, enabledProviders, normalizePhone } from '../auth/supabase';
 import { signInWithProvider, type OAuthProvider } from '../auth/oauth';
@@ -19,6 +20,14 @@ export function LoginForm({ initialMode = 'signin', onDone, onSkip }: { initialM
   const configured = hasSupabaseConfig();
   const [social, setSocial] = useState<OAuthProvider | null>(null);
   const [phone, setPhone] = useState('');
+  const [photo, setPhoto] = useState<string | null>(null); // foto opcional do registo (enviada no 1.º login)
+  const photoRef = useRef<HTMLInputElement>(null);
+  async function pickPhoto(e: ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f || !f.type.startsWith('image/')) return;
+    try { setPhoto(await setPendingAvatar(f)); } catch { setPhoto(null); }
+  }
   const [providers, setProviders] = useState<Record<string, boolean> | null>(null);
   useEffect(() => { enabledProviders().then(setProviders).catch(() => setProviders({})); }, []);
 
@@ -93,6 +102,18 @@ export function LoginForm({ initialMode = 'signin', onDone, onSkip }: { initialM
       )}
 
       <div className="ob-card ob-form">
+        {mode === 'signup' && (
+          <div className="ob-photo">
+            <button type="button" className="ob-photo-btn" onClick={() => photoRef.current?.click()} aria-label={t('profile.addOptional')} data-testid="signup-photo">
+              {photo ? <img src={photo} alt="" /> : <span aria-hidden="true">+</span>}
+            </button>
+            <span className="ob-photo-text">
+              <b>{photo ? t('profile.change') : t('profile.addOptional')}</b>
+              {photo && <button type="button" className="ob-link small" onClick={() => { setPendingAvatar(null); setPhoto(null); }}>{t('profile.remove')}</button>}
+            </span>
+            <input ref={photoRef} hidden type="file" accept="image/*" onChange={pickPhoto} />
+          </div>
+        )}
         {mode === 'signup' && (
           <label className="ob-input">
             <span>{t('auth.name')}</span>

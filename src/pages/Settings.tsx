@@ -19,7 +19,7 @@ import { todayISO } from '../core/dates';
 import { APP_VERSION } from '../core/version';
 import { fullCheck, UPDATE_CHECK_EVENT } from '../ui/UpdateNotice';
 import { UserAvatar } from '../ui/UserAvatar';
-import { localAvatar, removeAvatar, saveAvatar } from '../core/avatar';
+import { removeAvatar, saveAvatar } from '../core/avatar';
 
 const LANGUAGES = [
   { code: 'pt-PT', label: 'Português (Portugal)' },
@@ -43,16 +43,18 @@ const I = {
   logout: 'M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 17l-5-5 5-5M5 12h11',
 };
 
-// Foto de perfil: escolher uma imagem (recortada em quadrado) ou voltar à do Google / às iniciais.
-function ProfilePhotoRow() {
+// Linha da conta com a foto de perfil (só com sessão): tocar na foto escolhe outra; "Remover" volta à do Google / iniciais.
+function AccountPhotoRow() {
   const { t } = useTranslation();
   const auth = useAuth();
   const ref = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
-  const meta = (auth.user?.user_metadata ?? {}) as { name?: string; full_name?: string; avatar_custom?: string | null };
-  const name = meta.full_name || meta.name || auth.user?.email?.split('@')[0] || t('acct.guest');
-  const hasOwn = auth.user ? Boolean(meta.avatar_custom) : Boolean(localAvatar());
+  if (!auth.user) return null;
+  const user = auth.user;
+  const meta = (user.user_metadata ?? {}) as { name?: string; full_name?: string; avatar_custom?: string | null };
+  const name = meta.full_name || meta.name || '';
+  const hasOwn = Boolean(meta.avatar_custom);
 
   async function pick(e: ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -60,29 +62,21 @@ function ProfilePhotoRow() {
     if (!f) return;
     if (!f.type.startsWith('image/')) { setMsg(t('profile.notImage')); return; }
     setBusy(true); setMsg('');
-    try {
-      const where = await saveAvatar(f, getSupabase(), auth.user);
-      setMsg(where === 'cloud' ? t('profile.savedCloud') : t('profile.savedLocal'));
-    } catch {
-      setMsg(t('profile.error'));
-    } finally { setBusy(false); }
+    try { await saveAvatar(f, getSupabase(), user); setMsg(t('profile.savedCloud')); } catch { setMsg(t('profile.error')); } finally { setBusy(false); }
   }
-
   async function remove() {
     setBusy(true); setMsg('');
-    try { await removeAvatar(getSupabase(), auth.user); setMsg(''); } catch { setMsg(t('profile.error')); } finally { setBusy(false); }
+    try { await removeAvatar(getSupabase(), user); } catch { setMsg(t('profile.error')); } finally { setBusy(false); }
   }
 
   return (
-    <div className="st-row st-photo" data-testid="st-photo">
-      <span className="st-photo-img"><UserAvatar user={auth.user} name={name} /></span>
-      <span className="st-text"><b>{t('profile.title')}</b><small>{msg || (auth.user ? t('profile.subCloud') : t('profile.subLocal'))}</small></span>
-      <span className="st-photo-actions">
-        {hasOwn && <button type="button" className="fx-btn" disabled={busy} onClick={remove}>{t('profile.remove')}</button>}
-        <button type="button" className="fx-btn primary" disabled={busy} onClick={() => ref.current?.click()} data-testid="st-photo-change">
-          {busy ? t('profile.saving') : hasOwn ? t('profile.change') : t('profile.add')}
-        </button>
-      </span>
+    <div className="st-row st-photo" data-testid="st-user">
+      <button type="button" className="st-photo-img" disabled={busy} onClick={() => ref.current?.click()} aria-label={hasOwn ? t('profile.change') : t('profile.add')} title={hasOwn ? t('profile.change') : t('profile.add')} data-testid="st-photo-change">
+        <UserAvatar user={user} name={name || user.email || '?'} />
+        <span className="st-photo-cam" aria-hidden="true"><Ic d="M4 8h3l2-3h6l2 3h3v11H4zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" size={12} /></span>
+      </button>
+      <span className="st-text"><b>{name || user.email}</b><small>{busy ? t('profile.saving') : msg || (name ? user.email : t('settings2.signedIn'))}</small></span>
+      {hasOwn && <button type="button" className="fx-btn" disabled={busy} onClick={remove}>{t('profile.remove')}</button>}
       <input ref={ref} hidden type="file" accept="image/*" onChange={pick} />
     </div>
   );
@@ -208,7 +202,6 @@ export function Settings() {
   }
 
   const currencies = CURRENCY_CODES.includes(settings.currency) ? CURRENCY_CODES : [settings.currency, ...CURRENCY_CODES];
-  const userName = (auth.user?.user_metadata as { name?: string } | undefined)?.name;
   const aiOn = isConfigured(ai);
 
   return (
@@ -217,12 +210,11 @@ export function Settings() {
 
       <h2 className="st-section">{t('settings2.account')}</h2>
       <div className="st-group">
-        <ProfilePhotoRow />
         {!auth.configured ? (
           <Row icon={I.user} title={t('settings2.localMode')} sub={t('settings.syncLocalOnly')} />
         ) : auth.user ? (
           <>
-            <Row icon={I.user} title={userName || auth.user.email || ''} sub={userName ? auth.user.email : t('settings2.signedIn')} testId="st-user" />
+            <AccountPhotoRow />
             <Row icon={I.sync} title={t('settings.syncNow')} sub={syncMsg || t('settings.syncReady')} onClick={syncing ? undefined : onSync} testId="sync-btn" />
           </>
         ) : (

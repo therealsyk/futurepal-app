@@ -1220,6 +1220,7 @@
     "savedCloud": "Photo saved.",
     "savedLocal": "Photo saved on this device.",
     "error": "Couldn't save the photo. Please try again.",
-    "notImage": "Choose an image file."
+    "notImage": "Choose an image file.",
+    "addOptional": "Add a photo (optional)"
   }
 }

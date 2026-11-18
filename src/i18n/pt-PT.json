@@ -1214,6 +1214,7 @@
     "savedCloud": "Foto guardada.",
     "savedLocal": "Foto guardada neste aparelho.",
     "error": "Não foi possível guardar a foto. Tenta novamente.",
-    "notImage": "Escolhe um ficheiro de imagem."
+    "notImage": "Escolhe um ficheiro de imagem.",
+    "addOptional": "Adicionar foto (opcional)"
   }
 }
