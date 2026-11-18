@@ -1090,7 +1090,13 @@
     "plan_free": "Grátis",
     "plan_plus": "Plus",
     "plan_family": "Família",
-    "plan_pro": "Pro"
+    "plan_pro": "Pro",
+    "fbTitle": "Feedback",
+    "fbShowAll": "Mostrar também os tratados",
+    "fbEmpty": "Sem feedback por tratar.",
+    "fbSetup": "Para ver o feedback, corre o supabase/feedback.sql no SQL Editor.",
+    "fbDone": "Marcar como tratado",
+    "fbReopen": "Voltar a abrir"
   },
   "acct": {
     "guest": "Convidado",
@@ -1257,5 +1263,30 @@
     "noSpend": "Sem gastos neste mês",
     "today": "Hoje",
     "clear": "Limpar"
+  },
+  "feedback": {
+    "row": "Enviar feedback",
+    "rowSub": "Ideias, problemas ou sugestões: lemos tudo.",
+    "title": "Enviar feedback",
+    "intro": "Diz-nos o que achas, o que falta ou o que não está a funcionar.",
+    "kind": "Tipo",
+    "idea": "Ideia",
+    "bug": "Problema",
+    "other": "Outro",
+    "message": "Mensagem",
+    "messagePh": "Escreve aqui a tua ideia ou sugestão…",
+    "bugLabel": "O que aconteceu?",
+    "bugPh": "Descreve o problema: o que estavas a fazer, o que esperavas e o que aconteceu.",
+    "email": "Email para te respondermos (opcional)",
+    "emailPh": "nome@email.com",
+    "privacy": "Enviamos também a versão da app e o tipo de aparelho, para nos ajudar a perceber o problema. Nunca enviamos os teus dados financeiros.",
+    "send": "Enviar",
+    "sending": "A enviar…",
+    "thanks": "Obrigado!",
+    "thanksSub": "Recebemos a tua mensagem. Cada sugestão ajuda a tornar o FuturePal melhor.",
+    "errShort": "Escreve um pouco mais na mensagem.",
+    "errEmail": "Este email não parece válido.",
+    "errOffline": "Sem ligação ao servidor. Tenta mais tarde.",
+    "errSend": "Não foi possível enviar. Verifica a ligação à internet e tenta de novo."
   }
 }

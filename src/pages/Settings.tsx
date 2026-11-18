@@ -20,6 +20,7 @@ import { APP_VERSION } from '../core/version';
 import { fullCheck, UPDATE_CHECK_EVENT } from '../ui/UpdateNotice';
 import { UserAvatar } from '../ui/UserAvatar';
 import { removeAvatar, saveAvatar } from '../core/avatar';
+import { FeedbackSheet } from './Feedback';
 
 const LANGUAGES = [
   { code: 'pt-PT', label: 'Português (Portugal)' },
@@ -41,6 +42,7 @@ const I = {
   down: 'M12 4v12M7 11l5 5 5-5M4 20h16',
   sheet: 'M4 4h16v16H4zM4 9h16M4 14h16M10 4v16',
   logout: 'M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 17l-5-5 5-5M5 12h11',
+  chat: 'M4 5h16v11H9l-5 4zM8 9h8M8 12h5',
 };
 
 // Linha da conta com a foto de perfil (só com sessão): tocar na foto escolhe outra; "Remover" volta à do Google / iniciais.
@@ -129,6 +131,7 @@ export function Settings() {
     }
   }
   const importRef = useRef<HTMLInputElement>(null);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   async function onExportBackup() {
     try {
@@ -253,6 +256,7 @@ export function Settings() {
       <h2 className="st-section">{t('updates.about')}</h2>
       <div className="st-group">
         <Row icon={I.sync} title={t('updates.version', { version: APP_VERSION })} sub={updMsg || t('updates.checkSub')} onClick={updBusy ? undefined : onCheckUpdates} testId="check-updates" />
+        <Row icon={I.chat} title={t('feedback.row')} sub={t('feedback.rowSub')} onClick={() => setFeedbackOpen(true)} testId="feedback-row" />
         <Row icon={I.sheet} title={t('settings2.licenses')} sub={t('settings2.licensesSub')} onClick={openNotices} testId="licenses" />
       </div>
 
@@ -282,6 +286,7 @@ export function Settings() {
       <Sheet open={danger !== null} onClose={() => setDanger(null)} title={danger === 'account' ? t('danger.deleteAccount') : t('danger.deleteDevice')}>
         {danger && <DangerZone mode={danger} onClose={() => { setDanger(null); update({ ...settings, account: 'none' }); }} />}
       </Sheet>
+      <FeedbackSheet open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
       <Sheet open={importOpen} onClose={() => setImportOpen(false)} title={t('importer.title')} wide>
         <ImportStatement />
       </Sheet>

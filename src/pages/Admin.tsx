@@ -40,6 +40,26 @@ export function AdminPage() {
   const [subSearch, setSubSearch] = useState('');
   const [sub, setSub] = useState({ email: '', plan: 'plus', until: '' });
   const [subMsg, setSubMsg] = useState<string | null>(null);
+  // Feedback enviado pelas pessoas (supabase/feedback.sql)
+  type FbRow = { id: string; created_at: string; email: string | null; kind: string; message: string; app_version: string | null; platform: string | null; status: string };
+  const [fb, setFb] = useState<FbRow[]>([]);
+  const [fbAll, setFbAll] = useState(false);
+  const [fbErr, setFbErr] = useState<string | null>(null);
+  const loadFb = async (all = fbAll) => {
+    const sb = getSupabase();
+    if (!sb) return;
+    let q = sb.from('feedback').select('id,created_at,email,kind,message,app_version,platform,status').order('created_at', { ascending: false }).limit(100);
+    if (!all) q = q.eq('status', 'new');
+    const { data, error: e } = await q;
+    if (e) { setFbErr(e.message); return; }
+    setFbErr(null); setFb((data ?? []) as FbRow[]);
+  };
+  const markFb = async (id: string, status: 'new' | 'done') => {
+    const sb = getSupabase();
+    if (!sb) return;
+    await sb.from('feedback').update({ status }).eq('id', id);
+    await loadFb();
+  };
 
   const load = async () => {
     const sb = getSupabase();
@@ -58,6 +78,7 @@ export function AdminPage() {
     setSubs((data ?? []) as SubRow[]);
   };
   useEffect(() => { if (isAdmin) loadSubs('').catch((e) => setError(String(e))); }, [isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (isAdmin) loadFb().catch(() => {}); }, [isAdmin, fbAll]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const saveSub = async () => {
     const sb = getSupabase();
@@ -146,6 +167,27 @@ export function AdminPage() {
               </tr>
             ))}</tbody>
           </table>
+        </div>
+      </div>
+
+      <div className="fx-card ad-card">
+        <div className="ad-fb-head">
+          <h3>{t('admin.fbTitle')} {fb.length > 0 && <span className="ad-fb-count">{fb.length}</span>}</h3>
+          <label className="ad-fb-all"><input type="checkbox" checked={fbAll} onChange={(e) => setFbAll(e.target.checked)} /> {t('admin.fbShowAll')}</label>
+        </div>
+        {fbErr && <p className="fx-muted fx-small">{t('admin.fbSetup')}</p>}
+        {!fbErr && fb.length === 0 && <p className="fx-muted">{t('admin.fbEmpty')}</p>}
+        <div className="ad-fb-list">
+          {fb.map((r) => (
+            <div key={r.id} className={'ad-fb' + (r.status === 'done' ? ' done' : '')}>
+              <div className="ad-fb-meta">
+                <span className={'ad-fb-kind ' + r.kind}>{t('feedback.' + r.kind)}</span>
+                <small>{date(r.created_at)} · {r.platform ?? '?'} · v{r.app_version ?? '?'}{r.email ? ' · ' + r.email : ''}</small>
+              </div>
+              <p>{r.message}</p>
+              <button type="button" className="fx-link" onClick={() => markFb(r.id, r.status === 'done' ? 'new' : 'done')}>{r.status === 'done' ? t('admin.fbReopen') : t('admin.fbDone')}</button>
+            </div>
+          ))}
         </div>
       </div>
 

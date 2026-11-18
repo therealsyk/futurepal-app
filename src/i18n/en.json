@@ -1090,7 +1090,13 @@
     "plan_free": "Free",
     "plan_plus": "Plus",
     "plan_family": "Family",
-    "plan_pro": "Pro"
+    "plan_pro": "Pro",
+    "fbTitle": "Feedback",
+    "fbShowAll": "Also show handled",
+    "fbEmpty": "No open feedback.",
+    "fbSetup": "To see feedback, run supabase/feedback.sql in the SQL Editor.",
+    "fbDone": "Mark as handled",
+    "fbReopen": "Reopen"
   },
   "acct": {
     "guest": "Guest",
@@ -1263,5 +1269,30 @@
     "noSpend": "No spending this month",
     "today": "Today",
     "clear": "Clear"
+  },
+  "feedback": {
+    "row": "Send feedback",
+    "rowSub": "Ideas, problems or suggestions: we read everything.",
+    "title": "Send feedback",
+    "intro": "Tell us what you think, what is missing or what is not working.",
+    "kind": "Type",
+    "idea": "Idea",
+    "bug": "Problem",
+    "other": "Other",
+    "message": "Message",
+    "messagePh": "Write your idea or suggestion here…",
+    "bugLabel": "What happened?",
+    "bugPh": "Describe the problem: what you were doing, what you expected and what happened.",
+    "email": "Email so we can reply (optional)",
+    "emailPh": "name@email.com",
+    "privacy": "We also send the app version and device type to help us understand the problem. We never send your financial data.",
+    "send": "Send",
+    "sending": "Sending…",
+    "thanks": "Thank you!",
+    "thanksSub": "We got your message. Every suggestion helps make FuturePal better.",
+    "errShort": "Please write a little more.",
+    "errEmail": "This email does not look valid.",
+    "errOffline": "No connection to the server. Please try later.",
+    "errSend": "Could not send. Check your internet connection and try again."
   }
 }
