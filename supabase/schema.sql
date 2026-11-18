@@ -176,3 +176,27 @@ begin
 end $$;
 
 -- A tabela antiga exchange_rates nunca foi usada pela sincronização; não é criada aqui.
+
+-- ---------------------------------------------------------------- versões da app (aviso de atualização)
+-- Uma linha por plataforma. A app LÊ esta tabela ao abrir; só tu (no painel do Supabase) a alteras.
+--   latest_version : última versão publicada  -> aparece "Há uma atualização"
+--   min_version    : versões abaixo desta ficam bloqueadas até atualizar (usa só em último caso)
+--   download_url   : para onde o botão "Atualizar" leva (loja, ou página de download)
+create table if not exists public.app_versions (
+  platform text primary key check (platform in ('windows','android','ios','web')),
+  latest_version text not null,
+  min_version text not null default '0.0.0',
+  notes text not null default '',
+  download_url text not null default '',
+  published_at timestamptz not null default now()
+);
+alter table public.app_versions enable row level security;
+drop policy if exists app_versions_read on public.app_versions;
+create policy app_versions_read on public.app_versions for select to anon, authenticated using (true);
+-- (sem políticas de escrita: ninguém consegue alterar isto a partir da app)
+
+insert into public.app_versions (platform, latest_version, download_url) values
+  ('windows', '0.1.0', ''),
+  ('android', '0.1.0', 'https://play.google.com/store/apps/details?id=com.rafael.wallet'),
+  ('ios',     '0.1.0', '')
+on conflict (platform) do nothing;

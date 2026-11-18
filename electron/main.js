@@ -47,6 +47,56 @@ ipcMain.handle('wallet:http', async (_event, req) => {
   }
 });
 
+// ---------------------------------------------------------------- atualizações (Windows)
+// O instalador (NSIS) traz o ficheiro app-update.yml que diz onde estão as versões novas (GitHub Releases).
+// No .exe portátil, ou a correr em desenvolvimento, não há atualização automática: a app mostra o link de download.
+const fs = require('fs');
+let updater; // undefined = ainda não verificado; null = não suportado
+function getUpdater() {
+  if (updater !== undefined) return updater;
+  updater = null;
+  const portable = Boolean(process.env.PORTABLE_EXECUTABLE_DIR);
+  const configured = fs.existsSync(path.join(process.resourcesPath || '', 'app-update.yml'));
+  if (!app.isPackaged || portable || !configured) return updater;
+  try {
+    const { autoUpdater } = require('electron-updater');
+    autoUpdater.autoDownload = false; // só descarrega quando a pessoa carrega em "Descarregar e instalar"
+    autoUpdater.autoInstallOnAppQuit = true; // se não reiniciar logo, instala ao fechar a app
+    autoUpdater.on('download-progress', (p) => {
+      for (const w of BrowserWindow.getAllWindows()) w.webContents.send('wallet:update-progress', p.percent);
+    });
+    updater = autoUpdater;
+  } catch (err) {
+    console.error('[updater]', err);
+  }
+  return updater;
+}
+const plainText = (notes) => (typeof notes === 'string' ? notes : Array.isArray(notes) ? notes.map((n) => n.note || '').join('\n') : '')
+  .replace(/<[^>]+>/g, '').trim();
+
+ipcMain.on('wallet:update-supported', (event) => { event.returnValue = Boolean(getUpdater()); });
+ipcMain.handle('wallet:update-check', async () => {
+  const u = getUpdater();
+  if (!u) return null;
+  try {
+    const r = await u.checkForUpdates();
+    if (!r || !r.updateInfo || r.isUpdateAvailable === false || r.updateInfo.version === app.getVersion()) return null;
+    return { version: r.updateInfo.version, notes: plainText(r.updateInfo.releaseNotes) };
+  } catch (err) {
+    console.error('[updater] check', err && err.message);
+    return null;
+  }
+});
+ipcMain.handle('wallet:update-download', async () => {
+  const u = getUpdater();
+  if (!u) return false;
+  try { await u.downloadUpdate(); return true; } catch (err) { console.error('[updater] download', err && err.message); return false; }
+});
+ipcMain.on('wallet:update-install', () => {
+  const u = getUpdater();
+  if (u) setImmediate(() => u.quitAndInstall(false, true)); // fecha, instala e volta a abrir
+});
+
 app.whenReady().then(() => {
   createWindow();
   app.on('activate', () => {

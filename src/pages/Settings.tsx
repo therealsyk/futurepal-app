@@ -14,6 +14,8 @@ import { exportBackup, importBackup, parseExcelBuffer, commitExcelRows, type Bac
 import { AiSettings } from './AiSettings';
 import { loadAiConfig, isConfigured, getPreset } from '../core/ai';
 import { todayISO } from '../core/dates';
+import { APP_VERSION } from '../core/version';
+import { fullCheck, UPDATE_CHECK_EVENT } from '../ui/UpdateNotice';
 
 const LANGUAGES = [
   { code: 'pt-PT', label: 'Português (Portugal)' },
@@ -62,6 +64,22 @@ export function Settings() {
   const [params, setParams] = useSearchParams();
   const [aiOpen, setAiOpen] = useState(params.get('ai') === '1');
   const [ai, setAi] = useState(loadAiConfig());
+  const [updMsg, setUpdMsg] = useState('');
+  const [updBusy, setUpdBusy] = useState(false);
+  async function onCheckUpdates() {
+    setUpdBusy(true); setUpdMsg(t('updates.checking'));
+    try {
+      const r = await fullCheck();
+      if (r.status === 'available' || r.status === 'required') {
+        setUpdMsg(t('updates.availableTitle', { version: r.latest }));
+        window.dispatchEvent(new Event(UPDATE_CHECK_EVENT)); // mostra o aviso mesmo que tenha sido adiado
+      } else {
+        setUpdMsg(r.status === 'current' ? t('updates.upToDate') : t('updates.unknown'));
+      }
+    } finally {
+      setUpdBusy(false);
+    }
+  }
   const importRef = useRef<HTMLInputElement>(null);
   const excelRef = useRef<HTMLInputElement>(null);
 
@@ -208,6 +226,11 @@ export function Settings() {
       <h2 className="st-section">{t('ai.section')}</h2>
       <div className="st-group">
         <Row icon={I.spark} title={t('ai.rowTitle')} sub={aiOn ? `${getPreset(ai.provider)?.label ?? ai.provider} · ${ai.model}` : t('ai.rowSub')} onClick={() => setAiOpen(true)} testId="ai-row" />
+      </div>
+
+      <h2 className="st-section">{t('updates.about')}</h2>
+      <div className="st-group">
+        <Row icon={I.sync} title={t('updates.version', { version: APP_VERSION })} sub={updMsg || t('updates.checkSub')} onClick={updBusy ? undefined : onCheckUpdates} testId="check-updates" />
       </div>
 
       <h2 className="st-section">{t('settings2.data')}</h2>

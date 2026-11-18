@@ -7,5 +7,12 @@ files:
   - electron/**
   - package.json
 win:
-  target: portable
+  # Instalador (NSIS): é o único formato do Windows que se atualiza sozinho.
+  # O "publish" (para onde vão as versões novas) é passado pelo scripts/release.mjs a partir do release.config.json.
+  target: nsis
   icon: dist/favicon.ico
+  artifactName: Wallet-Setup-${version}.${ext}
+nsis:
+  oneClick: true
+  perMachine: false
+  deleteAppDataOnUninstall: false

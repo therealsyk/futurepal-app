@@ -1,0 +1,10 @@
+{
+  "github": {
+    "owner": "",
+    "repo": "wallet-releases"
+  },
+  "storeUrls": {
+    "android": "https://play.google.com/store/apps/details?id=com.rafael.wallet",
+    "ios": ""
+  }
+}

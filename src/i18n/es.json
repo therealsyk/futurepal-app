@@ -337,5 +337,25 @@
     "confirmText": "¿Seguro que quieres eliminar «{{name}}»?",
     "confirmGroupNote": "Las transacciones de este grupo se conservan; solo dejan de estar agrupadas.",
     "confirmRecurringNote": "Los movimientos ya creados por esta recurrencia se conservan."
+  },
+  "updates": {
+    "availableTitle": "Versión {{version}} disponible",
+    "availableText": "Tienes la versión {{current}}. Actualiza para tener las últimas mejoras.",
+    "requiredTitle": "Es necesario actualizar",
+    "requiredText": "La versión {{current}} ya no es compatible. Instala la {{version}} para continuar.",
+    "later": "Ahora no",
+    "openStore": "Actualizar en la tienda",
+    "download": "Descargar",
+    "downloadInstall": "Descargar e instalar",
+    "downloading": "Descargando… {{percent}}%",
+    "restart": "Reiniciar e instalar",
+    "error": "No se pudo descargar. Inténtalo más tarde.",
+    "noLink": "Esta actualización aún no tiene enlace de descarga.",
+    "about": "Acerca de",
+    "version": "Wallet {{version}}",
+    "checkSub": "Toca para buscar actualizaciones",
+    "checking": "Buscando actualizaciones…",
+    "upToDate": "Tienes la versión más reciente.",
+    "unknown": "No se pudo comprobar (sin internet o sin servidor)."
   }
 }

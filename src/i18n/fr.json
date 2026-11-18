@@ -337,5 +337,25 @@
     "confirmText": "Voulez-vous vraiment supprimer « {{name}} » ?",
     "confirmGroupNote": "Les transactions de ce groupe sont conservées ; elles ne sont simplement plus groupées.",
     "confirmRecurringNote": "Les opérations déjà créées par cette récurrence sont conservées."
+  },
+  "updates": {
+    "availableTitle": "Version {{version}} disponible",
+    "availableText": "Vous avez la version {{current}}. Mettez à jour pour profiter des dernières améliorations.",
+    "requiredTitle": "Mise à jour obligatoire",
+    "requiredText": "La version {{current}} n'est plus prise en charge. Installez la {{version}} pour continuer.",
+    "later": "Plus tard",
+    "openStore": "Mettre à jour (store)",
+    "download": "Télécharger",
+    "downloadInstall": "Télécharger et installer",
+    "downloading": "Téléchargement… {{percent}} %",
+    "restart": "Redémarrer et installer",
+    "error": "Téléchargement impossible. Réessayez plus tard.",
+    "noLink": "Cette mise à jour n'a pas encore de lien de téléchargement.",
+    "about": "À propos",
+    "version": "Wallet {{version}}",
+    "checkSub": "Touchez pour rechercher des mises à jour",
+    "checking": "Recherche de mises à jour…",
+    "upToDate": "Vous avez la dernière version.",
+    "unknown": "Vérification impossible (pas de connexion ou pas de serveur)."
   }
 }

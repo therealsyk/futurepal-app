@@ -3,6 +3,7 @@ import { Routes, Route, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Rail from './ui/Rail';
 import MobileNav from './ui/MobileNav';
+import { UpdateNotice } from './ui/UpdateNotice';
 import { Dashboard, Transactions, Budgets, Goals, Salaries, Categories } from './pages';
 import { Accounts } from './pages/Accounts';
 import { Overview } from './pages/Overview';
@@ -70,7 +71,12 @@ export default function App() {
   }, [settings.country]);
 
   if (!settings.country) {
-    return <SetupWizard onDone={(next) => { setTheme(next.theme); setSettings(next); }} />;
+    return (
+      <>
+        <SetupWizard onDone={(next) => { setTheme(next.theme); setSettings(next); }} />
+        <UpdateNotice />
+      </>
+    );
   }
 
   return (
@@ -94,6 +100,7 @@ export default function App() {
         </Routes>
       </main>
       <MobileNav />
+      <UpdateNotice />
       {toast && (
         <div className="mb-toast" role="status" onClick={() => setToast(false)}>
           <b>{t('onboard.doneTitle')}</b>

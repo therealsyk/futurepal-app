@@ -674,5 +674,25 @@
     "remove": "Remove key",
     "removed": "Key removed from this device.",
     "privacy": "When you use the assistant, the data you ask it to analyse is sent to the provider you chose."
+  },
+  "updates": {
+    "availableTitle": "Version {{version}} is available",
+    "availableText": "You're on {{current}}. Update to get the latest improvements.",
+    "requiredTitle": "Update required",
+    "requiredText": "Version {{current}} is no longer supported. Install {{version}} to continue.",
+    "later": "Not now",
+    "openStore": "Update in store",
+    "download": "Download",
+    "downloadInstall": "Download and install",
+    "downloading": "Downloading… {{percent}}%",
+    "restart": "Restart and install",
+    "error": "Couldn't download. Try again later.",
+    "noLink": "This update has no download link yet.",
+    "about": "About",
+    "version": "Wallet {{version}}",
+    "checkSub": "Tap to check for updates",
+    "checking": "Checking for updates…",
+    "upToDate": "You're on the latest version.",
+    "unknown": "Couldn't check (no internet or no server)."
   }
 }

@@ -1,0 +1,105 @@
+import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { getSupabase } from '../auth/supabase';
+import { checkForUpdate, desktopUpdater, dismiss, isDismissed, openExternal, type UpdateInfo } from '../core/updates';
+import { compareVersions } from '../core/version';
+
+// Aviso de atualização (banner) ou bloqueio (versão abaixo da mínima). Verifica ao abrir e de 6 em 6 horas.
+const EVERY_MS = 6 * 60 * 60 * 1000;
+export const UPDATE_CHECK_EVENT = 'wallet:update-check'; // as Definições pedem uma verificação manual
+
+type Phase = 'idle' | 'downloading' | 'ready' | 'error';
+
+/** Junta a tabela do Supabase com o atualizador nativo do Windows (GitHub Releases). */
+export async function fullCheck(): Promise<UpdateInfo> {
+  const info = await checkForUpdate(getSupabase());
+  const du = desktopUpdater();
+  if (info.platform === 'windows' && du?.supported) {
+    try {
+      const native = await du.check();
+      if (native && compareVersions(native.version, info.current) > 0 && info.status !== 'required') {
+        return { ...info, status: 'available', latest: native.version, notes: native.notes || info.notes };
+      }
+    } catch { /* sem internet ou sem releases: fica o resultado do Supabase */ }
+  }
+  return info;
+}
+
+export function UpdateNotice() {
+  const { t } = useTranslation();
+  const [info, setInfo] = useState<UpdateInfo | null>(null);
+  const [hidden, setHidden] = useState(false);
+  const [phase, setPhase] = useState<Phase>('idle');
+  const [percent, setPercent] = useState(0);
+
+  const run = useCallback(async (manual = false) => {
+    const r = await fullCheck();
+    setInfo(r);
+    setHidden(!manual && !!r.latest && r.status === 'available' && isDismissed(r.latest));
+  }, []);
+
+  useEffect(() => {
+    run().catch(() => {});
+    const id = setInterval(() => { run().catch(() => {}); }, EVERY_MS);
+    const onManual = () => { run(true).catch(() => {}); };
+    window.addEventListener(UPDATE_CHECK_EVENT, onManual);
+    return () => { clearInterval(id); window.removeEventListener(UPDATE_CHECK_EVENT, onManual); };
+  }, [run]);
+
+  if (!info || (info.status !== 'available' && info.status !== 'required') || (hidden && info.status === 'available')) return null;
+
+  const du = desktopUpdater();
+  const nativeWin = info.platform === 'windows' && du?.supported;
+
+  const update = async () => {
+    if (nativeWin && du) {
+      if (phase === 'ready') { du.install(); return; }
+      setPhase('downloading'); setPercent(0);
+      const off = du.onProgress((p) => setPercent(Math.round(p)));
+      try {
+        const ok = await du.download();
+        setPhase(ok ? 'ready' : 'error');
+      } catch {
+        setPhase('error');
+      } finally {
+        off();
+      }
+      return;
+    }
+    await openExternal(info.url || '');
+  };
+
+  const label = phase === 'downloading' ? t('updates.downloading', { percent })
+    : phase === 'ready' ? t('updates.restart')
+    : nativeWin ? t('updates.downloadInstall')
+    : info.platform === 'android' || info.platform === 'ios' ? t('updates.openStore')
+    : t('updates.download');
+  const canAct = phase !== 'downloading' && (nativeWin || !!info.url);
+  const body = (
+    <>
+      <div className="up-text">
+        <b>{info.status === 'required' ? t('updates.requiredTitle') : t('updates.availableTitle', { version: info.latest })}</b>
+        <span>{info.status === 'required' ? t('updates.requiredText', { version: info.latest, current: info.current }) : t('updates.availableText', { current: info.current })}</span>
+        {info.notes ? <small>{info.notes}</small> : null}
+        {phase === 'downloading' && <i className="up-bar" style={{ width: `${percent}%` }} />}
+        {phase === 'error' && <small className="up-err">{t('updates.error')}</small>}
+        {!canAct && phase !== 'downloading' && <small>{t('updates.noLink')}</small>}
+      </div>
+      <div className="up-actions">
+        {info.status === 'available' && phase === 'idle' && (
+          <button type="button" className="fx-btn" onClick={() => { if (info.latest) dismiss(info.latest); setHidden(true); }}>{t('updates.later')}</button>
+        )}
+        <button type="button" className="fx-btn primary" disabled={!canAct} onClick={update} data-testid="update-action">{label}</button>
+      </div>
+    </>
+  );
+
+  if (info.status === 'required') {
+    return (
+      <div className="up-block" role="alertdialog" aria-modal="true" aria-label={t('updates.requiredTitle')}>
+        <div className="up-card">{body}</div>
+      </div>
+    );
+  }
+  return <div className="up-banner" role="status" data-testid="update-banner">{body}</div>;
+}

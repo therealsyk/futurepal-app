@@ -678,5 +678,25 @@
     "remove": "Remover chave",
     "removed": "Chave removida deste aparelho.",
     "privacy": "Quando usares o assistente, os dados que lhe pedires para analisar são enviados ao fornecedor que escolheste."
+  },
+  "updates": {
+    "availableTitle": "Nova versão {{version}} disponível",
+    "availableText": "Tens a versão {{current}}. Atualiza para teres as últimas melhorias.",
+    "requiredTitle": "É preciso atualizar",
+    "requiredText": "A versão {{current}} já não é suportada. Instala a versão {{version}} para continuar.",
+    "later": "Agora não",
+    "openStore": "Atualizar na loja",
+    "download": "Descarregar",
+    "downloadInstall": "Descarregar e instalar",
+    "downloading": "A descarregar… {{percent}}%",
+    "restart": "Reiniciar e instalar",
+    "error": "Não foi possível descarregar. Tenta mais tarde.",
+    "noLink": "A atualização ainda não tem link de download.",
+    "about": "Sobre",
+    "version": "Wallet {{version}}",
+    "checkSub": "Toca para procurar atualizações",
+    "checking": "A procurar atualizações…",
+    "upToDate": "Tens a versão mais recente.",
+    "unknown": "Não foi possível verificar (sem internet ou sem servidor)."
   }
 }

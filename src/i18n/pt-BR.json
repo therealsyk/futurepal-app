@@ -536,5 +536,25 @@
     "savingsRate": "Taxa de poupança",
     "txCount": "{{count}} transações",
     "noTx": "Sem transações"
+  },
+  "updates": {
+    "availableTitle": "Nova versão {{version}} disponível",
+    "availableText": "Você está na versão {{current}}. Atualize para ter as últimas melhorias.",
+    "requiredTitle": "É preciso atualizar",
+    "requiredText": "A versão {{current}} não é mais suportada. Instale a versão {{version}} para continuar.",
+    "later": "Agora não",
+    "openStore": "Atualizar na loja",
+    "download": "Baixar",
+    "downloadInstall": "Baixar e instalar",
+    "downloading": "Baixando… {{percent}}%",
+    "restart": "Reiniciar e instalar",
+    "error": "Não foi possível baixar. Tente mais tarde.",
+    "noLink": "A atualização ainda não tem link de download.",
+    "about": "Sobre",
+    "version": "Wallet {{version}}",
+    "checkSub": "Toque para procurar atualizações",
+    "checking": "Procurando atualizações…",
+    "upToDate": "Você tem a versão mais recente.",
+    "unknown": "Não foi possível verificar (sem internet ou sem servidor)."
   }
 }
