@@ -1,6 +1,6 @@
 {
-  "appId": "com.plannest.app",
-  "appName": "Plannest",
+  "appId": "com.futurepal.app",
+  "appName": "FuturePal",
   "webDir": "dist",
   "backgroundColor": "#0a0a0d",
   "android": {

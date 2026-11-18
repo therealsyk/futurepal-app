@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>Plannest</string>
+        <string>FuturePal</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -70,10 +70,10 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>com.plannest.app</string>
+			<string>com.futurepal.app</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.plannest.app</string>
+				<string>com.futurepal.app</string>
 			</array>
 		</dict>
 	</array>

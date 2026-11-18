@@ -1,4 +1,4 @@
-package com.plannest.app;
+package com.futurepal.app;
 
 import com.getcapacitor.BridgeActivity;
 

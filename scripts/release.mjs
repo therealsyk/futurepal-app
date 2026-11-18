@@ -1,4 +1,4 @@
-// Lança uma versão nova da Plannest.
+// Lança uma versão nova da FuturePal.
 //
 //   node scripts/release.mjs <patch|minor|major|x.y.z> [--notes "O que mudou"] [--min x.y.z] [--skip-windows] [--skip-mobile]
 //
@@ -46,7 +46,7 @@ if (!has('--skip-windows')) {
   if (!owner) {
     console.log('\n[!] release.config.json sem "github.owner": o instalador foi criado em release/, mas as apps instaladas NÃO se vão atualizar sozinhas.');
   } else if (publish === 'never') {
-    console.log('\n[!] Sem GH_TOKEN: o instalador NÃO foi publicado. Carrega release/Plannest-Setup-' + version + '.exe e release/latest.yml');
+    console.log('\n[!] Sem GH_TOKEN: o instalador NÃO foi publicado. Carrega release/FuturePal-Setup-' + version + '.exe e release/latest.yml');
     console.log(`    numa release "v${version}" em https://github.com/${owner}/${repo}/releases/new (ou define GH_TOKEN e corre de novo).`);
   }
   if (owner) windowsUrl = `https://github.com/${owner}/${repo}/releases/latest`;

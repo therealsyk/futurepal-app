@@ -1,14 +1,14 @@
 // Login com Google, Facebook e Apple (Supabase Auth, fluxo PKCE).
 //   Browser  : redireciona para o fornecedor e volta à app (o supabase-js troca o ?code= pela sessão).
-//   Windows  : abre o browser do sistema; o fornecedor volta para plannest://auth-callback (registado pelo instalador).
-//   Telemóvel: abre um browser seguro (@capacitor/browser); volta para com.plannest.app://auth-callback.
+//   Windows  : abre o browser do sistema; o fornecedor volta para futurepal://auth-callback (registado pelo instalador).
+//   Telemóvel: abre um browser seguro (@capacitor/browser); volta para com.futurepal.app://auth-callback.
 // Cada fornecedor tem de estar ativo no painel do Supabase (ver LOGIN_SOCIAL.md).
 import { Capacitor } from '@capacitor/core';
 import { getSupabase } from './supabase';
 
 export type OAuthProvider = 'google' | 'facebook' | 'apple';
-export const DESKTOP_REDIRECT = 'plannest://auth-callback';
-export const MOBILE_REDIRECT = 'com.plannest.app://auth-callback';
+export const DESKTOP_REDIRECT = 'futurepal://auth-callback';
+export const MOBILE_REDIRECT = 'com.futurepal.app://auth-callback';
 
 interface AuthBridge {
   openExternal?: (url: string) => Promise<void>;
@@ -40,7 +40,7 @@ export async function signInWithProvider(provider: OAuthProvider): Promise<void>
   await Browser.open({ url: data.url, presentationStyle: 'popover' });
 }
 
-/** Recebe o link de volta (plannest://… ou com.plannest.app://…) e cria a sessão. */
+/** Recebe o link de volta (futurepal://… ou com.futurepal.app://…) e cria a sessão. */
 export async function completeOAuth(url: string): Promise<{ ok: boolean; error?: string }> {
   const sb = getSupabase();
   if (!sb) return { ok: false, error: 'not-configured' };

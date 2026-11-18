@@ -1,4 +1,4 @@
-# Plannest - Projeto
+# FuturePal - Projeto
 
 App de gestão financeira pessoal (desktop primeiro, iPhone depois). Adapta o estilo visual do vídeo MyFuturePlan ao layout de desktop (barra lateral), mantendo SPEC §7.
 

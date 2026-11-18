@@ -23,7 +23,7 @@ export default function TopBar() {
     <header className="topbar">
       <div className="brand">
         <span className="brand-mark">W</span>
-        <span className="brand-name">Plannest</span>
+        <span className="brand-name">FuturePal</span>
       </div>
       <nav className="topnav" aria-label="Main">
         {items.map((it) => (

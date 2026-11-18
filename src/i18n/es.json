@@ -14,7 +14,7 @@
     "theme_light": "Claro"
   },
   "common": {
-    "appName": "Plannest",
+    "appName": "FuturePal",
     "comingSoon": "Próximamente",
     "close": "Cerrar",
     "save": "Guardar",
@@ -187,7 +187,7 @@
     "excelError": "Error de importación: {{error}}"
   },
   "setup": {
-    "welcome": "Bienvenido a Plannest",
+    "welcome": "Bienvenido a FuturePal",
     "intro": "Configuemos tu idioma, país y moneda.",
     "language": "Idioma",
     "country": "País",
@@ -403,7 +403,7 @@
     "error": "No se pudo descargar. Inténtalo más tarde.",
     "noLink": "Esta actualización aún no tiene enlace de descarga.",
     "about": "Acerca de",
-    "version": "Plannest {{version}}",
+    "version": "FuturePal {{version}}",
     "checkSub": "Toca para buscar actualizaciones",
     "checking": "Buscando actualizaciones…",
     "upToDate": "Tienes la versión más reciente.",
@@ -475,7 +475,7 @@
   },
   "settings2": {
     "licenses": "Licencias de código abierto",
-    "licensesSub": "Bibliotecas que usa Plannest y sus licencias"
+    "licensesSub": "Bibliotecas que usa FuturePal y sus licencias"
   },
   "accountData": {
     "title": "Datos de este dispositivo",

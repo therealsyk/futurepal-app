@@ -16,7 +16,7 @@
     "accounts": "Contas"
   },
   "common": {
-    "appName": "Plannest",
+    "appName": "FuturePal",
     "comingSoon": "Em breve",
     "close": "Fechar",
     "save": "Salvar",
@@ -271,7 +271,7 @@
     "syncTitle": "Sincronização"
   },
   "setup": {
-    "welcome": "Bem-vindo ao Plannest",
+    "welcome": "Bem-vindo ao FuturePal",
     "intro": "Vamos configurar seu idioma, país e moeda.",
     "language": "Idioma",
     "country": "País",
@@ -602,7 +602,7 @@
     "error": "Não foi possível baixar. Tente mais tarde.",
     "noLink": "A atualização ainda não tem link de download.",
     "about": "Sobre",
-    "version": "Plannest {{version}}",
+    "version": "FuturePal {{version}}",
     "checkSub": "Toque para procurar atualizações",
     "checking": "Procurando atualizações…",
     "upToDate": "Você tem a versão mais recente.",
@@ -674,7 +674,7 @@
   },
   "settings2": {
     "licenses": "Licenças de código aberto",
-    "licensesSub": "Bibliotecas usadas pelo Plannest e suas licenças"
+    "licensesSub": "Bibliotecas usadas pelo FuturePal e suas licenças"
   },
   "accountData": {
     "title": "Dados deste aparelho",

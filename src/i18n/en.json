@@ -16,7 +16,7 @@
     "accounts": "Accounts"
   },
   "common": {
-    "appName": "Plannest",
+    "appName": "FuturePal",
     "comingSoon": "Coming soon",
     "close": "Close",
     "save": "Save",
@@ -271,7 +271,7 @@
     "syncTitle": "Sync"
   },
   "setup": {
-    "welcome": "Welcome to Plannest",
+    "welcome": "Welcome to FuturePal",
     "intro": "Let's set your language, country and currency.",
     "language": "Language",
     "country": "Country",
@@ -661,7 +661,7 @@
     "continue": "Continue",
     "start": "Get started",
     "haveAccount": "I already have an account",
-    "welcomeTitle": "Welcome to Plannest",
+    "welcomeTitle": "Welcome to FuturePal",
     "welcomeSub": "Track spending, income and goals on your computer and phone.",
     "languageHint": "App language",
     "countryHint": "Sets currency and date format",
@@ -708,7 +708,7 @@
     "goalTarget": "Target amount",
     "goalNameReq": "Give the goal a name.",
     "doneTitle": "You're all set!",
-    "doneSub": "You can start using Plannest now."
+    "doneSub": "You can start using FuturePal now."
   },
   "settings2": {
     "account": "Account",
@@ -725,13 +725,13 @@
     "exportSub": "Create a backup file",
     "importSub": "Restore a previous backup",
     "licenses": "Open-source licences",
-    "licensesSub": "Libraries used by Plannest and their licences"
+    "licensesSub": "Libraries used by FuturePal and their licences"
   },
   "ai": {
     "section": "AI",
     "rowTitle": "AI models",
     "rowSub": "Connect your own model (OpenAI, Claude, Gemini, local…)",
-    "intro": "Use your own API key. It's stored only on this device and never sent to Plannest's cloud.",
+    "intro": "Use your own API key. It's stored only on this device and never sent to FuturePal's cloud.",
     "enable": "Enable AI assistant",
     "enableHint": "Turn off to stop using AI without deleting the setup",
     "provider": "Provider",
@@ -769,7 +769,7 @@
     "error": "Couldn't download. Try again later.",
     "noLink": "This update has no download link yet.",
     "about": "About",
-    "version": "Plannest {{version}}",
+    "version": "FuturePal {{version}}",
     "checkSub": "Tap to check for updates",
     "checking": "Checking for updates…",
     "upToDate": "You're on the latest version.",
@@ -845,7 +845,7 @@
     "stepOf": "Step {{n}} of {{total}}",
     "back": "Back",
     "next": "Next",
-    "start": "Start using Plannest",
+    "start": "Start using FuturePal",
     "welcomeTitle": "Let's take a quick tour",
     "welcomeText": "We'll show you where everything is on Home. It takes less than a minute.",
     "monthTitle": "Your month at a glance",

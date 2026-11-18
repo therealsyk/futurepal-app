@@ -28,7 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: sub } = sb.auth.onAuthStateChange((_event, session) => {
       setState({ configured, ready: true, session, user: session?.user ?? null });
     });
-    // Login social no Windows/telemóvel: o fornecedor volta à app por um link (plannest://… / com.plannest.app://…).
+    // Login social no Windows/telemóvel: o fornecedor volta à app por um link (futurepal://… / com.futurepal.app://…).
     const stopOAuth = listenForOAuthCallbacks((msg) => { try { sessionStorage.setItem('wallet.oauthError', msg); } catch { /* sem storage */ } });
     return () => { alive = false; sub.subscription.unsubscribe(); stopOAuth(); };
   }, [configured]);

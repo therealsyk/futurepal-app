@@ -1,5 +1,5 @@
-appId: com.plannest.app
-productName: Plannest
+appId: com.futurepal.app
+productName: FuturePal
 directories:
   output: release
 files:
@@ -11,12 +11,12 @@ win:
   # O "publish" (para onde vão as versões novas) é passado pelo scripts/release.mjs a partir do release.config.json.
   target: nsis
   icon: dist/favicon.ico
-  artifactName: Plannest-Setup-${version}.${ext}
-# Liga plannest:// à app (volta do login com Google/Facebook/Apple).
+  artifactName: FuturePal-Setup-${version}.${ext}
+# Liga futurepal:// à app (volta do login com Google/Facebook/Apple).
 protocols:
-  - name: Plannest
+  - name: FuturePal
     schemes:
-      - plannest
+      - futurepal
 nsis:
   oneClick: true
   perMachine: false

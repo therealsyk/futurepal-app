@@ -46,7 +46,7 @@ export function currentPlatform(): Platform {
 }
 
 export const STORE_URLS: Partial<Record<Platform, string>> = {
-  android: 'https://play.google.com/store/apps/details?id=com.plannest.app',
+  android: 'https://play.google.com/store/apps/details?id=com.futurepal.app',
 };
 
 /** Decide o estado a partir da linha da tabela (função pura, testada). */

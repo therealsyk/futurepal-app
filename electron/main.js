@@ -14,7 +14,7 @@ function createWindow() {
     width: 1280,
     height: 800,
     minWidth: 360,
-    title: 'Plannest',
+    title: 'FuturePal',
     backgroundColor: '#0a0a0d',
     webPreferences: {
       preload: path.join(app.getAppPath(), 'electron', 'preload.js'),
@@ -108,8 +108,8 @@ ipcMain.on('wallet:update-install', () => {
 });
 
 // ---------------------------------------------------------------- login social (Google/Facebook/Apple)
-// O fornecedor devolve a pessoa a plannest://auth-callback?code=…; o Windows entrega esse link à app já aberta.
-const PROTOCOL = 'plannest';
+// O fornecedor devolve a pessoa a futurepal://auth-callback?code=…; o Windows entrega esse link à app já aberta.
+const PROTOCOL = 'futurepal';
 if (process.defaultApp && process.argv.length >= 2) {
   app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [path.resolve(process.argv[1])]); // em desenvolvimento
 } else {
