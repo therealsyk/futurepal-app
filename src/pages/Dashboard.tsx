@@ -441,9 +441,6 @@ export function Dashboard() {
   const asOf = periodEnd < todayStr ? periodEnd : todayStr;
   const txsAsOf = txs.filter((x) => x.date <= asOf);
   const transfersAsOf = transfers.filter((x) => x.date <= asOf);
-  const periodLabel = period === 'month'
-    ? cap(new Date(year, month - 1, 1).toLocaleDateString(lang, { month: 'long', year: 'numeric' }))
-    : String(year);
   const firstDataYear = txs.reduce((min, x) => Math.min(min, parseInt(x.date.slice(0, 4), 10) || min), now.getFullYear() - 5); // pelo menos 5 anos para trás
   const yearOptions = Array.from({ length: Math.max(year, now.getFullYear() + 1) - Math.min(firstDataYear, year) + 1 },
     (_, i) => Math.max(year, now.getFullYear() + 1) - i);
@@ -929,7 +926,6 @@ export function Dashboard() {
       <header className="fx-head">
         <div>
           <AccountBar />
-          <p data-testid="period-label">{period === 'month' ? t('panel.showingMonth', { period: periodLabel }) : t('panel.showingYear', { year })}</p>
         </div>
         <div className="fx-head-actions">
           <div className="fx-seg" role="group" aria-label={t('panel.period')}>

@@ -80,14 +80,14 @@ export function AccountBar() {
 
   return (
     <div className="ab" ref={ref}>
-      <button type="button" className="ab-bell" onClick={() => setOpen(open === 'bell' ? null : 'bell')} aria-label={t('acct.notifications')} aria-expanded={open === 'bell'}>
-        <Ic d={BELL} size={20} />
-        {notes.length > 0 && <i className="ab-dot" />}
-      </button>
       <button type="button" className="ab-chip" onClick={() => setOpen(open === 'menu' ? null : 'menu')} aria-haspopup="menu" aria-expanded={open === 'menu'}>
         {photo ? <img src={photo} alt="" referrerPolicy="no-referrer" /> : <span className="ab-initials">{name.slice(0, 2).toUpperCase()}</span>}
         <span className="ab-who"><b>{name}</b><small>{masked}</small></span>
         <Ic d={GEAR} size={18} />
+      </button>
+      <button type="button" className="ab-bell" onClick={() => setOpen(open === 'bell' ? null : 'bell')} aria-label={t('acct.notifications')} aria-expanded={open === 'bell'}>
+        <Ic d={BELL} size={20} />
+        {notes.length > 0 && <i className="ab-dot" />}
       </button>
 
       {open === 'bell' && (
