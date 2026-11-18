@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { loadSettings, saveSettings, setTheme } from '../core/settings';
 import type { AppSettings } from '../core/settings';
 
-// Barra lateral de ícones (estilo da referência Finity). O nome de cada
+// Barra lateral de ícones. O nome de cada
 // secção aparece como dica ao passar o rato ou ao focar com o teclado.
 
 const svg = (d: string) => (

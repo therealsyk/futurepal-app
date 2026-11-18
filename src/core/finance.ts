@@ -1,10 +1,10 @@
 import type { WalletDB, Transaction, Category, Budget, Goal, Recurring, Group } from '../db/database';
 import { stampNew } from '../db/database';
 import { assertCents } from './money';
-import { autoCategoryImage } from './category-images';
+import { CATALOG_ITEMS } from './categoryCatalog';
 import { monthEnd, todayISO } from './dates';
 
-export const MAX_ACTIVE_CATEGORIES = 12;
+export const MAX_ACTIVE_CATEGORIES = 100;
 
 const VALID_TYPES = new Set(['expense', 'income']);
 
@@ -47,19 +47,29 @@ export async function activeCategories(db: WalletDB): Promise<Category[]> {
 
 // SPEC §6.1/§6.3: default categories (nameKey + color). Seeded when the DB has none,
 // so Transações works even if the Setup Wizard was skipped. Pure/testable.
-export const DEFAULT_CATEGORY_DEFS = [
-  { nameKey: 'catSalary', color: '#4CAF50' },
-  { nameKey: 'catFood', color: '#FFB020' },
-  { nameKey: 'catTransport', color: '#3B82F6' },
-  { nameKey: 'catRent', color: '#8B5CF6' },
-  { nameKey: 'catHealth', color: '#EF4444' },
-  { nameKey: 'catAnimals', color: '#10B981' },
-  { nameKey: 'catShopping', color: '#F59E0B' },
-  { nameKey: 'catLeisure', color: '#6366F1' },
-  { nameKey: 'catOther', color: '#9CA3AF' },
-  { nameKey: 'catCar', color: '#0EA5E9' },
-  { nameKey: 'catClothes', color: '#EC4899' },
-];
+// Categorias padrão = todo o catálogo (grupos e ícones em core/categoryCatalog.ts).
+export const DEFAULT_CATEGORY_DEFS = CATALOG_ITEMS.map((i) => ({ nameKey: i.key, color: i.color, icon: i.icon, group: i.group }));
+
+// Instalações antigas: acrescenta as categorias do catálogo que ainda não existem (nem foram apagadas pela pessoa)
+// e preenche o grupo/ícone das que já existiam. Corre uma vez por aparelho (ver App.tsx).
+export async function addMissingCatalogCategories(db: WalletDB): Promise<number> {
+  return db.transaction('rw', db.categories, async () => {
+    const all = await db.categories.toArray();
+    const now = new Date().toISOString();
+    let order = all.reduce((m, c) => Math.max(m, c.order ?? 0), 0) + 1;
+    let added = 0;
+    for (const def of DEFAULT_CATEGORY_DEFS) {
+      const existing = all.filter((c) => c.nameKey === def.nameKey);
+      for (const c of existing) {
+        if (!c.group || !c.icon) await db.categories.put({ ...c, group: c.group || def.group, icon: c.icon || def.icon, updatedAt: now });
+      }
+      if (existing.length > 0) continue; // existe (ou foi apagada de propósito)
+      await db.categories.add(stampNew<Category>({ name: def.nameKey, color: def.color, icon: def.icon, group: def.group, order: order++, nameKey: def.nameKey }));
+      added++;
+    }
+    return added;
+  });
+}
 
 // Pode ser chamada de vários sítios ao mesmo tempo (App, setup, StrictMode): a verificação e a
 // criação correm dentro de UMA transação, por isso só a primeira chamada cria as categorias.
@@ -68,7 +78,7 @@ export async function ensureDefaultCategories(db: WalletDB): Promise<void> {
     const existing = await db.categories.filter((c) => c.deletedAt === null).count();
     if (existing > 0) return;
     await db.categories.bulkAdd(
-      DEFAULT_CATEGORY_DEFS.map((def, i) => stampNew<Category>({ image: autoCategoryImage(def.nameKey), name: def.nameKey, color: def.color, icon: '', order: i, nameKey: def.nameKey })),
+      DEFAULT_CATEGORY_DEFS.map((def, i) => stampNew<Category>({ name: def.nameKey, color: def.color, icon: def.icon, group: def.group, order: i, nameKey: def.nameKey })),
     );
   });
 }
@@ -77,7 +87,7 @@ export async function addCategory(db: WalletDB, input: Omit<Category, 'id' | 'cr
   const active = await activeCategories(db);
   if (active.length >= MAX_ACTIVE_CATEGORIES) throw new Error(`max ${MAX_ACTIVE_CATEGORIES} active categories`);
   // Auto-match a picture from the name when none is supplied.
-  const cat = stampNew<Category>({ image: autoCategoryImage(input.name), ...input });
+  const cat = stampNew<Category>({ ...input });
   await db.categories.add(cat);
   return cat;
 }

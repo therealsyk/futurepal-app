@@ -17,8 +17,12 @@ let client: SupabaseClient | null = null;
 export function getSupabase(): SupabaseClient | null {
   if (!hasSupabaseConfig()) return null;
   if (!client) {
+    // PKCE: o login social devolve um ?code= que é trocado pela sessão. No browser o supabase-js faz isso sozinho;
+    // no Windows/telemóvel faz-se em auth/oauth.ts quando chega o link de volta.
+    const inBrowser = typeof window !== 'undefined' && !(window as unknown as { __electronBridge?: unknown }).__electronBridge
+      && !(window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.();
     client = createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+      auth: { persistSession: true, autoRefreshToken: true, flowType: 'pkce', detectSessionInUrl: inBrowser },
     });
   }
   return client;
@@ -47,6 +51,14 @@ export async function signIn(email: string, password: string): Promise<User | nu
 export async function resetPassword(email: string): Promise<void> {
   const res = await need().auth.resetPasswordForEmail(email);
   if (res.error) throw res.error;
+}
+
+/** Apaga a conta da pessoa e todos os dados dela na nuvem (função delete_my_account no schema.sql). */
+export async function deleteMyAccount(): Promise<void> {
+  const sb = need();
+  const { error } = await sb.rpc('delete_my_account');
+  if (error) throw error;
+  await sb.auth.signOut();
 }
 
 export async function signOut(): Promise<void> {

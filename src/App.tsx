@@ -15,7 +15,7 @@ import { useIsMobile } from './ui/useIsMobile';
 import { DemoPage } from './ui/components';
 import SetupWizard, { ONBOARDED_FLAG } from './pages/SetupWizard';
 import { db } from './db/app-db';
-import { ensureDefaultCategories } from './core/finance';
+import { ensureDefaultCategories, addMissingCatalogCategories } from './core/finance';
 import { loadSettings, setTheme, type AppSettings } from './core/settings';
 import { useAuth } from './auth/AuthContext';
 import { getSupabase } from './auth/supabase';
@@ -30,8 +30,11 @@ export default function App() {
   const [toast, setToast] = useState(false);
   const isMobile = useIsMobile();
 
+  // Categorias padrão (instalação nova) e as do catálogo que faltem (instalações antigas).
+  // As páginas só aparecem depois disto, para nenhuma abrir com a lista de categorias vazia.
+  const [catsReady, setCatsReady] = useState(false);
   useEffect(() => {
-    ensureDefaultCategories(db).catch(() => {});
+    ensureDefaultCategories(db).then(() => addMissingCatalogCategories(db)).catch(() => {}).finally(() => setCatsReady(true));
   }, []);
 
   // Cada mudança das definições (saveSettings) é copiada para a tabela sincronizada.
@@ -78,6 +81,8 @@ export default function App() {
       </>
     );
   }
+
+  if (!catsReady) return <div className="app-shell" aria-busy="true" />;
 
   return (
     <div className="app-shell">

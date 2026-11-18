@@ -7,7 +7,7 @@ import { softDelete, addGoal, contributeToGoal, listGoals, estimateGoalCompletio
 import { accountBalanceCents, salariesUntil, loadTransfers } from '../core/accounts';
 import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
-import { catLabel, PageHead, Sheet, Field, Toggle, EmptyState, Ic, ICON, useAccounts } from '../ui/fx';
+import { PageHead, Sheet, Field, Toggle, EmptyState, Ic, ICON, useAccounts, CategorySelect } from '../ui/fx';
 import { todayISO } from '../core/dates';
 
 function Ring({ pct, size = 92 }: { pct: number; size?: number }) {
@@ -176,7 +176,7 @@ export function Goals() {
           <div className="fx-form-grid">
             <input className="fx-input" placeholder={t('transactions.description')} value={rDesc} onChange={(e) => setRDesc(e.target.value)} aria-label={t('transactions.description')} />
             <input className="fx-input" inputMode="decimal" placeholder={t('goals.amount')} value={rAmount} onChange={(e) => setRAmount(e.target.value)} aria-label={t('goals.amount')} />
-            <select className="fx-input" value={rCat} onChange={(e) => setRCat(e.target.value)} aria-label={t('transactions.category')}>{cats.map((c) => <option key={c.id} value={c.id}>{catLabel(t, c)}</option>)}</select>
+            <CategorySelect cats={cats} value={rCat} onChange={setRCat} ariaLabel={t('transactions.category')} />
             <select className="fx-input" value={rFreq} onChange={(e) => setRFreq(e.target.value as Recurring['frequency'])} aria-label={t('goals.frequency')}>
               {RECURRING_FREQUENCIES.map((f) => <option key={f} value={f}>{t('goals.' + f)}</option>)}
             </select>

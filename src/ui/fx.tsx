@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
-import type { Account } from '../db/database';
+import type { Account, Category } from '../db/database';
+import { catalogItem, groupOf, iconPathOf, GROUP_ORDER } from '../core/categoryCatalog';
 import {
   ALL_ACCOUNTS, getActiveAccountId, setActiveAccountId, listAccounts, ensureDefaultAccount,
 } from '../core/accounts';
@@ -154,6 +155,90 @@ export function useAccounts() {
   useEffect(() => { refresh().catch(() => {}); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
   const setActive = (id: string) => { setActiveAccountId(id); setActiveState(id); };
   return { accounts, active, setActive, refresh };
+}
+
+// Ícone redondo de uma categoria (cor do grupo + ícone do catálogo; ou a imagem própria, se a pessoa a escolheu).
+export function CatIcon({ cat, size = 40 }: { cat: { icon?: string; nameKey?: string; image?: string; color?: string; group?: string }; size?: number }) {
+  if (cat.image && cat.image.startsWith('data:')) {
+    return <img className="fx-caticon img" src={cat.image} alt="" style={{ width: size, height: size }} />;
+  }
+  const color = cat.color || catalogItem(cat.nameKey)?.color || 'var(--accent)';
+  return (
+    <span className="fx-caticon" style={{ width: size, height: size, background: `color-mix(in srgb, ${color} 22%, var(--card-2))`, color }} aria-hidden="true">
+      <Ic d={iconPathOf(cat)} size={Math.round(size * 0.5)} />
+    </span>
+  );
+}
+
+// <select> de categorias agrupado (com 60+ categorias, a lista fica legível por grupos).
+type CatLike = Pick<Category, 'id' | 'name'> & { nameKey?: string; group?: string };
+export function CategorySelect({ cats, value, onChange, className = 'fx-input', ariaLabel, emptyLabel, optionValue }: {
+  cats: CatLike[]; value: string; onChange: (v: string) => void; className?: string; ariaLabel?: string; emptyLabel?: string;
+  optionValue?: (c: CatLike) => string;
+}) {
+  const { t } = useTranslation();
+  const val = optionValue ?? ((c: CatLike) => c.id);
+  const groups = GROUP_ORDER.map((g) => ({ g, items: cats.filter((c) => groupOf(c) === g).sort((a, b) => catLabel(t, a).localeCompare(catLabel(t, b))) }))
+    .filter((x) => x.items.length > 0);
+  return (
+    <select className={className} value={value} onChange={(e) => onChange(e.target.value)} aria-label={ariaLabel}>
+      {emptyLabel !== undefined && <option value="">{emptyLabel}</option>}
+      {groups.map(({ g, items }) => (
+        <optgroup key={g} label={t('categoryGroups.' + g)}>
+          {items.map((c) => <option key={c.id} value={val(c)}>{catLabel(t, c)}</option>)}
+        </optgroup>
+      ))}
+    </select>
+  );
+}
+
+// Menu de escolha com o mesmo visual do seletor de contas (substitui o <select> nativo, que abre com o estilo do sistema).
+export function PickMenu<T extends string | number>({ value, options, onChange, label, testId, compact }: {
+  value: T; options: Array<{ value: T; label: string; sub?: string }>; onChange: (v: T) => void; label: string; testId?: string; compact?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    // a opção escolhida fica visível e com foco (útil numa lista de 12 meses)
+    const cur = listRef.current?.querySelector<HTMLButtonElement>('button.on') ?? listRef.current?.querySelector<HTMLButtonElement>('button');
+    cur?.scrollIntoView({ block: 'nearest' });
+    cur?.focus();
+    return () => document.removeEventListener('mousedown', h);
+  }, [open]);
+  const current = options.find((o) => o.value === value);
+  const pick = (v: T) => { onChange(v); setOpen(false); };
+  const onKey = (e: ReactKeyboardEvent) => {
+    const items = Array.from(listRef.current?.querySelectorAll<HTMLButtonElement>('button') ?? []);
+    const i = items.indexOf(document.activeElement as HTMLButtonElement);
+    if (e.key === 'Escape') { setOpen(false); (ref.current?.querySelector('button') as HTMLButtonElement | null)?.focus(); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); items[Math.min(items.length - 1, i + 1)]?.focus(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); items[Math.max(0, i - 1)]?.focus(); }
+    else if (e.key === 'Home') { e.preventDefault(); items[0]?.focus(); }
+    else if (e.key === 'End') { e.preventDefault(); items[items.length - 1]?.focus(); }
+  };
+  return (
+    <div className={'fx-switch fx-pick' + (compact ? ' compact' : '')} ref={ref} onKeyDown={open ? onKey : undefined}>
+      <button type="button" className="fx-btn" aria-haspopup="listbox" aria-expanded={open} aria-label={`${label}: ${current?.label ?? ''}`}
+        onClick={() => setOpen(!open)} data-testid={testId}>
+        <span className="fx-switch-name">{current?.label ?? ''}</span>
+        <Ic d={ICON.down} size={14} />
+      </button>
+      {open && (
+        <div className="fx-menu fx-pick-menu" role="listbox" aria-label={label} ref={listRef}>
+          {options.map((o) => (
+            <button key={String(o.value)} type="button" role="option" aria-selected={o.value === value} className={o.value === value ? 'on' : ''} onClick={() => pick(o.value)}>
+              <span>{o.label}</span>
+              {o.sub ? <small>{o.sub}</small> : null}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function AccountSwitch({ accounts, active, onChange, money }: { accounts: Account[]; active: string; onChange: (id: string) => void; money?: (a: Account) => string }) {

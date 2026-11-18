@@ -40,9 +40,10 @@ export interface Category extends BaseRecord {
   name: string;
   color: string;
   icon: string;
-  order: number; // max 12 active (validated in core)
+  order: number;
   nameKey?: string; // i18n key for default names (translated with t() when shown)
-  image?: string; // URL or data-URI of the category picture (auto-matched from name if absent)
+  image?: string; // imagem própria (data-URI) escolhida pela pessoa; sem ela mostra-se o ícone
+  group?: string; // grupo do catálogo (housing, food…) ou 'custom'
 }
 
 export interface Transaction extends BaseRecord {

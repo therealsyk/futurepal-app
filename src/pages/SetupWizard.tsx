@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { COUNTRIES, countryName } from '../core/locale';
 import { formatMoney } from '../core/money';
@@ -13,7 +13,8 @@ import { mirrorSettings } from '../core/settingsSync';
 import { getSupabase, hasSupabaseConfig } from '../auth/supabase';
 import { runSync } from '../sync/runSync';
 import { LoginForm } from './Login';
-import { Ic, ICON, Sheet, Seg, catLabel } from '../ui/fx';
+import { useAuth } from '../auth/AuthContext';
+import { Ic, ICON, Sheet, Seg, catLabel, CategorySelect } from '../ui/fx';
 import { todayISO } from '../core/dates';
 
 // Primeira utilização, um passo por ecrã (como numa app de telemóvel):
@@ -42,6 +43,13 @@ export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings
   const [currency, setCurrency] = useState(initial.currency || 'EUR');
   const [signedIn, setSignedIn] = useState(false);
   const [syncNote, setSyncNote] = useState('');
+  const auth = useAuth();
+  const loginHandled = useRef(false); // o login (formulário ou social) só é tratado uma vez
+  // Login social (Google/Facebook/Apple): acaba fora da app; quando a sessão chega, o setup continua sozinho.
+  useEffect(() => {
+    if (step === 'auth' && auth.user && !signedIn && !syncNote) afterLogin().catch(() => setStep('currency'));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth.user?.id, step]);
 
   useEffect(() => { ensureDefaultCategories(db).catch(() => {}); }, []);
 
@@ -92,6 +100,8 @@ export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings
 
   // Depois de entrar: traz os dados da nuvem. Se a conta já foi configurada noutro aparelho, salta o resto.
   async function afterLogin() {
+    if (loginHandled.current) return;
+    loginHandled.current = true;
     setSignedIn(true);
     const sb = getSupabase();
     if (sb) {
@@ -336,13 +346,7 @@ function TransactionsStep({ currency, language }: { currency: string; language: 
           options={[{ id: 'expense', label: t('onboard.expense') }, { id: 'income', label: t('onboard.income') }]} />
         <input className="ob-amount center" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0,00" aria-label={t('onboard.amount')} autoFocus />
         <input className="fx-input" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder={t('onboard.txDescPh')} aria-label={t('onboard.txDescPh')} />
-        <div className="ob-chips" role="radiogroup" aria-label={t('onboard.category')}>
-          {cats.map((c) => (
-            <button key={c.id} type="button" role="radio" aria-checked={catId === c.id} className={'ob-chip' + (catId === c.id ? ' on' : '')} onClick={() => setCatId(c.id)}>
-              <i style={{ background: c.color }} />{catLabel(t, c)}
-            </button>
-          ))}
-        </div>
+        <CategorySelect cats={cats} value={catId} onChange={setCatId} ariaLabel={t('onboard.category')} />
         {error && <p className="ob-error" role="alert">{error}</p>}
       </Sheet>
     </div>

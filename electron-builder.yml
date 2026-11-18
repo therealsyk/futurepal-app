@@ -12,6 +12,11 @@ win:
   target: nsis
   icon: dist/favicon.ico
   artifactName: Wallet-Setup-${version}.${ext}
+# Liga wallet:// à app (volta do login com Google/Facebook/Apple).
+protocols:
+  - name: Wallet
+    schemes:
+      - wallet
 nsis:
   oneClick: true
   perMachine: false

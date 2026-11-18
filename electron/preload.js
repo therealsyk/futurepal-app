@@ -6,6 +6,14 @@ contextBridge.exposeInMainWorld('__electronBridge', {
   version: process.versions.electron,
   // Pedidos HTTP feitos pelo processo principal (sem CORS): usado pela ligação à IA.
   httpRequest: (req) => ipcRenderer.invoke('wallet:http', req),
+  // Login social: abrir o fornecedor no browser do sistema e receber o link de volta (wallet://auth-callback).
+  openExternal: (url) => ipcRenderer.invoke('wallet:open-external', url),
+  onAuthCallback: (cb) => {
+    const h = (_e, url) => cb(url);
+    ipcRenderer.on('wallet:auth-callback', h);
+    ipcRenderer.send('wallet:auth-ready'); // entrega um link que tenha aberto a app
+    return () => ipcRenderer.removeListener('wallet:auth-callback', h);
+  },
   // Atualizações automáticas (ver main.js). supported=false no .exe portátil e em desenvolvimento.
   updates: {
     supported: ipcRenderer.sendSync('wallet:update-supported'),

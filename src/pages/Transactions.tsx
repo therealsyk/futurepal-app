@@ -7,7 +7,7 @@ import { addTransaction, addRecurring, materializeDueRecurrings, RECURRING_FREQU
 import { txsOfAccount, defaultAccountId, ALL_ACCOUNTS, loadTransfers, removeTransfer } from '../core/accounts';
 import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
-import { catLabel, PageHead, Seg, Sheet, Toggle, Field, MonthNav, EmptyState, AccountSwitch, Ic, ICON, useAccounts } from '../ui/fx';
+import { catLabel, PageHead, Seg, Sheet, Toggle, Field, MonthNav, EmptyState, AccountSwitch, Ic, ICON, useAccounts, CategorySelect, CatIcon } from '../ui/fx';
 import { todayISO } from '../core/dates';
 
 const COLORS = ['#8b7cf6', '#5fd4c4', '#e58fd3', '#f5b85a', '#60a5fa', '#4ade9b', '#f87171'];
@@ -145,10 +145,7 @@ export function Transactions() {
         <MonthNav label={`${monthNames[month - 1]} ${year}`} onPrev={() => shift(-1)} onNext={() => shift(1)} />
         <Seg value={kind} onChange={setKind} label={t('transactions.type')}
           options={[{ id: 'all', label: t('transactions.all') }, { id: 'expense', label: t('transactions.typeExpense') }, { id: 'income', label: t('transactions.typeIncome') }]} />
-        <select className="fx-input pill" aria-label={t('transactions.filterCategory')} value={filterCat} onChange={(e) => setFilterCat(e.target.value)}>
-          <option value="">{t('transactions.allCategories')}</option>
-          {cats.map((c) => <option key={c.id} value={c.id}>{catLabel(t, c)}</option>)}
-        </select>
+        <CategorySelect className="fx-input pill" ariaLabel={t('transactions.filterCategory')} cats={cats} value={filterCat} onChange={setFilterCat} emptyLabel={t('transactions.allCategories')} />
         <div className="fx-search"><Ic d={ICON.search} size={16} /><input value={filterText} placeholder={t('transactions.search')} onChange={(e) => setFilterText(e.target.value)} aria-label={t('transactions.search')} /></div>
       </div>
 
@@ -168,7 +165,7 @@ export function Transactions() {
                     const color = c?.color || COLORS[0];
                     return (
                       <div className="fx-item" key={x.id}>
-                        <div className="fx-avatar" style={{ background: color, color: '#fff' }}>{(c ? catLabel(t, c) : '?').charAt(0).toUpperCase()}</div>
+                        {c ? <CatIcon cat={c} size={36} /> : <div className="fx-avatar" style={{ background: color, color: '#fff' }}>?</div>}
                         <div className="fx-item-main"><b>{x.description || (c ? catLabel(t, c) : '')}</b><span>{c ? catLabel(t, c) : ''}{x.groupId ? ' · ' + (groups.find((g) => g.id === x.groupId)?.name ?? '') : ''}</span></div>
                         <span className={'fx-num ' + (x.type === 'income' ? 'fx-pos' : '')}>{x.type === 'income' ? '+' : '−'}{money(x.amountCents, x.currency)}</span>
                         <button type="button" className="fx-round sm" onClick={() => remove(x.id)} aria-label={t('common.delete')}><Ic d={ICON.trash} size={15} /></button>
@@ -202,7 +199,7 @@ export function Transactions() {
         <Field label={t('transactions.description')}><input className="fx-input" value={description} placeholder={t('transactions.descriptionPlaceholder')} onChange={(e) => setDescription(e.target.value)} /></Field>
         <div className="fx-two">
           <Field label={t('transactions.category')}>
-            <select className="fx-input" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>{cats.map((c) => <option key={c.id} value={c.id}>{catLabel(t, c)}</option>)}</select>
+            <CategorySelect cats={cats} value={categoryId} onChange={setCategoryId} ariaLabel={t('transactions.category')} />
           </Field>
           <Field label={t('transactions.date')}><input className="fx-input" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
         </div>

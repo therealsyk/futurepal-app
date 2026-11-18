@@ -1,7 +1,7 @@
 {
   "github": {
-    "owner": "",
-    "repo": "wallet-releases"
+    "owner": "therealsyk",
+    "repo": "wallet"
   },
   "storeUrls": {
     "android": "https://play.google.com/store/apps/details?id=com.rafael.wallet",

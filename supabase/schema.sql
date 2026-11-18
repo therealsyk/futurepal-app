@@ -149,6 +149,7 @@ create table if not exists public.groups (
 
 -- Projetos criados com a versão antiga deste ficheiro: acrescenta as colunas novas.
 alter table public.categories add column if not exists image text;
+alter table public.categories add column if not exists group_name text;
 alter table public.transactions add column if not exists account_id text;
 alter table public.goals add column if not exists notes text;
 alter table public.goals add column if not exists account_ids jsonb;
@@ -200,3 +201,21 @@ insert into public.app_versions (platform, latest_version, download_url) values
   ('android', '0.1.0', 'https://play.google.com/store/apps/details?id=com.rafael.wallet'),
   ('ios',     '0.1.0', '')
 on conflict (platform) do nothing;
+
+-- ---------------------------------------------------------------- apagar a própria conta (exigido pela Google Play e App Store)
+-- Só apaga a conta de quem a chama (auth.uid()); as tabelas acima têm "on delete cascade", por isso os dados vão junto.
+create or replace function public.delete_my_account()
+returns void
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'not authenticated';
+  end if;
+  delete from auth.users where id = auth.uid();
+end;
+$$;
+revoke all on function public.delete_my_account() from public, anon;
+grant execute on function public.delete_my_account() to authenticated;

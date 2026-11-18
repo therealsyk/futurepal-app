@@ -123,18 +123,38 @@ export async function listModels(cfg: AiConfig): Promise<string[]> {
   return ids.length ? Array.from(new Set<string>(ids)).sort() : (p?.models ?? []);
 }
 
-export interface ChatMessage { role: 'system' | 'user' | 'assistant'; content: string }
+// Conteúdo: texto simples, ou partes (texto + imagem) para modelos com visão.
+export type ContentPart = { type: 'text'; text: string } | { type: 'image'; dataUrl: string };
+export interface ChatMessage { role: 'system' | 'user' | 'assistant'; content: string | ContentPart[] }
+
+const textOf = (c: ChatMessage['content']) => (typeof c === 'string' ? c : c.filter((p) => p.type === 'text').map((p) => (p as { text: string }).text).join('\n'));
+
+function toOpenAI(m: ChatMessage) {
+  if (typeof m.content === 'string') return m;
+  return { role: m.role, content: m.content.map((p) => (p.type === 'text' ? { type: 'text', text: p.text } : { type: 'image_url', image_url: { url: p.dataUrl } })) };
+}
+function toAnthropic(m: ChatMessage) {
+  if (typeof m.content === 'string') return m;
+  return {
+    role: m.role,
+    content: m.content.map((p) => {
+      if (p.type === 'text') return { type: 'text', text: p.text };
+      const [, mediaType = 'image/png', data = ''] = /^data:([^;]+);base64,(.*)$/.exec(p.dataUrl) ?? [];
+      return { type: 'image', source: { type: 'base64', media_type: mediaType, data } };
+    }),
+  };
+}
 
 export async function chat(cfg: AiConfig, messages: ChatMessage[], maxTokens = 800): Promise<string> {
   const p = getPreset(cfg.provider);
   if (p?.kind === 'anthropic') {
-    const system = messages.filter((m) => m.role === 'system').map((m) => m.content).join('\n\n');
-    const rest = messages.filter((m) => m.role !== 'system');
+    const system = messages.filter((m) => m.role === 'system').map((m) => textOf(m.content)).join('\n\n');
+    const rest = messages.filter((m) => m.role !== 'system').map(toAnthropic);
     const r = await request(root(cfg) + '/messages', 'POST', headers(cfg), { model: cfg.model, max_tokens: maxTokens, system: system || undefined, messages: rest });
     if (r.status < 200 || r.status >= 300) throw new Error(errorText(r.status, r.json, r.text));
     return (r.json?.content ?? []).filter((b: any) => b.type === 'text').map((b: any) => b.text).join('');
   }
-  const r = await request(root(cfg) + '/chat/completions', 'POST', headers(cfg), { model: cfg.model, messages, max_tokens: maxTokens });
+  const r = await request(root(cfg) + '/chat/completions', 'POST', headers(cfg), { model: cfg.model, messages: messages.map(toOpenAI), max_tokens: maxTokens });
   if (r.status < 200 || r.status >= 300) throw new Error(errorText(r.status, r.json, r.text));
   return String(r.json?.choices?.[0]?.message?.content ?? '');
 }

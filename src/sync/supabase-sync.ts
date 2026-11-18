@@ -7,7 +7,7 @@ import { changedSince, applyRemote, type SyncableRow, type SyncTable } from '../
 // Local (camelCase) <-> remote (snake_case) field maps, mirroring supabase/schema.sql.
 const FIELD_MAP: Record<SyncTable, Record<string, string>> = {
   settings: { language: 'language', country: 'country', mainCurrency: 'main_currency', firstDayOfWeek: 'first_day_of_week', dateFormat: 'date_format', theme: 'theme', setupDone: 'setup_done' },
-  categories: { name: 'name', color: 'color', icon: 'icon', order: 'order', nameKey: 'name_key', image: 'image' },
+  categories: { name: 'name', color: 'color', icon: 'icon', order: 'order', nameKey: 'name_key', image: 'image', group: 'group_name' },
   transactions: { date: 'date', type: 'type', categoryId: 'category_id', description: 'description', amountCents: 'amount_cents', currency: 'currency', groupId: 'group_id', recurringId: 'recurring_id', accountId: 'account_id' },
   salaries: { year: 'year', month: 'month', amountCents: 'amount_cents' },
   budgets: { categoryId: 'category_id', limitCents: 'limit_cents', period: 'period', year: 'year', month: 'month' },

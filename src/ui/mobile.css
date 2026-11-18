@@ -1,5 +1,5 @@
 /* Wallet — setup (ob-*), definições (st-*), IA (ai-*) e layout de telemóvel (mb-*).
-   Carregado depois de finity.css. O verde é o tom de "ação" das referências mobile. */
+   Carregado depois de finity.css. O verde é o tom de "ação" da app no telemóvel. */
 
 :root {
   --go: #1fb867;
@@ -347,3 +347,81 @@ html[data-theme="light"] .mh-badge.debt { color: #8a1f1f; background: #fbe0e0; }
   .up-banner { left: 14px; right: 14px; width: auto; bottom: calc(96px + var(--safe-b)); }
 }
 @media (prefers-reduced-motion: reduce) { .up-banner { animation: none; } .up-bar { transition: none; } }
+
+/* menus de escolha (mês/ano) com o visual do seletor de contas */
+.fx-pick.compact > .fx-btn { min-height: 34px; padding: 6px 12px; border: 0; background: transparent; gap: 8px; }
+.fx-pick.compact > .fx-btn:hover { background: var(--card-2); }
+.fx-pick-menu { left: 0; right: auto; min-width: 180px; max-height: min(360px, 60vh); overflow-y: auto; overscroll-behavior: contain; }
+.fx-pick-menu button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+@media (max-width: 768px) {
+  .fx-periodnav .fx-pick { flex: 1; min-width: 0; }
+  .fx-periodnav .fx-pick > .fx-btn { width: 100%; justify-content: space-between; }
+  .fx-pick-menu { min-width: 100%; }
+}
+
+/* ---------------------------------------------------------------- categorias (grupos com ícones, como a referência) */
+.fx-caticon { display: inline-grid; place-items: center; flex: none; border-radius: 50%; }
+.fx-caticon.img { object-fit: cover; }
+.ct-search { margin: 4px 0 6px; max-width: 520px; }
+.ct-section h2 { margin: 22px 2px 12px; font-size: 19px; font-weight: 700; color: var(--blue-link); }
+.ct-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 14px 8px; }
+.ct-tile { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 8px 4px; border: 0; border-radius: 16px; background: transparent; color: var(--text); font: inherit; font-size: 13.5px; text-align: center; cursor: pointer; }
+.ct-tile:hover { background: var(--card); }
+.ct-tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ct-tile.add { color: var(--muted); }
+.ct-add { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; border: 2px dashed color-mix(in srgb, var(--muted) 45%, transparent); background: var(--card-2); }
+.ct-preview { display: flex; align-items: center; gap: 14px; margin-bottom: 4px; }
+.ct-preview .fx-input { flex: 1; }
+.ct-icons { display: grid; grid-template-columns: repeat(auto-fill, minmax(42px, 1fr)); gap: 6px; max-height: 190px; overflow-y: auto; padding: 2px; }
+.ct-icons button { display: grid; place-items: center; height: 42px; border-radius: 12px; border: 1px solid var(--border); background: var(--card-2); color: var(--text); cursor: pointer; }
+.ct-icons button.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, var(--card-2)); }
+@media (max-width: 768px) { .ct-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } .ct-tile { font-size: 12.5px; } }
+
+/* login social */
+.ob-social { display: flex; flex-direction: column; gap: 10px; margin-bottom: 4px; }
+.ob-social-btn {
+  display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 50px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--card); color: var(--text); font: inherit; font-size: 15.5px; font-weight: 600; cursor: pointer;
+}
+.ob-social-btn:hover:not(:disabled) { background: var(--card-2); }
+.ob-social-btn:disabled { opacity: .55; cursor: not-allowed; }
+.ob-social-btn:focus-visible { outline: 2px solid var(--blue-link); outline-offset: 2px; }
+.ob-or { display: flex; align-items: center; gap: 12px; margin: 8px 0 12px; color: var(--muted); font-size: 13px; }
+.ob-or::before, .ob-or::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* ---------------------------------------------------------------- importar extrato */
+.im-pick { display: flex; flex-direction: column; gap: 12px; }
+.im-drop { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 34px 16px; border-radius: 20px; border: 2px dashed color-mix(in srgb, var(--muted) 40%, transparent); background: var(--card-2); color: var(--text); font: inherit; cursor: pointer; }
+.im-drop:hover:not(:disabled) { border-color: var(--accent); }
+.im-drop span { color: var(--muted); font-size: 13px; }
+.im-tips { margin: 0; padding-left: 18px; color: var(--muted); font-size: 13px; display: grid; gap: 4px; }
+.im-review { display: flex; flex-direction: column; gap: 10px; }
+.im-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 13.5px; }
+.im-acc { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); }
+.im-note { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border-radius: 14px; background: color-mix(in srgb, var(--amber) 12%, var(--card-2)); font-size: 13px; }
+.im-table { max-height: 52vh; overflow: auto; border: 1px solid var(--border); border-radius: 14px; }
+.im-row { display: grid; grid-template-columns: 34px 92px minmax(140px, 1fr) 170px 96px 110px; align-items: center; gap: 8px; padding: 6px 10px; border-top: 1px solid var(--border); font-size: 13px; }
+.im-row.head { position: sticky; top: 0; z-index: 1; border-top: 0; background: var(--card); color: var(--muted); font-size: 12px; }
+.im-row.off { opacity: .45; }
+.im-row .num { text-align: right; font-variant-numeric: tabular-nums; }
+.im-row select { padding: 6px 8px; font-size: 12.5px; }
+.im-desc { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.im-desc em { margin-left: 6px; padding: 1px 6px; border-radius: 6px; background: var(--card-2); color: var(--amber); font-style: normal; font-size: 11px; }
+.im-date { color: var(--muted); font-variant-numeric: tabular-nums; }
+.im-type { border: 0; border-radius: 99px; padding: 4px 10px; font: inherit; font-size: 12px; cursor: pointer; background: var(--card-2); color: var(--text); }
+.im-type.income { background: color-mix(in srgb, var(--green) 18%, var(--card-2)); color: var(--green); }
+.im-foot { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.im-done { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 28px 10px; text-align: center; }
+.im-done-ic { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: color-mix(in srgb, var(--green) 18%, transparent); color: var(--green); }
+@media (max-width: 768px) {
+  .im-row { grid-template-columns: 28px 1fr auto; grid-template-areas: "c d n" "c t t" "c k y"; }
+  .im-row.head { display: none; }
+  .im-row > :nth-child(1) { grid-area: c; } .im-row > :nth-child(2) { grid-area: k; } .im-row > :nth-child(3) { grid-area: d; }
+  .im-row > :nth-child(4) { grid-area: t; } .im-row > :nth-child(5) { grid-area: y; justify-self: end; } .im-row > :nth-child(6) { grid-area: n; }
+}
+
+/* apagar conta / dados */
+.st-danger-link { display: block; margin: 0 auto 20px; border: 0; background: none; color: var(--red); font: inherit; font-size: 14px; text-decoration: underline; cursor: pointer; }
+.dz p { margin: 0 0 12px; line-height: 1.5; }
+.dz-check { display: flex; align-items: center; gap: 8px; margin: 6px 0 4px; font-size: 14px; }
+.st-notices { white-space: pre-wrap; font-size: 11.5px; line-height: 1.45; max-height: 60vh; overflow: auto; margin: 0; color: var(--muted); }

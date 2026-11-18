@@ -123,7 +123,7 @@ describe('addTransaction validation', () => {
   });
 });
 
-describe('categories max 12', () => {
+describe('categories limit', () => {
   it('rejects the 13th active category', async () => {
     // Fresh DB has no categories; fill up to 12, then try a 13th.
     for (let i = 0; i < MAX_ACTIVE_CATEGORIES; i++) {
@@ -181,9 +181,9 @@ describe('month summary and soft delete', () => {
   });
 });
 
-describe('Excel 2026 reference fixture (SPEC §6.3 / §8)', () => {
-  it('reproduces the real spreadsheet: total expenses 5730.70 € and savings 47.02%', async () => {
-    const fixture: { transactions: Array<{ date: string; category: string; description: string; amountCents: number }>; salaries: Array<{ year: number; month: number; amountCents: number }>; expected: { expenseCents: number; incomeCents: number; savingsCents: number; savingsPercent: number } } = JSON.parse(readFileSync('src/fixtures/excel-2026.json', 'utf8'));
+describe('Reference year fixture (fictitious data)', () => {
+  it('reproduces the expected yearly totals and savings %', async () => {
+    const fixture: { transactions: Array<{ date: string; category: string; description: string; amountCents: number }>; salaries: Array<{ year: number; month: number; amountCents: number }>; expected: { expenseCents: number; incomeCents: number; savingsCents: number; savingsPercent: number } } = JSON.parse(readFileSync('src/fixtures/sample-2026.json', 'utf8'));
 
     // Create one category per distinct name found in the fixture (10 categories).
     const catByName: Record<string, Category> = {};
@@ -226,12 +226,12 @@ describe('Excel 2026 reference fixture (SPEC §6.3 / §8)', () => {
       incomeCents += s.incomeCents;
     }
 
-    expect(expenseCents).toBe(fixture.expected.expenseCents); // 573070 = 5730.70 €
+    expect(expenseCents).toBe(fixture.expected.expenseCents);
     expect(incomeCents).toBe(fixture.expected.incomeCents);   // 1081577
     const netCents = incomeCents - expenseCents;
     expect(netCents).toBe(fixture.expected.savingsCents);     // 508507
     const savingsPercent = Math.round((netCents / incomeCents) * 10000) / 100;
-    expect(savingsPercent).toBe(fixture.expected.savingsPercent); // 47.02
+    expect(savingsPercent).toBe(fixture.expected.savingsPercent);
   });
 });
 

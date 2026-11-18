@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { CategorySelect } from '../ui/fx';
 import { db } from '../db/app-db';
 
 import { formatMoney } from '../core/money';
@@ -208,10 +209,8 @@ export function Panel() {
               <button className={`seg ${mode === 'yearly' ? 'active' : ''}`} onClick={() => setMode('yearly')}>
                 {t('panel.yearly')}
               </button>
-              <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)} aria-label="category filter">
-                <option value="all">{t('panel.allCategories')}</option>
-                {cats.map((c) => <option key={c.id} value={c.nameKey ?? c.name}>{t(`categories.${c.nameKey ?? c.name}`)}</option>)}
-              </select>
+              <CategorySelect className="" cats={cats} value={catFilter === 'all' ? '' : catFilter} onChange={(v) => setCatFilter(v || 'all')}
+                emptyLabel={t('panel.allCategories')} ariaLabel={t('panel.allCategories')} optionValue={(c) => c.nameKey ?? c.name} />
             </div>
           </header>
           <LineChart

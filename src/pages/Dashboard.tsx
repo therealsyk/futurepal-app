@@ -11,10 +11,10 @@ import { periodKpis, contributeToGoal, materializeDueRecurrings } from '../core/
 import { txsOfAccount, defaultAccountId, ALL_ACCOUNTS, accountBalanceCents, netWorthCents, salariesUntil, loadTransfers, addTransfer, suggestedSource } from '../core/accounts';
 import { loadLayout, saveLayout, moveWidget, removeWidget, swapWidget, addWidget, nudgeWidget, DEFAULT_LAYOUT, type Layout } from '../core/dashLayout';
 import { WidgetGrid } from '../ui/WidgetGrid';
-import { AccountSwitch, Sheet, ICON, catLabel, useAccounts } from '../ui/fx';
+import { AccountSwitch, PickMenu, Sheet, ICON, catLabel, useAccounts, CategorySelect } from '../ui/fx';
 import { todayISO, monthStart, monthEnd } from '../core/dates';
 
-// Painel — visual "clean" inspirado na referência Finity.
+// Painel — visual "clean".
 // Toda a lógica trabalha em cêntimos inteiros; todo o texto passa por t().
 
 type Period = 'month' | 'year';
@@ -443,7 +443,7 @@ export function Dashboard() {
   const periodLabel = period === 'month'
     ? cap(new Date(year, month - 1, 1).toLocaleDateString(lang, { month: 'long', year: 'numeric' }))
     : String(year);
-  const firstDataYear = txs.reduce((min, x) => Math.min(min, parseInt(x.date.slice(0, 4), 10) || min), now.getFullYear());
+  const firstDataYear = txs.reduce((min, x) => Math.min(min, parseInt(x.date.slice(0, 4), 10) || min), now.getFullYear() - 5); // pelo menos 5 anos para trás
   const yearOptions = Array.from({ length: Math.max(year, now.getFullYear() + 1) - Math.min(firstDataYear, year) + 1 },
     (_, i) => Math.max(year, now.getFullYear() + 1) - i);
 
@@ -625,11 +625,8 @@ export function Dashboard() {
           <div className="fx-inline" style={{ marginTop: 12 }}>
             <input className="fx-input" inputMode="decimal" placeholder={t('panel.abatePlaceholder', { from: src.name })} value={contrib['abate:' + a.id] ?? ''}
               onChange={(e) => setContrib((c) => ({ ...c, ['abate:' + a.id]: e.target.value }))} onKeyDown={(e) => { if (e.key === 'Enter') abate(); }} />
-            <select className="fx-input" aria-label={t('accounts.category')} value={contrib['abatecat:' + a.id] ?? ''}
-              onChange={(e) => setContrib((c) => ({ ...c, ['abatecat:' + a.id]: e.target.value }))}>
-              <option value="">{t('accounts.noCategory')}</option>
-              {cats.map((c) => <option key={c.id} value={c.id}>{catLabel(t, c)}</option>)}
-            </select>
+            <CategorySelect cats={cats} ariaLabel={t('accounts.category')} value={contrib['abatecat:' + a.id] ?? ''} emptyLabel={t('accounts.noCategory')}
+              onChange={(v) => setContrib((c) => ({ ...c, ['abatecat:' + a.id]: v }))} />
             <button type="button" className="fx-btn primary" onClick={abate}>{t('accounts.abate')}</button>
           </div>
         );
@@ -937,13 +934,11 @@ export function Dashboard() {
           <div className="fx-periodnav">
             <button type="button" className="fx-round sm" onClick={() => stepPeriod(-1)} aria-label={period === 'month' ? t('panel.prevMonth') : t('panel.prevYear')} data-testid="period-prev"><Ic d="M15 6l-6 6 6 6" size={15} /></button>
             {period === 'month' && (
-              <select className="fx-sel fx-periodsel" aria-label={t('panel.month')} value={selM} onChange={(e) => setSelM(parseInt(e.target.value, 10))} data-testid="period-month">
-                {Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={i + 1}>{cap(new Date(2026, i, 1).toLocaleDateString(lang, { month: 'long' }))}</option>)}
-              </select>
+              <PickMenu<number> value={selM} onChange={setSelM} label={t('panel.month')} testId="period-month" compact
+                options={Array.from({ length: 12 }, (_, i) => ({ value: i + 1, label: cap(new Date(2026, i, 1).toLocaleDateString(lang, { month: 'long' })) }))} />
             )}
-            <select className="fx-sel fx-periodsel" aria-label={t('panel.year')} value={selY} onChange={(e) => setSelY(parseInt(e.target.value, 10))} data-testid="period-year">
-              {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
-            </select>
+            <PickMenu<number> value={selY} onChange={setSelY} label={t('panel.year')} testId="period-year" compact
+              options={yearOptions.map((y) => ({ value: y, label: String(y) }))} />
             <button type="button" className="fx-round sm" onClick={() => stepPeriod(1)} aria-label={period === 'month' ? t('panel.nextMonth') : t('panel.nextYear')} data-testid="period-next"><Ic d={ARROW} size={15} /></button>
           </div>
           <AccountSwitch accounts={accounts} active={active} onChange={setActive} />

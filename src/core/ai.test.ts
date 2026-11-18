@@ -64,3 +64,18 @@ describe('ai client', () => {
     expect(maskKey('')).toBe('');
   });
 });
+
+describe('images (vision)', () => {
+  it('OpenAI format uses image_url parts; Anthropic uses base64 image blocks', async () => {
+    const parts = [{ type: 'text' as const, text: 'read this' }, { type: 'image' as const, dataUrl: 'data:image/png;base64,AAAA' }];
+    let f = mockFetch(200, { choices: [{ message: { content: '{}' } }] });
+    await chat(base, [{ role: 'user', content: parts }]);
+    let body = JSON.parse(String((f.mock.calls[0] as unknown as [string, RequestInit])[1].body));
+    expect(body.messages[0].content[1]).toEqual({ type: 'image_url', image_url: { url: 'data:image/png;base64,AAAA' } });
+
+    f = mockFetch(200, { content: [{ type: 'text', text: '{}' }] });
+    await chat({ ...base, provider: 'anthropic', baseUrl: 'https://api.anthropic.com/v1' }, [{ role: 'user', content: parts }]);
+    body = JSON.parse(String((f.mock.calls[0] as unknown as [string, RequestInit])[1].body));
+    expect(body.messages[0].content[1]).toEqual({ type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'AAAA' } });
+  });
+});

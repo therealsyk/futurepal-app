@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { getSupabase, hasSupabaseConfig } from './supabase';
+import { listenForOAuthCallbacks } from './oauth';
 
 interface AuthState {
   configured: boolean; // há URL + chave do Supabase no .env
@@ -27,7 +28,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: sub } = sb.auth.onAuthStateChange((_event, session) => {
       setState({ configured, ready: true, session, user: session?.user ?? null });
     });
-    return () => { alive = false; sub.subscription.unsubscribe(); };
+    // Login social no Windows/telemóvel: o fornecedor volta à app por um link (wallet://… / com.rafael.wallet://…).
+    const stopOAuth = listenForOAuthCallbacks((msg) => { try { sessionStorage.setItem('wallet.oauthError', msg); } catch { /* sem storage */ } });
+    return () => { alive = false; sub.subscription.unsubscribe(); stopOAuth(); };
   }, [configured]);
 
   return <AuthCtx.Provider value={state}>{children}</AuthCtx.Provider>;

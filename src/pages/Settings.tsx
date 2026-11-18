@@ -10,8 +10,10 @@ import { useAuth } from '../auth/AuthContext';
 import { LoginForm } from './Login';
 import { runSync } from '../sync/runSync';
 import { db } from '../db/app-db';
-import { exportBackup, importBackup, parseExcelBuffer, commitExcelRows, type BackupData } from '../core/backup';
+import { exportBackup, importBackup, type BackupData } from '../core/backup';
 import { AiSettings } from './AiSettings';
+import { ImportStatement } from './ImportStatement';
+import { DangerZone } from './DangerZone';
 import { loadAiConfig, isConfigured, getPreset } from '../core/ai';
 import { todayISO } from '../core/dates';
 import { APP_VERSION } from '../core/version';
@@ -59,10 +61,15 @@ export function Settings() {
   const [syncMsg, setSyncMsg] = useState('');
   const [syncing, setSyncing] = useState(false);
   const [backupMsg, setBackupMsg] = useState('');
-  const [excelPreview, setExcelPreview] = useState<{ rows: ReturnType<typeof parseExcelBuffer>; total: number } | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
   const [params, setParams] = useSearchParams();
   const [aiOpen, setAiOpen] = useState(params.get('ai') === '1');
+  const [importOpen, setImportOpen] = useState(false);
+  const [danger, setDanger] = useState<'account' | 'device' | null>(null);
+  const [notices, setNotices] = useState<string | null>(null);
+  async function openNotices() {
+    try { setNotices(await (await fetch('./THIRD_PARTY_NOTICES.txt')).text()); } catch { setNotices(t('updates.unknown')); }
+  }
   const [ai, setAi] = useState(loadAiConfig());
   const [updMsg, setUpdMsg] = useState('');
   const [updBusy, setUpdBusy] = useState(false);
@@ -81,7 +88,6 @@ export function Settings() {
     }
   }
   const importRef = useRef<HTMLInputElement>(null);
-  const excelRef = useRef<HTMLInputElement>(null);
 
   async function onExportBackup() {
     try {
@@ -110,30 +116,6 @@ export function Settings() {
       setBackupMsg(t('settings.backupError', { error: String(err) }));
     } finally {
       e.target.value = '';
-    }
-  }
-
-  async function onExcelFile(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const rows = parseExcelBuffer(await file.arrayBuffer());
-      setExcelPreview({ rows, total: rows.length });
-    } catch (err) {
-      setBackupMsg(t('settings.excelError', { error: String(err) }));
-    } finally {
-      e.target.value = '';
-    }
-  }
-
-  async function onCommitExcel() {
-    if (!excelPreview) return;
-    try {
-      const count = await commitExcelRows(db, excelPreview.rows);
-      setBackupMsg(t('settings.excelImported', { count }));
-      setExcelPreview(null);
-    } catch (err) {
-      setBackupMsg(t('settings.excelError', { error: String(err) }));
     }
   }
 
@@ -231,30 +213,37 @@ export function Settings() {
       <h2 className="st-section">{t('updates.about')}</h2>
       <div className="st-group">
         <Row icon={I.sync} title={t('updates.version', { version: APP_VERSION })} sub={updMsg || t('updates.checkSub')} onClick={updBusy ? undefined : onCheckUpdates} testId="check-updates" />
+        <Row icon={I.sheet} title={t('settings2.licenses')} sub={t('settings2.licensesSub')} onClick={openNotices} testId="licenses" />
       </div>
 
       <h2 className="st-section">{t('settings2.data')}</h2>
       <div className="st-group">
         <Row icon={I.up} title={t('settings.backupExport')} sub={t('settings2.exportSub')} onClick={onExportBackup} testId="backup-export-btn" />
         <Row icon={I.down} title={t('settings.backupImport')} sub={t('settings2.importSub')} onClick={() => importRef.current?.click()} />
-        <Row icon={I.sheet} title={t('settings.excelTitle')} sub={t('settings.excelImport')} onClick={() => excelRef.current?.click()} />
+        <Row icon={I.sheet} title={t('importer.title')} sub={t('importer.rowSub')} onClick={() => setImportOpen(true)} testId="import-row" />
+        <Row icon={ICON.trash} title={t('danger.deleteDevice')} sub={t('danger.deviceSub')} onClick={() => setDanger('device')} testId="wipe-device" />
         <input ref={importRef} hidden type="file" accept="application/json" data-testid="backup-import-input" onChange={onImportBackup} />
-        <input ref={excelRef} hidden type="file" accept=".xlsx,.xls" data-testid="excel-import-input" onChange={onExcelFile} />
       </div>
-      {excelPreview && (
-        <div className="st-note" data-testid="excel-preview">
-          <span>{t('settings.excelPreview', { count: excelPreview.total })}</span>
-          <button type="button" className="fx-btn primary" data-testid="excel-commit-btn" disabled={excelPreview.total === 0} onClick={onCommitExcel}>{t('settings.excelConfirm')}</button>
-        </div>
-      )}
       {backupMsg && <p className="st-msg" data-testid="backup-result">{backupMsg}</p>}
 
       {auth.user && (
-        <button type="button" className="st-signout" onClick={onSignOut} data-testid="signout-btn"><Ic d={I.logout} size={18} />{t('settings2.signOut')}</button>
+        <>
+          <button type="button" className="st-signout" onClick={onSignOut} data-testid="signout-btn"><Ic d={I.logout} size={18} />{t('settings2.signOut')}</button>
+          <button type="button" className="st-danger-link" onClick={() => setDanger('account')} data-testid="delete-account">{t('danger.deleteAccount')}</button>
+        </>
       )}
 
       <Sheet open={loginOpen} onClose={() => setLoginOpen(false)} title={t('settings2.signInRow')}>
         <LoginForm onDone={() => { setLoginOpen(false); update({ ...settings, account: 'signedin' }); }} />
+      </Sheet>
+      <Sheet open={notices !== null} onClose={() => setNotices(null)} title={t('settings2.licenses')} wide>
+        <pre className="st-notices">{notices}</pre>
+      </Sheet>
+      <Sheet open={danger !== null} onClose={() => setDanger(null)} title={danger === 'account' ? t('danger.deleteAccount') : t('danger.deleteDevice')}>
+        {danger && <DangerZone mode={danger} onClose={() => { setDanger(null); update({ ...settings, account: 'none' }); }} />}
+      </Sheet>
+      <Sheet open={importOpen} onClose={() => setImportOpen(false)} title={t('importer.title')} wide>
+        <ImportStatement />
       </Sheet>
       <Sheet open={aiOpen} onClose={() => { setAiOpen(false); if (params.get('ai')) setParams({}, { replace: true }); }} title={t('ai.rowTitle')} wide>
         <AiSettings onSaved={(c) => { setAi(c); }} />
