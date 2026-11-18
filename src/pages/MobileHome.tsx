@@ -128,7 +128,6 @@ export function MobileHome() {
     <div className="fx-page mv">
       <header className="mv-head">
         <div className="mv-hello">
-          <small>{new Intl.DateTimeFormat(settings.language, { weekday: 'long', day: 'numeric', month: 'long' }).format(now)}</small>
           <h1>{name ? t('mobile.hello', { name }) : t('mobile.helloAnon')}</h1>
         </div>
         <button type="button" className="mv-sq" onClick={openTutorial} aria-label={t('tutorial.title')} data-testid="mv-help" data-tour="help"><Ic d="M9.1 9a3 3 0 1 1 4.2 2.7c-.8.4-1.3 1.1-1.3 2v.3M12 17.5h.01" size={20} /></button>
