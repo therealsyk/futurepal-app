@@ -90,6 +90,51 @@ describe('PDF text lines', () => {
       { date: '2026-11-05', description: 'TRF SALARIO EMPRESA', amountCents: 125000, type: 'income' },
     ]);
   });
+
+  it('unsigned debit/credit columns: sign from the running balance', () => {
+    const text = [
+      'Data Mov.  Data Valor  Descrição  Débito  Crédito  Saldo',
+      'Saldo anterior  1.000,00',
+      '03.11  03.11  COMPRA PINGO DOCE  23,10  976,90',
+      '04.11  04.11  TRF DE JOAO SILVA  50,00  1.026,90',
+      '06.11  06.11  PAGAMENTO EDP  41,30  985,60',
+      'Página 1 de 1   Extrato de Novembro 2026',
+    ].join('\n');
+    expect(rowsFromText(text)).toEqual([
+      { date: '2026-11-03', description: 'COMPRA PINGO DOCE', amountCents: 2310, type: 'expense' },
+      { date: '2026-11-04', description: 'TRF DE JOAO SILVA', amountCents: 5000, type: 'income' },
+      { date: '2026-11-06', description: 'PAGAMENTO EDP', amountCents: 4130, type: 'expense' },
+    ]);
+  });
+
+  it('newest-first statements, month names and D/C markers', () => {
+    const text = [
+      'Extrato 2026',
+      '10 NOV  NETFLIX.COM  12,99 D  500,00',
+      '08 NOV  REEMBOLSO SEGURO  30,00 C  512,99',
+      '07 nov  LIDL LISBOA  15,00  482,99',
+    ].join('\n');
+    expect(rowsFromText(text)).toEqual([
+      { date: '2026-11-10', description: 'NETFLIX.COM', amountCents: 1299, type: 'expense' },
+      { date: '2026-11-08', description: 'REEMBOLSO SEGURO', amountCents: 3000, type: 'income' },
+      { date: '2026-11-07', description: 'LIDL LISBOA', amountCents: 1500, type: 'expense' },
+    ]);
+  });
+
+  it('descriptions on two lines, amount on the next line, single-space lines', () => {
+    const text = [
+      '12/11/2026  COMPRA CARTAO 1234',
+      'CONTINENTE MODELO  -18,40  900,00',
+      '13/11/2026 UBER TRIP HELP.UBER.COM -7,25 892,75',
+      '14/11/2026  ORDENADO NOVEMBRO  1.500,00 €',
+      'EMPRESA LDA',
+    ].join('\n');
+    expect(rowsFromText(text)).toEqual([
+      { date: '2026-11-12', description: 'COMPRA CARTAO 1234 CONTINENTE MODELO', amountCents: 1840, type: 'expense' },
+      { date: '2026-11-13', description: 'UBER TRIP HELP.UBER.COM', amountCents: 725, type: 'expense' },
+      { date: '2026-11-14', description: 'ORDENADO NOVEMBRO EMPRESA LDA', amountCents: 150000, type: 'income' },
+    ]);
+  });
 });
 
 describe('categories, duplicates and AI replies', () => {

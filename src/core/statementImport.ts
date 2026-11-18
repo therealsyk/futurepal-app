@@ -194,36 +194,148 @@ export function parseQIF(text: string, order: DateOrder = 'DMY'): StatementRow[]
 }
 
 // ---------------------------------------------------------------- texto (PDF)
-/**
- * Linhas de extrato em texto: "05/11/2026  05/11/2026  COMPRA CONTINENTE   -45,20   1.234,56".
- * Usa o primeiro valor monetário depois da descrição (o último costuma ser o saldo).
- */
-export function rowsFromText(text: string, order: DateOrder = 'DMY'): StatementRow[] {
-  const out: StatementRow[] = [];
-  const money = /[-−(]?\d{1,3}(?:[.\s]\d{3})*(?:[.,]\d{2})\)?-?|[-−]?\d+[.,]\d{2}-?/g;
-  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-  const ord = guessDateOrder(lines.map((l) => l.split(/\s+/)[0]), order);
-  for (const l of lines) {
-    const dm = /^(\d{1,2}[-/.]\d{1,2}(?:[-/.]\d{2,4})?|\d{4}-\d{2}-\d{2})\s+/.exec(l);
-    if (!dm) continue;
-    let rest = l.slice(dm[0].length);
-    const second = /^(\d{1,2}[-/.]\d{1,2}(?:[-/.]\d{2,4})?)\s+/.exec(rest); // data-valor
-    if (second) rest = rest.slice(second[0].length);
-    const amounts = [...rest.matchAll(money)];
-    if (amounts.length === 0) continue;
-    const first = amounts[0];
-    const description = rest.slice(0, first.index).replace(/\s+/g, ' ').trim();
-    if (!description) continue;
-    let date = parseDate(dm[1], ord);
-    if (!date && /^\d{1,2}[-/.]\d{1,2}$/.test(dm[1])) date = parseDate(`${dm[1]}/${new Date().getFullYear()}`, ord);
-    const cents = parseSignedAmount(first[0]);
-    if (!date || !cents) continue;
-    // Extratos com coluna Débito/Crédito: se há 3 números (débito/crédito + saldo), o sinal vem da posição;
-    // sem sinal explícito, assume-se despesa (é o caso mais comum nos extratos).
-    const signed = /[-−(]|-$/.test(first[0]);
-    out.push({ date, description, amountCents: Math.abs(cents), type: signed || cents < 0 ? 'expense' : guessIncome(description) ? 'income' : 'expense' });
+// Os extratos em PDF variam muito de banco para banco. Cada linha é partida em "células" (blocos separados por
+// 2+ espaços, como o pdfText os junta) e cada célula é data, valor ou texto. Depois:
+//  • linha com data + texto + valor(es) = movimento; com 2+ valores, o último é o saldo;
+//  • o sinal vem do próprio valor (-, ( ), D/C) ou, se não houver, da variação do saldo entre linhas;
+//  • datas sem ano ("05.11", "05 NOV") usam o ano que aparece no documento;
+//  • a descrição pode continuar na linha de baixo, ou a data+descrição numa linha e o valor na seguinte;
+//  • linhas de saldo inicial/final e totais não contam como movimentos (mas o saldo serve de referência).
+
+type Tok = { k: 'date'; v: string } | { k: 'amt'; v: number; signed: boolean } | { k: 'txt'; v: string };
+
+const MONEY_CELL = /^(?:EUR|€)?\s*[-−+]?\s*\(?(?:\d{1,3}(?:[.,\s  ]\d{3})+|\d+)[.,]\d{2}\)?\s*-?\s*(?:€|EUR)?\s*(?:D|DB|C|CR)?$/i;
+const MONEY_END = /\s+((?:EUR|€)?\s*[-−+]?\(?(?:\d{1,3}(?:[.,]\d{3})+|\d+)[.,]\d{2}\)?-?\s*(?:€|EUR)?(?:\s(?:D|DB|C|CR))?)$/i;
+const DATE_START = /^(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/.]\d{1,2}(?:[-/.]\d{2,4})?|\d{1,2}[\s.-]?[a-zç]{3}\.?(?:[\s.-]\d{2,4})?)(?=\s|$)/i;
+const SKIP = /^(saldo|total|balance|a transportar|transporte|opening|closing)/i;
+const NOISE = /p[aá]gina|page \d|extrato|statement|iban|nif\b|swift|bic\b|descri[cç][aã]o|morada|address/i;
+
+function moneyOf(raw: string): { v: number; signed: boolean } | null {
+  const t = raw.trim();
+  const credit = /\s?(C|CR)$/i.test(t);
+  const debit = /\s?(D|DB)$/i.test(t);
+  const cents = parseSignedAmount(t.replace(/\s?(D|DB|C|CR)$/i, '').replace(/[\s  ](?=\d{3}\b)/g, ''));
+  if (cents === null) return null;
+  const explicit = /[-−(]|-$/.test(t) || credit || debit || /^\s*\+/.test(t);
+  return { v: debit ? -Math.abs(cents) : credit ? Math.abs(cents) : cents, signed: explicit };
+}
+
+function dateOf(raw: string, order: DateOrder, year: number): string | null {
+  const s = raw.trim().toLowerCase();
+  if (!/^\d/.test(s)) return null;
+  const full = parseDate(s, order);
+  if (full && /^\S+(\s\S+){0,2}$/.test(s) && s.length <= 12) return full;
+  let m = /^(\d{1,2})[-/.](\d{1,2})$/.exec(s);
+  if (m) return order === 'MDY' ? valid(year, +m[1], +m[2]) : valid(year, +m[2], +m[1]);
+  m = /^(\d{1,2})[\s.-]?([a-zç]{3})\.?$/.exec(s);
+  if (m && MONTHS[m[2]]) return valid(year, MONTHS[m[2]], +m[1]);
+  return null;
+}
+
+function tokenize(line: string, order: DateOrder, year: number): Tok[] {
+  const out: Tok[] = [];
+  for (let cell of line.split(/\s{2,}|\t/)) {
+    cell = cell.trim();
+    if (!cell) continue;
+    const d = dateOf(cell, order, year);
+    if (d) { out.push({ k: 'date', v: d }); continue; }
+    if (MONEY_CELL.test(cell)) { const m = moneyOf(cell); if (m) { out.push({ k: 'amt', ...m }); continue; } }
+    // célula mista: datas no início, valores no fim, texto no meio
+    const head: Tok[] = [];
+    for (let i = 0; i < 2; i++) {
+      const dm = DATE_START.exec(cell);
+      const dd = dm ? dateOf(dm[1], order, year) : null;
+      if (!dm || !dd) break;
+      head.push({ k: 'date', v: dd });
+      cell = cell.slice(dm[0].length).trim();
+    }
+    const tail: Tok[] = [];
+    for (let i = 0; i < 3; i++) {
+      const mm = MONEY_END.exec(cell);
+      const mv = mm ? moneyOf(mm[1]) : null;
+      if (!mm || !mv) break;
+      tail.unshift({ k: 'amt', ...mv });
+      cell = cell.slice(0, mm.index).trim();
+    }
+    if (!cell && head.length === 0 && tail.length) { out.push(...tail); continue; }
+    out.push(...head);
+    if (cell) out.push({ k: 'txt', v: cell });
+    out.push(...tail);
   }
   return out;
+}
+
+/** O ano mais frequente no documento (para datas sem ano); senão o ano atual. */
+function docYear(text: string): number {
+  const count = new Map<number, number>();
+  for (const m of text.matchAll(/\b(20\d{2})\b/g)) count.set(+m[1], (count.get(+m[1]) ?? 0) + 1);
+  let best = new Date().getFullYear(), n = 0;
+  for (const [y, c] of count) if (c > n) { best = y; n = c; }
+  return best;
+}
+
+export function rowsFromText(text: string, order: DateOrder = 'DMY'): StatementRow[] {
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const year = docYear(text);
+  const ord = guessDateOrder(lines.map((l) => l.split(/\s+/)[0]), order);
+  type Raw = { date: string; desc: string; amt: number; signed: boolean; balance: number | null; openBal: number | null };
+  const raw: Raw[] = [];
+  let pending: { date: string; desc: string } | null = null; // data + descrição sem valor (o valor vem na linha seguinte)
+  let lastOpen: number | null = null; // saldo de uma linha "Saldo anterior" logo antes
+  let canContinue = false;
+
+  const push = (date: string, desc: string, amts: Array<{ v: number; signed: boolean }>) => {
+    const move = amts.length >= 2 ? amts.slice(0, -1) : amts;
+    const pick = move.find((a) => a.v !== 0) ?? move[0]; // débito/crédito/saldo com uma coluna a zero
+    raw.push({ date, desc, amt: pick.v, signed: pick.signed, balance: amts.length >= 2 ? amts[amts.length - 1].v : null, openBal: lastOpen });
+    lastOpen = null; pending = null; canContinue = true;
+  };
+
+  for (const line of lines) {
+    const toks = tokenize(line, ord, year);
+    const dates = toks.filter((t): t is { k: 'date'; v: string } => t.k === 'date');
+    const amts = toks.filter((t): t is { k: 'amt'; v: number; signed: boolean } => t.k === 'amt');
+    const desc = toks.filter((t): t is { k: 'txt'; v: string } => t.k === 'txt').map((t) => t.v).join(' ').replace(/\s+/g, ' ').trim();
+
+    if (desc && SKIP.test(desc)) { if (amts.length) lastOpen = amts[amts.length - 1].v; pending = null; canContinue = false; continue; }
+    if (dates.length && amts.length && desc) { push(dates[0].v, desc, amts); continue; }
+    if (dates.length && desc && !amts.length) { pending = { date: dates[0].v, desc }; canContinue = false; continue; }
+    if (pending && amts.length && !dates.length) { const p = pending as { date: string; desc: string }; push(p.date, [p.desc, desc].filter(Boolean).join(' '), amts); continue; }
+    // descrição que continua na linha de baixo
+    if (canContinue && desc && !dates.length && !amts.length && desc.length <= 40 && !NOISE.test(desc) && raw.length) {
+      raw[raw.length - 1].desc += ' ' + desc;
+      canContinue = false;
+      continue;
+    }
+    canContinue = false;
+  }
+
+  // Sinal pela variação do saldo: descobre se o extrato vai do mais antigo para o mais recente ou ao contrário.
+  const near = (a: number, b: number) => Math.abs(a - b) <= 1;
+  let asc = 0, dsc = 0;
+  for (let i = 1; i < raw.length; i++) {
+    const a = raw[i - 1], b = raw[i];
+    if (a.balance === null || b.balance === null) continue;
+    if (near(Math.abs(b.balance - a.balance), Math.abs(b.amt))) asc++;
+    if (near(Math.abs(a.balance - b.balance), Math.abs(a.amt))) dsc++;
+  }
+  const deltaSign = (i: number): number | null => {
+    const r = raw[i];
+    if (r.balance === null) return null;
+    const other = asc >= dsc ? (i > 0 ? raw[i - 1].balance : r.openBal) : (i + 1 < raw.length ? raw[i + 1].balance : null);
+    if (other === null) return null;
+    const d = r.balance - other;
+    return near(Math.abs(d), Math.abs(r.amt)) ? Math.sign(d) : null;
+  };
+
+  return raw.map((r, i) => {
+    let type: 'expense' | 'income';
+    const ds = deltaSign(i);
+    if (r.signed) type = r.amt < 0 ? 'expense' : 'income';
+    else if (ds) type = ds < 0 ? 'expense' : 'income';
+    else type = guessIncome(r.desc) ? 'income' : 'expense';
+    return { date: r.date, description: r.desc.replace(/\s*(EUR|€)\s*$/i, '').trim(), amountCents: Math.abs(r.amt), type };
+  }).filter((r) => r.amountCents > 0);
 }
 function guessIncome(desc: string): boolean {
   return /sal[aá]rio|vencimento|ordenado|transf.*(rec|cr[eé]dito)|reembolso|devolu|payroll|salary|refund|dep[oó]sito/i.test(desc);
@@ -239,15 +351,24 @@ export async function pdfText(data: ArrayBuffer): Promise<string> {
     const page = await doc.getPage(p);
     const content = await page.getTextContent();
     // junta os pedaços por linha (mesma coordenada y), da esquerda para a direita
-    const byY = new Map<number, Array<{ x: number; s: string }>>();
-    for (const it of content.items as Array<{ str: string; transform: number[] }>) {
+    const byY = new Map<number, Array<{ x: number; w: number; s: string }>>();
+    for (const it of content.items as Array<{ str: string; transform: number[]; width?: number }>) {
       if (!it.str?.trim()) continue;
       const y = Math.round(it.transform[5]);
       const key = [...byY.keys()].find((k) => Math.abs(k - y) <= 2) ?? y;
-      byY.set(key, [...(byY.get(key) ?? []), { x: it.transform[4], s: it.str }]);
+      byY.set(key, [...(byY.get(key) ?? []), { x: it.transform[4], w: it.width ?? 0, s: it.str }]);
     }
     for (const y of [...byY.keys()].sort((a, b) => b - a)) {
-      lines.push(byY.get(y)!.sort((a, b) => a.x - b.x).map((p2) => p2.s).join('  '));
+      // pedaços colados (mesma frase) juntam-se com um espaço; colunas diferentes com dois
+      const parts = byY.get(y)!.sort((a, b) => a.x - b.x);
+      let line = '';
+      parts.forEach((p2, i) => {
+        if (i === 0) { line = p2.s; return; }
+        const prev = parts[i - 1];
+        const gap = prev.w ? p2.x - (prev.x + prev.w) : 99;
+        line += (gap < 4 ? ' ' : '  ') + p2.s;
+      });
+      lines.push(line);
     }
   }
   return lines.join('\n');
