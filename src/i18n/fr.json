@@ -130,7 +130,9 @@
     "nextYear": "Année suivante",
     "monthlySpend": "Dépenses par mois",
     "openMonth": "Voir ce mois",
-    "budgetEmptyYear": "Aucun budget défini en {{year}}."
+    "budgetEmptyYear": "Aucun budget défini en {{year}}.",
+    "avgMonthlySavings": "Épargne / mois (moyenne)",
+    "avgPerMonthLong": "moyenne de {{value}} par mois"
   },
   "transactions": {
     "title": "Transactions",

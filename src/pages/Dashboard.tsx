@@ -458,6 +458,8 @@ export function Dashboard() {
   const savings = income > 0 ? income - spent : null;
   const pctSpent = income > 0 ? spent / income : null;
   const avgDay = Math.round(spent / Math.max(1, elapsedDays || daysInPeriod));
+  // Poupança média por mês, como no Excel: (rendimento − despesas) ÷ dias do período × 30,44 (dias de um mês médio).
+  const avgMonthSavings = savings === null ? null : Math.round((savings / daysInPeriod) * 30.44);
   const prevPrefix = period === 'month'
     ? (month === 1 ? `${year - 1}-12` : `${year}-${pad(month - 1)}`)
     : String(year - 1);
@@ -724,6 +726,8 @@ export function Dashboard() {
             <div className="fx-stat"><span>{t('panel.expenseCount')}</span><span className="fx-num">{kpis.expenseCount}</span></div>
             <div className="fx-stat"><span>{t('panel.largestExpense')}</span><span className="fx-num">{money(kpis.largestExpenseCents)}</span></div>
             <div className="fx-stat"><span>{t('panel.salaryInPeriod')}</span><span className="fx-num">{money(salaryCents)}</span></div>
+            <div className="fx-stat" data-testid="summary-avg-savings"><span>{t('panel.avgMonthlySavings')}</span>
+              <span className={'fx-num' + (avgMonthSavings !== null && avgMonthSavings < 0 ? ' fx-neg' : '')}>{avgMonthSavings === null ? '—' : money(avgMonthSavings)}</span></div>
           </Card>
         );
       case 'overview':
@@ -963,7 +967,9 @@ export function Dashboard() {
         <Kpi label={t('panel.savings')} color="#2fbf8a" icon="M19 7a3 3 0 0 0-3-2H9a6 6 0 0 0-6 6c0 2 1 3.5 2 4.5V19h3v-2h5v2h3v-3a6 6 0 0 0 2-3h2V9h-2zM15 10h.01"
           value={savings === null ? '—' : money(savings)} pct={pctTxt(savings === null || income === 0 ? null : savings / income)}
           pctTone={savings !== null && savings < 0 ? 'bad' : 'good'}
-          sub={savings === null ? t('panel.noIncome') : t('panel.kpiSavingsSub')} />
+          sub={savings === null ? t('panel.noIncome') : period === 'year' && avgMonthSavings !== null
+            ? <span data-testid="kpi-avg-savings">{t('panel.avgPerMonthLong', { value: money(avgMonthSavings) })}</span>
+            : t('panel.kpiSavingsSub')} />
         <Kpi label={t('panel.income')} color="#8b6cf0" icon="M12 3v18M7 8l5-5 5 5M5 21h14"
           value={money(income)}
           sub={t('panel.kpiIncomeSub', { salary: money(salaryCents), extras: money(extrasCents) })} />

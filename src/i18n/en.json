@@ -199,7 +199,9 @@
     "nextYear": "Next year",
     "monthlySpend": "Spending by month",
     "openMonth": "Open this month",
-    "budgetEmptyYear": "No budget set in {{year}}."
+    "budgetEmptyYear": "No budget set in {{year}}.",
+    "avgMonthlySavings": "Savings / month (average)",
+    "avgPerMonthLong": "average {{value}} per month"
   },
   "transactions": {
     "title": "Transactions",
