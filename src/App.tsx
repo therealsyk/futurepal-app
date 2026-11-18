@@ -14,6 +14,7 @@ import { Settings } from './pages/Settings';
 import { MobileHome } from './pages/MobileHome';
 import { AdminPage } from './pages/Admin';
 import { FamilyPage } from './pages/Family';
+import { AssistantPage } from './pages/Assistant';
 import { PlusPage, IrsPage, SubscriptionsPage, YearPage, ChallengesPage, WarrantiesPage, FreelancePage } from './pages/Premium';
 import { useIsMobile } from './ui/useIsMobile';
 import { DemoPage } from './ui/components';
@@ -148,6 +149,7 @@ export default function App() {
           <Route path="/garantias" element={<WarrantiesPage />} />
           <Route path="/independentes" element={<FreelancePage />} />
           <Route path="/casa" element={<FamilyPage />} />
+          <Route path="/assistente" element={<AssistantPage />} />
           {import.meta.env.DEV && <Route path="/demo" element={<DemoPage />} />}
         </Routes>
       </main>

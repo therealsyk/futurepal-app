@@ -63,6 +63,7 @@ export function Locked({ feature, children }: { feature: Feature; children: Reac
 
 // ---------------------------------------------------------------- planos + atalhos
 const FEATURE_PAGES: Array<{ f: Feature; path: string; d: string }> = [
+  { f: 'assistant', path: '/assistente', d: 'M4 5h16v11H9l-5 4zM9 10h.01M12 10h.01M15 10h.01' },
   { f: 'irs', path: '/irs', d: 'M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h7' },
   { f: 'subscriptions', path: '/subscricoes', d: 'M4 9h13l-3-3M20 15H7l3 3' },
   { f: 'yearReview', path: '/ano', d: 'M4 20V10M10 20V4M16 20v-7M22 20H2' },

@@ -644,3 +644,12 @@ html[data-theme="light"] .mv-acc.spending { --acc: #b7771b; }
 .fm-split { display: flex; flex-wrap: wrap; gap: 10px 16px; }
 .fm-split label { display: flex; align-items: center; gap: 6px; }
 .fm-setup .fx-card h3 { margin-top: 0; }
+/* Assistente */
+.as-wrap { display: grid; gap: 12px; max-width: 760px; }
+.as-chat { display: flex; flex-direction: column; gap: 10px; min-height: 280px; max-height: 60vh; overflow-y: auto; }
+.as-msg { max-width: 85%; padding: 10px 14px; border-radius: 14px; white-space: pre-line; line-height: 1.45; }
+.as-msg.bot { align-self: flex-start; background: var(--mv-soft); }
+.as-msg.me { align-self: flex-end; background: var(--mv); color: #fff; }
+.as-typing { opacity: .6; }
+.as-examples { display: flex; flex-wrap: wrap; gap: 8px; } .as-examples button { border: 0; cursor: pointer; }
+.as-input { display: flex; gap: 8px; } .as-input .fx-input { flex: 1; min-width: 0; }
