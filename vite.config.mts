@@ -18,7 +18,6 @@ const CSP = [
   "connect-src 'self' https: http://localhost:* http://127.0.0.1:*",
   "object-src 'none'",
   "base-uri 'self'",
-  "frame-ancestors 'none'",
 ].join('; ');
 const cspPlugin = {
   name: 'wallet-csp',
