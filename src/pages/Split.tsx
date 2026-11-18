@@ -153,7 +153,7 @@ export function SplitPage() {
     setPersonal(null);
   };
 
-  const canCreate = hasFeature('shared');
+  const canCreate = hasFeature('split'); // criar grupos: Plus ou Pro (aceitar convites: qualquer plano)
   const pend = myPending(bills, me);
 
   return (

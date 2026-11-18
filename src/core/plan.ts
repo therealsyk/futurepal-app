@@ -1,20 +1,31 @@
-// Planos do FuturePal: Grátis, Plus, Família e Pro (independentes).
+// Planos do FuturePal: Grátis, Plus e Pro. Cada plano tem tudo o do anterior, e mais.
+// (O antigo Família passou a fazer parte do Pro: quem o tinha fica com Pro.)
 // Ainda sem pagamentos ligados: o plano fica guardado neste aparelho e a pessoa pode ativar um
-// teste de 14 dias do Plus. Quando houver lojas/Paddle, só muda a origem do plano (ver activePlan).
+// teste de 14 dias do Pro. Quando houver lojas/Paddle, só muda a origem do plano (ver activePlan).
 
-export type PlanId = 'free' | 'plus' | 'family' | 'pro';
+export type PlanId = 'free' | 'plus' | 'pro';
 export type Feature =
   | 'unlimited' | 'irs' | 'subscriptions' | 'forecast' | 'yearReview' | 'challenges' | 'warranties'
   | 'shared' | 'split' | 'freelance' | 'assistant';
 
 export const FREE_LIMITS = { accounts: 2, goals: 1, budgets: 3 } as const;
 
-const PLUS: Feature[] = ['unlimited', 'irs', 'subscriptions', 'forecast', 'yearReview', 'challenges', 'warranties', 'assistant'];
+const PLUS: Feature[] = ['unlimited', 'irs', 'subscriptions', 'forecast', 'yearReview', 'challenges', 'warranties', 'assistant', 'split'];
 export const PLAN_FEATURES: Record<PlanId, Feature[]> = {
   free: [],
   plus: PLUS,
-  family: [...PLUS, 'shared', 'split'],
-  pro: [...PLUS, 'freelance'],
+  pro: [...PLUS, 'shared', 'freelance'],
+};
+
+/** Preços em cêntimos (mensal e anual; o anual = 10 meses, ou seja 2 meses grátis). */
+export const PRICES: Record<Exclude<PlanId, 'free'>, { month: number; year: number }> = {
+  plus: { month: 299, year: 2999 },
+  pro: { month: 599, year: 5999 },
+};
+/** Quotas do Assistente por mês (a Edge Function ai-ask aplica as mesmas). */
+export const AI_QUOTA: Record<Exclude<PlanId, 'free'>, { questions: number; photos: number }> = {
+  plus: { questions: 100, photos: 30 },
+  pro: { questions: 300, photos: 100 },
 };
 
 export interface PlanState { plan: PlanId; trialEndsAt: string | null; trialUsed: boolean }
@@ -23,17 +34,20 @@ export const PLAN_EVENT = 'wallet:plan';
 const DEFAULT: PlanState = { plan: 'free', trialEndsAt: null, trialUsed: false };
 
 export function loadPlan(): PlanState {
-  try { return { ...DEFAULT, ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch { return { ...DEFAULT }; }
+  try {
+    const s = { ...DEFAULT, ...JSON.parse(localStorage.getItem(KEY) || '{}') } as Omit<PlanState, 'plan'> & { plan: string };
+    return { ...s, plan: s.plan === 'family' ? 'pro' : (s.plan as PlanId) }; // 'family' = plano antigo
+  } catch { return { ...DEFAULT }; }
 }
 export function savePlan(next: PlanState): void {
   try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* sem storage */ }
   if (typeof window !== 'undefined') window.dispatchEvent(new Event(PLAN_EVENT));
 }
 
-/** Plano em vigor: o teste do Plus conta como Plus até acabar. */
+/** Plano em vigor: o teste conta como Pro até acabar. */
 export function activePlan(s: PlanState = loadPlan(), now = new Date()): PlanId {
   if (s.plan !== 'free') return s.plan;
-  if (s.trialEndsAt && new Date(s.trialEndsAt) > now) return 'plus';
+  if (s.trialEndsAt && new Date(s.trialEndsAt) > now) return 'pro';
   return 'free';
 }
 export function hasFeature(f: Feature, s: PlanState = loadPlan(), now = new Date()): boolean {
@@ -65,6 +79,6 @@ export function applyServerPlan(row: { plan: string; status: string; current_per
   const s = loadPlan();
   const active = !!row && ['active', 'trialing'].includes(row.status) && new Date(row.current_period_end) > now
     && ['plus', 'family', 'pro'].includes(row.plan);
-  const plan: PlanId = active ? (row!.plan as PlanId) : 'free';
+  const plan: PlanId = !active ? 'free' : row!.plan === 'plus' ? 'plus' : 'pro'; // 'family' (antigo) = Pro
   if (plan !== s.plan) savePlan({ ...s, plan });
 }

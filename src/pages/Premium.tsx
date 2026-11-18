@@ -6,7 +6,7 @@ import { newId, stampNew, type Category, type Transaction, type Warranty } from 
 import { activeCategories } from '../core/finance';
 import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
-import { activePlan, hasFeature, loadPlan, PLAN_EVENT, savePlan, startTrial, trialDaysLeft, type Feature, type PlanId } from '../core/plan';
+import { activePlan, hasFeature, loadPlan, PLAN_EVENT, PRICES, savePlan, startTrial, trialDaysLeft, type Feature, type PlanId } from '../core/plan';
 import {
   businessCsv, businessQuarters, CHALLENGE_DEFS, detectSubscriptions, efaturaDeadline, evaluateChallenge, irsSummary,
   warrantyDaysLeft, warrantyEnd, yearReview, type Challenge, type ChallengeType,
@@ -74,34 +74,57 @@ const FEATURE_PAGES: Array<{ f: Feature; path: string; d: string }> = [
   { f: 'split', path: '/dividir', d: 'M12 3v18M5 8h7M12 16h7M4 21h16' },
   { f: 'freelance', path: '/independentes', d: 'M4 8h16v11H4zM9 8V5h6v3M4 13h16' },
 ];
-const PLANS: Array<{ id: PlanId; price: string; yearly: string; features: Feature[] }> = [
-  { id: 'free', price: '0 €', yearly: '', features: [] },
-  { id: 'plus', price: '2,99 €', yearly: '19,99 €', features: ['unlimited', 'irs', 'subscriptions', 'forecast', 'yearReview', 'challenges', 'warranties', 'assistant'] },
-  { id: 'family', price: '', yearly: '29,99 €', features: ['shared', 'split'] },
-  { id: 'pro', price: '5,99 €', yearly: '49,99 €', features: ['freelance'] },
+// Os 3 planos: cada um tem tudo o do anterior. Preço sempre por mês; no anual, o equivalente mensal.
+const PLANS: Array<{ id: PlanId; features: string[] }> = [
+  { id: 'free', features: ['freeBasics', 'freeSync', 'freeLimits'] },
+  { id: 'plus', features: ['unlimited', 'forecast', 'subscriptions', 'yearReview', 'challenges', 'warranties', 'irs', 'split', 'assistant'] },
+  { id: 'pro', features: ['shared', 'freelance', 'aiMore', 'early'] },
 ];
-
 export function PlusPage() {
   const { t } = useTranslation();
   const { state, plan } = usePlan();
+  const { money } = useMoney();
+  const [yearly, setYearly] = useState(false);
   const days = trialDaysLeft(state);
+  const priceOf = (id: PlanId) => {
+    if (id === 'free') return { main: money(0), note: t('plus.forever') };
+    const p = PRICES[id];
+    return yearly
+      ? { main: money(Math.round(p.year / 12)), note: t('plus.billedYearly', { price: money(p.year) }) }
+      : { main: money(p.month), note: t('plus.billedMonthly') };
+  };
   return (
     <div className="fx-page">
       <PageHead title={t('plus.title')} sub={t('plus.sub')} />
       {state.plan === 'free' && days > 0 && <p className="pm-banner">{t('plus.trialLeft', { count: days })}</p>}
-      <div className="pm-plans">
-        {PLANS.map((p) => (
-          <div key={p.id} className={'pm-plan' + (plan === p.id ? ' on' : '') + (p.id === 'plus' ? ' best' : '')}>
-            {p.id === 'plus' && <span className="pm-badge">{t('plus.popular')}</span>}
-            <h3>{t('plus.plan_' + p.id)}</h3>
-            <p className="pm-price">{p.price ? <><b>{p.price}</b>/{t('plus.month')}</> : p.yearly ? <><b>{p.yearly}</b>/{t('plus.year')}</> : <b>{p.price || '0 €'}</b>}</p>
-            {p.yearly && p.price && <p className="fx-muted fx-small">{t('plus.orYearly', { price: p.yearly })}</p>}
-            <p className="fx-muted">{t('plus.planSub_' + p.id)}</p>
-            <ul className="pm-ticks">{p.features.map((f) => <li key={f}>{t('plus.short_' + f)}</li>)}</ul>
-            {plan === p.id ? <span className="pm-current">{t('plus.current')}</span> : null}
-          </div>
-        ))}
+      <div className="pm-billing" role="group" aria-label={t('plus.billing')}>
+        <button type="button" className={!yearly ? 'on' : ''} aria-pressed={!yearly} onClick={() => setYearly(false)}>{t('plus.monthly')}</button>
+        <button type="button" className={yearly ? 'on' : ''} aria-pressed={yearly} onClick={() => setYearly(true)}>{t('plus.yearly')} <em>{t('plus.twoFree')}</em></button>
       </div>
+      <div className="pm-plans">
+        {PLANS.map((p, i) => {
+          const pr = priceOf(p.id);
+          return (
+            <div key={p.id} className={'pm-plan' + (plan === p.id ? ' on' : '') + (p.id === 'plus' ? ' best' : '')}>
+              {p.id === 'plus' && <span className="pm-badge">{t('plus.popular')}</span>}
+              {p.id === 'pro' && <span className="pm-badge pro">{t('plus.complete')}</span>}
+              <h3>{t('plus.plan_' + p.id)}</h3>
+              <p className="pm-price"><b>{pr.main}</b>{p.id !== 'free' && <>/{t('plus.month')}</>}</p>
+              <p className="fx-muted fx-small">{pr.note}</p>
+              <p className="fx-muted">{t('plus.planSub_' + p.id)}</p>
+              {i > 0 && <p className="pm-inherit">{t('plus.everythingIn', { plan: t('plus.plan_' + PLANS[i - 1].id) })}</p>}
+              <ul className="pm-ticks">{p.features.map((f) => <li key={f}>{t('plus.short_' + f)}</li>)}</ul>
+              {plan === p.id ? <span className="pm-current">{t('plus.current')}</span> : null}
+            </div>
+          );
+        })}
+      </div>
+      <ul className="pm-perks">
+        <li>{t('plus.perkTrial')}</li>
+        <li>{t('plus.perkYearly')}</li>
+        <li>{t('plus.perkFriend')}</li>
+        <li>{t('plus.perkFounder')}</li>
+      </ul>
       {plan === 'free' && !state.trialUsed && (
         <button type="button" className="fx-btn primary pm-trial" onClick={() => startTrial()}>{t('plus.startTrial')}</button>
       )}
@@ -109,7 +132,7 @@ export function PlusPage() {
       {import.meta.env.DEV && (
         <div className="pm-dev">
           <b>DEV</b>
-          {(['free', 'plus', 'family', 'pro'] as PlanId[]).map((id) => (
+          {(['free', 'plus', 'pro'] as PlanId[]).map((id) => (
             <button key={id} type="button" className={'fx-btn' + (state.plan === id ? ' primary' : '')} onClick={() => savePlan({ ...state, plan: id })}>{id}</button>
           ))}
           <button type="button" className="fx-btn" onClick={() => savePlan({ plan: 'free', trialEndsAt: null, trialUsed: false })}>reset</button>

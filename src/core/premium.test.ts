@@ -71,16 +71,26 @@ describe('planos', () => {
     const m = new Map<string, string>();
     (globalThis as { localStorage?: unknown }).localStorage = { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => { m.set(k, v); }, removeItem: (k: string) => { m.delete(k); }, clear: () => m.clear() };
   });
-  it('grátis tem limites; o teste ativa o Plus uma só vez', () => {
+  it('grátis tem limites; o teste ativa o Pro uma só vez', () => {
     expect(activePlan()).toBe('free');
     expect(withinFreeLimit('accounts', 2)).toBe(false);
     startTrial(14);
-    expect(activePlan()).toBe('plus');
+    expect(activePlan()).toBe('pro');
     expect(hasFeature('irs')).toBe(true);
-    expect(hasFeature('freelance')).toBe(false);
+    expect(hasFeature('freelance')).toBe(true);
+    expect(hasFeature('shared')).toBe(true);
     savePlan({ ...loadPlan(), trialEndsAt: new Date(Date.now() - 1000).toISOString() });
     expect(activePlan()).toBe('free');
     expect(startTrial(14).trialEndsAt).not.toBeNull();
     expect(activePlan()).toBe('free'); // já usado
+  });
+
+  it('Pro tem tudo o do Plus; o antigo Família conta como Pro', () => {
+    savePlan({ plan: 'plus', trialEndsAt: null, trialUsed: true });
+    expect(hasFeature('split')).toBe(true);
+    expect(hasFeature('shared')).toBe(false);
+    localStorage.setItem('wallet.plan', JSON.stringify({ plan: 'family', trialEndsAt: null, trialUsed: true }));
+    expect(activePlan()).toBe('pro');
+    expect(hasFeature('assistant')).toBe(true);
   });
 });

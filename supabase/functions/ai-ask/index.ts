@@ -1,6 +1,6 @@
 // Edge Function "ai-ask" do Assistente FuturePal (Deno, corre no Supabase).
 // Faz SEMPRE estas verificações antes de gastar dinheiro com a IA:
-//   1) sessão iniciada  2) assistente ligado e com chave  3) subscrição Plus/Família/Pro ativa (tabela subscriptions)
+//   1) sessão iniciada  2) assistente ligado e com chave  3) subscrição Plus/Pro ativa (tabela subscriptions)
 //   4) quota do mês da pessoa  5) teto de gastos do mês para todos.
 // Os cálculos das despesas são feitos NA APP; aqui a IA só recebe:
 //   - "intent": a pergunta da pessoa e os nomes das categorias -> devolve o que ela quer saber (JSON)
@@ -80,8 +80,11 @@ Deno.serve(async (req) => {
   // 4) quota da pessoa  5) teto geral
   const month = new Date().toISOString().slice(0, 7);
   const { data: use } = await admin.from('ai_usage').select('questions,photos').eq('user_id', user.id).eq('month', month).maybeSingle();
-  const maxQ = cfg?.monthly_questions ?? 100;
-  const maxP = cfg?.monthly_photos ?? 30;
+  // Pro (e o antigo Família) tem 3x a quota do Plus
+  const k = sub!.plan === 'plus' ? 1 : 3;
+  const maxQ = (cfg?.monthly_questions ?? 100) * k;
+  const baseP = cfg?.monthly_photos ?? 30;
+  const maxP = k === 1 ? baseP : Math.round(baseP * 10 / 3); // Plus 30 -> Pro 100
   const usedQ = use?.questions ?? 0;
   const usedP = use?.photos ?? 0;
   if (mode === 'intent' && usedQ >= maxQ) return json({ ok: false, error: 'quota' });

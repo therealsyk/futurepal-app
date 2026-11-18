@@ -122,7 +122,7 @@ export function AdminPage() {
           <Field label={t('admin.email')}><input className="fx-input" value={sub.email} placeholder="pessoa@email.pt" onChange={(e) => setSub({ ...sub, email: e.target.value })} /></Field>
           <Field label={t('admin.subPlan')}>
             <select className="fx-input" value={sub.plan} onChange={(e) => setSub({ ...sub, plan: e.target.value })}>
-              {['free', 'plus', 'family', 'pro'].map((p) => <option key={p} value={p}>{t('admin.plan_' + p)}</option>)}
+              {['free', 'plus', 'pro'].map((p) => <option key={p} value={p}>{t('admin.plan_' + p)}</option>)}
             </select>
           </Field>
         </div>
