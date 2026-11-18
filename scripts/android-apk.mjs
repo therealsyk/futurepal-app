@@ -10,8 +10,8 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const version = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version;
 const env = {
   ...process.env,
-  JAVA_HOME: process.env.FP_JAVA_HOME || 'C:/Users/rafae/tools/jdk21',
-  ANDROID_HOME: process.env.FP_ANDROID_HOME || 'D:/Android SDK',
+  JAVA_HOME: process.env.FP_JAVA_HOME || String.raw`C:\Users\rafae\tools\jdk21`,
+  ANDROID_HOME: process.env.FP_ANDROID_HOME || String.raw`D:\Android SDK`,
 };
 if (!existsSync(join(root, 'android', 'keystore.properties'))) {
   console.error('Falta android/keystore.properties (copia de C:/Users/rafae/FuturePal-keys). Sem isto o APK não fica assinado.');
