@@ -733,3 +733,6 @@ html[data-theme="light"] .mv-acc.spending { --acc: #b7771b; }
 .demo-gate-card h2 { margin: 4px 0 0; font-size: 20px; letter-spacing: -.01em; }
 .demo-gate-card p { margin: 0 0 8px; color: var(--muted); font-size: 14px; line-height: 1.45; }
 .demo-gate-card .fx-btn { width: 100%; justify-content: center; }
+/* Calendário "Gasto por dia": o valor fica sempre dentro do quadrado (em ecrãs mais estreitos encolhe) */
+.fx-cal-d { min-width: 0; overflow: hidden; padding-left: 3px; padding-right: 3px; }
+.fx-cal-d b { max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: clip; font-size: clamp(8.5px, .62vw, 10.5px); }
