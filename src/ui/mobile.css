@@ -846,3 +846,10 @@ html.is-electron .app-main::-webkit-scrollbar, html.is-electron::-webkit-scrollb
   .tx-toolbar > .fx-selectbtn { width: auto; }
   .tx-toolbar > .fx-search { min-width: 0; width: 100%; }
 }
+/* Telemóvel: a navegação do mês encolhe em vez de empurrar a seta para fora do ecrã */
+@media (max-width: 768px) {
+  .fx-monthnav { min-width: 0; max-width: 100%; }
+  .fx-monthnav > span { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fx-monthnav > .fx-round { flex: none; }
+  .fx-seg { max-width: 100%; }
+}
