@@ -869,3 +869,10 @@ html.is-electron .app-main::-webkit-scrollbar, html.is-electron::-webkit-scrollb
 /* Mês e ano centrados nas caixas de escolha (Painel, Resumo completo, etc.) */
 .fx-periodnav .fx-pick .fx-btn { justify-content: center; }
 .fx-periodnav .fx-pick .fx-switch-name { flex: 1; text-align: center; }
+/* Visão mensal: cartão "Médias" com dois números lado a lado */
+.ov-avgs { margin-top: 14px; }
+.ov-avg-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+.ov-avg-grid > div { padding: 12px; border-radius: 14px; background: var(--card-2); display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ov-avg-grid small { color: var(--muted); font-size: 12.5px; }
+.ov-avg-grid b { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.ov-avg-grid em { font-style: normal; color: var(--muted); font-size: 11.5px; }
