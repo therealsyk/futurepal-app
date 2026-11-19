@@ -625,12 +625,12 @@
     "savingsRate": "Taxa de poupança",
     "txCount": "{{count}} transações",
     "noTx": "Sem transações",
-    "dailyAvg": "Média diária de gastos",
-    "avgMonthSavings": "Poupança média por mês",
+    "dailyAvg": "Gastos por dia",
+    "avgMonthSavings": "Poupança por mês",
     "monthBalance": "Saldo do mês",
     "averages": "Médias",
-    "perDay": "por dia neste mês",
-    "perMonthYear": "por mês em {{year}}"
+    "perDay": "média deste mês",
+    "perMonthYear": "média de {{year}}"
   },
   "mobile": {
     "more": "Mais",

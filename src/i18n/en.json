@@ -625,12 +625,12 @@
     "savingsRate": "Savings rate",
     "txCount": "{{count}} transactions",
     "noTx": "No transactions",
-    "dailyAvg": "Daily spending average",
-    "avgMonthSavings": "Average monthly savings",
+    "dailyAvg": "Spending per day",
+    "avgMonthSavings": "Savings per month",
     "monthBalance": "Month balance",
     "averages": "Averages",
-    "perDay": "per day this month",
-    "perMonthYear": "per month in {{year}}"
+    "perDay": "this month’s average",
+    "perMonthYear": "{{year}} average"
   },
   "mobile": {
     "more": "More",
