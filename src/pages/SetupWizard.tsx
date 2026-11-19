@@ -16,6 +16,7 @@ import { LoginForm } from './Login';
 import { useAuth } from '../auth/AuthContext';
 import { Ic, ICON, Sheet, Seg, catLabel, CategorySelect } from '../ui/fx';
 import { todayISO } from '../core/dates';
+import { currencyFlagUrl } from '../ui/currencyFlag';
 
 // Primeira utilização, um passo por ecrã (como numa app de telemóvel):
 // boas-vindas -> (entrar) -> moeda -> primeira conta -> transações -> meta -> criar conta (opcional).
@@ -232,7 +233,9 @@ function CurrencyStep({ language, value, onChange }: { language: string; value: 
               {g.items.map((c) => (
                 <button key={c.code} type="button" role="radio" aria-checked={value === c.code} className={'ob-option' + (value === c.code ? ' on' : '')} onClick={() => onChange(c.code)}>
                   <span className="ob-radio" aria-hidden="true" />
-                  <span className="ob-coin" aria-hidden="true">{currencySymbol(c.code, language)}</span>
+                  {currencyFlagUrl(c.code)
+                    ? <img className="ob-coin ob-flag" src={currencyFlagUrl(c.code)!} alt="" aria-hidden="true" />
+                    : <span className="ob-coin" aria-hidden="true">{currencySymbol(c.code, language)}</span>}
                   <span>{c.name} ({c.code})</span>
                 </button>
               ))}
@@ -288,7 +291,7 @@ function AccountStep({ currency, language, existing, onCreated }: {
           <label className="ob-label muted" htmlFor="ob-balance">{t('onboard.initialBalance')}</label>
           <input id="ob-balance" className="ob-amount" inputMode="decimal" value={balance} onChange={(e) => setBalance(e.target.value)} placeholder="0" />
         </div>
-        <span className="ob-pill static"><span className="ob-coin sm">{currencySymbol(currency, language)}</span>{currency}</span>
+        <span className="ob-pill static">{currencyFlagUrl(currency) ? <img className="ob-coin sm ob-flag" src={currencyFlagUrl(currency)!} alt="" /> : <span className="ob-coin sm">{currencySymbol(currency, language)}</span>}{currency}</span>
       </div>
       <hr className="ob-hr" />
       <SwitchRow on={positive} onChange={setPositive} title={t('onboard.positive')} hint={t('onboard.positiveHint')} />
