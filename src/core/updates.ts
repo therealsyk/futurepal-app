@@ -81,6 +81,18 @@ export function apkFromRelease(r: GithubRelease | null): { version: string; note
   return { version: r.tag_name.replace(/^v/i, ''), notes: (r.body || '').trim(), url: apk.browser_download_url };
 }
 
+/** Última release publicada no GitHub: versão, novidades e o que tem (instalador do Windows e/ou APK). */
+export async function githubLatest(fetcher: typeof fetch = fetch): Promise<{ version: string; notes: string; windows: boolean; apkUrl: string | null } | null> {
+  try {
+    const res = await fetcher(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, { headers: { Accept: 'application/vnd.github+json' } });
+    if (!res.ok) return null;
+    const r = await res.json() as GithubRelease;
+    if (!r?.tag_name || r.draft || r.prerelease) return null;
+    const apk = r.assets.find((x) => x.name.toLowerCase().endsWith('.apk'));
+    return { version: r.tag_name.replace(/^v/i, ''), notes: (r.body || '').trim(), windows: r.assets.some((x) => x.name === 'latest.yml'), apkUrl: apk?.browser_download_url ?? null };
+  } catch { return null; }
+}
+
 export async function githubApk(fetcher: typeof fetch = fetch): Promise<{ version: string; notes: string; url: string } | null> {
   try {
     const res = await fetcher(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, { headers: { Accept: 'application/vnd.github+json' } });

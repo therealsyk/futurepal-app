@@ -4,6 +4,8 @@ import { getSupabase } from '../auth/supabase';
 import { useAuth } from '../auth/AuthContext';
 import { PageHead, Field } from '../ui/fx';
 import { DatePicker } from '../ui/DatePicker';
+import { githubLatest, GITHUB_REPO } from '../core/updates';
+import { compareVersions } from '../core/version';
 
 // Painel de administração (só para contas na tabela "admins" do Supabase; ver supabase/admin.sql).
 // Mostra números agregados, as últimas contas criadas e permite publicar o aviso de versão nova.
@@ -66,7 +68,25 @@ export function AdminPage() {
     if (!sb) return;
     const [s, u, ver] = await Promise.all([sb.rpc('admin_stats'), sb.rpc('admin_users', { max_rows: 50 }), sb.from('app_versions').select('*').order('platform')]);
     if (s.error || u.error) { setError(String((s.error || u.error)?.message)); return; }
-    setStats(s.data as Stats); setUsers((u.data ?? []) as UserRow[]); setVersions((ver.data ?? []) as VersionRow[]);
+    setStats(s.data as Stats); setUsers((u.data ?? []) as UserRow[]);
+    let rows = (ver.data ?? []) as VersionRow[];
+    // As versões publicadas acompanham sozinhas a última release do GitHub (Windows e Android).
+    const gh = await githubLatest();
+    if (gh) {
+      const notes = gh.notes.split('\n').map((l) => l.replace(/^[-*#\s]+/, '').trim()).filter(Boolean).join(' · ').slice(0, 300);
+      const targets: Array<[string, string]> = [];
+      if (gh.windows) targets.push(['windows', `https://github.com/${GITHUB_REPO}/releases/latest`]);
+      if (gh.apkUrl) targets.push(['android', gh.apkUrl]);
+      let changed = false;
+      for (const [platform, url] of targets) {
+        const row = rows.find((r) => r.platform === platform);
+        if (row && compareVersions(gh.version, row.latest_version) <= 0) continue;
+        const { error: e } = await sb.rpc('admin_set_version', { p_platform: platform, p_version: gh.version, p_min: row?.min_version ?? '', p_notes: notes, p_url: url });
+        if (!e) changed = true;
+      }
+      if (changed) rows = ((await sb.from('app_versions').select('*').order('platform')).data ?? rows) as VersionRow[];
+    }
+    setVersions(rows);
   };
   useEffect(() => { if (isAdmin) load().catch((e) => setError(String(e))); }, [isAdmin]);
 
