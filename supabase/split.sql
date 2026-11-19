@@ -167,7 +167,7 @@ end $$;
 do $$ declare f text; begin
   foreach f in array array['my_contact()','create_split_group(text,text,text)','invite_to_split(uuid,text,text)','my_split_invites()',
     'answer_split_invite(uuid,boolean,text)','add_split_bill(uuid,text,bigint,date,uuid[],boolean)','set_split_paid(uuid,uuid,boolean)','leave_split_group(uuid)']
-  loop execute 'revoke all on function public.' || f || ' from anon'; end loop;
+  loop execute 'revoke all on function public.' || f || ' from public, anon'; execute 'grant execute on function public.' || f || ' to authenticated'; end loop;
 end $$;
 
 -- ---------------------------------------------------------------- RLS (leitura só para membros; escrita pelas funções acima)

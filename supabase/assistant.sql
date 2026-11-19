@@ -50,7 +50,7 @@ create or replace function public.ai_month_cost(p_month text)
 returns bigint language sql stable security definer set search_path = public as $$
   select coalesce(sum(cost_microcents), 0) from public.ai_usage where month = p_month;
 $$;
-revoke all on function public.ai_month_cost(text) from anon, authenticated;
+revoke all on function public.ai_month_cost(text) from public, anon, authenticated;
 
 -- Soma uso de forma atómica. Só a service role chama.
 create or replace function public.ai_add_usage(p_user uuid, p_month text, p_questions int, p_photos int, p_cost bigint)
@@ -62,7 +62,7 @@ returns void language sql security definer set search_path = public as $$
     photos = ai_usage.photos + excluded.photos,
     cost_microcents = ai_usage.cost_microcents + excluded.cost_microcents;
 $$;
-revoke all on function public.ai_add_usage(uuid, text, int, int, bigint) from anon, authenticated;
+revoke all on function public.ai_add_usage(uuid, text, int, int, bigint) from public, anon, authenticated;
 
 -- PARA TESTAR sem pagamentos: dá-te Plus por um ano (troca o email).
 -- insert into public.subscriptions (user_id, plan, current_period_end)
