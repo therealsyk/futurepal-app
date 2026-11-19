@@ -811,10 +811,8 @@ html[data-theme="light"] .mv-acc.spending { --acc: #b7771b; }
 .sw-item.on small { color: var(--accent); font-weight: 650; }
 .sw-remove { border: 1px solid var(--border); background: var(--card); color: #f87171; border-radius: 99px; padding: 4px 12px; font: inherit; font-size: 12.5px; cursor: pointer; }
 .sw-spin { position: absolute; inset: 0; border-radius: 50%; background: rgba(0,0,0,.45); }
-.sw-add { display: flex; flex-direction: column; align-items: center; gap: 8px; border: 0; background: none; color: var(--muted); font: inherit; cursor: pointer; }
-.sw-add span { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; background: var(--card-2); color: var(--text); border: 1px solid var(--border); transition: transform .15s, background .15s; }
-.sw-add:hover span { transform: scale(1.06); background: var(--card); }
-.sw-add b { font-size: 15px; color: var(--text); font-weight: 600; }
+.sw-add { border: 0; background: none; color: var(--muted); font: inherit; font-size: 15.5px; font-weight: 600; padding: 8px 12px; cursor: pointer; }
+.sw-add:hover, .sw-add:focus-visible { color: var(--text); text-decoration: underline; outline: none; }
 .sw-manage { border: 1px solid var(--border); background: none; color: var(--muted); border-radius: 12px; padding: 10px 22px; font: inherit; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
 .sw-manage:hover { color: var(--text); border-color: var(--text); }
 .sw-login { width: 100%; max-width: 460px; display: flex; flex-direction: column; gap: 12px; }

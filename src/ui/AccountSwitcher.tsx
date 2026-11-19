@@ -88,13 +88,7 @@ export function AccountSwitcher({ open, onClose }: { open: boolean; onClose: () 
             ))}
           </div>
           {error && <p className="fx-error" role="alert">{error}</p>}
-          <button type="button" className="sw-add" onClick={addAccount}>
-            <span><Ic d={ICON.plus} size={30} /></span>
-            <b>{t('switcher.add')}</b>
-          </button>
-          {list.length > 1 && (
-            <button type="button" className="sw-manage" onClick={() => setManage(!manage)}>{manage ? t('switcher.done') : t('switcher.manage')}</button>
-          )}
+          <button type="button" className="sw-add" onClick={addAccount}>{t('switcher.add')}</button>
         </div>
       )}
     </div>,
