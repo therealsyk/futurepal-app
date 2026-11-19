@@ -18,6 +18,7 @@ protocols:
     schemes:
       - futurepal
 nsis:
+  include: build/installer.nsh
   oneClick: true
   perMachine: false
   deleteAppDataOnUninstall: false
