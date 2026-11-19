@@ -1012,8 +1012,8 @@ export function Dashboard() {
         <Kpi label={t('panel.expenses')} color="#4f8ff0" icon="M3 7a2 2 0 0 1 2-2h12v4M3 7v10a2 2 0 0 0 2 2h14V9H5a2 2 0 0 1-2-2zM16 14h.01"
           value={money(spent)} pct={pctTxt(pctSpent)} pctTone={pctSpent !== null && pctSpent > 1 ? 'bad' : 'neutral'}
           sub={<>
-            {pctSpent === null ? t('panel.noIncome') : t('panel.kpiExpensesSub')}
-            {spent > 0 && <span style={{ marginLeft: 6 }}>· {t('panel.perDayShort', { value: money(avgDay) })}</span>}
+            {pctSpent !== null && t('panel.kpiExpensesSub')}
+            {spent > 0 && <span style={pctSpent !== null ? { marginLeft: 6 } : undefined}>{pctSpent !== null ? '· ' : ''}{t('panel.perDayShort', { value: money(avgDay) })}</span>}
             {deltaSpent !== null && (
               <b className={deltaSpent > 0 ? 'fx-neg' : 'fx-pos'} style={{ marginLeft: 6, fontWeight: 600 }}>
                 {deltaSpent > 0 ? '↑' : '↓'} {Math.abs(Math.round(deltaSpent * 100))}% {t('panel.vsPrevious')}
