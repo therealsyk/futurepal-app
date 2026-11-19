@@ -876,3 +876,6 @@ html.is-electron .app-main::-webkit-scrollbar, html.is-electron::-webkit-scrollb
 .ov-avg-grid small { color: var(--muted); font-size: 12.5px; }
 .ov-avg-grid b { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .ov-avg-grid em { font-style: normal; color: var(--muted); font-size: 11.5px; }
+/* Caixas do topo do Painel: a linha de baixo passa para a seguinte em vez de cortar com "…" */
+.fx-kpi-sub { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.45; }
+.fx-kpi-sub b { white-space: nowrap; }
