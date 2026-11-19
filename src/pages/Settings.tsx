@@ -21,6 +21,7 @@ import { fullCheck, UPDATE_CHECK_EVENT } from '../ui/UpdateNotice';
 import { UserAvatar } from '../ui/UserAvatar';
 import { removeAvatar, saveAvatar } from '../core/avatar';
 import { FeedbackSheet } from './Feedback';
+import { AccountSwitcher } from '../ui/AccountSwitcher';
 
 const LANGUAGES = [
   { code: 'pt-PT', label: 'Português (Portugal)' },
@@ -43,6 +44,7 @@ const I = {
   sheet: 'M4 4h16v16H4zM4 9h16M4 14h16M10 4v16',
   logout: 'M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 17l-5-5 5-5M5 12h11',
   chat: 'M4 5h16v11H9l-5 4zM8 9h8M8 12h5',
+  swap: 'M16 3l4 4-4 4M20 7H9M8 21l-4-4 4-4M4 17h11',
 };
 
 // Linha da conta com a foto de perfil (só com sessão): tocar na foto escolhe outra; "Remover" volta à do Google / iniciais.
@@ -132,6 +134,7 @@ export function Settings() {
   }
   const importRef = useRef<HTMLInputElement>(null);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [switchOpen, setSwitchOpen] = useState(false);
 
   async function onExportBackup() {
     try {
@@ -218,6 +221,7 @@ export function Settings() {
         ) : auth.user ? (
           <>
             <AccountPhotoRow />
+            <Row icon={I.swap} title={t('switcher.menu')} sub={t('switcher.rowSub')} onClick={() => setSwitchOpen(true)} testId="st-switch" />
             <Row icon={I.sync} title={t('settings.syncNow')} sub={syncMsg || t('settings.syncReady')} onClick={syncing ? undefined : onSync} testId="sync-btn" />
           </>
         ) : (
@@ -287,6 +291,7 @@ export function Settings() {
         {danger && <DangerZone mode={danger} onClose={() => { setDanger(null); update({ ...settings, account: 'none' }); }} />}
       </Sheet>
       <FeedbackSheet open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
+      <AccountSwitcher open={switchOpen} onClose={() => setSwitchOpen(false)} />
       <Sheet open={importOpen} onClose={() => setImportOpen(false)} title={t('importer.title')} wide>
         <ImportStatement />
       </Sheet>

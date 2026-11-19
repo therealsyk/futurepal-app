@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import type { Session, User } from '@supabase/supabase-js';
 import { getSupabase, hasSupabaseConfig } from './supabase';
 import { listenForOAuthCallbacks } from './oauth';
+import { rememberSession } from './savedAccounts';
 
 interface AuthState {
   configured: boolean; // há URL + chave do Supabase no .env
@@ -24,9 +25,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let alive = true;
     sb.auth.getSession().then(({ data }) => {
       if (alive) setState({ configured, ready: true, session: data.session, user: data.session?.user ?? null });
+      rememberSession(data.session);
     });
     const { data: sub } = sb.auth.onAuthStateChange((_event, session) => {
       setState({ configured, ready: true, session, user: session?.user ?? null });
+      rememberSession(session); // guarda/atualiza a sessão desta conta para "Trocar de conta"
     });
     // Login social no Windows/telemóvel: o fornecedor volta à app por um link (futurepal://… / com.futurepal.app://…).
     const stopOAuth = listenForOAuthCallbacks((msg) => { try { sessionStorage.setItem('wallet.oauthError', msg); } catch { /* sem storage */ } });

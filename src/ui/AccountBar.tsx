@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { UserAvatar } from './UserAvatar';
+import { AccountSwitcher } from './AccountSwitcher';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../auth/AuthContext';
@@ -21,6 +22,7 @@ const ITEMS = {
   backup: 'M12 3v12M7 10l5 5 5-5M4 19h16',
   out: 'M15 4h4v16h-4M10 16l-4-4 4-4M6 12h10',
   in: 'M9 4H5v16h4M14 16l4-4-4-4M18 12H8',
+  swap: 'M16 3l4 4-4 4M20 7H9M8 21l-4-4 4-4M4 17h11',
 };
 
 type Note = { id: string; text: string; to: string };
@@ -82,11 +84,13 @@ export function AccountBar() {
   const email = auth.user?.email ?? '';
   const name = meta.full_name || meta.name || (email ? email.split('@')[0] : t('acct.guest'));
   const masked = email ? '•••••@' + email.split('@')[1] : t('settings2.localMode');
+  const [switcher, setSwitcher] = useState(false);
   const go = (to: string) => { setOpen(null); navigate(to); };
   const planName = t('plus.plan_' + activePlan());
 
   return (
     <div className="ab" ref={ref}>
+      <AccountSwitcher open={switcher} onClose={() => setSwitcher(false)} />
       <button type="button" className="ab-chip" onClick={() => setOpen(open === 'menu' ? null : 'menu')} aria-haspopup="menu" aria-expanded={open === 'menu'}>
         <UserAvatar user={auth.user} name={name} />
         <span className="ab-who"><b>{name}</b><small>{masked}</small></span>
@@ -117,6 +121,7 @@ export function AccountBar() {
           <button type="button" role="menuitem" className="ab-item" onClick={() => go('/definicoes')}><Ic d={ITEMS.settings} />{t('nav.settings')}</button>
           <button type="button" role="menuitem" className="ab-item" onClick={() => go('/definicoes')}><Ic d={ITEMS.backup} />{t('acct.backup')}</button>
           {isAdmin && <button type="button" role="menuitem" className="ab-item" onClick={() => go('/admin')}><Ic d={ITEMS.admin} />{t('admin.title')}</button>}
+          {auth.configured && <button type="button" role="menuitem" className="ab-item" onClick={() => { setOpen(null); setSwitcher(true); }} data-testid="switch-account"><Ic d={ITEMS.swap} />{t('switcher.menu')}</button>}
           <hr />
           {auth.user
             ? <button type="button" role="menuitem" className="ab-item danger" onClick={async () => { setOpen(null); await signOut().catch(() => {}); }}><Ic d={ITEMS.out} />{t('acct.signOut')}</button>

@@ -1294,5 +1294,17 @@
     "errEmail": "This email does not look valid.",
     "errOffline": "No connection to the server. Please try later.",
     "errSend": "Could not send. Check your internet connection and try again."
+  },
+  "switcher": {
+    "menu": "Switch account",
+    "title": "Who is using FuturePal?",
+    "current": "Current account",
+    "add": "Add account",
+    "manage": "Manage accounts",
+    "done": "Done",
+    "remove": "Remove",
+    "back": "Back to accounts",
+    "expired": "{{name}}'s session has expired. Please add the account again.",
+    "rowSub": "Use another account without signing out of this one."
   }
 }

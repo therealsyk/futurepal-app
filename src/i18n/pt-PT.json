@@ -1288,5 +1288,17 @@
     "errEmail": "Este email não parece válido.",
     "errOffline": "Sem ligação ao servidor. Tenta mais tarde.",
     "errSend": "Não foi possível enviar. Verifica a ligação à internet e tenta de novo."
+  },
+  "switcher": {
+    "menu": "Trocar de conta",
+    "title": "Quem está a usar o FuturePal?",
+    "current": "Conta atual",
+    "add": "Adicionar conta",
+    "manage": "Gerir contas",
+    "done": "Concluído",
+    "remove": "Remover",
+    "back": "Voltar às contas",
+    "expired": "A sessão de {{name}} expirou. Adiciona a conta outra vez.",
+    "rowSub": "Entra noutra conta sem terminar esta."
   }
 }

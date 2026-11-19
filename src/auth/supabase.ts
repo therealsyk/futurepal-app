@@ -67,6 +67,15 @@ export async function deleteMyAccount(): Promise<void> {
 export async function signOut(): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
+  // Terminar sessão = esta conta sai também da lista "Trocar de conta" deste aparelho
+  const { data } = await sb.auth.getSession();
+  if (data.session?.user) {
+    try {
+      const k = 'wallet.savedAccounts';
+      const list = JSON.parse(localStorage.getItem(k) || '[]') as Array<{ id: string }>;
+      localStorage.setItem(k, JSON.stringify(list.filter((a) => a.id !== data.session!.user.id)));
+    } catch { /* sem storage */ }
+  }
   await sb.auth.signOut();
 }
 
