@@ -17,8 +17,8 @@ if (!existsSync(join(root, 'android', 'keystore.properties'))) {
   console.error('Falta android/keystore.properties (copia de C:/Users/rafae/FuturePal-keys). Sem isto o APK não fica assinado.');
   process.exit(1);
 }
-const gradlew = process.platform === 'win32' ? 'gradlew.bat' : './gradlew';
-execSync(`${gradlew} assembleRelease --no-daemon -q`, { cwd: join(root, 'android'), stdio: 'inherit', env, shell: true });
+const gradlew = join(root, 'android', process.platform === 'win32' ? 'gradlew.bat' : 'gradlew');
+execSync(`"${gradlew}" assembleRelease --no-daemon -q`, { cwd: join(root, 'android'), stdio: 'inherit', env, shell: true });
 const out = join(root, 'release', 'android');
 mkdirSync(out, { recursive: true });
 const dest = join(out, `FuturePal-${version}.apk`);
