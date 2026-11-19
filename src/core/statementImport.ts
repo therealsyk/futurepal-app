@@ -39,8 +39,16 @@ export function parseSignedAmount(raw: unknown): number | null {
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const MONTHS: Record<string, number> = {
-  jan: 1, fev: 2, feb: 2, mar: 3, abr: 4, apr: 4, mai: 5, may: 5, jun: 6, jul: 7, ago: 8, aug: 8, set: 9, sep: 9, out: 10, oct: 10, nov: 11, dez: 12, dec: 12,
+  jan: 1, ene: 1, gen: 1, fev: 2, feb: 2, mar: 3, mrz: 3, abr: 4, apr: 4, avr: 4, mai: 5, may: 5, jun: 6, jul: 7, ago: 8, aug: 8, aou: 8,
+  set: 9, sep: 9, out: 10, oct: 10, okt: 10, ott: 10, nov: 11, dez: 12, dec: 12, dic: 12,
 };
+/** Mês pelo nome (pt, en, es, fr, de, it; abreviado ou por extenso, com ou sem acentos). */
+function monthOf(word: string): number | undefined {
+  const w = word.toLowerCase().replace(/\.$/, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (w.startsWith('juil')) return 7;
+  if (w.startsWith('juin')) return 6;
+  return MONTHS[w.slice(0, 3)];
+}
 
 export type DateOrder = 'DMY' | 'MDY' | 'YMD';
 
@@ -61,8 +69,10 @@ export function parseDate(raw: unknown, order: DateOrder = 'DMY'): string | null
     const y = m[3].length === 2 ? 2000 + +m[3] : +m[3];
     return order === 'MDY' ? valid(y, +m[1], +m[2]) : valid(y, +m[2], +m[1]);
   }
-  m = /^(\d{1,2})[\s-]+([a-zç]{3})[a-zç.]*[\s-]+(\d{2,4})/.exec(s); // 05 nov 2026 / 5-Nov-26
-  if (m && MONTHS[m[2]]) return valid(m[3].length === 2 ? 2000 + +m[3] : +m[3], MONTHS[m[2]], +m[1]);
+  m = /^(\d{1,2})[\s-]+(?:de\s+)?([a-zà-ÿ]{3}[a-zà-ÿ]*)\.?[\s-]+(?:de\s+)?(\d{2,4})/.exec(s); // 05 nov 2026 / 5-Nov-26 / 3 de novembro de 2026
+  if (m && monthOf(m[2])) return valid(m[3].length === 2 ? 2000 + +m[3] : +m[3], monthOf(m[2])!, +m[1]);
+  m = /^([a-zà-ÿ]{3}[a-zà-ÿ]*)\.?\s+(\d{1,2}),?\s+(\d{4})/.exec(s); // Apr 20, 2026 (Revolut e outros em inglês)
+  if (m && monthOf(m[1])) return valid(+m[3], monthOf(m[1])!, +m[2]);
   return null;
 }
 function valid(y: number, mo: number, d: number): string | null {
@@ -75,7 +85,7 @@ function valid(y: number, mo: number, d: number): string | null {
 export function guessDateOrder(values: unknown[], fallback: DateOrder = 'DMY'): DateOrder {
   let dmy = 0, mdy = 0;
   for (const v of values) {
-    const m = /^(\d{1,2})[-/.](\d{1,2})[-/.]\d{2,4}/.exec(String(v ?? '').trim());
+    const m = /^(\d{1,2})[-/.](\d{1,2})(?:[-/.]\d{2,4})?$/.exec(String(v ?? '').trim());
     if (!m) continue;
     if (+m[1] > 12) dmy++;
     if (+m[2] > 12) mdy++;
@@ -206,11 +216,11 @@ export function parseQIF(text: string, order: DateOrder = 'DMY'): StatementRow[]
 
 type Tok = { k: 'date'; v: string } | { k: 'amt'; v: number; signed: boolean } | { k: 'txt'; v: string };
 
-const MONEY_CELL = /^(?:EUR|€)?\s*[-−+]?\s*\(?(?:\d{1,3}(?:[.,\s  ]\d{3})+|\d+)[.,]\d{2}\)?\s*-?\s*(?:€|EUR)?\s*(?:D|DB|C|CR)?$/i;
-const MONEY_END = /\s+((?:EUR|€)?\s*[-−+]?\(?(?:\d{1,3}(?:[.,]\d{3})+|\d+)[.,]\d{2}\)?-?\s*(?:€|EUR)?(?:\s(?:D|DB|C|CR))?)$/i;
-const DATE_START = /^(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/.]\d{1,2}(?:[-/.]\d{2,4})?|\d{1,2}[\s.-]?[a-zç]{3}\.?(?:[\s.-]\d{2,4})?)(?=\s|$)/i;
-const SKIP = /^(saldo|total|balance|a transportar|transporte|opening|closing)/i;
-const NOISE = /p[aá]gina|page \d|extrato|statement|iban|nif\b|swift|bic\b|descri[cç][aã]o|morada|address/i;
+const MONEY_CELL = /^[-−]?\s*(?:EUR|€|US\$|R\$|\$|£|GBP|USD|BRL|CHF)?\s*[-−+]?\s*\(?(?:\d{1,3}(?:[.,\s  ]\d{3})+|\d+)[.,]\d{2}\)?\s*-?\s*(?:EUR|€|US\$|R\$|\$|£|GBP|USD|BRL|CHF)?\s*(?:D|DB|C|CR)?$/i;
+const MONEY_END = /\s+([-−]?\s*(?:EUR|€|US\$|R\$|\$|£|GBP|USD|BRL|CHF)?\s*[-−+]?\(?(?:\d{1,3}(?:[.,]\d{3})+|\d+)[.,]\d{2}\)?-?\s*(?:EUR|€|US\$|R\$|\$|£|GBP|USD|BRL|CHF)?(?:\s(?:D|DB|C|CR))?)$/i;
+const DATE_START = /^(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/.]\d{1,2}(?:[-/.]\d{2,4})?|\d{1,2}[\s.-]?[a-zà-ÿ]{3,9}\.?(?:[\s.-]\d{2,4})?|[a-zà-ÿ]{3,9}\.?\s\d{1,2},?(?:\s\d{4})?)(?=\s|$)/i;
+const SKIP = /^(saldo|total|balance|a transportar|transporte|opening|closing|start(ing)? balance|beginning|ending balance|end balance|solde|kontostand|anfangssaldo|endsaldo)/i;
+const NOISE = /^(card|cart[aã]o|to|from|para|de|ref(erence)?)\s*:|p[aá]gina|page \d|extrato|statement|iban|nif\b|swift|bic\b|descri[cç][aã]o|morada|address/i;
 
 function moneyOf(raw: string): { v: number; signed: boolean } | null {
   const t = raw.trim();
@@ -224,13 +234,15 @@ function moneyOf(raw: string): { v: number; signed: boolean } | null {
 
 function dateOf(raw: string, order: DateOrder, year: number): string | null {
   const s = raw.trim().toLowerCase();
-  if (!/^\d/.test(s)) return null;
+  const named = /^[a-zà-ÿ]{3,9}\.?\s\d{1,2},?(\s\d{4})?$/.test(s); // "Apr 20, 2026" / "Apr 20"
+  if (!/^\d/.test(s) && !named) return null;
   const full = parseDate(s, order);
-  if (full && /^\S+(\s\S+){0,2}$/.test(s) && s.length <= 12) return full;
+  if (full && /^\S+(\s\S+){0,2}$/.test(s) && s.length <= 18) return full;
+  if (named) { const n = /^([a-zà-ÿ]{3,9})\.?\s(\d{1,2}),?$/.exec(s); return n && monthOf(n[1]) ? valid(year, monthOf(n[1])!, +n[2]) : null; }
   let m = /^(\d{1,2})[-/.](\d{1,2})$/.exec(s);
   if (m) return order === 'MDY' ? valid(year, +m[1], +m[2]) : valid(year, +m[2], +m[1]);
-  m = /^(\d{1,2})[\s.-]?([a-zç]{3})\.?$/.exec(s);
-  if (m && MONTHS[m[2]]) return valid(year, MONTHS[m[2]], +m[1]);
+  m = /^(\d{1,2})[\s.-]?([a-zà-ÿ]{3,9})\.?$/.exec(s);
+  if (m && monthOf(m[2])) return valid(year, monthOf(m[2])!, +m[1]);
   return null;
 }
 
@@ -299,7 +311,8 @@ export function rowsFromText(text: string, order: DateOrder = 'DMY'): StatementR
     const amts = toks.filter((t): t is { k: 'amt'; v: number; signed: boolean } => t.k === 'amt');
     const desc = toks.filter((t): t is { k: 'txt'; v: string } => t.k === 'txt').map((t) => t.v).join(' ').replace(/\s+/g, ' ').trim();
 
-    if (desc && SKIP.test(desc)) { if (amts.length) lastOpen = amts[amts.length - 1].v; pending = null; canContinue = false; continue; }
+    // linha de totais (inicial, saídas, entradas, final): o 1.º valor é o saldo inicial
+    if (desc && SKIP.test(desc)) { if (amts.length) lastOpen = amts[amts.length >= 3 ? 0 : amts.length - 1].v; pending = null; canContinue = false; continue; }
     if (dates.length && amts.length && desc) { push(dates[0].v, desc, amts); continue; }
     if (dates.length && desc && !amts.length) { pending = { date: dates[0].v, desc }; canContinue = false; continue; }
     if (pending && amts.length && !dates.length) { const p = pending as { date: string; desc: string }; push(p.date, [p.desc, desc].filter(Boolean).join(' '), amts); continue; }
@@ -330,11 +343,14 @@ export function rowsFromText(text: string, order: DateOrder = 'DMY'): StatementR
     return near(Math.abs(d), Math.abs(r.amt)) ? Math.sign(d) : null;
   };
 
+  // Sem coluna de saldo e com as saídas marcadas com "-": um valor positivo sem sinal é uma entrada.
+  const docHasNeg = raw.every((r) => r.balance === null) && raw.some((r) => r.signed && r.amt < 0);
   return raw.map((r, i) => {
     let type: 'expense' | 'income';
     const ds = deltaSign(i);
     if (r.signed) type = r.amt < 0 ? 'expense' : 'income';
     else if (ds) type = ds < 0 ? 'expense' : 'income';
+    else if (docHasNeg && r.amt > 0) type = 'income';
     else type = guessIncome(r.desc) ? 'income' : 'expense';
     return { date: r.date, description: r.desc.replace(/\s*(EUR|€)\s*$/i, '').trim(), amountCents: Math.abs(r.amt), type };
   }).filter((r) => r.amountCents > 0);
@@ -376,7 +392,7 @@ export function detectSalaryRows(rows: Array<{ date: string; description: string
 
 function guessIncome(desc: string): boolean {
   if (SALARY_WORDS.test(desc)) return true;
-  return /sal[aá]rio|vencimento|ordenado|transf.*(rec|cr[eé]dito)|reembolso|devolu|payroll|salary|refund|dep[oó]sito/i.test(desc);
+  return /sal[aá]rio|vencimento|ordenado|transf.*(rec|cr[eé]dito)|reembolso|devolu|payroll|salary|refund|dep[oó]sito|gehalt|lohn|salaire|virement re[cç]u|received|incoming|recebid|bizum de/i.test(desc);
 }
 
 export async function pdfText(data: ArrayBuffer): Promise<string> {

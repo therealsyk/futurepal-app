@@ -188,3 +188,27 @@ describe('salary detection', () => {
     expect([...detectSalaryRows(rows)].sort()).toEqual([0, 1, 2]);
   });
 });
+
+describe('rowsFromText: extrato Revolut (datas "Apr 20, 2026", € à frente)', () => {
+  const text = [
+    'Balance summary',
+    'Product  Opening balance  Money out  Money in  Closing balance',
+    'Account (Current Account)  €0.03  €12.63  €1,250.00  €1,237.40',
+    'Total  €0.03  €12.63  €1,250.00  €1,237.40',
+    'Date  Description  Money out  Money in  Balance',
+    'Apr 20, 2026  Top-up by *1234  €1,250.00  €1,250.03',
+    'From: *1234',
+    'Apr 21, 2026  Supermercado Exemplo  €2.63  €1,247.40',
+    'To: Supermercado Exemplo, Cidade',
+    'Card: 400000******0000',
+    'May 2, 2026  Cafe Exemplo  €10.00  €1,237.40',
+  ].join('\n');
+  it('lê as datas, os valores com milhares e o sinal pelo saldo', () => {
+    const r = rowsFromText(text);
+    expect(r.map((x) => [x.date, x.type, x.amountCents, x.description])).toEqual([
+      ['2026-04-20', 'income', 125000, 'Top-up by *1234'],
+      ['2026-04-21', 'expense', 263, 'Supermercado Exemplo'],
+      ['2026-05-02', 'expense', 1000, 'Cafe Exemplo'],
+    ]);
+  });
+});
