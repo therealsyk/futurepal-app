@@ -758,7 +758,7 @@ export function Dashboard() {
             <div className="fx-stat"><span>{t('panel.largestExpense')}</span><span className="fx-num">{money(kpis.largestExpenseCents)}</span></div>
             <div className="fx-stat"><span>{t('panel.salaryInPeriod')}</span><span className="fx-num">{money(salaryCents)}</span></div>
             <div className="fx-stat" data-testid="summary-avg-savings"><span>{t('panel.avgMonthlySavings')}</span>
-              <span className={'fx-num' + (avgMonthSavings !== null && avgMonthSavings < 0 ? ' fx-neg' : '')}>{avgMonthSavings === null ? '—' : money(avgMonthSavings)}</span></div>
+              <span className={'fx-num' + (avgMonthSavings === null ? '' : avgMonthSavings < 0 ? ' fx-neg' : ' fx-pos')}>{avgMonthSavings === null ? '—' : money(avgMonthSavings)}</span></div>
           </Card>
         );
       // Números do Resumo, cada um num cartão próprio (opcionais, na personalização)
