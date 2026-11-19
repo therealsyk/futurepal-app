@@ -823,3 +823,11 @@ html[data-theme="light"] .mv-acc.spending { --acc: #b7771b; }
   .sw-face { width: 96px; height: 96px; }
   .sw-face > span { font-size: 32px; }
 }
+/* App de Windows: barra do título integrada (34 px) e página sem barra de scroll visível */
+.win-titlebar { position: fixed; inset: 0 0 auto 0; height: 34px; z-index: 9999; display: flex; align-items: center; padding-left: 14px; background: var(--bg); color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: .04em; -webkit-app-region: drag; user-select: none; }
+html.is-electron body { padding-top: 34px; }
+html.is-electron .app-shell, html.is-electron .app-main { height: calc(100vh - 34px); }
+html.is-electron .ob-screen { min-height: calc(100vh - 34px); }
+html.is-electron .fx-backdrop, html.is-electron .sw-layer, html.is-electron .demo-gate { top: 34px; }
+html.is-electron .app-main, html.is-electron, html.is-electron body { scrollbar-width: none; }
+html.is-electron .app-main::-webkit-scrollbar, html.is-electron::-webkit-scrollbar, html.is-electron body::-webkit-scrollbar { display: none; }

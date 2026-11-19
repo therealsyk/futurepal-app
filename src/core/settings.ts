@@ -83,6 +83,14 @@ export function applyCountry(settings: AppSettings, countryCode: string): AppSet
 export function setTheme(theme: 'dark' | 'light' | 'gray'): void {
   try {
     document.documentElement.setAttribute('data-theme', theme);
+    // App de Windows: a barra do título (com os botões da janela) acompanha a cor do tema
+    const bridge = (window as unknown as { __electronBridge?: { setTitleBar?: (c: string, s: string) => void } }).__electronBridge;
+    if (bridge?.setTitleBar) {
+      requestAnimationFrame(() => {
+        const cs = getComputedStyle(document.body);
+        bridge.setTitleBar!(cs.backgroundColor, cs.color);
+      });
+    }
   } catch {
     // No DOM in tests.
   }

@@ -1,4 +1,14 @@
-const { app, BrowserWindow, ipcMain, net, shell } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, net, shell } = require('electron');
+
+// Sem o menu "File / Edit / View / Window" (copiar/colar continuam a funcionar nos campos de texto).
+Menu.setApplicationMenu(null);
+// A app avisa a cor do tema para a barra do título acompanhar (escuro / cinzento / claro).
+ipcMain.on('wallet:titlebar', (e, { color, symbol }) => {
+  const w = BrowserWindow.fromWebContents(e.sender);
+  if (w && typeof w.setTitleBarOverlay === 'function' && /^#[0-9a-f]{6}$|^rgb/i.test(String(color))) {
+    try { w.setTitleBarOverlay({ color, symbolColor: symbol, height: 34 }); } catch { /* sistema sem suporte */ }
+  }
+});
 const path = require('path');
 
 // A app chamava-se "Wallet": continua a usar a mesma pasta de dados para não se perder nada ao mudar de nome.
@@ -16,6 +26,11 @@ function createWindow() {
     minWidth: 360,
     title: 'FuturePal',
     backgroundColor: '#0a0a0d',
+    show: false, // só aparece já desenhada (sem piscar a branco)
+    // Janela sem a barra do sistema nem o menu: a barra do título é escura e faz parte da app,
+    // com os botões minimizar/maximizar/fechar do Windows por cima (cor acertada pelo tema da app).
+    titleBarStyle: 'hidden',
+    titleBarOverlay: { color: '#0a0a0d', symbolColor: '#e8e8ec', height: 34 },
     webPreferences: {
       preload: path.join(app.getAppPath(), 'electron', 'preload.js'),
       contextIsolation: true,
@@ -23,6 +38,8 @@ function createWindow() {
       sandbox: true,
     },
   });
+  win.once('ready-to-show', () => win.show());
+  win.setMenuBarVisibility(false);
   // Links externos (ex.: "criar chave API") abrem no browser do sistema, não dentro da app.
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:\/\//.test(url)) shell.openExternal(url);

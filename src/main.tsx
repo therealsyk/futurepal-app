@@ -33,6 +33,14 @@ i18n.use(initReactI18next).init({
   interpolation: { escapeValue: false },
 });
 
+// App de Windows: barra do título própria (arrastar a janela) por baixo dos botões do sistema
+if ((window as unknown as { __electronBridge?: unknown }).__electronBridge) {
+  document.documentElement.classList.add('is-electron');
+  const bar = document.createElement('div');
+  bar.className = 'win-titlebar';
+  bar.innerHTML = '<span>FuturePal</span>';
+  document.body.prepend(bar);
+}
 setTheme(settings.theme);
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
