@@ -1,3 +1,4 @@
+import { isSalaryTx } from '../core/salaryTx';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
@@ -53,7 +54,7 @@ export function Overview() {
   const months = useMemo(() => Array.from({ length: 12 }, (_, i) => {
     const p = `${year}-${String(i + 1).padStart(2, '0')}`;
     const rows = mine.filter((x) => x.date.startsWith(p));
-    return { m: i + 1, income: rows.filter((x) => x.type === 'income').reduce((s, x) => s + x.amountCents, 0), expense: rows.filter((x) => x.type === 'expense').reduce((s, x) => s + x.amountCents, 0) };
+    return { m: i + 1, salary: rows.filter((x) => x.type === 'income' && isSalaryTx(x)).reduce((s, x) => s + x.amountCents, 0), income: rows.filter((x) => x.type === 'income').reduce((s, x) => s + x.amountCents, 0), expense: rows.filter((x) => x.type === 'expense').reduce((s, x) => s + x.amountCents, 0) };
   }), [mine, year]);
   const cur = months[month - 1];
   const prefix = `${year}-${String(month).padStart(2, '0')}`;
@@ -120,6 +121,8 @@ export function Overview() {
                 <div className="fx-label">{t('overview.monthBalance')} · {monthNames[month - 1]} {year}</div>
                 <div className={'fx-big' + (cur.income - cur.expense < 0 ? ' fx-neg' : '')} style={{ margin: '6px 0 14px' }}>{money(cur.income - cur.expense)}</div>
                 <div className="fx-stat"><span><i className="fx-dot" style={{ background: 'var(--teal)' }} /> {t('overview.incomes')}</span><span className="fx-num">{money(cur.income)}</span></div>
+                <div className="fx-stat sub"><span>{t('overview.incomeSalary')}</span><span className="fx-num">{money(cur.salary)}</span></div>
+                <div className="fx-stat sub"><span>{t('overview.incomeExtras')}</span><span className="fx-num">{money(cur.income - cur.salary)}</span></div>
                 <div className="fx-stat"><span><i className="fx-dot" style={{ background: 'var(--red)' }} /> {t('overview.expenses')}</span><span className="fx-num">{money(cur.expense)}</span></div>
                 <div className="fx-stat"><span>{t('overview.savingsRate')}</span><span className="fx-num">{cur.income > 0 ? `${Math.round(((cur.income - cur.expense) / cur.income) * 100)}%` : '—'}</span></div>
               </div>

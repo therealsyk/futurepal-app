@@ -344,7 +344,8 @@ function DailyCalendar({ txs, settings, money, t, selYear, selMonth, period, onP
               onClick={() => navigate(`/dia/${date}`)}
               aria-label={`${d}: ${money(v)}`} title={money(v)}>
               <span>{d}</span>
-              <b>{v > 0 ? money(v) : ''}</b>
+              {/* 100 € ou mais: sem cêntimos, para caber na célula (o valor exato fica no title) */}
+              <b>{v > 0 ? (v >= 10000 ? new Intl.NumberFormat(settings.language, { style: 'currency', currency: settings.currency, maximumFractionDigits: 0 }).format(Math.round(v / 100)) : money(v)) : ''}</b>
             </button>
           );
         })}
@@ -1012,8 +1013,7 @@ export function Dashboard() {
         <Kpi label={t('panel.expenses')} color="#4f8ff0" icon="M3 7a2 2 0 0 1 2-2h12v4M3 7v10a2 2 0 0 0 2 2h14V9H5a2 2 0 0 1-2-2zM16 14h.01"
           value={money(spent)} pct={pctTxt(pctSpent)} pctTone={pctSpent !== null && pctSpent > 1 ? 'bad' : 'neutral'}
           sub={<>
-            {pctSpent !== null && t('panel.kpiExpensesSub')}
-            {spent > 0 && <span style={pctSpent !== null ? { marginLeft: 6 } : undefined}>{pctSpent !== null ? '· ' : ''}{t('panel.perDayShort', { value: money(avgDay) })}</span>}
+            {spent > 0 && <span data-testid="kpi-per-day">{t('panel.perDayRate', { value: money(avgDay) })}</span>}
             {deltaSpent !== null && (
               <b className={deltaSpent > 0 ? 'fx-neg' : 'fx-pos'} style={{ marginLeft: 6, fontWeight: 600 }}>
                 {deltaSpent > 0 ? '↑' : '↓'} {Math.abs(Math.round(deltaSpent * 100))}% {t('panel.vsPrevious')}
@@ -1024,8 +1024,8 @@ export function Dashboard() {
           value={savings === null ? '—' : money(savings)} pct={pctTxt(savings === null || income === 0 ? null : savings / income)}
           pctTone={savings !== null && savings < 0 ? 'bad' : 'good'}
           sub={savings === null ? t('panel.noIncome') : period === 'year' && avgMonthSavings !== null
-            ? <span data-testid="kpi-avg-savings">{t('panel.avgPerMonthLong', { value: money(avgMonthSavings) })}</span>
-            : t('panel.kpiSavingsSub')} />
+            ? <span data-testid="kpi-avg-savings">{t('panel.perMonthRate', { value: money(avgMonthSavings) })}</span>
+            : null} />
         <Kpi label={t('panel.income')} color="#8b6cf0" icon="M12 3v18M7 8l5-5 5 5M5 21h14"
           value={money(income)}
           sub={t('panel.kpiIncomeSub', { salary: money(salaryCents), extras: money(extrasCents) })} />

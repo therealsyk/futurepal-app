@@ -8,7 +8,7 @@ import { CURRENCY_CODES, currencyName } from '../core/currencies';
 import { getSupabase, canSync, signOut } from '../auth/supabase';
 import { useAuth } from '../auth/AuthContext';
 import { LoginForm } from './Login';
-import { runSync } from '../sync/runSync';
+import { syncAll } from '../sync/syncHub';
 import { db } from '../db/app-db';
 import { exportBackup, importBackup, type BackupData } from '../core/backup';
 import { AiSettings } from './AiSettings';
@@ -173,7 +173,7 @@ export function Settings() {
     if (!client || !canSync(user)) { setSyncMsg(t('settings.syncNoUser')); return; }
     setSyncing(true);
     try {
-      const result = await runSync(client, db, user!.id);
+      const result = await syncAll(client, user!.id, { notifyOthers: true }); // os outros aparelhos abertos sincronizam também
       if (result.settings) setSettings(result.settings);
       setSyncMsg(result.error ? t('settings.syncError', { error: result.error }) : t('settings.syncSuccess', { pushed: result.pushed, pulled: result.pulled }));
     } finally {

@@ -2,7 +2,7 @@
 // Push dirty local rows, pull remote rows newer than the last sync, merge by updatedAt.
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { WalletDB } from '../db/database';
-import { changedSince, applyRemote, type SyncableRow, type SyncTable } from '../core/sync';
+import { applyRemote, type SyncableRow, type SyncTable } from '../core/sync';
 
 // Local (camelCase) <-> remote (snake_case) field maps, mirroring supabase/schema.sql.
 const FIELD_MAP: Record<SyncTable, Record<string, string>> = {
@@ -55,48 +55,63 @@ export interface SyncResult {
   error?: string;
 }
 
+/** Datas do Postgres ("…+00:00") e do aparelho ("….000Z") no mesmo formato, para se poderem comparar. */
+function iso(v: unknown): string {
+  const d = new Date(String(v ?? ''));
+  return Number.isNaN(d.getTime()) ? String(v ?? '') : d.toISOString();
+}
+
+const PAGE = 1000; // o Supabase devolve no máximo 1000 linhas por pedido
+const CHUNK = 500;
+
 /**
- * Full sync round-trip for one user.
- * - Push: every local row whose updatedAt is after `lastSync` (soft deletes included).
- * - Pull: remote rows with updated_at after `lastSync`, merged into Dexie by id
- *   (newer updatedAt wins — applyRemote semantics, never overwriting fresher local edits).
+ * Sincronização completa de um utilizador, por reconciliação (não depende dos relógios dos aparelhos):
+ * - Traz TODAS as linhas da conta no servidor (em páginas) e junta-as às locais: por id, ganha o updatedAt mais recente.
+ * - Envia as linhas locais que o servidor não tem ou que são mais recentes do que a cópia do servidor.
+ * Antes só se trazia/enviava o que tinha updatedAt depois da última sincronização DESTE aparelho; uma alteração
+ * feita noutro aparelho antes dessa hora (ou dados importados de um backup) nunca chegava.
  */
-export async function syncNow(client: SupabaseClient, db: WalletDB, userId: string, lastSync: string | null): Promise<SyncResult> {
+export async function syncNow(client: SupabaseClient, db: WalletDB, userId: string, _lastSync: string | null): Promise<SyncResult> {
   const now = new Date().toISOString();
   let pushed = 0;
   let pulled = 0;
 
   for (const table of TABLES) {
     const localTable = db[table as keyof WalletDB] as any;
-    const local: SyncableRow[] = await localTable.toArray();
+    const local: SyncableRow[] = (await localTable.toArray()).map((r: SyncableRow) => ({ ...r, updatedAt: iso(r.updatedAt) }));
 
-    // 1) Pull first: remote rows changed since the last sync.
-    const since = lastSync ?? '1970-01-01T00:00:00.000Z';
-    const { data, error } = await client
-      .from(table)
-      .select('*')
-      .gt('updated_at', since)
-      .eq('user_id', userId);
-    if (error) return { pushed, pulled, lastSync: now, error: `${table}: ${error.message}` };
-
-    const remote = (data ?? []).map((r: Record<string, unknown>) => toLocal(table, r));
-    // 2) Merge (newer updatedAt wins; ties keep local, we are local-first).
-    const merged = remote.length > 0 ? applyRemote(local, remote as SyncableRow[]) : local;
-    // Linhas que acabaram de vir do servidor não voltam a ser enviadas.
-    const localById = new Map(local.map((r) => [r.id, r]));
-    const fromRemote = new Set(merged.filter((r) => localById.get(r.id) !== r).map((r) => r.id));
-    if (remote.length > 0) {
-      for (const row of merged) await localTable.put(row);
-      pulled += remote.length;
+    // 1) Tudo o que o servidor tem desta conta
+    const remote: SyncableRow[] = [];
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await client.from(table).select('*').eq('user_id', userId).order('id').range(from, from + PAGE - 1);
+      if (error) return { pushed, pulled, lastSync: now, error: `${table}: ${error.message}` };
+      const rows = (data ?? []).map((r: Record<string, unknown>) => {
+        const row = toLocal(table, r);
+        row.updatedAt = iso(row.updatedAt);
+        row.createdAt = iso(row.createdAt);
+        if (row.deletedAt) row.deletedAt = iso(row.deletedAt);
+        return row as SyncableRow;
+      });
+      remote.push(...rows);
+      if (rows.length < PAGE) break;
     }
+    const remoteById = new Map(remote.map((r) => [r.id, r]));
 
-    // 3) Push only the merged rows that are newer than the last sync.
-    const dirty = changedSince(merged, lastSync).filter((r) => !fromRemote.has(r.id));
-    if (dirty.length > 0) {
-      const rows = dirty.map((r) => toRemote(table, r, userId));
-      const pushErr = await client.from(table).upsert(rows, { onConflict: 'user_id,id' }) // ids fixos ('acc-default', 'cat-…') repetem-se entre utilizadores (ver supabase/per_user_ids.sql);
+    // 2) Juntar: por id ganha o mais recente; empate fica o local
+    const merged = remote.length > 0 ? applyRemote(local, remote) : local;
+    const localById = new Map(local.map((r) => [r.id, r]));
+    const fromRemote = merged.filter((r) => localById.get(r.id) !== r);
+    for (const row of fromRemote) await localTable.put(row);
+    pulled += fromRemote.length;
+
+    // 3) Enviar o que o servidor não tem ou tem mais antigo
+    const dirty = merged.filter((r) => { const rr = remoteById.get(r.id); return !rr || r.updatedAt > rr.updatedAt; });
+    for (let i = 0; i < dirty.length; i += CHUNK) {
+      const rows = dirty.slice(i, i + CHUNK).map((r) => toRemote(table, r, userId));
+      // ids fixos ('acc-default', 'cat-…') repetem-se entre utilizadores: a chave é (user_id, id) — ver supabase/per_user_ids.sql
+      const pushErr = await client.from(table).upsert(rows, { onConflict: 'user_id,id' });
       if (pushErr.error) return { pushed, pulled, lastSync: now, error: `${table}: ${pushErr.error.message}` };
-      pushed += dirty.length;
+      pushed += rows.length;
     }
   }
 

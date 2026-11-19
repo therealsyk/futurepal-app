@@ -25,6 +25,8 @@ function fakeClient(rows: Record<string, any[]>) {
             error: null,
             gt: (c: string, v: string) => mk(f.filter((s) => s[c] > v)),
             eq: (c: string, v: string) => mk(f.filter((s) => s[c] === v)),
+            order: () => mk(f),
+            range: (a: number, b: number) => mk(f.slice(a, b + 1)),
           });
           return mk(store);
         },
@@ -91,7 +93,7 @@ describe('syncNow', () => {
     await db.categories.put({ id: 'c1', name: 'catFood', color: '#2DD4BF', icon: '', order: 0, createdAt: '2026-11-01T00:00:00.000Z', updatedAt: '2026-11-01T00:00:00.000Z', deletedAt: null });
     const client = {
       from() {
-        const empty = () => ({ error: null, data: [], gt: () => empty(), eq: () => empty() });
+        const empty = (): any => ({ error: null, data: [], gt: () => empty(), eq: () => empty(), order: () => empty(), range: () => empty() });
         return { upsert: () => ({ error: { message: 'RLS violation' }, data: null }), select: () => empty() };
       },
     } as any;
@@ -104,3 +106,30 @@ function rowsCheck(client: any, table: string): any[] {
   // The fake client keeps data in the closure object passed to fakeClient.
   return client.from(table).select().data;
 }
+
+describe('syncNow: reconciliação (não depende dos relógios)', () => {
+  it('traz uma alteração do outro aparelho mesmo com hora anterior à última sincronização deste', async () => {
+    const db = createDatabase('sync-clock-' + Date.now());
+    const remote = [{ id: 't9', user_id: 'user-1', date: '2026-11-01', type: 'expense', category_id: 'c1', description: 'do PC', amount_cents: 500, currency: 'EUR', created_at: '2026-11-01T10:00:00+00:00', updated_at: '2026-11-01T10:00:00+00:00', deleted_at: null }];
+    const client = fakeClient({ transactions: remote });
+    await syncNow(client, db, 'user-1', '2026-11-01T11:00:00.000Z'); // este aparelho já tinha sincronizado às 11:00
+    expect((await db.transactions.get('t9'))?.description).toBe('do PC');
+  });
+  it('envia linhas antigas que o servidor não tem (ex.: importadas de um backup)', async () => {
+    const db = createDatabase('sync-old-' + Date.now());
+    await db.transactions.put({ id: 'old', date: '2026-04-01', type: 'expense', categoryId: 'c1', description: 'backup', amountCents: 100, currency: 'EUR', createdAt: '2026-04-01T00:00:00.000Z', updatedAt: '2026-04-01T00:00:00.000Z', deletedAt: null });
+    const client = fakeClient({});
+    const res = await syncNow(client, db, 'user-1', '2026-11-01T00:00:00.000Z');
+    expect(res.error).toBeUndefined();
+    expect(rowsCheck(client, 'transactions').map((r: any) => r.id)).toContain('old');
+  });
+  it('não volta a enviar o que já está igual no servidor', async () => {
+    const db = createDatabase('sync-same-' + Date.now());
+    await db.transactions.put({ id: 'same', date: '2026-04-01', type: 'expense', categoryId: 'c1', description: 'x', amountCents: 100, currency: 'EUR', createdAt: '2026-04-01T00:00:00.000Z', updatedAt: '2026-04-01T00:00:00.000Z', deletedAt: null });
+    const client = fakeClient({});
+    await syncNow(client, db, 'user-1', null);
+    const second = await syncNow(client, db, 'user-1', null);
+    expect(second.pushed).toBe(0);
+    expect(second.pulled).toBe(0);
+  });
+});

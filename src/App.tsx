@@ -20,7 +20,7 @@ import { PlusPage, IrsPage, SubscriptionsPage, YearPage, ChallengesPage, Warrant
 import { useIsMobile } from './ui/useIsMobile';
 import { DemoPage } from './ui/components';
 import SetupWizard, { ONBOARDED_FLAG } from './pages/SetupWizard';
-import { db, activateDatabaseFor, guestDataCount, moveGuestDataIntoCurrent, DB_CHANGED_EVENT, currentDbName } from './db/app-db';
+import { db, activateDatabaseFor, guestDataCount, moveGuestDataIntoCurrent, DB_CHANGED_EVENT, currentDbName, userDbName } from './db/app-db';
 import { Sheet } from './ui/fx';
 import { ensureDefaultCategories, addMissingCatalogCategories } from './core/finance';
 import { loadSettings, setTheme, type AppSettings } from './core/settings';
@@ -28,7 +28,7 @@ import { useAuth } from './auth/AuthContext';
 import { getSupabase } from './auth/supabase';
 import { applyServerPlan, setPlanOwner } from './core/plan';
 import { applyPendingAvatar } from './core/avatar';
-import { runSync } from './sync/runSync';
+import { syncAll, startAutoSync, SYNC_DONE_EVENT, type SyncDone } from './sync/syncHub';
 import { mirrorSettings } from './core/settingsSync';
 import { SETTINGS_EVENT } from './core/settings';
 import { syncSalaryTransactions } from './core/salaryTx';
@@ -52,10 +52,7 @@ export default function App() {
   const syncNowSilently = (uid: string) => {
     const sb = getSupabase();
     if (!sb || !loadSettings().country) return;
-    runSync(sb, db, uid).then(async (r) => {
-      if (r.settings) setSettings(r.settings);
-      await syncSalaryTransactions(db).catch(() => {}); // salários vindos de outro aparelho
-    }).catch(() => {});
+    syncAll(sb, uid).catch(() => {});
   };
 
   // Plano: com sessão iniciada, a subscrição guardada no servidor é que manda (ex.: mudada no painel admin).
@@ -92,6 +89,27 @@ export default function App() {
     })().catch(() => setDbName(currentDbName()));
     return () => { alive = false; };
   }, [auth.ready, userId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sincronização automática (de minuto a minuto, ao voltar à app e quando outro aparelho avisa).
+  useEffect(() => {
+    const sb = getSupabase();
+    if (!sb || !userId || !dbName || mergeCount > 0) return;
+    return startAutoSync(sb, userId, () => Boolean(loadSettings().country) && currentDbName() === userDbName(userId));
+  }, [userId, dbName === null, mergeCount]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Depois de cada sincronização: aplica definições vindas de outro aparelho e, se chegaram dados novos,
+  // recarrega as páginas (mas não a meio de escrever num campo; aí fica para a próxima).
+  useEffect(() => {
+    const on = (e: Event) => {
+      const r = (e as CustomEvent<SyncDone>).detail;
+      if (r.settings) setSettings(r.settings);
+      const typing = document.activeElement instanceof HTMLInputElement || document.activeElement instanceof HTMLTextAreaElement || document.activeElement instanceof HTMLSelectElement;
+      const sheetOpen = Boolean(document.querySelector('.fx-backdrop, [role="dialog"]'));
+      if (r.pulled > 0 && !typing && !sheetOpen) setDbName(currentDbName() + '#' + Date.now());
+    };
+    window.addEventListener(SYNC_DONE_EVENT, on);
+    return () => window.removeEventListener(SYNC_DONE_EVENT, on);
+  }, []);
 
   // Outra parte da app pode mudar de base (ex.: setup); acompanha para recarregar as páginas.
   useEffect(() => {

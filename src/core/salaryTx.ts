@@ -88,6 +88,9 @@ export async function syncSalaryTransactions(db: WalletDB, currency?: string, de
     if (!cur || s.updatedAt > cur.updatedAt) latest.set(k, s);
   }
   const keep = new Set([...latest.values()].map((s) => s.id));
+  // Os repetidos são apagados de vez (a apagar sincroniza): senão o painel e a aba Salários somavam-nos.
+  const dupIds = salaries.filter((s) => s.deletedAt === null && !keep.has(s.id)).map((s) => s.id);
+  if (dupIds.length) await db.transaction('rw', db.salaries, async () => { for (const id of dupIds) await db.salaries.update(id, { deletedAt: now, updatedAt: now }); });
   await db.transaction('rw', db.transactions, async () => {
     for (const s of salaries) {
       const id = SALARY_TX_PREFIX + s.id;

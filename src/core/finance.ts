@@ -468,7 +468,12 @@ export async function setSalary(db: WalletDB, year: number, month: number, amoun
   assertCents(amountCents);
   const salaries = (await db.salaries.toArray()).filter((s) => s.deletedAt === null && s.year === year && s.month === month);
   if (salaries.length > 0) {
-    await db.salaries.update(salaries[0].id, { amountCents, updatedAt: new Date().toISOString() });
+    // Um só salário por mês: atualiza o mais recente e apaga repetidos (ex.: criados em 2 aparelhos ou num import),
+    // senão os valores somavam-se (500 + 500 = 1000).
+    const now = new Date().toISOString();
+    const [keep, ...dups] = salaries.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    await db.salaries.update(keep.id, { amountCents, updatedAt: now });
+    for (const d of dups) await db.salaries.update(d.id, { deletedAt: now, updatedAt: now });
   } else {
     const now = new Date().toISOString();
     await db.salaries.add({ id: crypto.randomUUID(), year, month, amountCents, createdAt: now, updatedAt: now, deletedAt: null });

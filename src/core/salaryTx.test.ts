@@ -66,3 +66,19 @@ describe('rendimentos na categoria Salário vão para a aba Salários', () => {
     expect(sal).toEqual([[10, 145000], [9, 140000]].sort());
   });
 });
+
+describe('salários repetidos no mesmo mês', () => {
+  it('syncSalaryTransactions apaga o repetido mais antigo e setSalary não soma', async () => {
+    const { createDatabase } = await import('../db/database');
+    const { setSalary, salaryGrid } = await import('./finance');
+    const db = createDatabase('sal-dup-' + Date.now());
+    await db.categories.put({ id: 'cat-catSalary', name: 'catSalary', nameKey: 'catSalary', color: '#000', icon: '', order: 0, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', deletedAt: null });
+    await db.salaries.put({ id: 'a', year: 2026, month: 11, amountCents: 50000, createdAt: '2026-11-01T00:00:00.000Z', updatedAt: '2026-11-01T00:00:00.000Z', deletedAt: null });
+    await db.salaries.put({ id: 'b', year: 2026, month: 11, amountCents: 50000, createdAt: '2026-11-02T00:00:00.000Z', updatedAt: '2026-11-02T00:00:00.000Z', deletedAt: null });
+    await setSalary(db, 2026, 11, 50000);
+    await syncSalaryTransactions(db, 'EUR', 'Salário');
+    const grid = await salaryGrid(db, 2026);
+    expect(grid.find((g) => g.month === 11)?.amountCents).toBe(50000);
+    expect((await db.salaries.toArray()).filter((s) => s.deletedAt === null)).toHaveLength(1);
+  });
+});
