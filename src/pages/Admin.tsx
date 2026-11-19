@@ -36,6 +36,7 @@ export function AdminPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [versions, setVersions] = useState<VersionRow[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [interest, setInterest] = useState<Array<{ plan: string; period: string; n: number }>>([]);
   const [v, setV] = useState({ platform: 'windows', version: '', min: '', notes: '', url: '' });
   const [saved, setSaved] = useState(false);
   const [subs, setSubs] = useState<SubRow[]>([]);
@@ -69,6 +70,7 @@ export function AdminPage() {
     const [s, u, ver] = await Promise.all([sb.rpc('admin_stats'), sb.rpc('admin_users', { max_rows: 50 }), sb.from('app_versions').select('*').order('platform')]);
     if (s.error || u.error) { setError(String((s.error || u.error)?.message)); return; }
     setStats(s.data as Stats); setUsers((u.data ?? []) as UserRow[]);
+    sb.rpc('admin_plan_interest').then(({ data }) => setInterest((data ?? []) as Array<{ plan: string; period: string; n: number }>), () => {});
     let rows = (ver.data ?? []) as VersionRow[];
     // As versões publicadas acompanham sozinhas a última release do GitHub (Windows e Android).
     const gh = await githubLatest();
@@ -144,6 +146,14 @@ export function AdminPage() {
       <div className="fx-two">
         <div className="fx-card ad-card"><h3>{t('admin.providers')}</h3>{Object.entries(stats?.providers ?? {}).map(([k, n]) => <p key={k} className="ad-kv"><span>{k}</span><b>{n}</b></p>)}</div>
         <div className="fx-card ad-card"><h3>{t('admin.languages')}</h3>{Object.entries(stats?.languages ?? {}).map(([k, n]) => <p key={k} className="ad-kv"><span>{k}</span><b>{n}</b></p>)}</div>
+      </div>
+
+      <div className="fx-card ad-card">
+        <h3>{t('admin.interest')}</h3>
+        {interest.length === 0 ? <p className="fx-muted">{t('admin.noInterest')}</p> : interest.map((r) => (
+          <p key={r.plan + r.period} className="ad-kv"><span>{t('plus.plan_' + r.plan)} · {t(r.period === 'year' ? 'plus.yearly' : 'plus.monthly')}</span><b>{r.n}</b></p>
+        ))}
+        <p className="ad-kv"><span>{t('admin.interestTotal')}</span><b>{interest.reduce((a, r) => a + Number(r.n), 0)}</b></p>
       </div>
 
       <div className="fx-card ad-card">

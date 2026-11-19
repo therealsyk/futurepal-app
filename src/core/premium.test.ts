@@ -89,8 +89,21 @@ describe('planos', () => {
     savePlan({ plan: 'plus', trialEndsAt: null, trialUsed: true });
     expect(hasFeature('split')).toBe(true);
     expect(hasFeature('shared')).toBe(false);
-    localStorage.setItem('wallet.plan', JSON.stringify({ plan: 'family', trialEndsAt: null, trialUsed: true }));
+    localStorage.setItem('wallet.plan:guest', JSON.stringify({ plan: 'family', trialEndsAt: null, trialUsed: true }));
     expect(activePlan()).toBe('pro');
     expect(hasFeature('assistant')).toBe(true);
+  });
+});
+
+describe('plano por conta', () => {
+  it('uma conta nova começa no Grátis mesmo que outra conta do aparelho tenha Pro', async () => {
+    const { setPlanOwner, savePlan: save, activePlan: active } = await import('./plan');
+    setPlanOwner('conta-a'); save({ plan: 'pro', trialEndsAt: null, trialUsed: true });
+    expect(active()).toBe('pro');
+    setPlanOwner('conta-b');
+    expect(active()).toBe('free');
+    setPlanOwner('conta-a');
+    expect(active()).toBe('pro');
+    setPlanOwner(null);
   });
 });

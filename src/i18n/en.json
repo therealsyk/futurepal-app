@@ -1056,11 +1056,16 @@
     "short_freeLimits": "2 accounts, 1 goal and 3 budgets",
     "short_aiMore": "AI assistant with 3× more: 300 questions and 100 receipts",
     "short_early": "Early access to new features",
-    "perkTrial": "Try every feature with a 14-day free Pro trial.",
+    "perkTrial": "When payments open, you will be able to try Pro free for 14 days.",
     "perkYearly": "With yearly billing you pay for 10 months and get 12.",
     "perkFriend": "Invite a friend: when they subscribe, you both get 1 month free (coming soon).",
     "perkFounder": "Founder price: the first 500 subscribers keep the launch price forever.",
-    "short_assistantPlan": "AI assistant: 100 questions and 30 receipts a month"
+    "short_assistantPlan": "AI assistant: 100 questions and 30 receipts a month",
+    "want": "I want {{plan}}",
+    "wantDone": "Interest saved ✓",
+    "wantLogin": "Sign in to register your interest.",
+    "wantError": "Couldn't save right now. Try again later.",
+    "wantThanks": "Thanks! We saved your interest in {{plan}}. We'll let you know when payments are available."
   },
   "admin": {
     "title": "Admin",
@@ -1116,7 +1121,10 @@
     "fbEmpty": "No open feedback.",
     "fbSetup": "To see feedback, run supabase/feedback.sql in the SQL Editor.",
     "fbDone": "Mark as handled",
-    "fbReopen": "Reopen"
+    "fbReopen": "Reopen",
+    "interest": "Interest in paid plans",
+    "noInterest": "Nobody has asked for a paid plan yet.",
+    "interestTotal": "Total"
   },
   "acct": {
     "guest": "Guest",

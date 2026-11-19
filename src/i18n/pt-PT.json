@@ -1056,11 +1056,16 @@
     "short_freeLimits": "2 contas, 1 meta e 3 orçamentos",
     "short_aiMore": "Assistente IA com 3× mais: 300 perguntas e 100 faturas",
     "short_early": "Acesso antecipado às novidades",
-    "perkTrial": "14 dias grátis do Pro para experimentares tudo.",
+    "perkTrial": "Quando os pagamentos abrirem, vais poder experimentar o Pro 14 dias grátis.",
     "perkYearly": "No plano anual pagas 10 meses e ficas com 12.",
     "perkFriend": "Convida um amigo: quando ele subscrever, ganham os dois 1 mês grátis (brevemente).",
     "perkFounder": "Preço de fundador: os primeiros 500 subscritores mantêm o preço de lançamento para sempre.",
-    "short_assistantPlan": "Assistente IA: 100 perguntas e 30 faturas por mês"
+    "short_assistantPlan": "Assistente IA: 100 perguntas e 30 faturas por mês",
+    "want": "Quero o {{plan}}",
+    "wantDone": "Interesse registado ✓",
+    "wantLogin": "Entra numa conta para registares o teu interesse.",
+    "wantError": "Não foi possível registar agora. Tenta mais tarde.",
+    "wantThanks": "Obrigado! Registámos o teu interesse no {{plan}}. Avisamos-te quando os pagamentos estiverem disponíveis."
   },
   "admin": {
     "title": "Administração",
@@ -1116,7 +1121,10 @@
     "fbEmpty": "Sem feedback por tratar.",
     "fbSetup": "Para ver o feedback, corre o supabase/feedback.sql no SQL Editor.",
     "fbDone": "Marcar como tratado",
-    "fbReopen": "Voltar a abrir"
+    "fbReopen": "Voltar a abrir",
+    "interest": "Interesse nos planos pagos",
+    "noInterest": "Ainda ninguém pediu um plano pago.",
+    "interestTotal": "Total"
   },
   "acct": {
     "guest": "Convidado",

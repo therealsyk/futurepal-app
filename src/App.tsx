@@ -26,7 +26,7 @@ import { ensureDefaultCategories, addMissingCatalogCategories } from './core/fin
 import { loadSettings, setTheme, type AppSettings } from './core/settings';
 import { useAuth } from './auth/AuthContext';
 import { getSupabase } from './auth/supabase';
-import { applyServerPlan } from './core/plan';
+import { applyServerPlan, setPlanOwner } from './core/plan';
 import { applyPendingAvatar } from './core/avatar';
 import { runSync } from './sync/runSync';
 import { mirrorSettings } from './core/settingsSync';
@@ -60,6 +60,7 @@ export default function App() {
 
   // Plano: com sessão iniciada, a subscrição guardada no servidor é que manda (ex.: mudada no painel admin).
   useEffect(() => {
+    setPlanOwner(userId);
     const sb = getSupabase();
     if (!sb || !userId) return;
     sb.from('subscriptions').select('plan,status,current_period_end').eq('user_id', userId).maybeSingle()

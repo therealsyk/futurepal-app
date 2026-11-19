@@ -6,13 +6,15 @@ import { newId, stampNew, type Category, type Transaction, type Warranty } from 
 import { activeCategories } from '../core/finance';
 import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
-import { activePlan, hasFeature, loadPlan, PLAN_EVENT, PRICES, savePlan, startTrial, trialDaysLeft, type Feature, type PlanId } from '../core/plan';
+import { activePlan, hasFeature, loadPlan, PLAN_EVENT, PRICES, savePlan, trialDaysLeft, type Feature, type PlanId } from '../core/plan';
 import {
   businessCsv, businessQuarters, CHALLENGE_DEFS, detectSubscriptions, efaturaDeadline, evaluateChallenge, irsSummary,
   warrantyDaysLeft, warrantyEnd, yearReview, type Challenge, type ChallengeType,
 } from '../core/premium';
 import { catLabel, CatIcon, EmptyState, Field, Ic, ICON, PageHead, Sheet } from '../ui/fx';
 import { DatePicker } from '../ui/DatePicker';
+import { getSupabase } from '../auth/supabase';
+import { useAuth } from '../auth/AuthContext';
 
 // ---------------------------------------------------------------- comum
 const LOCK = 'M6 11h12v9H6zM8 11V8a4 4 0 0 1 8 0v3';
@@ -81,6 +83,7 @@ const PLANS: Array<{ id: PlanId; features: string[] }> = [
   { id: 'pro', features: ['shared', 'freelance', 'aiMore', 'early'] },
 ];
 export function PlusPage() {
+  const auth = useAuth();
   const { t } = useTranslation();
   const { state, plan } = usePlan();
   const { money } = useMoney();
@@ -92,6 +95,21 @@ export function PlusPage() {
     return yearly
       ? { main: money(Math.round(p.year / 12)), note: t('plus.billedYearly', { price: money(p.year) }) }
       : { main: money(p.month), note: t('plus.billedMonthly') };
+  };
+  // "Quero subscrever": regista o interesse da conta (ainda não há pagamentos)
+  const [wanted, setWanted] = useState<string | null>(null);
+  const [wantMsg, setWantMsg] = useState('');
+  useEffect(() => {
+    const sb = getSupabase();
+    if (!sb || !auth.user) return;
+    sb.from('plan_interest').select('plan').eq('user_id', auth.user.id).maybeSingle().then(({ data }) => setWanted(data?.plan ?? null), () => {});
+  }, [auth.user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const want = async (id: 'plus' | 'pro') => {
+    const sb = getSupabase();
+    if (!sb || !auth.user) { setWantMsg(t('plus.wantLogin')); return; }
+    const { error } = await sb.from('plan_interest').upsert({ user_id: auth.user.id, plan: id, period: yearly ? 'year' : 'month', updated_at: new Date().toISOString() });
+    if (error) { setWantMsg(t('plus.wantError')); return; }
+    setWanted(id); setWantMsg(t('plus.wantThanks', { plan: t('plus.plan_' + id) }));
   };
   return (
     <div className="fx-page">
@@ -114,7 +132,11 @@ export function PlusPage() {
               <p className="fx-muted">{t('plus.planSub_' + p.id)}</p>
               {i > 0 && <p className="pm-inherit">{t('plus.everythingIn', { plan: t('plus.plan_' + PLANS[i - 1].id) })}</p>}
               <ul className="pm-ticks">{p.features.map((f) => <li key={f}>{t('plus.short_' + f)}</li>)}</ul>
-              {plan === p.id ? <span className="pm-current">{t('plus.current')}</span> : null}
+              {plan === p.id ? <span className="pm-current">{t('plus.current')}</span> : p.id !== 'free' && (
+                <button type="button" className={'fx-btn pm-want' + (wanted === p.id ? '' : ' primary')} disabled={wanted === p.id} onClick={() => want(p.id as 'plus' | 'pro')}>
+                  {wanted === p.id ? t('plus.wantDone') : t('plus.want', { plan: t('plus.plan_' + p.id) })}
+                </button>
+              )}
             </div>
           );
         })}
@@ -125,9 +147,7 @@ export function PlusPage() {
         <li>{t('plus.perkFriend')}</li>
         <li>{t('plus.perkFounder')}</li>
       </ul>
-      {plan === 'free' && !state.trialUsed && (
-        <button type="button" className="fx-btn primary pm-trial" onClick={() => startTrial()}>{t('plus.startTrial')}</button>
-      )}
+      {wantMsg && <p className="pm-banner" role="status">{wantMsg}</p>}
       <p className="fx-muted fx-small">{t('plus.payNote')}</p>
       {import.meta.env.DEV && (
         <div className="pm-dev">

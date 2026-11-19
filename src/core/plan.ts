@@ -29,18 +29,26 @@ export const AI_QUOTA: Record<Exclude<PlanId, 'free'>, { questions: number; phot
 };
 
 export interface PlanState { plan: PlanId; trialEndsAt: string | null; trialUsed: boolean }
-const KEY = 'wallet.plan';
 export const PLAN_EVENT = 'wallet:plan';
+// O plano é guardado por conta: uma conta nova neste aparelho começa sempre no Grátis.
+let owner = 'guest';
+export function setPlanOwner(userId: string | null): void {
+  const next = userId || 'guest';
+  if (next === owner) return;
+  owner = next;
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(PLAN_EVENT));
+}
+const keyOf = () => 'wallet.plan:' + owner;
 const DEFAULT: PlanState = { plan: 'free', trialEndsAt: null, trialUsed: false };
 
 export function loadPlan(): PlanState {
   try {
-    const s = { ...DEFAULT, ...JSON.parse(localStorage.getItem(KEY) || '{}') } as Omit<PlanState, 'plan'> & { plan: string };
+    const s = { ...DEFAULT, ...JSON.parse(localStorage.getItem(keyOf()) || '{}') } as Omit<PlanState, 'plan'> & { plan: string };
     return { ...s, plan: s.plan === 'family' ? 'pro' : (s.plan as PlanId) }; // 'family' = plano antigo
   } catch { return { ...DEFAULT }; }
 }
 export function savePlan(next: PlanState): void {
-  try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* sem storage */ }
+  try { localStorage.setItem(keyOf(), JSON.stringify(next)); } catch { /* sem storage */ }
   if (typeof window !== 'undefined') window.dispatchEvent(new Event(PLAN_EVENT));
 }
 
