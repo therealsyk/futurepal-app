@@ -991,6 +991,7 @@ export function Dashboard() {
           value={money(spent)} pct={pctTxt(pctSpent)} pctTone={pctSpent !== null && pctSpent > 1 ? 'bad' : 'neutral'}
           sub={<>
             {pctSpent === null ? t('panel.noIncome') : t('panel.kpiExpensesSub')}
+            {spent > 0 && <span style={{ marginLeft: 6 }}>· {t('panel.perDayShort', { value: money(avgDay) })}</span>}
             {deltaSpent !== null && (
               <b className={deltaSpent > 0 ? 'fx-neg' : 'fx-pos'} style={{ marginLeft: 6, fontWeight: 600 }}>
                 {deltaSpent > 0 ? '↑' : '↓'} {Math.abs(Math.round(deltaSpent * 100))}% {t('panel.vsPrevious')}

@@ -144,7 +144,7 @@
     "w_categories": "Spending by category",
     "w_calendar": "Daily spending",
     "w_recent": "Recent transactions",
-    "w_accounts": "My accounts",
+    "w_accounts": "Account balances",
     "w_forecast": "Month forecast",
     "w_last7": "Last 7 days",
     "w_topExpenses": "Biggest expenses",
@@ -204,7 +204,8 @@
     "avgMonthlySavings": "Savings / month (average)",
     "avgPerMonthLong": "average {{value}} per month",
     "error": "Something went wrong while loading. Try again.",
-    "spentInMonth": "Spent in {{month}}"
+    "spentInMonth": "Spent in {{month}}",
+    "perDayShort": "≈ {{value}}/day"
   },
   "transactions": {
     "title": "Transactions",
