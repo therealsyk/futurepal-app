@@ -1306,5 +1306,16 @@
     "back": "Back to accounts",
     "expired": "{{name}}'s session has expired. Please add the account again.",
     "rowSub": "Use another account without signing out of this one."
+  },
+  "ads": {
+    "tag": "Sponsored",
+    "trialTitle": "Try Pro free for 14 days",
+    "trialText": "No limits, AI and a shared household.",
+    "receiptsTitle": "One photo and the expense is logged",
+    "receiptsText": "The AI assistant reads your receipts. Available in Plus.",
+    "familyTitle": "Household expenses, together",
+    "familyText": "Share with up to 5 people on Pro.",
+    "noAdsTitle": "No ads with Plus",
+    "noAdsText": "Plus unlimited accounts, goals and budgets."
   }
 }

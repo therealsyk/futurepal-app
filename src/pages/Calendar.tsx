@@ -7,6 +7,7 @@ import { formatMoney } from '../core/money';
 import { loadSettings } from '../core/settings';
 import { PageHead, MonthNav } from '../ui/fx';
 import { useIsMobile } from '../ui/useIsMobile';
+import { Sponsored } from '../ui/Sponsored';
 
 // SPEC §6.5: grelha por dia com o gasto sob o número; clicar abre o detalhe do dia.
 export default function Calendar() {
@@ -120,6 +121,7 @@ export default function Calendar() {
         </div>
       </div>
       )}
+      <Sponsored place="Calendar" />
     </div>
   );
 }

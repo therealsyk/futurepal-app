@@ -7,6 +7,7 @@ import { formatMoney } from '../core/money';
 import { loadSettings } from '../core/settings';
 import { Link } from 'react-router-dom';
 import { catLabel, PageHead, Seg, MonthNav, EmptyState, AccountSwitch, Ic, ICON, useAccounts } from '../ui/fx';
+import { Sponsored } from '../ui/Sponsored';
 
 const PALETTE = ['#8b7cf6', '#5fd4c4', '#e58fd3', '#f5b85a', '#60a5fa', '#4ade9b', '#f87171', '#a78bfa', '#22d3ee', '#fb7185', '#eab308', '#9ca3af'];
 
@@ -149,6 +150,7 @@ export function Overview() {
           )}
         </div>
       </div>
+      <Sponsored place="Overview" />
     </div>
   );
 }

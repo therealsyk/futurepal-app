@@ -831,3 +831,9 @@ html.is-electron .ob-screen { min-height: calc(100vh - 34px); }
 html.is-electron .fx-backdrop, html.is-electron .sw-layer, html.is-electron .demo-gate { top: 34px; }
 html.is-electron .app-main, html.is-electron, html.is-electron body { scrollbar-width: none; }
 html.is-electron .app-main::-webkit-scrollbar, html.is-electron::-webkit-scrollbar, html.is-electron body::-webkit-scrollbar { display: none; }
+/* Cartão "Patrocinado" (só no plano Grátis) */
+.ad-card { position: relative; margin: 14px 0; padding: 14px 16px; border-radius: 18px; background: var(--card); border: 1px solid var(--border); }
+.ad-tag { position: absolute; top: 10px; right: 12px; font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.ad-body { display: flex; flex-direction: column; gap: 3px; text-decoration: none; color: var(--text); padding-right: 80px; }
+.ad-body b { font-size: 14.5px; }
+.ad-body small { color: var(--muted); font-size: 12.5px; }

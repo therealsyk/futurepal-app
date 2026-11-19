@@ -12,6 +12,7 @@ import { Ic, ICON, CatIcon, catLabel } from '../ui/fx';
 import { openTutorial } from '../ui/MobileTutorial';
 import { hasFeature } from '../core/plan';
 import { monthForecast } from '../core/premium';
+import { Sponsored } from '../ui/Sponsored';
 
 // Início no telemóvel (variante): resumo do mês num cartão de destaque, ações rápidas,
 // mapa de calor dos gastos diários, categorias onde se gasta mais, últimas transações agrupadas
@@ -267,6 +268,7 @@ export function MobileHome() {
           )}
         </div>
       )}
+      <Sponsored place="MobileHome" />
     </div>
   );
 }

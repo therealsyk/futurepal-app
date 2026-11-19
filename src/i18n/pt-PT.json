@@ -1300,5 +1300,16 @@
     "back": "Voltar às contas",
     "expired": "A sessão de {{name}} expirou. Adiciona a conta outra vez.",
     "rowSub": "Entra noutra conta sem terminar esta."
+  },
+  "ads": {
+    "tag": "Patrocinado",
+    "trialTitle": "Experimenta o Pro 14 dias grátis",
+    "trialText": "Tudo sem limites, IA e casa partilhada.",
+    "receiptsTitle": "Uma foto e a despesa fica registada",
+    "receiptsText": "O Assistente IA lê as tuas faturas. Disponível no Plus.",
+    "familyTitle": "Despesas da casa, em conjunto",
+    "familyText": "Partilha com até 5 pessoas no Pro.",
+    "noAdsTitle": "Sem anúncios no Plus",
+    "noAdsText": "E contas, metas e orçamentos sem limites."
   }
 }

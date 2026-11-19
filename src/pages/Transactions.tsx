@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useIsMobile } from '../ui/useIsMobile';
 import { useSearchParams } from 'react-router-dom';
@@ -12,6 +12,7 @@ import { catLabel, PageHead, Seg, Sheet, Toggle, Field, MonthNav, EmptyState, Ac
 import { DatePicker } from '../ui/DatePicker';
 import { todayISO } from '../core/dates';
 import { syncSalaryTransactions } from '../core/salaryTx';
+import { Sponsored } from '../ui/Sponsored';
 
 const COLORS = ['#8b7cf6', '#5fd4c4', '#e58fd3', '#f5b85a', '#60a5fa', '#4ade9b', '#f87171'];
 
@@ -167,10 +168,14 @@ export function Transactions() {
           action={<button type="button" className="fx-btn primary" onClick={openNew}><Ic d={ICON.plus} size={16} />{t('transactions.new')}</button>} /></div>
       ) : (
         <div className="fx-days">
-          {byDay.map(([d, { txs: rows, trs }]) => {
+          {byDay.map(([d, { txs: rows, trs }], di) => {
+            // cartão "Patrocinado" uma só vez, depois do dia em que se passam os 15 movimentos
+            const before = byDay.slice(0, di).reduce((n, [, v]) => n + v.txs.length + v.trs.length, 0);
+            const adHere = before < 15 && before + rows.length + trs.length >= 15;
             const dayNet = rows.reduce((s, x) => s + (x.type === 'income' ? x.amountCents : -x.amountCents), 0);
             return (
-              <div className="fx-card" key={d}>
+              <Fragment key={d}>
+              <div className="fx-card">
                 <div className="fx-card-head"><h2>{dayLabel(d)}</h2><span className={'fx-num ' + (dayNet < 0 ? '' : 'fx-pos')}>{money(dayNet)}</span></div>
                 <div className="fx-list">
                   {rows.map((x) => {
@@ -199,6 +204,8 @@ export function Transactions() {
                   })}
                 </div>
               </div>
+              {adHere && <Sponsored place="transactions" />}
+              </Fragment>
             );
           })}
         </div>
