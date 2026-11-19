@@ -205,7 +205,17 @@
     "avgPerMonthLong": "média de {{value}} por mês",
     "error": "Ocorreu um erro ao carregar. Tenta novamente.",
     "spentInMonth": "Gasto em {{month}}",
-    "perDayShort": "≈ {{value}}/dia"
+    "perDayShort": "≈ {{value}}/dia",
+    "w_statDaily": "Média diária",
+    "wd_statDaily": "Quanto gastas, em média, por dia.",
+    "w_statCount": "Nº de despesas",
+    "wd_statCount": "Quantas despesas registaste no período.",
+    "w_statLargest": "Maior despesa",
+    "wd_statLargest": "A despesa mais alta do período.",
+    "w_statSalary": "Salário no período",
+    "wd_statSalary": "Salários recebidos neste período.",
+    "w_statSavingsAvg": "Poupança por mês (média)",
+    "wd_statSavingsAvg": "Quanto poupas, em média, por mês."
   },
   "transactions": {
     "title": "Transações",

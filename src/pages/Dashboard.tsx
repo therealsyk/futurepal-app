@@ -380,6 +380,8 @@ export function Dashboard() {
   const { accounts, active, setActive } = useAccounts();
   const [recurrings, setRecurrings] = useState<Recurring[]>([]);
   const [layout, setLayoutState] = useState<Layout>(() => loadLayout(loadPeriod().period));
+  // Mês e Ano têm cada um a sua disposição (antes de qualquer return: regra dos hooks)
+  useEffect(() => { setLayoutState(loadLayout(period)); }, [period]);
   const [editing, setEditing] = useState(false);
   const [gallery, setGallery] = useState(false);
   const [contrib, setContrib] = useState<Record<string, string>>({});
@@ -532,7 +534,7 @@ export function Dashboard() {
   const goalColors = ['var(--accent)', 'var(--teal)', 'var(--pink)'];
 
   // ── Janelas (widgets) ──────────────────────────────────────────────────
-  const STATIC_WIDGETS = ['goals', 'budget', 'summary', 'overview', 'categories', 'calendar', 'recent', 'accounts', 'forecast', 'last7', 'topExpenses', 'upcoming', 'checklist'];
+  const STATIC_WIDGETS = ['goals', 'budget', 'summary', 'overview', 'categories', 'calendar', 'recent', 'accounts', 'forecast', 'last7', 'topExpenses', 'upcoming', 'checklist', 'statDaily', 'statCount', 'statLargest', 'statSalary', 'statSavingsAvg'];
   const salaryToDate = salariesUntil(salaries, parseInt(asOf.slice(0, 4), 10), parseInt(asOf.slice(5, 7), 10));
   const balOf = (a: Account) => accountBalanceCents(a, txsAsOf, accounts, salaryToDate, transfersAsOf);
   const currentOf = (g: Goal) => (g.accountIds && g.accountIds.length
@@ -564,8 +566,6 @@ export function Dashboard() {
   ) : null;
 
   const setLayout = (l: Layout) => { setLayoutState(l); saveLayout(l, period); };
-  // Mês e Ano têm cada um a sua disposição
-  useEffect(() => { setLayoutState(loadLayout(period)); }, [period]);
   const placed = new Set(layout.flat());
 
   const submitContribution = async (goalId: string) => {
@@ -756,6 +756,21 @@ export function Dashboard() {
               <span className={'fx-num' + (avgMonthSavings !== null && avgMonthSavings < 0 ? ' fx-neg' : '')}>{avgMonthSavings === null ? '—' : money(avgMonthSavings)}</span></div>
           </Card>
         );
+      // Números do Resumo, cada um num cartão próprio (opcionais, na personalização)
+      case 'statDaily': case 'statCount': case 'statLargest': case 'statSalary': case 'statSavingsAvg': {
+        const v = id === 'statDaily' ? money(avgDay)
+          : id === 'statCount' ? String(kpis.expenseCount)
+          : id === 'statLargest' ? money(kpis.largestExpenseCents)
+          : id === 'statSalary' ? money(salaryCents)
+          : avgMonthSavings === null ? '—' : money(avgMonthSavings);
+        const neg = id === 'statSavingsAvg' && avgMonthSavings !== null && avgMonthSavings < 0;
+        return (
+          <Card title={t('panel.w_' + id)}>
+            <div className={'fx-big' + (neg ? ' fx-neg' : '')} style={{ marginTop: 2 }}>{v}</div>
+            <div className="fx-label" style={{ marginTop: 4 }}>{t('panel.wd_' + id)}</div>
+          </Card>
+        );
+      }
       case 'overview':
         return (
           <Card>

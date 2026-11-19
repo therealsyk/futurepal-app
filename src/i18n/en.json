@@ -205,7 +205,17 @@
     "avgPerMonthLong": "average {{value}} per month",
     "error": "Something went wrong while loading. Try again.",
     "spentInMonth": "Spent in {{month}}",
-    "perDayShort": "≈ {{value}}/day"
+    "perDayShort": "≈ {{value}}/day",
+    "w_statDaily": "Daily average",
+    "wd_statDaily": "How much you spend per day on average.",
+    "w_statCount": "Number of expenses",
+    "wd_statCount": "How many expenses you logged in this period.",
+    "w_statLargest": "Largest expense",
+    "wd_statLargest": "The biggest expense in this period.",
+    "w_statSalary": "Salary in period",
+    "wd_statSalary": "Salaries received in this period.",
+    "w_statSavingsAvg": "Savings / month (average)",
+    "wd_statSavingsAvg": "How much you save per month on average."
   },
   "transactions": {
     "title": "Transactions",
