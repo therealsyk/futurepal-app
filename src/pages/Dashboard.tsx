@@ -9,7 +9,7 @@ import type { AppSettings } from '../core/settings';
 import type { Transaction, Budget, Category, Salary, Goal, Recurring, Account, Transfer } from '../db/database';
 import { periodKpis, contributeToGoal, materializeDueRecurrings } from '../core/finance';
 import { txsOfAccount, defaultAccountId, ALL_ACCOUNTS, accountBalanceCents, netWorthCents, salariesUntil, loadTransfers, addTransfer, suggestedSource } from '../core/accounts';
-import { loadLayout, saveLayout, moveWidget, removeWidget, swapWidget, addWidget, nudgeWidget, DEFAULT_LAYOUT, type Layout } from '../core/dashLayout';
+import { loadLayout, saveLayout, loadStretched, saveStretched, STRETCHABLE, moveWidget, removeWidget, swapWidget, addWidget, nudgeWidget, DEFAULT_LAYOUT, type Layout } from '../core/dashLayout';
 import { WidgetGrid } from '../ui/WidgetGrid';
 import { AccountSwitch, PickMenu, Sheet, ICON, catLabel, useAccounts, CategorySelect } from '../ui/fx';
 import { todayISO, monthStart, monthEnd } from '../core/dates';
@@ -353,6 +353,9 @@ function DailyCalendar({ txs, settings, money, t, selYear, selMonth, period, onP
   );
 }
 
+// App de telemóvel (Android/iPhone): o Painel não é personalizável, para não confundir.
+const NATIVE_APP = typeof window !== 'undefined' && !!(window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.();
+
 // ── Painel ──────────────────────────────────────────────────────────────
 export function Dashboard() {
   const { t, i18n } = useTranslation();
@@ -381,7 +384,8 @@ export function Dashboard() {
   const [recurrings, setRecurrings] = useState<Recurring[]>([]);
   const [layout, setLayoutState] = useState<Layout>(() => loadLayout(loadPeriod().period));
   // Mês e Ano têm cada um a sua disposição (antes de qualquer return: regra dos hooks)
-  useEffect(() => { setLayoutState(loadLayout(period)); }, [period]);
+  const [stretched, setStretched] = useState<string[]>(() => loadStretched(loadPeriod().period));
+  useEffect(() => { setLayoutState(loadLayout(period)); setStretched(loadStretched(period)); }, [period]);
   const [editing, setEditing] = useState(false);
   const [gallery, setGallery] = useState(false);
   const [contrib, setContrib] = useState<Record<string, string>>({});
@@ -527,7 +531,8 @@ export function Dashboard() {
     .reduce((s, tx) => s + tx.amountCents, 0), 0);
 
   // Transações recentes
-  const recent = [...periodTx].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt)).slice(0, 7);
+  const tall = (id: string) => stretched.includes(id); // cartão esticado: mostra o dobro
+  const recent = [...periodTx].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt)).slice(0, tall('recent') ? 15 : 7);
   const fmtDate = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString(lang, { day: 'numeric', month: 'short' });
 
   const activeGoals = [...goals].sort((a, b) => (a.targetDate ?? '9').localeCompare(b.targetDate ?? '9')).slice(0, 3);
@@ -890,7 +895,7 @@ export function Dashboard() {
         );
       }
       case 'topExpenses': {
-        const top = periodTx.filter((x) => x.type === 'expense').sort((a, b) => b.amountCents - a.amountCents).slice(0, 5);
+        const top = periodTx.filter((x) => x.type === 'expense').sort((a, b) => b.amountCents - a.amountCents).slice(0, tall('topExpenses') ? 10 : 5);
         return (
           <Card title={t('panel.w_topExpenses')} action={seeAll('/transacoes', t('panel.seeAll'))}>
             {top.length === 0 ? <div className="fx-empty">{t('panel.noTransactions')}</div> : (
@@ -912,7 +917,7 @@ export function Dashboard() {
         );
       }
       case 'upcoming': {
-        const next = [...recurrings].sort((a, b) => a.nextDate.localeCompare(b.nextDate)).slice(0, 5);
+        const next = [...recurrings].sort((a, b) => a.nextDate.localeCompare(b.nextDate)).slice(0, tall('upcoming') ? 10 : 5);
         return (
           <Card title={t('panel.upcomingRecurring')} action={seeAll('/metas', t('panel.seeAll'))}>
             {next.length === 0 ? <div className="fx-empty">{t('panel.noUpcoming')}</div> : (
@@ -996,9 +1001,9 @@ export function Dashboard() {
             <button type="button" className="fx-round sm" onClick={() => stepPeriod(1)} aria-label={period === 'month' ? t('panel.nextMonth') : t('panel.nextYear')} data-testid="period-next"><Ic d={ARROW} size={15} /></button>
           </div>
           <AccountSwitch accounts={accounts} active={active} onChange={setActive} />
-          <button type="button" className={'fx-btn' + (editing ? ' on' : '')} aria-pressed={editing} onClick={() => setEditing(!editing)}>
+          {!NATIVE_APP && <button type="button" className={'fx-btn' + (editing ? ' on' : '')} aria-pressed={editing} onClick={() => setEditing(!editing)}>
             <Ic d={editing ? 'M5 12l5 5 9-10' : 'M4 6h16M4 12h16M4 18h10'} size={15} /> {editing ? t('panel.done') : t('panel.customize')}
-          </button>
+          </button>}
           <Link to="/transacoes" className="fx-btn primary"><Ic d="M12 5v14M5 12h14" /> {t('panel.addExpense')}</Link>
         </div>
       </header>
@@ -1046,6 +1051,9 @@ export function Dashboard() {
         onMove={(id, col, before) => setLayout(moveWidget(layout, id, col, before))}
         onRemove={(id) => setLayout(removeWidget(layout, id))}
         onNudge={(id, dir) => setLayout(nudgeWidget(layout, id, dir))}
+        stretched={new Set(stretched)}
+        canStretch={(id) => STRETCHABLE.has(id)}
+        onStretch={(id) => { const next = stretched.includes(id) ? stretched.filter((x) => x !== id) : [...stretched, id]; setStretched(next); saveStretched(next, period); }}
       />
 
       <Sheet open={gallery} onClose={() => setGallery(false)} title={t('panel.addWidget')} wide>

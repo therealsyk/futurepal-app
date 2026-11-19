@@ -215,7 +215,9 @@
     "w_statSalary": "Salary in period",
     "wd_statSalary": "Salaries received in this period.",
     "w_statSavingsAvg": "Savings / month (average)",
-    "wd_statSavingsAvg": "How much you save per month on average."
+    "wd_statSavingsAvg": "How much you save per month on average.",
+    "stretchWidget": "Stretch (show more)",
+    "shrinkWidget": "Shrink"
   },
   "transactions": {
     "title": "Transactions",

@@ -215,7 +215,9 @@
     "w_statSalary": "Salário no período",
     "wd_statSalary": "Salários recebidos neste período.",
     "w_statSavingsAvg": "Poupança por mês (média)",
-    "wd_statSavingsAvg": "Quanto poupas, em média, por mês."
+    "wd_statSavingsAvg": "Quanto poupas, em média, por mês.",
+    "stretchWidget": "Esticar (mostrar mais)",
+    "shrinkWidget": "Encolher"
   },
   "transactions": {
     "title": "Transações",

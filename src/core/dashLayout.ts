@@ -38,6 +38,15 @@ export function saveLayout(l: Layout, mode?: LayoutMode): void {
   try { localStorage.setItem(keyFor(mode), JSON.stringify(l)); } catch { /* sem armazenamento */ }
 }
 
+// Cartões que se podem "esticar" (mostram o dobro dos itens). Guardado por modo, como a disposição.
+export const STRETCHABLE = new Set(['recent', 'topExpenses', 'upcoming']);
+export function loadStretched(mode: LayoutMode): string[] {
+  try { const v = JSON.parse(localStorage.getItem(`${KEY}.tall.${mode}`) || '[]'); return Array.isArray(v) ? v.filter((x) => typeof x === 'string') : []; } catch { return []; }
+}
+export function saveStretched(ids: string[], mode: LayoutMode): void {
+  try { localStorage.setItem(`${KEY}.tall.${mode}`, JSON.stringify(ids)); } catch { /* sem armazenamento */ }
+}
+
 export function placedIds(l: Layout): Set<string> {
   return new Set(l.flat());
 }

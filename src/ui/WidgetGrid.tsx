@@ -18,9 +18,13 @@ export interface WidgetGridProps {
   onMove: (id: string, col: number, beforeId: string | null) => void;
   onRemove: (id: string) => void;
   onNudge: (id: string, dir: 'up' | 'down' | 'left' | 'right') => void;
+  /** Esticar/encolher (só nos cartões em que faz sentido) */
+  stretched?: Set<string>;
+  canStretch?: (id: string) => boolean;
+  onStretch?: (id: string) => void;
 }
 
-export function WidgetGrid({ layout, editing, render, labelOf, onMove, onRemove, onNudge }: WidgetGridProps) {
+export function WidgetGrid({ layout, editing, render, labelOf, onMove, onRemove, onNudge, stretched, canStretch, onStretch }: WidgetGridProps) {
   const { t } = useTranslation();
   const dragId = useRef<string | null>(null);
   const [over, setOver] = useState<string | null>(null); // "col:id" ou "col:end"
@@ -74,6 +78,13 @@ export function WidgetGrid({ layout, editing, render, labelOf, onMove, onRemove,
                     >
                       <Ic d={GRIP} size={18} /><span>{labelOf(id)}</span>
                     </button>
+                    {canStretch?.(id) && onStretch && (
+                      <button type="button" className={'fx-round sm' + (stretched?.has(id) ? ' on' : '')} onClick={() => onStretch(id)}
+                        aria-pressed={!!stretched?.has(id)} title={stretched?.has(id) ? t('panel.shrinkWidget') : t('panel.stretchWidget')}
+                        aria-label={`${stretched?.has(id) ? t('panel.shrinkWidget') : t('panel.stretchWidget')}: ${labelOf(id)}`}>
+                        <Ic d={stretched?.has(id) ? 'M8 4l4 4 4-4M8 20l4-4 4 4' : 'M8 8l4-4 4 4M8 16l4 4 4-4'} size={14} />
+                      </button>
+                    )}
                     <button type="button" className="fx-round sm" onClick={() => onRemove(id)} aria-label={`${t('panel.removeWidget')}: ${labelOf(id)}`}>
                       <Ic d={ICON.close} size={14} />
                     </button>
