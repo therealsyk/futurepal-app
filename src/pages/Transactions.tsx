@@ -151,7 +151,7 @@ export function Transactions() {
         <div className="fx-card fx-kpi"><div className="fx-kpi-label">{t('overview.count')}</div><div className="fx-kpi-value"><span>{visible.length}</span></div></div>
       </div>
 
-      <div className="fx-toolbar">
+      <div className="fx-toolbar tx-toolbar">
         <div className="fx-seg" role="group" aria-label={t('panel.period')}>
           <button type="button" className={period === 'month' ? 'on' : ''} aria-pressed={period === 'month'} onClick={() => setPeriod('month')}>{t('panel.periodMonth')}</button>
           <button type="button" className={period === 'year' ? 'on' : ''} aria-pressed={period === 'year'} onClick={() => setPeriod('year')} data-testid="tx-period-year">{t('panel.periodYear')}</button>

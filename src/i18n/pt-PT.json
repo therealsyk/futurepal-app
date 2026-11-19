@@ -929,7 +929,7 @@
     "short_yearReview": "O teu ano em números",
     "short_challenges": "Desafios de poupança",
     "short_warranties": "Cofre de garantias",
-    "short_assistant": "Assistente IA: 100 perguntas e 30 faturas por mês",
+    "short_assistant": "Assistente IA",
     "short_shared": "Casa partilhada até 5 pessoas, todas com Pro",
     "short_freelance": "Independentes (recibos verdes)",
     "feat_unlimited": "Cria quantas contas, metas e limites de gastos precisares.",
@@ -1053,7 +1053,8 @@
     "perkTrial": "14 dias grátis do Pro para experimentares tudo.",
     "perkYearly": "No plano anual pagas 10 meses e ficas com 12.",
     "perkFriend": "Convida um amigo: quando ele subscrever, ganham os dois 1 mês grátis (brevemente).",
-    "perkFounder": "Preço de fundador: os primeiros 500 subscritores mantêm o preço de lançamento para sempre."
+    "perkFounder": "Preço de fundador: os primeiros 500 subscritores mantêm o preço de lançamento para sempre.",
+    "short_assistantPlan": "Assistente IA: 100 perguntas e 30 faturas por mês"
   },
   "admin": {
     "title": "Administração",

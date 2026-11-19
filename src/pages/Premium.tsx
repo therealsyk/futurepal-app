@@ -77,7 +77,7 @@ const FEATURE_PAGES: Array<{ f: Feature; path: string; d: string }> = [
 // Os 3 planos: cada um tem tudo o do anterior. Preço sempre por mês; no anual, o equivalente mensal.
 const PLANS: Array<{ id: PlanId; features: string[] }> = [
   { id: 'free', features: ['freeBasics', 'freeSync', 'freeLimits'] },
-  { id: 'plus', features: ['unlimited', 'forecast', 'subscriptions', 'yearReview', 'challenges', 'warranties', 'irs', 'split', 'assistant'] },
+  { id: 'plus', features: ['unlimited', 'forecast', 'subscriptions', 'yearReview', 'challenges', 'warranties', 'irs', 'split', 'assistantPlan'] },
   { id: 'pro', features: ['shared', 'freelance', 'aiMore', 'early'] },
 ];
 export function PlusPage() {

@@ -837,3 +837,12 @@ html.is-electron .app-main::-webkit-scrollbar, html.is-electron::-webkit-scrollb
 .ad-body { display: flex; flex-direction: column; gap: 3px; text-decoration: none; color: var(--text); padding-right: 80px; }
 .ad-body b { font-size: 14.5px; }
 .ad-body small { color: var(--muted); font-size: 12.5px; }
+/* Transações no telemóvel: filtros arrumados (Mês/Ano + navegação numa linha, tipo a toda a largura, categoria + pesquisa) */
+@media (max-width: 768px) {
+  .tx-toolbar { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; align-items: center; }
+  .tx-toolbar > .fx-monthnav { width: 100%; justify-content: space-between; }
+  .tx-toolbar > .fx-monthnav + .fx-seg { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); }
+  .tx-toolbar > .fx-monthnav + .fx-seg button { text-align: center; }
+  .tx-toolbar > .fx-selectbtn { width: auto; }
+  .tx-toolbar > .fx-search { min-width: 0; width: 100%; }
+}

@@ -929,7 +929,7 @@
     "short_yearReview": "Your year in numbers",
     "short_challenges": "Savings challenges",
     "short_warranties": "Warranty vault",
-    "short_assistant": "AI assistant: 100 questions and 30 receipts a month",
+    "short_assistant": "AI assistant",
     "short_shared": "Shared household for up to 5 people, all with Pro",
     "short_freelance": "Freelancers",
     "feat_unlimited": "Create as many accounts, goals and spending limits as you need.",
@@ -1053,7 +1053,8 @@
     "perkTrial": "Try every feature with a 14-day free Pro trial.",
     "perkYearly": "With yearly billing you pay for 10 months and get 12.",
     "perkFriend": "Invite a friend: when they subscribe, you both get 1 month free (coming soon).",
-    "perkFounder": "Founder price: the first 500 subscribers keep the launch price forever."
+    "perkFounder": "Founder price: the first 500 subscribers keep the launch price forever.",
+    "short_assistantPlan": "AI assistant: 100 questions and 30 receipts a month"
   },
   "admin": {
     "title": "Admin",
