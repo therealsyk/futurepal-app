@@ -94,7 +94,7 @@ export async function syncNow(client: SupabaseClient, db: WalletDB, userId: stri
     const dirty = changedSince(merged, lastSync).filter((r) => !fromRemote.has(r.id));
     if (dirty.length > 0) {
       const rows = dirty.map((r) => toRemote(table, r, userId));
-      const pushErr = await client.from(table).upsert(rows, { onConflict: 'id' });
+      const pushErr = await client.from(table).upsert(rows, { onConflict: 'user_id,id' }) // ids fixos ('acc-default', 'cat-…') repetem-se entre utilizadores (ver supabase/per_user_ids.sql);
       if (pushErr.error) return { pushed, pulled, lastSync: now, error: `${table}: ${pushErr.error.message}` };
       pushed += dirty.length;
     }

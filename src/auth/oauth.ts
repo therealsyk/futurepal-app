@@ -1,6 +1,7 @@
 // Login com Google, Facebook e Apple (Supabase Auth, fluxo PKCE).
 //   Browser  : redireciona para o fornecedor e volta à app (o supabase-js troca o ?code= pela sessão).
-//   Windows  : abre o browser do sistema; o fornecedor volta para futurepal://auth-callback (registado pelo instalador).
+//   Windows  : abre o browser do sistema; o fornecedor volta para http://127.0.0.1:53682/auth-callback (servidor local da app)
+//              ou, se essa porta estiver ocupada, para futurepal://auth-callback (registado pelo instalador).
 //   Telemóvel: abre um browser seguro (@capacitor/browser); volta para com.futurepal.app://auth-callback.
 // Cada fornecedor tem de estar ativo no painel do Supabase (ver LOGIN_SOCIAL.md).
 import { Capacitor } from '@capacitor/core';
@@ -12,6 +13,7 @@ export const MOBILE_REDIRECT = 'com.futurepal.app://auth-callback';
 
 interface AuthBridge {
   openExternal?: (url: string) => Promise<void>;
+  oauthRedirect?: () => Promise<string | null>;
   onAuthCallback?: (cb: (url: string) => void) => () => void;
 }
 const bridge = (): AuthBridge | undefined => (globalThis as unknown as { __electronBridge?: AuthBridge }).__electronBridge;
@@ -25,7 +27,9 @@ export function oauthRedirectUrl(): string {
 export async function signInWithProvider(provider: OAuthProvider): Promise<void> {
   const sb = getSupabase();
   if (!sb) throw new Error('not-configured');
-  const redirectTo = oauthRedirectUrl();
+  // Windows: de preferência o endereço local (http://127.0.0.1:…); o futurepal:// fica de reserva.
+  const local = await bridge()?.oauthRedirect?.().catch(() => null);
+  const redirectTo = local || oauthRedirectUrl();
   const native = Boolean(bridge()) || Capacitor.isNativePlatform();
   const { data, error } = await sb.auth.signInWithOAuth({
     provider,

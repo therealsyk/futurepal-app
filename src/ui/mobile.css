@@ -441,8 +441,20 @@ html[data-theme="light"] .mv-acc.spending { --acc: #b7771b; }
 .up-actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
 .up-block { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 20px; background: rgba(5,5,8,.82); backdrop-filter: blur(6px); }
 .up-card { width: min(460px, 100%); display: flex; flex-direction: column; gap: 16px; padding: 24px; border-radius: 24px; background: var(--card); border: 1px solid var(--border); }
+/* Notas da versão: no máximo umas linhas (deslizam por dentro); a caixa nunca passa do ecrã */
+.up-text small:not(.up-err) { max-height: 7.5em; overflow-y: auto; }
+.up-banner, .up-card { max-height: calc(100dvh - 40px); overflow: hidden; }
 @media (max-width: 768px) {
-  .up-banner { left: 14px; right: 14px; width: auto; bottom: calc(96px + var(--safe-b)); }
+  /* Telemóvel: pop-up pequeno e centrado, por cima de uma sombra, em vez de um painel do tamanho do ecrã */
+  .up-banner {
+    left: 50%; right: auto; top: 50%; bottom: auto; transform: translate(-50%, -50%);
+    width: min(340px, calc(100% - 40px)); max-height: min(70dvh, 460px); padding: 18px; gap: 14px; border-radius: 22px;
+    box-shadow: 0 0 0 100vmax rgba(5,5,8,.55), 0 24px 60px -20px rgba(0,0,0,.6); animation: none;
+  }
+  .up-text b { font-size: 16.5px; }
+  .up-actions { justify-content: stretch; }
+  .up-actions .fx-btn { flex: 1; justify-content: center; }
+  .up-card { width: min(340px, 100%); padding: 20px; gap: 14px; }
 }
 @media (prefers-reduced-motion: reduce) { .up-banner { animation: none; } .up-bar { transition: none; } }
 
@@ -826,9 +838,11 @@ html[data-theme="light"] .mv-acc.spending { --acc: #b7771b; }
 /* App de Windows: barra do título integrada (34 px) e página sem barra de scroll visível */
 .win-titlebar { position: fixed; inset: 0 0 auto 0; height: 34px; z-index: 9999; display: flex; align-items: center; padding-left: 14px; background: var(--bg); color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: .04em; -webkit-app-region: drag; user-select: none; }
 html.is-electron body { padding-top: 34px; }
-html.is-electron .app-shell, html.is-electron .app-main { height: calc(100vh - 34px); }
+html.is-electron .app-shell, html.is-electron .app-main { height: calc(100vh - 34px); min-height: 0; } /* o min-height: 100vh do tema empurrava tudo 34 px para fora da janela */
+html.is-electron body { min-height: 0; }
 html.is-electron .ob-screen { min-height: calc(100vh - 34px); }
 html.is-electron .fx-backdrop, html.is-electron .sw-layer, html.is-electron .demo-gate { top: 34px; }
+html.is-electron .mb-toast { top: calc(34px + 14px); } /* avisos no topo: abaixo da barra do título, não por baixo dela */
 html.is-electron .app-main, html.is-electron, html.is-electron body { scrollbar-width: none; }
 html.is-electron .app-main::-webkit-scrollbar, html.is-electron::-webkit-scrollbar, html.is-electron body::-webkit-scrollbar { display: none; }
 /* Cartão "Patrocinado" (só no plano Grátis) */
@@ -879,3 +893,57 @@ html.is-electron .app-main::-webkit-scrollbar, html.is-electron::-webkit-scrollb
 /* Caixas do topo do Painel: a linha de baixo passa para a seguinte em vez de cortar com "…" */
 .fx-kpi-sub { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.45; }
 .fx-kpi-sub b { white-space: nowrap; }
+
+/* ---------------------------------------------------------------- setup / login sem scroll
+   Os espaços e tamanhos encolhem com a ALTURA da janela (vh), para que cada passo caiba num só ecrã.
+   Listas longas (moedas, categorias) continuam a deslizar por dentro, como devem. */
+.ob-screen { padding-top: calc(clamp(6px, 1.4vh, 14px) + var(--safe-t)); padding-bottom: calc(clamp(6px, 1.6vh, 18px) + var(--safe-b)); }
+.ob-top { min-height: clamp(40px, 5vh, 52px); }
+.ob-round, .ob-round-spacer { width: clamp(38px, 4.6vh, 46px); height: clamp(38px, 4.6vh, 46px); }
+.ob-body { padding-top: clamp(0px, .8vh, 8px); }
+.ob-foot { padding-top: clamp(8px, 1.8vh, 18px); }
+.ob-title { font-size: clamp(22px, 3.2vh, 30px); margin: clamp(6px, 2.4vh, 26px) 0 clamp(4px, 1vh, 10px); }
+.ob-title.small { margin: clamp(2px, .4vh, 4px) 0 clamp(8px, 1.8vh, 18px); }
+.ob-sub { font-size: clamp(14px, 1.7vh, 16.5px); margin-bottom: clamp(10px, 2.6vh, 26px); }
+.ob-logo { width: clamp(52px, 7.4vh, 76px); height: clamp(52px, 7.4vh, 76px); margin-top: clamp(8px, 2.8vh, 28px); border-radius: clamp(16px, 2.4vh, 24px); }
+.ob-row { padding: clamp(8px, 1.4vh, 14px) 0; }
+.ob-actions { margin-top: clamp(12px, 3vh, 30px); gap: clamp(8px, 1.2vh, 12px); }
+.ob-cta { min-height: clamp(44px, 5.4vh, 56px); font-size: clamp(16px, 1.8vh, 18px); }
+.ob-social { gap: clamp(6px, 1vh, 10px); }
+.ob-social-btn { min-height: clamp(40px, 4.8vh, 50px); }
+.ob-or { margin: clamp(4px, .8vh, 8px) 0 clamp(6px, 1.2vh, 12px); }
+.ob-form { padding-top: clamp(4px, .8vh, 8px); padding-bottom: clamp(6px, 1.4vh, 14px); }
+.ob-photo-btn { width: clamp(44px, 6.2vh, 64px); height: clamp(44px, 6.2vh, 64px); font-size: clamp(20px, 2.6vh, 26px); }
+.ob-input { padding: clamp(4px, 1vh, 10px) 0; }
+.ob-input input { font-size: clamp(15px, 1.7vh, 17px); padding: clamp(2px, .4vh, 4px) 0; }
+.ob-auth .ob-cta { margin-top: clamp(10px, 2vh, 20px); }
+.ob-switch { margin-top: clamp(8px, 1.6vh, 16px); }
+.ob-error, .ob-info { margin: clamp(4px, 1vh, 10px) 2px; }
+/* Ecrãs largos e baixos (portátil/PC): os 3 botões sociais lado a lado */
+@media (min-width: 700px) and (max-height: 900px) {
+  .ob-social { flex-direction: row; }
+  .ob-social-btn { flex: 1; font-size: 14px; padding: 0 10px; }
+}
+/* Passo "Criar conta de gastos": também encolhe com a altura; em ecrãs largos os 4 interruptores ficam em 2 colunas */
+.ob-huge { font-size: clamp(26px, 3.6vh, 34px); margin: clamp(2px, .4vh, 4px) 0 clamp(6px, 1.8vh, 18px); }
+.ob-big { font-size: clamp(18px, 2.2vh, 22px); }
+.ob-hr { margin: clamp(8px, 1.8vh, 18px) 0; }
+.ob-amount { font-size: clamp(34px, 5vh, 48px); }
+.ob-switchrow { padding: clamp(6px, 1.2vh, 12px) 0; }
+.ob-foot.inline { padding-top: clamp(10px, 2.2vh, 22px); }
+@media (min-width: 700px) {
+  .ob-switches { display: grid; grid-template-columns: 1fr 1fr; column-gap: 28px; }
+}
+
+/* Barra lateral: encolhe com a altura da janela para nunca cortar o último botão */
+.fx-rail { padding: clamp(8px, 1.8vh, 18px) 0; gap: clamp(2px, .6vh, 6px); }
+.fx-rail nav, .fx-rail-bottom { gap: clamp(2px, .6vh, 6px); }
+.fx-logo { margin-bottom: clamp(6px, 1.8vh, 18px); }
+.fx-rail-btn { height: clamp(34px, 4.4vh, 44px); }
+/* Painel no PC: o calendário e os espaços seguem a altura da janela, para o painel caber sem scroll */
+@media (min-width: 1101px) {
+  .fx-page { padding-top: clamp(10px, 1.6vh, 20px); padding-bottom: clamp(8px, 1.2vh, 18px); }
+  .fx-kpis { margin-bottom: clamp(10px, 1.6vh, 16px); }
+  .fx-cal:not(.big) .fx-cal-d { aspect-ratio: auto; min-height: 0; height: clamp(30px, 3.6vh, 48px); padding: 3px 6px; justify-content: center; gap: 1px; }
+  .fx-cal:not(.big) { gap: clamp(3px, .5vh, 5px); }
+}

@@ -176,6 +176,8 @@ begin
   end loop;
 end $$;
 
+-- Chave primária (user_id, id): os ids fixos repetem-se entre utilizadores. Corre também supabase/per_user_ids.sql.
+
 -- A tabela antiga exchange_rates nunca foi usada pela sincronização; não é criada aqui.
 
 -- ---------------------------------------------------------------- versões da app (aviso de atualização)

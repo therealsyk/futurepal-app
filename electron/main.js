@@ -127,8 +127,13 @@ ipcMain.on('wallet:update-install', () => {
 // ---------------------------------------------------------------- login social (Google/Facebook/Apple)
 // O fornecedor devolve a pessoa a futurepal://auth-callback?code=…; o Windows entrega esse link à app já aberta.
 const PROTOCOL = 'futurepal';
-if (process.defaultApp && process.argv.length >= 2) {
-  app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [path.resolve(process.argv[1])]); // em desenvolvimento
+// Em desenvolvimento NÃO se regista o protocolo: senão roubava os links de login à app instalada
+// (o browser mandava o futurepal://… para o electron.exe do projeto e a app instalada ficava à espera).
+// Para testar o login social em desenvolvimento: FUTUREPAL_DEV_PROTOCOL=1.
+if (process.defaultApp) {
+  if (process.env.FUTUREPAL_DEV_PROTOCOL === '1' && process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [path.resolve(process.argv[1])]);
+  }
 } else {
   app.setAsDefaultProtocolClient(PROTOCOL);
 }
@@ -150,6 +155,48 @@ if (!app.requestSingleInstanceLock()) {
   app.on('open-url', (event, url) => { event.preventDefault(); deliverAuthUrl(url); }); // macOS
   pendingAuthUrl = findAuthUrl(process.argv);
 }
+// Login pelo endereço local: o fornecedor volta para http://127.0.0.1:<porta>/auth-callback?code=… e um pequeno
+// servidor só local recebe o código. Funciona em qualquer browser, sem depender do futurepal:// (que o browser pode
+// bloquear, pedir confirmação ou mandar para outro programa). As portas têm de estar nos Redirect URLs do Supabase.
+const AUTH_PORTS = [53682, 53683, 53684];
+let authServer = null;
+let authServerTimer = null;
+function stopAuthServer() {
+  if (authServerTimer) { clearTimeout(authServerTimer); authServerTimer = null; }
+  if (authServer) { try { authServer.close(); } catch { /* já fechado */ } authServer = null; }
+}
+const AUTH_DONE_PAGE = '<!doctype html><html><head><meta charset="utf-8"><title>FuturePal</title>'
+  + '<style>body{font-family:system-ui,sans-serif;background:#0b0f14;color:#e6edf3;display:grid;place-items:center;height:100vh;margin:0;text-align:center}'
+  + 'h1{font-size:22px;margin:0 0 8px}p{color:#9aa7b4;margin:0}</style></head><body><div><h1>Sessão iniciada ✓</h1>'
+  + '<p>Já podes fechar esta página e voltar ao FuturePal.</p><p style="margin-top:6px">Signed in — you can close this page and return to FuturePal.</p></div>'
+  + '<script>setTimeout(function(){window.close()},1500)</script></body></html>';
+function listenOn(port) {
+  return new Promise((resolve) => {
+    const http = require('http');
+    const srv = http.createServer((req, res) => {
+      const u = new URL(req.url || '/', `http://127.0.0.1:${port}`);
+      if (u.pathname !== '/auth-callback') { res.writeHead(404); res.end(); return; }
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+      res.end(AUTH_DONE_PAGE);
+      deliverAuthUrl(`${PROTOCOL}://auth-callback${u.search}`);
+      setTimeout(stopAuthServer, 2000);
+    });
+    srv.once('error', () => resolve(null));
+    srv.listen(port, '127.0.0.1', () => resolve(srv));
+  });
+}
+ipcMain.handle('wallet:oauth-redirect', async () => {
+  stopAuthServer();
+  for (const port of AUTH_PORTS) {
+    const srv = await listenOn(port);
+    if (srv) {
+      authServer = srv;
+      authServerTimer = setTimeout(stopAuthServer, 10 * 60 * 1000); // desiste ao fim de 10 minutos
+      return `http://127.0.0.1:${port}/auth-callback`;
+    }
+  }
+  return null; // portas ocupadas: usa o futurepal://
+});
 ipcMain.handle('wallet:open-external', async (_event, url) => {
   if (typeof url === 'string' && url.startsWith('https://')) await shell.openExternal(url);
 });

@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld('__electronBridge', {
   httpRequest: (req) => ipcRenderer.invoke('wallet:http', req),
   // Login social: abrir o fornecedor no browser do sistema e receber o link de volta (futurepal://auth-callback).
   openExternal: (url) => ipcRenderer.invoke('wallet:open-external', url),
+  // Endereço local (http://127.0.0.1:porta/auth-callback) para onde o login volta; null se não der para abrir.
+  oauthRedirect: () => ipcRenderer.invoke('wallet:oauth-redirect'),
   onAuthCallback: (cb) => {
     const h = (_e, url) => cb(url);
     ipcRenderer.on('wallet:auth-callback', h);
