@@ -77,4 +77,6 @@ if (!has('--skip-mobile')) {
   console.log(row('ios', cfg.storeUrls?.ios || '') + '\n');
 }
 console.log('Dica: só atualiza a linha de cada plataforma DEPOIS de essa versão estar publicada; senão o aviso aparece antes de haver o que descarregar.');
+// 6. limpa versões antigas neste computador (fica a atual e a anterior; o GitHub guarda todas)
+try { run('node scripts/clean-releases.mjs'); } catch { console.log('[!] Limpeza das versões antigas falhou (não é grave).'); }
 console.log(`Para guardar no Git:  git add -A && git commit -m "Versão ${version}" && git tag v${version}`);
