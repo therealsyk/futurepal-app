@@ -379,7 +379,7 @@ export function Dashboard() {
   const pickMonth = (y: number, m: number) => { setPeriod('month'); setSelY(y); setSelM(m); };
   const { accounts, active, setActive } = useAccounts();
   const [recurrings, setRecurrings] = useState<Recurring[]>([]);
-  const [layout, setLayoutState] = useState<Layout>(loadLayout);
+  const [layout, setLayoutState] = useState<Layout>(() => loadLayout(loadPeriod().period));
   const [editing, setEditing] = useState(false);
   const [gallery, setGallery] = useState(false);
   const [contrib, setContrib] = useState<Record<string, string>>({});
@@ -563,7 +563,9 @@ export function Dashboard() {
     </div>
   ) : null;
 
-  const setLayout = (l: Layout) => { setLayoutState(l); saveLayout(l); };
+  const setLayout = (l: Layout) => { setLayoutState(l); saveLayout(l, period); };
+  // Mês e Ano têm cada um a sua disposição
+  useEffect(() => { setLayoutState(loadLayout(period)); }, [period]);
   const placed = new Set(layout.flat());
 
   const submitContribution = async (goalId: string) => {

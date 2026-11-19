@@ -21,17 +21,21 @@ export function normalize(raw: unknown): Layout {
   return (raw as string[][]).map((col) => col.filter((id) => (seen.has(id) ? false : (seen.add(id), true))));
 }
 
-export function loadLayout(): Layout {
+// Cada modo do Painel (Mês / Ano) tem a sua disposição. A antiga (única) serve de ponto de partida aos dois.
+export type LayoutMode = 'month' | 'year';
+const keyFor = (mode?: LayoutMode) => (mode ? `${KEY}.${mode}` : KEY);
+
+export function loadLayout(mode?: LayoutMode): Layout {
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(keyFor(mode)) ?? (mode ? localStorage.getItem(KEY) : null);
     return raw ? normalize(JSON.parse(raw)) : clone(DEFAULT_LAYOUT);
   } catch {
     return clone(DEFAULT_LAYOUT);
   }
 }
 
-export function saveLayout(l: Layout): void {
-  try { localStorage.setItem(KEY, JSON.stringify(l)); } catch { /* sem armazenamento */ }
+export function saveLayout(l: Layout, mode?: LayoutMode): void {
+  try { localStorage.setItem(keyFor(mode), JSON.stringify(l)); } catch { /* sem armazenamento */ }
 }
 
 export function placedIds(l: Layout): Set<string> {

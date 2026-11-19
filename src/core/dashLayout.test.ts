@@ -31,3 +31,19 @@ describe('dashLayout', () => {
     expect(pruneLayout([['a', 'b'], [], []], (id) => id === 'a')[0]).toEqual(['a']);
   });
 });
+
+describe('disposição por modo', () => {
+  it('Mês e Ano guardam-se em separado; a antiga serve de ponto de partida', async () => {
+    const { loadLayout, saveLayout, DEFAULT_LAYOUT } = await import('./dashLayout');
+    const mem = new Map<string, string>();
+    (globalThis as any).localStorage = { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => mem.set(k, v), clear: () => mem.clear() };
+    localStorage.clear();
+    saveLayout([['recent'], ['overview'], []]); // disposição antiga (única)
+    expect(loadLayout('month')).toEqual([['recent'], ['overview'], []]);
+    saveLayout([['goals'], [], []], 'year');
+    expect(loadLayout('year')).toEqual([['goals'], [], []]);
+    expect(loadLayout('month')).toEqual([['recent'], ['overview'], []]);
+    localStorage.clear();
+    expect(loadLayout('year')).toEqual(DEFAULT_LAYOUT);
+  });
+});
