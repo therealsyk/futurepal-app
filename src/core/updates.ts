@@ -69,6 +69,26 @@ export async function checkForUpdate(client: SupabaseClient | null, platform = c
   }
 }
 
+// Android (APK fora da loja): lê a última release do GitHub, onde o APK é publicado com o instalador do Windows.
+export const GITHUB_REPO = 'therealsyk/futurepal';
+export interface GithubRelease { tag_name: string; body?: string | null; draft?: boolean; prerelease?: boolean; assets: Array<{ name: string; browser_download_url: string }> }
+
+/** Versão e link do APK da release (função pura, testada). null se não houver APK. */
+export function apkFromRelease(r: GithubRelease | null): { version: string; notes: string; url: string } | null {
+  if (!r || r.draft || r.prerelease || !r.tag_name) return null;
+  const apk = r.assets.find((x) => x.name.toLowerCase().endsWith('.apk'));
+  if (!apk) return null;
+  return { version: r.tag_name.replace(/^v/i, ''), notes: (r.body || '').trim(), url: apk.browser_download_url };
+}
+
+export async function githubApk(fetcher: typeof fetch = fetch): Promise<{ version: string; notes: string; url: string } | null> {
+  try {
+    const res = await fetcher(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, { headers: { Accept: 'application/vnd.github+json' } });
+    if (!res.ok) return null;
+    return apkFromRelease(await res.json() as GithubRelease);
+  } catch { return null; }
+}
+
 // "Agora não": não volta a avisar desta versão (mas avisa da seguinte).
 const DISMISS_KEY = 'wallet.updateDismissed';
 export function isDismissed(version: string): boolean {

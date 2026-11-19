@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getSupabase } from '../auth/supabase';
-import { checkForUpdate, desktopUpdater, dismiss, isDismissed, openExternal, type UpdateInfo } from '../core/updates';
+import { checkForUpdate, desktopUpdater, githubApk, dismiss, isDismissed, openExternal, type UpdateInfo } from '../core/updates';
 import { compareVersions } from '../core/version';
 
 // Aviso de atualização (banner) ou bloqueio (versão abaixo da mínima). Verifica ao abrir e de 6 em 6 horas.
@@ -21,6 +21,11 @@ export async function fullCheck(): Promise<UpdateInfo> {
         return { ...info, status: 'available', latest: native.version, notes: native.notes || info.notes };
       }
     } catch { /* sem internet ou sem releases: fica o resultado do Supabase */ }
+  }
+  // Android: a versão nova é o APK da última release do GitHub (não precisa da tabela do Supabase).
+  if (info.platform === 'android' && info.status !== 'required') {
+    const apk = await githubApk();
+    if (apk && compareVersions(apk.version, info.current) > 0) return { ...info, status: 'available', latest: apk.version, notes: apk.notes || info.notes, url: apk.url };
   }
   return info;
 }
