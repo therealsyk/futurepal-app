@@ -14,6 +14,8 @@ export const ADMOB = {
 
 const FIRST_USE_KEY = 'wallet.firstUse';
 export const AD_GRACE_DAYS = 3;
+/** Interruptor geral: false = sem anúncios em lado nenhum (está tudo pronto, só desligado). */
+export const ADS_ENABLED = false;
 
 /** Primeira vez que a app foi aberta neste aparelho (para não mostrar anúncios logo nos primeiros dias). */
 export function firstUse(now = new Date()): Date {
@@ -26,6 +28,7 @@ export function firstUse(now = new Date()): Date {
 }
 
 export function shouldShowAds(now = new Date()): boolean {
+  if (!ADS_ENABLED) return false;
   if (import.meta.env.VITE_DEMO === '1') return false;
   if (activePlan() !== 'free') return false;
   return now.getTime() - firstUse(now).getTime() >= AD_GRACE_DAYS * 86_400_000;
