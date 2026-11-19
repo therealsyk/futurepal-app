@@ -624,7 +624,9 @@
     "last12": "Os 12 meses do ano",
     "savingsRate": "Taxa de poupança",
     "txCount": "{{count}} transações",
-    "noTx": "Sem transações"
+    "noTx": "Sem transações",
+    "dailyAvg": "Média diária de gastos",
+    "avgMonthSavings": "Poupança média por mês"
   },
   "mobile": {
     "more": "Mais",

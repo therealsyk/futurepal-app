@@ -115,6 +115,17 @@ export function Overview() {
               <div className={'fx-big' + (cur.income - cur.expense < 0 ? ' fx-neg' : '')} style={{ margin: '6px 0 14px' }}>{money(cur.income - cur.expense)}</div>
               <div className="fx-stat"><span><i className="fx-dot" style={{ background: 'var(--teal)' }} /> {t('overview.incomes')}</span><span className="fx-num">{money(cur.income)}</span></div>
               <div className="fx-stat"><span><i className="fx-dot" style={{ background: 'var(--red)' }} /> {t('overview.expenses')}</span><span className="fx-num">{money(cur.expense)}</span></div>
+              {(() => {
+                // Média diária do mês (até hoje, se for o mês atual) e poupança média por mês no ano (meses com movimentos até este)
+                const t0 = new Date(); const dim = new Date(year, month, 0).getDate();
+                const days = year === t0.getFullYear() && month === t0.getMonth() + 1 ? t0.getDate() : dim;
+                const used = months.slice(0, month).filter((m) => m.income > 0 || m.expense > 0);
+                const avgSave = used.length ? Math.round(used.reduce((a, m) => a + (m.income - m.expense), 0) / used.length) : null;
+                return (<>
+                  <div className="fx-stat"><span>{t('overview.dailyAvg')}</span><span className="fx-num">{money(Math.round(cur.expense / Math.max(1, days)))}</span></div>
+                  <div className="fx-stat"><span>{t('overview.avgMonthSavings')}</span><span className={'fx-num' + (avgSave !== null && avgSave < 0 ? ' fx-neg' : '')}>{avgSave === null ? '—' : money(avgSave)}</span></div>
+                </>);
+              })()}
               <div className="fx-stat"><span>{t('overview.savingsRate')}</span><span className="fx-num">{cur.income > 0 ? `${Math.round(((cur.income - cur.expense) / cur.income) * 100)}%` : '—'}</span></div>
             </div>
           ) : (

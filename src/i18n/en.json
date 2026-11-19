@@ -624,7 +624,9 @@
     "last12": "The 12 months of the year",
     "savingsRate": "Savings rate",
     "txCount": "{{count}} transactions",
-    "noTx": "No transactions"
+    "noTx": "No transactions",
+    "dailyAvg": "Daily spending average",
+    "avgMonthSavings": "Average monthly savings"
   },
   "mobile": {
     "more": "More",
