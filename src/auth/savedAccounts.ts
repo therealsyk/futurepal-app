@@ -55,7 +55,8 @@ export async function switchToAccount(sb: SupabaseClient, id: string): Promise<b
   return true;
 }
 
-/** Sai só deste aparelho (a sessão guardada continua válida) para entrar com outra conta. */
+/** ATENÇÃO: o signOut, mesmo com scope 'local', anula a sessão no servidor (deixa de se poder voltar a esta conta).
+ *  Para "Adicionar conta" não usar: basta entrar com a outra conta (ver AccountSwitcher). */
 export async function leaveForAnotherAccount(sb: SupabaseClient): Promise<void> {
   const { data } = await sb.auth.getSession();
   rememberSession(data.session);

@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { getSupabase } from '../auth/supabase';
 import { useAuth } from '../auth/AuthContext';
-import { SAVED_EVENT, forgetAccount, leaveForAnotherAccount, savedAccounts, switchToAccount, type SavedAccount } from '../auth/savedAccounts';
+import { SAVED_EVENT, forgetAccount, rememberSession, savedAccounts, switchToAccount, type SavedAccount } from '../auth/savedAccounts';
 import { LoginForm } from '../pages/Login';
 import { Ic, ICON } from './fx';
 
@@ -25,6 +25,7 @@ export function AccountSwitcher({ open, onClose }: { open: boolean; onClose: () 
   const [adding, setAdding] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const addingFrom = useRef<string | null>(null); // conta que estava ativa quando se carregou em "Adicionar conta"
 
   useEffect(() => {
     const on = () => setList(savedAccounts());
@@ -38,8 +39,8 @@ export function AccountSwitcher({ open, onClose }: { open: boolean; onClose: () 
     window.addEventListener('keydown', k);
     return () => window.removeEventListener('keydown', k);
   }, [open, onClose]);
-  // Entrou com a conta nova: fecha
-  useEffect(() => { if (adding && auth.user) { setAdding(false); onClose(); } }, [auth.user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Entrou com uma conta diferente da que estava ativa: fecha
+  useEffect(() => { if (adding && auth.user && auth.user.id !== addingFrom.current) { setAdding(false); onClose(); } }, [auth.user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!open) return null;
   const sb = getSupabase();
@@ -57,7 +58,11 @@ export function AccountSwitcher({ open, onClose }: { open: boolean; onClose: () 
   async function addAccount() {
     if (!sb) return;
     setError('');
-    if (auth.user) await leaveForAnotherAccount(sb).catch(() => {});
+    // Não termina a sessão atual: terminar (mesmo só "local") anula-a no servidor e a conta deixava de poder ser escolhida.
+    // A sessão fica guardada e o login da conta nova simplesmente substitui-a neste aparelho.
+    const { data } = await sb.auth.getSession();
+    rememberSession(data.session);
+    addingFrom.current = auth.user?.id ?? null;
     setAdding(true);
   }
 
