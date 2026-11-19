@@ -157,9 +157,6 @@ export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings
           // Os dados do setup ficam neste aparelho; ao entrar na conta, a app pergunta se os quer levar para lá.
           <div className="ob-last">
             <LoginForm key={authMode} initialMode={authMode} onDone={() => { setSignedIn(true); finish({ ...buildSettings(), account: 'signedin' }).catch(() => {}); }} onSkip={() => { finish().catch(() => {}); }} />
-            <button type="button" className="ob-outline" onClick={() => setAuthMode(authMode === 'signup' ? 'signin' : 'signup')} data-testid="ob-login">
-              {authMode === 'signup' ? t('onboard.haveAccount') : t('onboard.signup')}
-            </button>
           </div>
         )}
         {step === 'auth' && (
