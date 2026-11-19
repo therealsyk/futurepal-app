@@ -34,7 +34,7 @@ export default function DayDetail() {
       <PageHead title={dayLabel} sub={t('calendar.dayDetailTitle')}>
         <button type="button" className="fx-btn" onClick={() => navigate('/calendario')}><Ic d={ICON.left} size={16} />{t('calendar.backToCalendar')}</button>
       </PageHead>
-      <div className="fx-kpis" style={{ gridTemplateColumns: 'repeat(3, minmax(0,1fr))' }}>
+      <div className="fx-kpis" style={{ gridTemplateColumns: 'repeat(3, minmax(0,1fr))' }} data-day-kpis="1">
         <div className="fx-card fx-kpi"><div className="fx-kpi-label">{t('overview.expenses')}</div><div className="fx-kpi-value"><span>{money(spent)}</span></div></div>
         <div className="fx-card fx-kpi"><div className="fx-kpi-label">{t('overview.incomes')}</div><div className="fx-kpi-value"><span className="fx-pos">{money(earned)}</span></div></div>
         <div className="fx-card fx-kpi"><div className="fx-kpi-label">{t('calendar.dayTotal')}</div><div className="fx-kpi-value"><span className={earned - spent < 0 ? 'fx-neg' : ''}>{money(earned - spent)}</span></div></div>

@@ -853,3 +853,14 @@ html.is-electron .app-main::-webkit-scrollbar, html.is-electron::-webkit-scrollb
   .fx-monthnav > .fx-round { flex: none; }
   .fx-seg { max-width: 100%; }
 }
+/* Ecrãs estreitos (≤ 400 px): nada cortado com "…" */
+@media (max-width: 400px) {
+  .mv-stats { gap: 6px; }
+  .mv-stats div { padding: 8px 7px; }
+  .mv-stats small { font-size: 11.5px; white-space: normal; overflow-wrap: anywhere; }
+  .mv-stats b { font-size: 13.5px; white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+  .tx-toolbar > .fx-seg button { padding-left: 10px; padding-right: 10px; }
+  .fx-monthnav { gap: 2px; }
+  .fx-monthnav > span { font-size: 13px; }
+  [data-day-kpis] { grid-template-columns: minmax(0, 1fr) !important; }
+}
