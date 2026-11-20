@@ -83,7 +83,6 @@ export function PcOverview() {
     <div className="fx-page pco">
       <header className="pco-head">
         <div className="pco-title">
-          <h1>{yearly ? 'Resumo anual' : 'Resumo mensal'}</h1>
           <div className="sh-seg pco-seg" role="tablist" aria-label="Resumo">
             <button type="button" role="tab" aria-selected={!yearly} className={!yearly ? 'on' : ''} onClick={() => setMode('month')}>Resumo mensal</button>
             <button type="button" role="tab" aria-selected={yearly} className={yearly ? 'on' : ''} onClick={() => setMode('year')}>Resumo anual</button>
