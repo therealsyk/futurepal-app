@@ -345,14 +345,17 @@ export function SimpleGoals() {
 
 // ── Resumo do mês (como o "Overview" do vídeo): mês com setas → Resumo | Categorias →
 //    barras dos últimos 6 meses → saldo do mês → Recebido / Gasto → movimentos agrupados por dia
-export function SimpleOverview({ yearly = false }: { yearly?: boolean }) {
+export type OverviewPart = 'chart' | 'totals' | 'lines' | 'cal' | 'cats';
+/** embed: mostra só um bloco, com o período escolhido fora (Painel do PC). */
+export function SimpleOverview({ yearly = false, embed }: { yearly?: boolean; embed?: { y: number; m: number; part: OverviewPart } }) {
   const { t } = useTranslation();
   const money = useMoney();
   const s = loadSettings();
   const now = new Date();
   const [d, setD] = useState<Data | null>(null);
   const qYear = Number(new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('ano')) || now.getFullYear();
-  const [cur, setCur] = useState({ y: yearly ? qYear : now.getFullYear(), m: now.getMonth() });
+  const [curS, setCur] = useState({ y: yearly ? qYear : now.getFullYear(), m: now.getMonth() });
+  const cur = embed ? { y: embed.y, m: embed.m } : curS;
   const [tab, setTab] = useState<'sum' | 'cat'>('sum');
   const navigate = useNavigate();
   const [kind, setKind] = useState<'expense' | 'income'>('expense');
@@ -470,21 +473,7 @@ export function SimpleOverview({ yearly = false }: { yearly?: boolean }) {
     );
   };
 
-  return (
-    <div className="fx-page mv sh">
-      <header className="mv-head"><Link to="/" className="mv-sq" aria-label="Voltar"><Ic d={ICON.left} size={20} /></Link><h1 className="sh-title">{yearly ? 'Resumo do ano' : 'Resumo do mês'}</h1></header>
-      <div className="sh-monthnav">
-        <button type="button" className="mv-chev" onClick={() => shift(-1)} aria-label={yearly ? 'Ano anterior' : 'Mês anterior'}><Ic d={ICON.left} size={18} /></button>
-        <span className="mv-month">{label}</span>
-        <button type="button" className="mv-chev" onClick={() => shift(1)} aria-label={yearly ? 'Ano seguinte' : 'Mês seguinte'}><Ic d={ICON.right} size={18} /></button>
-      </div>
-      <div className="sh-seg" role="tablist">
-        <button type="button" role="tab" aria-selected={tab === 'sum'} className={tab === 'sum' ? 'on' : ''} onClick={() => setTab('sum')}>Resumo</button>
-        <button type="button" role="tab" aria-selected={tab === 'cat'} className={tab === 'cat' ? 'on' : ''} onClick={() => setTab('cat')}>Categorias</button>
-      </div>
-
-      {tab === 'sum' ? (
-        <>
+  const chartEl = (<>
           <section className="mv-card">
             <div className="sh-bars" aria-label="Meses" ref={(el) => { const all = el ? [...el.querySelectorAll('.sh-barcol.has')] : []; const on = (el?.querySelector('.sh-barcol.on') ?? all[all.length - 1] ?? null) as HTMLElement | null; if (el && on) el.scrollTo({ left: on.offsetLeft - el.clientWidth / 2 + on.clientWidth / 2, behavior: 'smooth' }); }}>
               {bars.map((b) => (
@@ -497,11 +486,15 @@ export function SimpleOverview({ yearly = false }: { yearly?: boolean }) {
             <div className="sh-legend"><span><i className="sh-dot saved" />Rendimentos</span><span><i className="sh-dot spent" />Despesas</span></div>
           </section>
 
+  </>);
+  const totalsEl = (<>
           <div className="sh-kpis three">
             <div className="sh-kpi"><small>Rendimentos</small><span className="sh-valline"><b className="fx-pos">{money(m.income)}</b>{cmp('inc', m.income, pm.income, true)}</span></div>
             <div className="sh-kpi"><small>Despesas</small><span className="sh-valline"><b className="fx-neg">{money(m.expense)}</b>{cmp('exp', m.expense, pm.expense, false)}</span></div>
             <div className="sh-kpi"><small>Saldo</small><span className="sh-valline"><b className={bal < 0 ? 'fx-neg' : 'fx-pos'}>{money(bal)}</b>{cmp('bal', bal, prevBal, true)}</span></div>
           </div>
+  </>);
+  const linesEl = (<>
           <section className="mv-card sh-lines">
             {m.income > 0 && <div className="sh-line"><span>Salário</span><b>{money(m.salary)}</b></div>}
             {m.income > 0 && <div className="sh-line"><span>Extras</span><b>{money(m.income - m.salary)}</b></div>}
@@ -509,9 +502,8 @@ export function SimpleOverview({ yearly = false }: { yearly?: boolean }) {
             {m.income > 0 && <div className="sh-line"><span>Poupaste</span><b className={bal < 0 ? 'fx-neg' : 'fx-pos'}>{Math.round((bal / m.income) * 100)}% dos rendimentos</b></div>}
             <Link to={yearly ? `/transacoes?ano=${cur.y}` : `/transacoes?mes=${pref}`} className="sh-line sh-linkrow"><span>Movimentos</span><b>{m.rows.length} <Ic d={ICON.right} size={14} /></b></Link>
           </section>
-          {yearly ? yearCal() : monthCal()}
-        </>
-      ) : (
+  </>);
+  const catsEl = (<>
         <section className="mv-card">
           <div className="sh-seg small" role="tablist">
             <button type="button" className={kind === 'expense' ? 'on' : ''} onClick={() => setKind('expense')}>Gastos</button>
@@ -530,7 +522,30 @@ export function SimpleOverview({ yearly = false }: { yearly?: boolean }) {
             </>
           )}
         </section>
-      )}
+  </>);
+  if (embed) return <div className="mv sh sh-embed">{{ chart: chartEl, totals: totalsEl, lines: linesEl, cal: yearly ? yearCal() : monthCal(), cats: catsEl }[embed.part]}</div>;
+
+  return (
+    <div className="fx-page mv sh">
+      <header className="mv-head"><Link to="/" className="mv-sq" aria-label="Voltar"><Ic d={ICON.left} size={20} /></Link><h1 className="sh-title">{yearly ? 'Resumo do ano' : 'Resumo do mês'}</h1></header>
+      <div className="sh-monthnav">
+        <button type="button" className="mv-chev" onClick={() => shift(-1)} aria-label={yearly ? 'Ano anterior' : 'Mês anterior'}><Ic d={ICON.left} size={18} /></button>
+        <span className="mv-month">{label}</span>
+        <button type="button" className="mv-chev" onClick={() => shift(1)} aria-label={yearly ? 'Ano seguinte' : 'Mês seguinte'}><Ic d={ICON.right} size={18} /></button>
+      </div>
+      <div className="sh-seg" role="tablist">
+        <button type="button" role="tab" aria-selected={tab === 'sum'} className={tab === 'sum' ? 'on' : ''} onClick={() => setTab('sum')}>Resumo</button>
+        <button type="button" role="tab" aria-selected={tab === 'cat'} className={tab === 'cat' ? 'on' : ''} onClick={() => setTab('cat')}>Categorias</button>
+      </div>
+
+      {tab === 'sum' ? (
+        <>
+          {chartEl}
+          {totalsEl}
+          {linesEl}
+          {yearly ? yearCal() : monthCal()}
+        </>
+      ) : catsEl}
     </div>
   );
 }

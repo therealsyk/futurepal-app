@@ -14,7 +14,9 @@ import { Ic, ICON, CatIcon, catLabel } from '../ui/fx';
 
 const GEAR = 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z';
 
-export function SimpleHome() {
+export type HomePart = 'hero' | 'latest' | 'groups' | 'goals';
+/** embed: mostra só um bloco, com o período escolhido fora (Painel do PC). */
+export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: number; m: number; part: HomePart } } = {}) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const auth = useAuth();
@@ -34,8 +36,10 @@ export function SimpleHome() {
   }, []);
 
   const now = new Date();
-  const [mode, setMode] = useState<'month' | 'year'>('month');
-  const [cur, setCur] = useState({ y: now.getFullYear(), m: now.getMonth() });
+  const [modeS, setMode] = useState<'month' | 'year'>('month');
+  const mode = embed?.mode ?? modeS;
+  const [curS, setCur] = useState({ y: now.getFullYear(), m: now.getMonth() });
+  const cur = embed ? { y: embed.y, m: embed.m } : curS;
   const shift = (d: number) => setCur((c) => (mode === 'year' ? { y: c.y + d, m: c.m } : { y: c.y + Math.floor((c.m + d) / 12), m: ((c.m + d) % 12 + 12) % 12 }));
   const prefix = mode === 'year' ? String(cur.y) : `${cur.y}-${String(cur.m + 1).padStart(2, '0')}`;
   const month = (data?.txs ?? []).filter((x) => x.date.startsWith(prefix));
@@ -54,28 +58,13 @@ export function SimpleHome() {
   const name = meta.full_name || meta.name || auth.user?.email?.split('@')[0] || '';
   const periodLabel = mode === 'year' ? String(cur.y) : new Date(cur.y, cur.m, 1).toLocaleDateString(s.language, { month: 'long', year: 'numeric' });
 
-  return (
-    <div className="fx-page mv sh">
-      <header className="mv-head">
-        <div className="mv-hello">
-          <UserAvatar user={auth.user} name={name || '?'} className="ab-initials mv-avatar" />
-          <div className="mv-hello-txt">{name && <small>Olá,</small>}<h1>{name ? name.split(' ')[0] + '!' : 'Olá!'}</h1></div>
-        </div>
-        <button type="button" className="mv-sq" onClick={() => window.dispatchEvent(new Event('wallet:open-more'))} aria-label="Mais funções"><Ic d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" size={19} /></button>
-        <button type="button" className="mv-sq" onClick={() => navigate('/definicoes')} aria-label={t('nav.settings')}><Ic d={GEAR} size={20} /></button>
-      </header>
-
-      {/* 1. A pergunta principal, com uma escolha clara: este mês ou o ano todo */}
-      <div className="sh-seg" role="tablist" aria-label="Período">
-        <button type="button" role="tab" aria-selected={mode === 'month'} className={mode === 'month' ? 'on' : ''} onClick={() => setMode('month')}>Este mês</button>
-        <button type="button" role="tab" aria-selected={mode === 'year'} className={mode === 'year' ? 'on' : ''} onClick={() => setMode('year')}>O ano todo</button>
-      </div>
+  const heroEl = (<>
       <section className="mv-hero sh-hero">
-        <div className="mv-hero-top">
+        {!embed && <div className="mv-hero-top">
           <button type="button" className="mv-chev" onClick={() => shift(-1)} aria-label={mode === 'month' ? 'Mês anterior' : 'Ano anterior'}><Ic d={ICON.left} size={18} /></button>
           <span className="mv-month">{periodLabel}</span>
           <button type="button" className="mv-chev" onClick={() => shift(1)} aria-label={mode === 'month' ? 'Mês seguinte' : 'Ano seguinte'}><Ic d={ICON.right} size={18} /></button>
-        </div>
+        </div>}
         {(() => {
           const pct = received > 0 ? Math.round((spent / received) * 100) : null;
           // cor do quanto já se gastou do rendimento: sem cor até 50% (normal), amarelo até 80%, vermelho a partir daí
@@ -118,6 +107,8 @@ export function SimpleHome() {
         <Ic d={ICON.right} size={18} />
       </Link>}
 
+  </>);
+  const latestEl = (<>
       {/* 4. Últimos movimentos, em linguagem simples */}
       <section className="mv-card">
         <div className="mv-card-head"><h2>Últimos movimentos</h2><Link to="/transacoes" className="mv-link">Ver todos</Link></div>
@@ -132,6 +123,8 @@ export function SimpleHome() {
           );
         })}
       </section>
+  </>);
+  const groupsEl = (<>
       {/* 5. Grupos: juntar despesas de uma coisa só (férias, obras...) */}
       <section className="mv-card">
         <div className="mv-card-head"><h2>Os teus grupos</h2><Link to="/grupos" className="mv-link">Ver todos</Link></div>
@@ -144,6 +137,8 @@ export function SimpleHome() {
         </div>
       </section>
 
+  </>);
+  const goalsEl = (<>
       {/* 6. Metas: só a principal, com a barra */}
       <section className="mv-card">
         <div className="mv-card-head"><h2>Metas</h2><Link to="/metas" className="mv-link">{(data?.goals.length ?? 0) > 0 ? 'Ver todas' : 'Criar meta'}</Link></div>
@@ -159,6 +154,29 @@ export function SimpleHome() {
         })}
         {(data?.goals.length ?? 0) === 0 && <p className="fx-muted" style={{ margin: 0 }}>Define um objetivo (ex.: 1000 € para férias) e acompanha quanto falta.</p>}
       </section>
+  </>);
+  if (embed) return <div className="mv sh sh-embed">{{ hero: heroEl, latest: latestEl, groups: groupsEl, goals: goalsEl }[embed.part]}</div>;
+
+  return (
+    <div className="fx-page mv sh">
+      <header className="mv-head">
+        <div className="mv-hello">
+          <UserAvatar user={auth.user} name={name || '?'} className="ab-initials mv-avatar" />
+          <div className="mv-hello-txt">{name && <small>Olá,</small>}<h1>{name ? name.split(' ')[0] + '!' : 'Olá!'}</h1></div>
+        </div>
+        <button type="button" className="mv-sq" onClick={() => window.dispatchEvent(new Event('wallet:open-more'))} aria-label="Mais funções"><Ic d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" size={19} /></button>
+        <button type="button" className="mv-sq" onClick={() => navigate('/definicoes')} aria-label={t('nav.settings')}><Ic d={GEAR} size={20} /></button>
+      </header>
+
+      {/* 1. A pergunta principal, com uma escolha clara: este mês ou o ano todo */}
+      <div className="sh-seg" role="tablist" aria-label="Período">
+        <button type="button" role="tab" aria-selected={mode === 'month'} className={mode === 'month' ? 'on' : ''} onClick={() => setMode('month')}>Este mês</button>
+        <button type="button" role="tab" aria-selected={mode === 'year'} className={mode === 'year' ? 'on' : ''} onClick={() => setMode('year')}>O ano todo</button>
+      </div>
+      {heroEl}
+      {latestEl}
+      {groupsEl}
+      {goalsEl}
     </div>
   );
 }

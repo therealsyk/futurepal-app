@@ -5,11 +5,12 @@ export type Layout = string[][];
 
 export const COLUMNS = 3;
 export const DEFAULT_LAYOUT: Layout = [
-  ['goals', 'budget', 'summary'],
-  ['overview', 'categories', 'calendar'],
-  ['recent'],
+  ['mHero', 'mLatest', 'mGoals'],
+  ['rChart', 'rTotals', 'rLines'],
+  ['rCal', 'rCats', 'mGroups'],
 ];
-const KEY = 'wallet.dashLayout';
+// v2: disposição com os cartões da app de telemóvel (a anterior fica de lado)
+const KEY = 'wallet.dashLayout.v2';
 
 const clone = (l: Layout): Layout => l.map((c) => [...c]);
 

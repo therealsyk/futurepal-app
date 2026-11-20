@@ -1295,3 +1295,7 @@ button.sh-tx.txs-row { width: 100%; border: 0; border-top: 1px solid var(--borde
 .fx-kpi-simple .fx-kpi-value { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
 .fx-kpi-simple .fx-kpi-value > span:first-child { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 .fx-kpi-simple .fx-kpi-sub { margin-top: 6px; }
+
+/* Blocos da app de telemóvel dentro do Painel do PC */
+.sh-embed { display: flex; flex-direction: column; gap: 12px; max-width: none; padding: 0; }
+.sh-embed > .mv-card, .sh-embed > .mv-hero, .sh-embed > section { margin: 0; }

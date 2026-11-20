@@ -15,6 +15,8 @@ import { AccountSwitch, PickMenu, Sheet, ICON, catLabel, useAccounts, CategorySe
 import { todayISO, monthStart, monthEnd } from '../core/dates';
 import { AccountBar } from '../ui/AccountBar';
 import { withoutSalaryTx } from '../core/salaryTx';
+import { SimpleHome } from './SimpleHome';
+import { SimpleOverview } from './SimplePages';
 
 // Painel — visual "clean".
 // Toda a lógica trabalha em cêntimos inteiros; todo o texto passa por t().
@@ -583,7 +585,7 @@ export function Dashboard() {
   const goalColors = ['var(--accent)', 'var(--teal)', 'var(--pink)'];
 
   // ── Janelas (widgets) ──────────────────────────────────────────────────
-  const STATIC_WIDGETS = ['goals', 'budget', 'summary', 'overview', 'categories', 'calendar', 'recent', 'accounts', 'forecast', 'last7', 'topExpenses', 'upcoming', 'checklist', 'statDaily', 'statCount', 'statLargest', 'statSalary', 'statSavingsAvg'];
+  const STATIC_WIDGETS = ['mHero', 'mLatest', 'mGroups', 'mGoals', 'rChart', 'rTotals', 'rLines', 'rCal', 'rCats', 'goals', 'budget', 'summary', 'overview', 'categories', 'calendar', 'recent', 'accounts', 'forecast', 'last7', 'topExpenses', 'upcoming', 'checklist', 'statDaily', 'statCount', 'statLargest', 'statSalary', 'statSavingsAvg'];
   const salaryToDate = salariesUntil(salaries, parseInt(asOf.slice(0, 4), 10), parseInt(asOf.slice(5, 7), 10));
   const balOf = (a: Account) => accountBalanceCents(a, txsAsOf, accounts, salaryToDate, transfersAsOf);
   const currentOf = (g: Goal) => (g.accountIds && g.accountIds.length
@@ -751,6 +753,15 @@ export function Dashboard() {
     }
 
     switch (id) {
+      // Blocos da app de telemóvel (Início e Resumo), com o mês/ano escolhido no Painel
+      case 'mHero': case 'mLatest': case 'mGroups': case 'mGoals': {
+        const part = ({ mHero: 'hero', mLatest: 'latest', mGroups: 'groups', mGoals: 'goals' } as const)[id as 'mHero'];
+        return <SimpleHome key={id + period + year + month} embed={{ mode: period === 'year' ? 'year' : 'month', y: year, m: month - 1, part }} />;
+      }
+      case 'rChart': case 'rTotals': case 'rLines': case 'rCal': case 'rCats': {
+        const part = ({ rChart: 'chart', rTotals: 'totals', rLines: 'lines', rCal: 'cal', rCats: 'cats' } as const)[id as 'rChart'];
+        return <SimpleOverview key={id + period + year + month} yearly={period === 'year'} embed={{ y: year, m: month - 1, part }} />;
+      }
       case 'goals':
         return (
           <Card title={t('panel.financialGoals')} action={seeAll('/metas', t('panel.seeAll'))}>
