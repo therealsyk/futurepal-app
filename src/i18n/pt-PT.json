@@ -102,7 +102,7 @@
     "addExpense": "Nova despesa",
     "missingSalary": "Falta o salário de {{count}} mês(es) neste período.",
     "registerSalary": "Registar salário",
-    "balanceMonth": "Poupança deste mês",
+    "balanceMonth": "Saldo",
     "balanceYear": "Poupança deste ano",
     "salary": "Salário",
     "financialGoals": "Metas financeiras",
@@ -242,7 +242,15 @@
     "w_rCal": "Calendário de despesas",
     "wd_rCal": "Quanto gastaste em cada dia (mês) ou em cada mês (ano)",
     "w_rCats": "Categorias",
-    "wd_rCats": "Para onde foi o dinheiro, por categoria"
+    "wd_rCats": "Para onde foi o dinheiro, por categoria",
+    "w_kExpenses": "Caixa Despesas",
+    "wd_kExpenses": "Total gasto, com a % em relação ao período anterior",
+    "w_kSavings": "Caixa Poupança",
+    "wd_kSavings": "Rendimento menos despesas, com a %",
+    "w_kIncome": "Caixa Rendimento",
+    "wd_kIncome": "Tudo o que recebeste, com a %",
+    "w_kBalance": "Caixa Saldo / Poupança",
+    "wd_kBalance": "Saldo do mês (no Ano: poupança), com a %"
   },
   "transactions": {
     "title": "Transações",

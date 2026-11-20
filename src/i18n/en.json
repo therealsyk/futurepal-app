@@ -102,7 +102,7 @@
     "addExpense": "New expense",
     "missingSalary": "Salary missing for {{count}} month(s) in this period.",
     "registerSalary": "Add salary",
-    "balanceMonth": "Saved this month",
+    "balanceMonth": "Balance",
     "balanceYear": "Saved this year",
     "salary": "Salary",
     "financialGoals": "Financial goals",
@@ -242,7 +242,15 @@
     "w_rCal": "Spending calendar",
     "wd_rCal": "What you spent each day (month) or each month (year)",
     "w_rCats": "Categories",
-    "wd_rCats": "Where the money went, by category"
+    "wd_rCats": "Where the money went, by category",
+    "w_kExpenses": "Expenses box",
+    "wd_kExpenses": "Total spent, with the % vs the previous period",
+    "w_kSavings": "Savings box",
+    "wd_kSavings": "Income minus expenses, with the %",
+    "w_kIncome": "Income box",
+    "wd_kIncome": "Everything you received, with the %",
+    "w_kBalance": "Balance / Savings box",
+    "wd_kBalance": "Month balance (Year: savings), with the %"
   },
   "transactions": {
     "title": "Transactions",

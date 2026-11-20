@@ -95,7 +95,7 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
       <Link to={mode === 'month' ? '/visao-mensal' : `/resumo-ano?ano=${cur.y}`} className="sh-link">{mode === 'month' ? 'Ver resumo do mês' : 'Ver resumo do ano'} <Ic d={ICON.right} size={14} /></Link>
 
       {/* 2. As duas ações (só no mês; no ano o foco é o balanço) */}
-      {mode === 'month' && <div className="sh-actions">
+      {mode === 'month' && !embed && <div className="sh-actions">
         <Link to="/transacoes?nova=1" className="sh-btn out"><Ic d="M5 12h14" size={22} />Gastei</Link>
         <Link to="/transacoes?nova=1&tipo=income" className="sh-btn in"><Ic d="M12 5v14M5 12h14" size={22} />Recebi</Link>
       </div>}

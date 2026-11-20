@@ -516,6 +516,16 @@ export function Dashboard() {
   const deltaChip = (r: number | null) => (r === null ? null : `${r > 0 ? '▲' : r < 0 ? '▼' : '●'} ${Math.abs(Math.round(r * 100))}%`);
   const deltaTone = (r: number | null, upIsGood: boolean) => (r === null || Math.round(r * 100) === 0 ? 'neutral' : (r > 0) === upIsGood ? 'good' : 'bad');
   const vsLabel = t(period === 'year' ? 'panel.cmpPrevYear' : 'panel.cmpPrevMonth');
+  const deltaIncome = prevIncome > 0 ? (income - prevIncome) / prevIncome : null;
+  const balance = income - spent;
+  const prevBalance = prevIncome - prevSpent;
+  const deltaBalance = prevBalance !== 0 && (prevIncome > 0 || prevSpent > 0) ? (balance - prevBalance) / Math.abs(prevBalance) : null;
+  const kpiBox = (k: 'kExpenses' | 'kSavings' | 'kIncome' | 'kBalance') => {
+    if (k === 'kExpenses') return <SimpleKpi label={t('panel.expenses')} value={money(spent)} valueClass={spent > 0 ? 'fx-neg' : undefined} chip={deltaChip(deltaSpent)} chipTone={deltaTone(deltaSpent, false)} chipTitle={vsLabel} />;
+    if (k === 'kSavings') return <SimpleKpi label={t('panel.savings')} value={savings === null ? '—' : money(savings)} valueClass={savings === null || savings === 0 ? undefined : savings < 0 ? 'fx-neg' : 'fx-pos'} chip={deltaChip(deltaSavings)} chipTone={deltaTone(deltaSavings, true)} chipTitle={vsLabel} />;
+    if (k === 'kIncome') return <SimpleKpi label={t('panel.income')} value={money(income)} valueClass={income > 0 ? 'fx-pos' : undefined} chip={deltaChip(deltaIncome)} chipTone={deltaTone(deltaIncome, true)} chipTitle={vsLabel} />;
+    return <SimpleKpi label={t(period === 'year' ? 'panel.savings' : 'panel.balanceMonth')} value={money(balance)} valueClass={balance === 0 ? undefined : balance < 0 ? 'fx-neg' : 'fx-pos'} chip={deltaChip(deltaBalance)} chipTone={deltaTone(deltaBalance, true)} chipTitle={vsLabel} />;
+  };
   const pctTxt = (r: number | null) => (r === null ? null : `${Math.round(r * 100)}%`);
 
   // Despesas por categoria (ordenadas)
@@ -585,7 +595,7 @@ export function Dashboard() {
   const goalColors = ['var(--accent)', 'var(--teal)', 'var(--pink)'];
 
   // ── Janelas (widgets) ──────────────────────────────────────────────────
-  const STATIC_WIDGETS = ['mHero', 'mLatest', 'mGroups', 'mGoals', 'rChart', 'rTotals', 'rLines', 'rCal', 'rCats', 'goals', 'budget', 'summary', 'overview', 'categories', 'calendar', 'recent', 'accounts', 'forecast', 'last7', 'topExpenses', 'upcoming', 'checklist', 'statDaily', 'statCount', 'statLargest', 'statSalary', 'statSavingsAvg'];
+  const STATIC_WIDGETS = ['kExpenses', 'kSavings', 'kIncome', 'kBalance', 'mHero', 'mLatest', 'mGroups', 'mGoals', 'rChart', 'rLines', 'rCal', 'rCats', 'goals', 'budget', 'summary', 'overview', 'categories', 'calendar', 'recent', 'accounts', 'forecast', 'last7', 'topExpenses', 'upcoming', 'checklist', 'statDaily', 'statCount', 'statLargest', 'statSalary', 'statSavingsAvg'];
   const salaryToDate = salariesUntil(salaries, parseInt(asOf.slice(0, 4), 10), parseInt(asOf.slice(5, 7), 10));
   const balOf = (a: Account) => accountBalanceCents(a, txsAsOf, accounts, salaryToDate, transfersAsOf);
   const currentOf = (g: Goal) => (g.accountIds && g.accountIds.length
@@ -758,8 +768,10 @@ export function Dashboard() {
         const part = ({ mHero: 'hero', mLatest: 'latest', mGroups: 'groups', mGoals: 'goals' } as const)[id as 'mHero'];
         return <SimpleHome key={id + period + year + month} embed={{ mode: period === 'year' ? 'year' : 'month', y: year, m: month - 1, part }} />;
       }
-      case 'rChart': case 'rTotals': case 'rLines': case 'rCal': case 'rCats': {
-        const part = ({ rChart: 'chart', rTotals: 'totals', rLines: 'lines', rCal: 'cal', rCats: 'cats' } as const)[id as 'rChart'];
+      case 'kExpenses': case 'kSavings': case 'kIncome': case 'kBalance':
+        return kpiBox(id);
+      case 'rChart': case 'rLines': case 'rCal': case 'rCats': {
+        const part = ({ rChart: 'chart', rLines: 'lines', rCal: 'cal', rCats: 'cats' } as const)[id as 'rChart'];
         return <SimpleOverview key={id + period + year + month} yearly={period === 'year'} embed={{ y: year, m: month - 1, part }} />;
       }
       case 'goals':
@@ -1068,13 +1080,10 @@ export function Dashboard() {
       </header>
 
       <div className="fx-kpis">
-        <SimpleKpi label={t('panel.expenses')} value={money(spent)} valueClass={spent > 0 ? 'fx-neg' : undefined}
-          chip={deltaChip(deltaSpent)} chipTone={deltaTone(deltaSpent, false)} chipTitle={vsLabel} />
-        <SimpleKpi label={t('panel.savings')} value={savings === null ? '—' : money(savings)} valueClass={savings === null || savings === 0 ? undefined : savings < 0 ? 'fx-neg' : 'fx-pos'}
-          chip={deltaChip(deltaSavings)} chipTone={deltaTone(deltaSavings, true)} chipTitle={vsLabel} />
-        <Kpi label={t('panel.income')} color="#8b6cf0" icon="M12 3v18M7 8l5-5 5 5M5 21h14"
-          value={money(income)}
-          sub={t('panel.kpiIncomeSub', { salary: money(salaryCents), extras: money(extrasCents) })} />
+        {kpiBox('kExpenses')}
+        {kpiBox('kSavings')}
+        {kpiBox('kIncome')}
+        {kpiBox('kBalance')}
         <Kpi label={t('panel.topCategory')} color="#e0a53a" icon="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"
           value={catItems[0] ? catItems[0].name : '—'} pct={catItems[0] && spent > 0 ? pctTxt(catItems[0].cents / spent) : null}
           sub={catItems[0] ? t('panel.kpiTopSub', { value: money(catItems[0].cents) }) : t('panel.noTransactions')} />
