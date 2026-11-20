@@ -162,3 +162,7 @@ html.pcm .txs-new > section { grid-column: 1 / -1; grid-row: 4; }
 html.pcm .txs-new > .sh-seg, html.pcm .txs-new > .sh-monthnav, html.pcm .txs-new > .txs-search { min-height: 54px; }
 html.pcm .tx-simple .txs-new { grid-template-columns: minmax(170px, .8fr) minmax(240px, 1fr) minmax(320px, 1.3fr) minmax(200px, 1fr) !important; }
 html.pcm .txs-new > .sh-seg.three { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; }
+/* Categorias: o topo (título e "Nova categoria") fica sempre visível ao deslizar, no sítio do costume */
+html.pcm .fx-page:has(> .ct-section) > .fx-head { position: sticky; top: 0; z-index: 30; margin: 0 -28px 12px; padding: 14px 28px 12px; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(6px); }
+html.pcm .fx-page:has(> .ct-section) > .fx-head .fx-btn.primary { border-radius: 99px; min-height: 46px; padding: 0 24px; box-shadow: 0 12px 28px -12px rgba(0,0,0,.7), 0 8px 20px -12px color-mix(in srgb, var(--mv) 70%, transparent); transition: filter .15s, transform .15s; }
+html.pcm .fx-page:has(> .ct-section) > .fx-head .fx-btn.primary:hover { filter: brightness(1.08); transform: translateY(-1px); }
