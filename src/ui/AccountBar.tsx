@@ -121,7 +121,7 @@ export function AccountBar() {
           {auth.user && <button type="button" role="menuitem" className="ab-item accent" onClick={() => go('/plus')}><Ic d={ITEMS.plan} />{plan === 'free' ? t('acct.upgrade') : t('acct.myPlan')}</button>}
           <button type="button" role="menuitem" className="ab-item" onClick={() => go('/definicoes')}><Ic d={ITEMS.backup} />{t('acct.backup')}</button>
           {isAdmin && <button type="button" role="menuitem" className="ab-item" onClick={() => go('/admin')}><Ic d={ITEMS.admin} />{t('admin.title')}</button>}
-          {auth.configured && <button type="button" role="menuitem" className="ab-item" onClick={() => { setOpen(null); setSwitcher(true); }} data-testid="switch-account"><Ic d={ITEMS.swap} />{t('switcher.menu')}</button>}
+          {auth.configured && auth.user && <button type="button" role="menuitem" className="ab-item" onClick={() => { setOpen(null); setSwitcher(true); }} data-testid="switch-account"><Ic d={ITEMS.swap} />{t('switcher.menu')}</button>}
           <hr />
           {auth.user && <button type="button" role="menuitem" className="ab-item danger" onClick={async () => { setOpen(null); await signOut().catch(() => {}); }}><Ic d={ITEMS.out} />{t('acct.signOut')}</button>}
         </div>
