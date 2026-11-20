@@ -10,6 +10,7 @@ import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
 import { hasFeature } from '../core/plan';
 import { billStatus, myPending, parseContact, toBills, type SplitBill } from '../core/split';
+import { LockedPreview } from '../ui/LockedPreview';
 import { catFitsKind, catLabel, EmptyState, Field, Ic, ICON, PageHead, Sheet } from '../ui/fx';
 import { DatePicker } from '../ui/DatePicker';
 import { usePlan } from './Premium';
@@ -86,7 +87,7 @@ export function SplitPage() {
     return (
       <div className="fx-page">
         <PageHead title={t('split.title')} sub={t('split.sub')} />
-        <EmptyState icon={ICON.check} title={t('split.needLogin')} action={<Link to="/definicoes" className="fx-btn primary">{t('family.goLogin')}</Link>} />
+        <LockedPreview kind="split" title={t('split.needLogin')} text="Cria grupos, divide as despesas em partes iguais e vê logo quem deve a quem." action={<Link to="/definicoes" className="fx-btn primary">{t('family.goLogin')}</Link>} />
       </div>
     );
   }

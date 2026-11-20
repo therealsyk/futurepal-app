@@ -65,3 +65,84 @@ html.pcm .mv.sh:not(.sh-embed) .mv-card { padding: 24px; border-radius: 26px; }
 @media (max-width: 1400px) { .pco-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "chart chart" "metrics latest" "cats cal"; } }
 html.pcm .fx-page.tx-simple { max-width: 1720px; width: 100%; }
 html.pcm .mv.sh:not(.sh-embed) > button, html.pcm .mv.sh:not(.sh-embed) > a:not(.mv-card) { flex: 0 0 auto; min-width: 220px; padding-inline: 28px; }
+
+/* Páginas antigas do PC (Calendário, Salários, Categorias, Definições…): mesmo padrão de botões das páginas novas */
+html.pcm .fx-seg { border-radius: 16px; padding: 4px; gap: 4px; }
+html.pcm .fx-seg button { min-height: 44px; border-radius: 12px; padding: 0 22px; font-size: 15px; font-weight: 700; color: var(--muted); }
+html.pcm .fx-seg button.on { background: var(--card-2); color: var(--text); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--mv) 40%, transparent); }
+html.pcm .fx-monthnav { padding: 6px; border-radius: 16px; background: var(--card); border: 1px solid var(--border); gap: 10px; min-height: 52px; }
+html.pcm .fx-round { width: 34px; height: 34px; border-radius: 12px; background: color-mix(in srgb, var(--text) 8%, transparent); }
+html.pcm .fx-btn { min-height: 44px; border-radius: 14px; padding: 0 20px; font-weight: 700; }
+html.pcm .fx-btn.primary { background: var(--mv); color: var(--mv-ink, #032a2d); box-shadow: none; }
+html.pcm .fx-head-actions { gap: 16px; align-items: center; }
+html.pcm .fx-page > .fx-head { flex-direction: column; align-items: flex-start; gap: 18px; }
+html.pcm .fx-page > .fx-head .fx-head-actions { justify-content: flex-start; width: 100%; flex-wrap: wrap; }
+
+/* Contas: separadores Gastos / Poupança / Dívidas logo por baixo do título, em toda a largura */
+html.pcm .fx-page.sh:has(> .sh-kpis):has(> .sh-seg) > .mv-head { order: -2; }
+html.pcm .fx-page.sh:has(> .sh-kpis):has(> .sh-seg) > .sh-seg { order: -1; width: 100%; max-width: none; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; }
+html.pcm .fx-page.sh:has(> .sh-kpis):has(> .sh-seg) > .sh-seg button { min-height: 48px; font-size: 16px; }
+html.pcm .fx-page.sh:has(> .sh-kpis):has(> .sh-seg) > .sh-seg { width: 100% !important; align-self: stretch !important; justify-self: stretch !important; grid-column: 1 / -1 !important; }
+html.pcm .fx-page.sh:has(> .sh-kpis):has(> .sh-seg) > .sh-seg { flex: 1 1 100% !important; }
+
+/* Botões de criar (Criar conta, Criar meta…): a flutuar, centrados no fundo do ecrã */
+html.pcm .fx-page.sh > .sh-btn.in, html.pcm .fx-page.sh > .sh-pill { position: fixed !important; bottom: 28px; left: calc(50% + 38px); transform: translateX(-50%); z-index: 40; min-width: 220px; box-shadow: 0 14px 34px -12px rgba(0,0,0,.7), 0 8px 22px -12px color-mix(in srgb, var(--mv) 70%, transparent) !important; }
+html.pcm .fx-page.sh:has(> .sh-btn.in), html.pcm .fx-page.sh:has(> .sh-pill) { padding-bottom: 120px !important; }
+html.pcm .fx-page.sh .mv-card > .sh-btn.out.sm { position: fixed !important; bottom: 28px; left: calc(50% + 38px); transform: translateX(-50%); z-index: 40; width: auto; min-width: 220px; height: 48px; margin: 0; border: 0; border-radius: 99px; background: var(--mv); color: var(--mv-ink, #032a2d); font-weight: 750; box-shadow: 0 14px 34px -12px rgba(0,0,0,.7); }
+html.pcm .fx-page.sh:has(.mv-card > .sh-btn.out.sm) { padding-bottom: 120px !important; }
+html.pcm .fx-page.sh, html.pcm .app-main > * { animation: none !important; transform: none !important; }
+
+html.pcm .fx-page.sh > .sh-btn.in, html.pcm .fx-page.sh > .sh-pill, html.pcm .fx-page.sh .mv-card > .sh-btn.out.sm { bottom: 64px !important; transition: filter .15s, transform .15s; }
+html.pcm .fx-page.sh > .sh-btn.in:hover, html.pcm .fx-page.sh > .sh-pill:hover, html.pcm .fx-page.sh .mv-card > .sh-btn.out.sm:hover { filter: brightness(1.08); transform: translate(-50%, -1px) !important; }
+
+/* Resumo: barra do mês/ano logo por baixo do título, em toda a largura */
+html.pcm .fx-page.sh:has(> .sh-monthnav) > .mv-head { order: -3; }
+html.pcm .fx-page.sh > .sh-monthnav { order: -2; flex: 1 1 100% !important; width: 100% !important; max-width: none !important; justify-content: space-between; }
+
+html.pcm .fx-page.sh > .sh-pill, html.pcm .fx-page.sh > .sh-btn.in { justify-content: center; text-align: center; }
+.sh-pill { justify-content: center; }
+
+/* Transações: botão a flutuar como nas outras páginas */
+html.pcm .txs-new > .txs-add { position: fixed !important; bottom: 64px; left: calc(50% + 38px); transform: translateX(-50%); z-index: 40; min-width: 220px; justify-content: center; box-shadow: 0 14px 34px -12px rgba(0,0,0,.7); }
+html.pcm .txs-new > .txs-add:hover { filter: brightness(1.08); transform: translate(-50%, -1px); }
+html.pcm .txs-new { padding-bottom: 120px !important; }
+
+/* Painel: botão "Nova transação" sempre visível, a flutuar no fundo, centrado */
+.pc-fab { position: fixed; bottom: 64px; left: calc(50% + 38px); transform: translateX(-50%); z-index: 45; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 220px; height: 48px; padding: 0 26px; border-radius: 99px;
+  background: var(--mv); color: var(--mv-ink, #032a2d); font-weight: 750; font-size: 15.5px; text-decoration: none; box-shadow: 0 14px 34px -12px rgba(0,0,0,.7), 0 8px 22px -12px color-mix(in srgb, var(--mv) 70%, transparent); transition: filter .15s, transform .15s; }
+.pc-fab:hover { filter: brightness(1.08); transform: translate(-50%, -1px); }
+.pc-fab { left: auto; right: 32px; bottom: 28px; transform: none; min-width: 0; }
+.pc-fab:hover { transform: translateY(-1px); }
+
+/* Painel: caber em 1920x1080 sem scroll */
+html.pcm .fx-page.pco { padding-top: 12px; padding-bottom: 10px; }
+html.pcm .pco-head { margin-bottom: 0; }
+html.pcm .pco-grid { gap: 14px; margin-top: 12px; }
+html.pcm .pco-metrics { gap: 10px; }
+html.pcm .pco-metric { padding-top: 16px !important; padding-bottom: 16px !important; }
+html.pcm .pco-cal .sh-calday { min-height: 38px !important; height: 38px; padding: 2px; }
+html.pcm .pco-cal .sh-cal { gap: 4px; }
+/* Resumo do mês/ano: duas colunas para caber em 1920x1080 */
+html.pcm .fx-page.mv.sh:has(.sh-cal), html.pcm .fx-page.mv.sh:has(.sh-ycal) { display: grid !important; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); column-gap: 20px; row-gap: 14px; align-content: start; }
+html.pcm .fx-page.mv.sh:has(.sh-cal) > *, html.pcm .fx-page.mv.sh:has(.sh-ycal) > * { grid-column: 1 / -1; width: auto !important; max-width: none !important; margin: 0 !important; }
+html.pcm .fx-page.mv.sh:has(.sh-cal) > :nth-child(n+4), html.pcm .fx-page.mv.sh:has(.sh-ycal) > :nth-child(n+4) { grid-column: 1; }
+html.pcm .fx-page.mv.sh:has(.sh-cal) > section.mv-card:has(> .mv-card-head), html.pcm .fx-page.mv.sh:has(.sh-ycal) > section.mv-card:has(> .mv-card-head) { grid-column: 2; grid-row: 4 / span 3; align-self: start; }
+/* Plus: ferramentas em mais colunas */
+html.pcm .pm-tools { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
+html.pcm .pm-plans { gap: 14px !important; }
+html.pcm .pm-plans > * { padding: 18px 20px !important; }
+html.pcm .pm-tools { grid-template-columns: repeat(9, minmax(0, 1fr)) !important; gap: 10px !important; }
+html.pcm .fx-page:has(> .pm-plans) { gap: 10px !important; row-gap: 10px !important; padding-top: 14px !important; }
+html.pcm .fx-page:has(> .pm-plans) > * { margin-top: 0 !important; margin-bottom: 0 !important; }
+
+/* Definições a flutuar */
+.stm-backdrop { position: fixed; inset: 0; z-index: 95; display: grid; place-items: center; background: rgba(5,6,9,.32); backdrop-filter: blur(2px); animation: bs-fade .18s ease both; }
+.stm { position: relative; width: min(820px, calc(100vw - 140px)); max-height: calc(100vh - 90px); overflow-y: auto; border-radius: 26px; background: var(--bg); border: 1px solid var(--border); box-shadow: 0 40px 90px -30px rgba(0,0,0,.9); animation: bs-up .25s cubic-bezier(.2,.8,.2,1) both; scrollbar-width: none; margin-left: 76px; }
+.stm .fx-page { padding: 24px 28px !important; max-width: none !important; min-height: 0 !important; }
+.stm-close { position: sticky; top: 14px; float: right; margin: 14px 14px 0 0; z-index: 2; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border); background: var(--card-2); color: var(--text); cursor: pointer; font-size: 15px; }
+/* Definições: barra de deslocação visível e discreta, na cor da app */
+.stm { scrollbar-width: thin !important; scrollbar-color: color-mix(in srgb, var(--text) 30%, transparent) transparent; }
+.stm::-webkit-scrollbar { width: 10px; display: block !important; }
+.stm::-webkit-scrollbar-track { background: transparent; margin: 18px 0; }
+.stm::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--text) 26%, transparent); border-radius: 99px; border: 3px solid var(--bg); }
+.stm::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--text) 45%, transparent); }

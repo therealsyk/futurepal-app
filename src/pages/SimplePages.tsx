@@ -1,5 +1,7 @@
 // Contas e Limites, organizados como no vídeo de referência, no estilo FuturePal.
 import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
@@ -9,7 +11,23 @@ import { addGoal, contributeToGoal, setBudget } from '../core/finance';
 import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
 import { forecastGoal, type GoalForecast } from '../core/goalForecast';
-import { Ic, ICON, CatIcon, catLabel } from '../ui/fx';
+import { Ic, ICON, CatIcon, catLabel, CategorySelect } from '../ui/fx';
+import { EmptyState } from '../ui/EmptyState';
+
+// Folha que sobe do fundo do ecrã (resto desfocado). Voltar, tocar fora ou Esc fecham.
+function BottomSheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+  useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [onClose]);
+  return createPortal(
+    <div className="bs-backdrop" onClick={onClose}>
+      <div className="bs-sheet" role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
+        <span className="bs-grab" aria-hidden="true" />
+        <header className="bs-head"><button type="button" className="bs-back" onClick={onClose}><Ic d={ICON.left} size={18} />Voltar</button><h2>{title}</h2><span /></header>
+        <div className="bs-body">{children}</div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
 
 type Data = { txs: Transaction[]; cats: Category[]; accounts: Account[]; transfers: Transfer[]; salaries: Salary[]; budgets: Budget[] };
 const live = <T extends { deletedAt: string | null }>(a: T[]) => a.filter((x) => x.deletedAt === null);
@@ -70,7 +88,7 @@ export function SimpleAccounts() {
         {TYPES.map((x) => <button key={x.id} type="button" role="tab" aria-selected={tab === x.id} className={tab === x.id ? 'on' : ''} onClick={() => { setTab(x.id); setForm(false); }}>{x.label}</button>)}
       </div>
       {tab === 'debt' && <p className="sh-info">Para baixar uma dívida, faz uma transferência de uma conta de gastos ou de poupança para a conta da dívida.</p>}
-      {list.length === 0 && !form && <p className="fx-muted" style={{ textAlign: 'center', margin: '12px 0' }}>Ainda não tens contas aqui.</p>}
+      {list.length === 0 && <EmptyState icon="M3 7a2 2 0 0 1 2-2h13v4M3 7v11a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1H5a2 2 0 0 1-2-2zM16 14.5h.01" title={tab === 'debt' ? 'Sem dívidas registadas' : tab === 'savings' ? 'Sem contas de poupança' : 'Sem contas de gastos'} text={tab === 'debt' ? 'Regista um empréstimo para acompanhares quanto ainda falta pagar.' : 'Cria uma conta para veres o teu saldo sempre atualizado.'} examples={tab === 'debt' ? ['🏠 Crédito habitação', '🚗 Crédito auto'] : tab === 'savings' ? ['🐷 Poupanças', '🛟 Fundo de emergência'] : ['🏦 Conta do banco', '💶 Dinheiro']} />}
       {list.map((a) => (
         <div key={a.id} className="sh-accwrap">
           <button type="button" className={'acc-card sh-acc t-' + a.type} onClick={() => openEdit(a)} aria-expanded={edit === a.id}>
@@ -87,13 +105,15 @@ export function SimpleAccounts() {
           )}
         </div>
       ))}
-      {form ? (
+<button type="button" className="sh-btn in" onClick={() => setForm(true)}><Ic d={ICON.plus} size={20} />Criar conta</button>
+      {form && <BottomSheet title="Nova conta" onClose={() => setForm(false)}>
         <section className="mv-card sh-form">
           <label>Nome da conta<input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder={tab === 'debt' ? 'Ex.: Empréstimo da casa' : tab === 'savings' ? 'Ex.: Poupanças' : 'Ex.: Conta do banco'} /></label>
-          <label>{tab === 'debt' ? 'Quanto deves' : 'Quanto tem agora'}<input inputMode="decimal" value={bal} onChange={(e) => setBal(e.target.value)} placeholder="0,00" /></label>
+          <label className="bs-amount"><small>{tab === 'debt' ? 'Quanto deves' : 'Quanto tem agora'}</small><input className="tx-amt" inputMode="decimal" value={bal} onChange={(e) => setBal(e.target.value.replace(/[^\d.,]/g, ''))} placeholder="0" /><span className="tx-cur">{loadSettings().currency}</span></label>
           <button type="button" className="sh-btn in sm" disabled={!name.trim()} onClick={create}>Criar conta</button>
         </section>
-      ) : <button type="button" className="sh-btn in" onClick={() => setForm(true)}><Ic d={ICON.plus} size={20} />Criar conta</button>}
+      
+      </BottomSheet>}
     </div>
   );
 }
@@ -109,6 +129,8 @@ export function SimpleLimits() {
   const [form, setForm] = useState(false);
   const [cat, setCat] = useState('');
   const [amt, setAmt] = useState('');
+  const [hasEnd, setHasEnd] = useState(false);
+  const [endM, setEndM] = useState(''); // AAAA-MM
   const reload = () => loadAll().then(setD).catch(() => {});
   useEffect(() => { reload(); }, []);
 
@@ -124,7 +146,11 @@ export function SimpleLimits() {
   const create = async () => {
     const cents = parseMoneyToCents(amt);
     if (!cat || !cents) return;
-    await setBudget(db, cat, Math.abs(cents), cur.y, cur.m + 1);
+    // com data limite: o mesmo limite em todos os meses até lá; sem data: só este mês
+    let y = cur.y, mo = cur.m + 1;
+    const [ey, em] = hasEnd && endM ? endM.split('-').map(Number) : [y, mo];
+    while (y * 100 + mo <= ey * 100 + em) { await setBudget(db, cat, Math.abs(cents), y, mo); mo++; if (mo > 12) { mo = 1; y++; } }
+    setHasEnd(false); setEndM('');
     setCat(''); setAmt(''); setForm(false); reload();
   };
   const label = new Date(cur.y, cur.m, 1).toLocaleDateString(s.language, { month: 'long', year: 'numeric' });
@@ -142,12 +168,13 @@ export function SimpleLimits() {
           <span><small>Recebido</small><b className="fx-pos">{money(received)}</b></span>
           <span><small>Gasto</small><b className="fx-neg">{money(spent)}</b></span>
         </div>
+        <div className="sh-row"><b>Total orçamentado</b><b>{money(limits.reduce((a2, b) => a2 + b.limitCents, 0))}</b></div>
         <div className="sh-row"><b>Sobra do mês</b><b className={received - spent < 0 ? 'fx-neg' : 'fx-pos'}>{money(received - spent)}</b></div>
       </section>
 
       <section className="mv-card">
         <div className="mv-card-head"><h2>Por categoria</h2></div>
-        {limits.length === 0 && !form && <p className="fx-muted" style={{ margin: 0 }}>Escolhe uma categoria (ex.: Supermercado) e quanto queres gastar no máximo este mês.</p>}
+        {limits.length === 0 && <EmptyState icon="M12 3a9 9 0 1 0 9 9h-9zM15 3.5V9h5.5A9 9 0 0 0 15 3.5z" title="Sem limites este mês" text="Define quanto queres gastar no máximo numa categoria. A app avisa quando estiveres perto." examples={['🛒 Supermercado', '⛽ Combustível', '🍽️ Restaurantes']} />}
         <div className="sh-limits">
           {limits.map((b) => {
             const c = catOf(b.categoryId), used = spentIn(b.categoryId), r = b.limitCents > 0 ? used / b.limitCents : 0, left = b.limitCents - used;
@@ -160,13 +187,17 @@ export function SimpleLimits() {
             );
           })}
         </div>
-        {form ? (
+<button type="button" className="sh-btn out sm" onClick={() => setForm(true)}><Ic d={ICON.plus} size={18} />Novo limite</button>
+      {form && <BottomSheet title="Novo limite" onClose={() => setForm(false)}>
           <div className="sh-form">
-            <label>Categoria<select value={cat} onChange={(e) => setCat(e.target.value)}><option value="">Escolher…</option>{expenseCats.map((c) => <option key={c.id} value={c.id}>{catLabel(t, c)}</option>)}</select></label>
-            <label>Máximo por mês<input inputMode="decimal" value={amt} onChange={(e) => setAmt(e.target.value)} placeholder="Ex.: 200" /></label>
+            <label>Categoria<CategorySelect cats={expenseCats} kind="expense" value={cat} onChange={setCat} ariaLabel="Categoria" emptyLabel="Escolher…" className="fx-input tx-val" /></label>
+            <label className="bs-amount"><small>Máximo por mês</small><input className="tx-amt" inputMode="decimal" value={amt} onChange={(e) => setAmt(e.target.value.replace(/[^\d.,]/g, ''))} placeholder="0" /><span className="tx-cur">{loadSettings().currency}</span></label>
+            <label className="sh-toggle"><span><b>Tem data limite?</b><small>Se não ativares, fica só para este mês</small></span><input type="checkbox" checked={hasEnd} onChange={(e) => setHasEnd(e.target.checked)} /></label>
+            {hasEnd && <label>Até ao mês<input type="month" value={endM} min={`${cur.y}-${String(cur.m + 1).padStart(2, '0')}`} onChange={(e) => setEndM(e.target.value)} /></label>}
             <button type="button" className="sh-btn in sm" disabled={!cat || !amt} onClick={create}>Guardar limite</button>
           </div>
-        ) : <button type="button" className="sh-btn out sm" onClick={() => setForm(true)}><Ic d={ICON.plus} size={18} />Novo limite</button>}
+        
+      </BottomSheet>}
       </section>
     </div>
   );
@@ -287,7 +318,7 @@ export function SimpleGoals() {
         {g.notes && <section className="mv-card"><div className="mv-card-head"><h2>Notas</h2></div><p style={{ margin: 0 }}>{g.notes}</p></section>}
         {!g.accountIds?.length && (
           <section className="mv-card sh-form">
-            <label>Juntar dinheiro a esta meta<input inputMode="decimal" value={add} onChange={(e) => setAdd(e.target.value)} placeholder="Ex.: 50" /></label>
+            <label className="bs-amount"><small>Juntar dinheiro a esta meta</small><input className="tx-amt" inputMode="decimal" value={add} onChange={(e) => setAdd(e.target.value.replace(/[^\d.,]/g, ''))} placeholder="0" /><span className="tx-cur">{loadSettings().currency}</span></label>
             <button type="button" className="sh-btn in sm" disabled={!add} onClick={async () => { const c = parseMoneyToCents(add); if (c) { await contributeToGoal(db, g.id, Math.abs(c)); setAdd(''); reload(); } }}>Juntar</button>
           </section>
         )}
@@ -299,7 +330,7 @@ export function SimpleGoals() {
   return (
     <div className="fx-page mv sh">
       <header className="mv-head"><h1 className="sh-title">Metas</h1></header>
-      {(d?.goals ?? []).length === 0 && !form && <p className="fx-muted" style={{ textAlign: 'center' }}>Uma meta é um objetivo para juntar dinheiro (ex.: 1000 € para férias).</p>}
+      {(d?.goals ?? []).length === 0 && <EmptyState icon="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zM12 12h.01" title="Ainda não tens metas" text="Uma meta é um objetivo para juntar dinheiro. A app mostra quanto falta e quando lá chegas." examples={['🏖️ Férias', '🚗 Carro', '🛟 Emergências', '🏠 Casa']} />}
       {(d?.goals ?? []).map((x) => {
         const cur = currentOf(x), r = x.targetCents > 0 ? Math.max(0, Math.min(1, cur / x.targetCents)) : 0;
         return (
@@ -313,10 +344,11 @@ export function SimpleGoals() {
           </button>
         );
       })}
-      {form ? (
+<button type="button" className="sh-pill" onClick={() => setForm(true)}><Ic d={ICON.plus} size={16} />Criar meta</button>
+      {form && <BottomSheet title="Nova meta" onClose={() => setForm(false)}>
         <section className="mv-card sh-form">
           <label>O que queres juntar?<input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Férias, carro, emergências" /></label>
-          <label>Quanto queres juntar<input inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value)} placeholder="Ex.: 1000" /></label>
+          <label className="bs-amount"><small>Quanto queres juntar</small><input className="tx-amt" inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value.replace(/[^\d.,]/g, ''))} placeholder="0" /><span className="tx-cur">{loadSettings().currency}</span></label>
           <label className="sh-toggle"><span><b>Tem data limite?</b><small>Ex.: quero ter o dinheiro até ao verão</small></span>
             <input type="checkbox" checked={hasDeadline} onChange={(e) => setHasDeadline(e.target.checked)} /></label>
           {hasDeadline && <label>Até quando<input type="date" value={deadline} min={now.toISOString().slice(0, 10)} onChange={(e) => setDeadline(e.target.value)} /></label>}
@@ -338,7 +370,8 @@ export function SimpleGoals() {
           )}
           <button type="button" className="sh-btn in sm" disabled={!name.trim() || !target} onClick={create}>Criar meta</button>
         </section>
-      ) : <button type="button" className="sh-pill" onClick={() => setForm(true)}><Ic d={ICON.plus} size={16} />Criar meta</button>}
+      
+      </BottomSheet>}
     </div>
   );
 }

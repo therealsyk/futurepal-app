@@ -1,3 +1,4 @@
+import { LockedPreview } from '../ui/LockedPreview';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -54,6 +55,8 @@ export function Locked({ feature, children }: { feature: Feature; children: Reac
   const { has } = usePlan();
   if (has(feature)) return <>{children}</>;
   const pro = feature === 'freelance';
+  // Assistente: prévia desfocada da conversa por trás do cadeado
+  if (feature === 'assistant') return <LockedPreview kind="chat" title={t('plus.lockedTitle')} text={t('plus.feat_' + feature)} action={<Link to="/plus" className="fx-btn primary">{t('plus.seePlans')}</Link>} />;
   return (
     <div className="pm-locked">
       <span className="pm-lock-ic"><Ic d={LOCK} size={26} /></span>

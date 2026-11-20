@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Link, Routes, Route, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Rail from './ui/Rail';
 import MobileNav from './ui/MobileNav';
@@ -147,6 +147,14 @@ export default function App() {
 
   // Cada página abre no topo (sem isto ficava a posição do scroll da página anterior).
   const { pathname } = useLocation();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  useEffect(() => {
+    const open = () => setSettingsOpen(true);
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') setSettingsOpen(false); };
+    window.addEventListener('wallet:open-settings', open); window.addEventListener('keydown', key);
+    return () => { window.removeEventListener('wallet:open-settings', open); window.removeEventListener('keydown', key); };
+  }, []);
+  useEffect(() => { setSettingsOpen(false); }, [pathname]);
   useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
 
   // "Está tudo pronto!" depois do setup.
@@ -206,6 +214,17 @@ export default function App() {
           <Route path="/dividir" element={<SplitPage />} />
           {import.meta.env.DEV && <Route path="/demo" element={<DemoPage />} />}
         </Routes>
+        {/* PC: Definições numa janela a flutuar por cima da página aberta */}
+        {PC_MOBILE && settingsOpen && (
+          <div className="stm-backdrop" onClick={() => setSettingsOpen(false)}>
+            <div className="stm" role="dialog" aria-modal="true" aria-label="Definições" onClick={(e) => e.stopPropagation()}>
+              <button type="button" className="stm-close" onClick={() => setSettingsOpen(false)} aria-label="Fechar">✕</button>
+              <Settings />
+            </div>
+          </div>
+        )}
+        {/* Painel do PC: botão sempre visível para adicionar transações */}
+        {PC_MOBILE && pathname === '/' && <Link to="/transacoes?nova=1" className="pc-fab" aria-label="Nova transação"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>Nova transação</Link>}
       </main>
       <MobileNav />
       <MobileTutorial enabled={isMobile && !PC_MOBILE} />

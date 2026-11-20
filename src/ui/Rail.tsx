@@ -1,3 +1,4 @@
+import { PC_MOBILE } from '../core/uiMode';
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -55,7 +56,7 @@ export default function Rail() {
     <aside className="fx-rail">
       <img className="fx-logo-img" src={logoUrl} alt="" aria-hidden="true" />
       <nav aria-label={t('common.appName')}>
-        {ITEMS.map((it) => (
+        {ITEMS.filter((it) => !(PC_MOBILE && it.path === '/visao-mensal')).map((it) => (
           <NavLink
             key={it.path}
             to={it.path}
@@ -81,6 +82,7 @@ export default function Rail() {
         </button>
         <NavLink
           to="/definicoes"
+          onClick={(e) => { if (PC_MOBILE) { e.preventDefault(); window.dispatchEvent(new Event('wallet:open-settings')); } }}
           aria-label={t('nav.settings')}
           className={({ isActive }) => 'fx-rail-btn' + (isActive ? ' active' : '')}
         >

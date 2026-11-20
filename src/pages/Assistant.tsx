@@ -1,3 +1,4 @@
+import { LockedPreview } from '../ui/LockedPreview';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -56,7 +57,7 @@ function AssistantInner() {
   const say = (m: Msg) => setMsgs((x) => [...x, m]);
 
   if (!getSupabase() || !auth.user) {
-    return <div className="fx-card"><p>{t('assistant.needLogin')}</p><Link to="/definicoes" className="fx-btn primary">{t('family.goLogin')}</Link></div>;
+    return <LockedPreview kind="chat" title={t('assistant.needLogin')} text="Pergunta em português sobre os teus gastos e recebe respostas e dicas para poupar." action={<Link to="/definicoes" className="fx-btn primary">{t('family.goLogin')}</Link>} />;
   }
 
   /** Chama a Edge Function e traduz os erros conhecidos. */

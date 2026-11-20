@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SIMPLE_UI } from '../core/uiMode';
+import { EmptyState as EmptyHero } from '../ui/EmptyState';
 import { accountBalanceCents as balOfAcc, addTransfer, salariesUntil } from '../core/accounts';
 import { useIsMobile } from '../ui/useIsMobile';
 import { useSearchParams } from 'react-router-dom';
@@ -186,6 +187,7 @@ export function Transactions() {
         <div className="txs-new mv sh">
           {/* Transações (telemóvel): só a lista completa, com filtros simples */}
           <header className="mv-head"><h1 className="sh-title">Transações</h1></header>
+          <button type="button" className="sh-btn in txs-add" onClick={openNew}><Ic d={ICON.plus} size={18} />Nova transação</button>
           <div className="sh-seg" role="tablist">
             <button type="button" className={period === 'month' ? 'on' : ''} onClick={() => setPeriod('month')}>Mês</button>
             <button type="button" className={period === 'year' ? 'on' : ''} onClick={() => setPeriod('year')}>Ano</button>
@@ -200,10 +202,26 @@ export function Transactions() {
             <button type="button" className={kind === 'expense' ? 'on' : ''} onClick={() => setKind('expense')}>Despesas</button>
             <button type="button" className={kind === 'income' ? 'on' : ''} onClick={() => setKind('income')}>Rendimentos</button>
           </div>
+          {(() => {
+            const n = visible.length;
+            const nowD = new Date();
+            const isCur = year === nowD.getFullYear() && (period === 'year' || month === nowD.getMonth() + 1);
+            const span = period === 'month' ? (isCur ? nowD.getDate() : new Date(year, month, 0).getDate()) : (isCur ? nowD.getMonth() + 1 : 12);
+            const avg = span > 0 ? n / span : 0;
+            const top = visible.filter((x) => x.type === 'expense').sort((a2, b2) => b2.amountCents - a2.amountCents)[0];
+            const topCat = top ? cats.find((k) => k.id === top.categoryId) : undefined;
+            return (
+              <div className="txs-stats">
+                <div><small>{period === 'month' ? 'Transações no mês' : 'Transações no ano'}</small><b>{n}</b></div>
+                <div><small>{period === 'month' ? 'Média por dia' : 'Média por mês'}</small><b>{avg.toLocaleString(settings.language, { maximumFractionDigits: 1 })}</b></div>
+                <div className="wide"><small>Compra mais cara</small><b>{top ? <>{top.description || (topCat ? catLabel(t, topCat) : '')} · <span className="fx-neg">{money(top.amountCents)}</span></> : '—'}</b></div>
+              </div>
+            );
+          })()}
           <label className="txs-search"><Ic d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-4-4" size={17} /><input value={filterText} onChange={(e) => setFilterText(e.target.value)} placeholder="Procurar (ex.: Pingo Doce)" /></label>
           <section className="mv-card">
-            <div className="mv-card-head"><h2>Movimentos</h2><small className="sh-pct">{visible.length + visibleTransfers.length} no total</small></div>
-            {byDay.length === 0 && <p className="fx-muted" style={{ margin: 0 }}>Sem movimentos {period === 'month' ? 'neste mês' : 'neste ano'}.</p>}
+            <div className="mv-card-head"><h2>Movimentos</h2></div>
+            {byDay.length === 0 && <EmptyHero icon="M4 7h13l-3-3M20 17H7l3 3" title={period === 'month' ? 'Sem movimentos neste mês' : 'Sem movimentos neste ano'} text="Quando gastares ou receberes dinheiro, regista aqui para saberes sempre para onde vai." examples={['🛒 Compras', '💡 Contas da casa', '💶 Salário']} />}
             {dayOnly && <button type="button" className="txs-daychip" onClick={() => setDayOnly(null)}>Só {new Date(dayOnly).toLocaleDateString(settings.language, { day: 'numeric', month: 'long' })} · ver o mês todo ✕</button>}
             {byDay.filter(([day]) => !dayOnly || day === dayOnly).map(([day, g]) => (
               <div key={day} className="sh-day">
@@ -322,7 +340,7 @@ export function Transactions() {
                 <span className="tx-accpick">
                   <select className="tx-val" value={accountId} onChange={(e) => { setAccountId(e.target.value); if (e.target.value === toAccount) setToAccount(''); }} aria-label={t('accounts.account')}>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
                   {bals[accountId] !== undefined && <small className={bals[accountId] < 0 ? 'fx-neg' : 'fx-pos'}>{money(bals[accountId])}</small>}
-                  {accounts.length > 1 && !toAccount && <button type="button" className="tx-swapmini" onClick={() => setToAccount(accounts.find((a) => a.id !== accountId)?.id ?? '')}><Ic d="M4 7h13l-3-3M20 17H7l3 3" size={13} />Transferir para outra conta</button>}
+                  {!toAccount && <button type="button" className="tx-swapmini" onClick={() => (accounts.length > 1 ? setToAccount(accounts.find((a) => a.id !== accountId)?.id ?? '') : setError('Para transferir, cria primeiro outra conta (ex.: Poupanças) em Contas.'))}><Ic d="M4 7h13l-3-3M20 17H7l3 3" size={13} />Transferir para outra conta</button>}
                 </span>
               </span></div>
             {toAccount && (

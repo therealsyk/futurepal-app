@@ -105,7 +105,8 @@ export function PcOverview() {
 
         <div className="pco-metrics">
           <Metric icon={IC.income} tone="inc" title={t(yearly ? 'pco.earnedYear' : 'pco.incomeMonth')} value={money(a.inc)} valueClass="fx-pos"
-            delta={delta(a.inc, p.inc)} deltaGoodUp prevName={prevName} vsLabel={t('pco.vs')} bar={a.inc > 0 ? 1 : 0} />
+            delta={delta(a.inc, p.inc)} deltaGoodUp prevName={prevName} vsLabel={t('pco.vs')} bar={a.inc > 0 ? 1 : 0}
+            sub={yearly ? t('pco.avgMonth', { v: money(Math.round(a.inc / months)) }) : undefined} />
           <Metric icon={IC.spent} tone="exp" title={t(yearly ? 'pco.spentYear' : 'pco.spentMonth')} value={money(a.exp)} valueClass={a.exp > 0 ? 'fx-neg' : ''}
             delta={delta(a.exp, p.exp)} deltaGoodUp={false} prevName={prevName} vsLabel={t('pco.vs')} bar={ratio(a.exp)}
             sub={yearly ? t('pco.avgMonth', { v: money(Math.round(a.exp / months)) }) : t('pco.avgDay', { v: money(Math.round(a.exp / days)) })} />

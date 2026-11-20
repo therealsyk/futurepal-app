@@ -7,6 +7,7 @@ import { addGroup } from '../core/finance';
 import { formatMoney } from '../core/money';
 import { loadSettings } from '../core/settings';
 import { Ic, ICON } from '../ui/fx';
+import { EmptyState } from '../ui/EmptyState';
 
 const COLORS = ['#17c3c9', '#8b5cf6', '#f59e0b', '#ef4444', '#22c55e', '#3b82f6', '#ec4899'];
 
@@ -68,6 +69,7 @@ export function Groups() {
     <div className="fx-page mv sh">
       <header className="mv-head"><h1 className="sh-title">Grupos</h1></header>
       <p className="fx-muted" style={{ margin: 0 }}>Junta despesas de uma coisa só (ex.: férias, obras, Natal) e vê quanto custou no total.</p>
+      {groups.length === 0 && !adding && <EmptyState icon="M4 6h16M4 12h16M4 18h10" title="Ainda não tens grupos" text="Junta despesas de uma coisa só e vê quanto custou no total." examples={['✈️ Viagem', '🔨 Obras', '🎄 Natal']} />}
       <div className="sh-groups-grid">
         {groups.map((g) => (
           <Link key={g.id} to={`/grupos/${g.id}`} className="sh-group" style={{ ['--g' as string]: g.color }}>
