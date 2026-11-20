@@ -37,7 +37,7 @@ export function salaryTxFor(s: Salary, opts: { categoryId: string; currency: str
  */
 export async function adoptSalaryTransactions(db: WalletDB): Promise<number> {
   const cats = await db.categories.toArray();
-  const salaryCats = new Set(cats.filter((c) => c.deletedAt === null && c.nameKey === 'catSalary').map((c) => c.id));
+  const salaryCats = new Set(cats.filter((c) => c.deletedAt === null && (c.nameKey === 'catSalary' || c.nameKey === 'catPension')).map((c) => c.id));
   if (!salaryCats.size) return 0;
   const plain = (await db.transactions.toArray()).filter((t) => t.deletedAt === null && t.type === 'income' && !isSalaryTx(t) && salaryCats.has(t.categoryId));
   if (!plain.length) return 0;

@@ -12,6 +12,10 @@ import Calendar from './pages/Calendar';
 import DayDetail from './pages/DayDetail';
 import { Settings } from './pages/Settings';
 import { MobileHome } from './pages/MobileHome';
+import { SimpleHome } from './pages/SimpleHome';
+import { SIMPLE_UI } from './core/uiMode';
+import { Groups } from './pages/Groups';
+import { SimpleAccounts, SimpleGoals, SimpleLimits, SimpleOverview } from './pages/SimplePages';
 import { AdminPage } from './pages/Admin';
 import { FamilyPage } from './pages/Family';
 import { AssistantPage } from './pages/Assistant';
@@ -171,15 +175,20 @@ export default function App() {
       <Rail />
       <main className="app-main" key={dbName}>
         <Routes>
-          <Route path="/" element={isMobile ? <MobileHome /> : <Dashboard />} />
+          <Route path="/" element={isMobile ? (SIMPLE_UI ? <SimpleHome /> : <MobileHome />) : <Dashboard />} />
           <Route path="/painel" element={<Dashboard />} />
-          <Route path="/contas" element={<Accounts />} />
-          <Route path="/visao-mensal" element={<Overview />} />
+          <Route path="/resumo-ano" element={<SimpleOverview yearly />} />
+          <Route path="/grupos" element={<Groups />} />
+          <Route path="/grupos/:id" element={<Groups />} />
+          <Route path="/contas" element={SIMPLE_UI && isMobile ? <SimpleAccounts /> : <Accounts />} />
+          <Route path="/contas-completo" element={<Accounts />} />
+          <Route path="/visao-mensal" element={SIMPLE_UI && isMobile ? <SimpleOverview /> : <Overview />} />
           <Route path="/calendario" element={<Calendar />} />
           <Route path="/dia/:date" element={<DayDetail />} />
           <Route path="/transacoes" element={<Transactions />} />
-          <Route path="/orcamentos" element={<Budgets />} />
-          <Route path="/metas" element={<Goals />} />
+          <Route path="/orcamentos" element={SIMPLE_UI && isMobile ? <SimpleLimits /> : <Budgets />} />
+          <Route path="/orcamentos-completo" element={<Budgets />} />
+          <Route path="/metas" element={SIMPLE_UI && isMobile ? <SimpleGoals /> : <Goals />} />
           <Route path="/salarios" element={<Salaries />} />
           <Route path="/categorias" element={<Categories />} />
           <Route path="/definicoes" element={<Settings />} />

@@ -8,6 +8,7 @@ import { accountBalanceCents, ensureDefaultAccount, listAccounts, loadTransfers,
 import { formatMoney } from '../core/money';
 import { loadSettings } from '../core/settings';
 import { useAuth } from '../auth/AuthContext';
+import { UserAvatar } from '../ui/UserAvatar';
 import { Ic, ICON, CatIcon, catLabel } from '../ui/fx';
 import { openTutorial } from '../ui/MobileTutorial';
 import { hasFeature } from '../core/plan';
@@ -112,7 +113,7 @@ export function MobileHome() {
   const dayHeading = (d: string) => d === todayIso ? t('mobile.today') : d === yesterdayIso ? t('mobile.yesterday')
     : new Intl.DateTimeFormat(settings.language, { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(d + 'T12:00:00'));
 
-  const name = (auth.user?.user_metadata as { name?: string } | undefined)?.name || auth.user?.email?.split('@')[0] || '';
+  const name = (auth.user?.user_metadata as { name?: string; full_name?: string } | undefined)?.full_name || (auth.user?.user_metadata as { name?: string } | undefined)?.name || auth.user?.email?.split('@')[0] || '';
   const home = accounts.filter((a) => a.showOnHome);
   const spent = summary?.totalSpentCents ?? 0;
   const income = summary?.incomeCents ?? 0;
@@ -129,7 +130,11 @@ export function MobileHome() {
     <div className="fx-page mv">
       <header className="mv-head">
         <div className="mv-hello">
-          <h1>{name ? t('mobile.hello', { name }) : t('mobile.helloAnon')}</h1>
+          <UserAvatar user={auth.user} name={name || '?'} className="ab-initials mv-avatar" />
+          <div className="mv-hello-txt">
+            {name && <small>{t('acct.hello')}</small>}
+            <h1>{name ? name.split(' ')[0] + '!' : t('mobile.helloAnon')}</h1>
+          </div>
         </div>
         <button type="button" className="mv-sq" onClick={openTutorial} aria-label={t('tutorial.title')} data-testid="mv-help" data-tour="help"><Ic d="M9.1 9a3 3 0 1 1 4.2 2.7c-.8.4-1.3 1.1-1.3 2v.3M12 17.5h.01" size={20} /></button>
         <button type="button" className="mv-sq" onClick={() => navigate('/definicoes?ai=1')} aria-label={t('ai.rowTitle')}><Ic d={SPARK} size={20} /></button>

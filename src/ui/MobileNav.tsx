@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { SIMPLE_UI } from '../core/uiMode';
 import { Ic, ICON } from './fx';
 
 // Navegação do telemóvel (só aparece em ecrãs estreitos, ver mobile.css):
@@ -12,7 +13,19 @@ const TABS = [
   { path: '/contas', key: 'nav.accounts', d: ICON.wallet },
 ];
 
+// Modo simples (pré-visualização): menos separadores e só o essencial no "Mais"
+const SIMPLE_TABS = [
+  TABS[0],
+  TABS[1],
+  { path: '/orcamentos', key: 'simple.tabLimits', d: 'M12 3a9 9 0 1 0 9 9h-9zM15 3.5V9h5.5A9 9 0 0 0 15 3.5z' },
+  { path: '/contas', key: 'nav.accounts', d: ICON.wallet },
+];
+const SIMPLE_MORE = ['/transacoes', '/categorias'];
+// já estão nos separadores, no Início ou no ⚙ — não se repetem em "Ver todas"
+const SIMPLE_HIDE = ['/metas', '/orcamentos', '/definicoes', '/visao-mensal', '/grupos'];
 const MORE = [
+  { path: '/grupos', key: 'simple.groups', d: 'M4 6h16M4 12h16M4 18h10' },
+  { path: '/metas', key: 'nav.goals', d: 'M12 21a9 9 0 1 1 0-18M12 16a4 4 0 1 1 0-8M12 12l8-8M16 4h4v4' },
   { path: '/plus', key: 'nav.plus', d: 'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z' },
   { path: '/orcamentos', key: 'nav.budgets', d: 'M12 3a9 9 0 1 0 9 9h-9zM15 3.5V9h5.5A9 9 0 0 0 15 3.5z' },
   { path: '/painel', key: 'mobile.fullPanel', d: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z' },
@@ -29,17 +42,21 @@ const MORE = [
 export default function MobileNav() {
   const { t } = useTranslation();
   const [more, setMore] = useState(false);
+  const [all, setAll] = useState(false);
+  const tabs = SIMPLE_UI ? SIMPLE_TABS : TABS;
+  const moreItems = MORE.filter((m) => (SIMPLE_UI ? (all ? !SIMPLE_HIDE.includes(m.path) : SIMPLE_MORE.includes(m.path)) : m.path !== '/metas' && m.path !== '/grupos'));
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const inMore = MORE.some((m) => pathname.startsWith(m.path));
-  const go = (p: string) => { setMore(false); navigate(p); };
+  useEffect(() => { const on = () => setMore(true); window.addEventListener('wallet:open-more', on); return () => window.removeEventListener('wallet:open-more', on); }, []);
+  const go = (p: string) => { setMore(false); setAll(false); navigate(p); };
 
   return (
     <>
       <nav className="mb-tabbar" aria-label={t('common.appName')}>
-        {TABS.map((it, i) => (
+        {tabs.map((it, i) => (
           <span key={it.path} style={{ display: 'contents' }}>
-            {i === 2 && (
+            {i === (SIMPLE_UI ? 2 : 2) && (
               <button type="button" className="mb-plus" onClick={() => navigate('/transacoes?nova=1')} aria-label={t('transactions.addTransaction')} data-testid="mb-fab" data-tour="add">
                 <Ic d={ICON.plus} size={26} />
               </button>
@@ -50,10 +67,10 @@ export default function MobileNav() {
             </NavLink>
           </span>
         ))}
-        <button type="button" className={'mb-tab' + (inMore || more ? ' active' : '')} onClick={() => setMore(true)} aria-haspopup="dialog" data-testid="mb-more" data-tour="more">
+        {!SIMPLE_UI && <button type="button" className={'mb-tab' + (inMore || more ? ' active' : '')} onClick={() => setMore(true)} aria-haspopup="dialog" data-testid="mb-more" data-tour="more">
           <Ic d="M5 12h.01M12 12h.01M19 12h.01" size={22} />
           <span>{t('mobile.more')}</span>
-        </button>
+        </button>}
       </nav>
 
       {more && (
@@ -61,13 +78,14 @@ export default function MobileNav() {
           <div className="mb-sheet" role="dialog" aria-modal="true" aria-label={t('mobile.more')} onClick={(e) => e.stopPropagation()}>
             <span className="mb-grabber" aria-hidden="true" />
             <div className="mb-grid">
-              {MORE.map((it) => (
+              {moreItems.map((it) => (
                 <button key={it.path} type="button" className={'mb-tile' + (pathname.startsWith(it.path) ? ' active' : '')} onClick={() => go(it.path)}>
                   <span><Ic d={it.d} size={20} /></span>
                   <b>{t(it.key)}</b>
                 </button>
               ))}
             </div>
+            {SIMPLE_UI && !all && <button type="button" className="mb-allbtn" onClick={() => setAll(true)}>{t('simple.allFeatures')}</button>}
           </div>
         </div>
       )}

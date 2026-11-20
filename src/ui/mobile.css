@@ -891,8 +891,14 @@ html.is-electron .app-main::-webkit-scrollbar, html.is-electron::-webkit-scrollb
 .ov-avg-grid b { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .ov-avg-grid em { font-style: normal; color: var(--muted); font-size: 11.5px; }
 /* Caixas do topo do Painel: a linha de baixo passa para a seguinte em vez de cortar com "…" */
-.fx-kpi-sub { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.45; }
-.fx-kpi-sub b { white-space: nowrap; }
+/* PC (janela pequena): nada sai da caixa — o que não cabe termina em "…". Telemóvel: quebra de linha, cabe sempre tudo. */
+@media (min-width: 769px) {
+  .fx-kpi-sub, .fx-kpi-label, .fx-card-head h2 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .fx-kpi-row > div, .fx-kpi { min-width: 0; }
+}
+@media (max-width: 768px) {
+  .fx-kpi-sub { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.45; overflow-wrap: anywhere; }
+}
 
 /* ---------------------------------------------------------------- setup / login sem scroll
    Os espaços e tamanhos encolhem com a ALTURA da janela (vh), para que cada passo caiba num só ecrã.
@@ -949,7 +955,318 @@ html.is-electron .app-main::-webkit-scrollbar, html.is-electron::-webkit-scrollb
 }
 /* Visão geral: sub-linhas de Rendimentos (salário / extras) */
 .fx-stat.sub { border-top: 0; padding: 0 0 7px 16px; font-size: 12px; margin-top: -4px; }
-.fx-stat.sub span:first-child::before { content: '└ '; opacity: .5; }
+.fx-stat.sub span:first-child::before { content: ''; display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--teal); opacity: .75; margin: 0 8px 1px 3px; vertical-align: middle; }
 /* Calendário do painel: o valor do dia nunca é cortado */
 .fx-cal:not(.big) .fx-cal-d { padding-left: 2px; padding-right: 2px; min-width: 0; }
 .fx-cal:not(.big) .fx-cal-d b { font-size: clamp(9px, .62vw, 10.5px); white-space: nowrap; letter-spacing: -0.02em; max-width: 100%; }
+/* Cabeçalho da conta: no PC nome + email; no telemóvel "Olá," + primeiro nome, sem moldura, com espaço para a barra de estado */
+.ab-hello, .ab-first { display: none; }
+@media (max-width: 768px) {
+  .fx-page { padding-top: calc(10px + var(--safe-t)); }
+  .ab-chip { border: 0; background: none; padding: 0; height: auto; gap: 12px; min-width: 0; }
+  .ab-chip > svg { display: none; }
+  .ab-chip img, .ab-chip .ab-initials { width: 46px; height: 46px; }
+  .ab-who { min-width: 0; }
+  .ab-hello { display: block; font-size: 13px; color: var(--muted); }
+  .ab-full, .ab-mail { display: none; }
+  .ab-first { display: block; font-size: 19px; font-weight: 750; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+/* Widget "Saldo das contas" no PC: cartões empilhados */
+.acc-stack { position: relative; display: block; width: 100%; height: calc(128px + (var(--n) - 1) * 14px); padding: 0; border: 0; background: none; cursor: pointer; text-align: left; font: inherit; color: #fff; }
+.acc-card { position: absolute; left: calc(var(--d) * 12px); right: calc(var(--d) * 12px); bottom: calc(var(--d) * 14px); height: 120px; padding: 14px 16px; border-radius: 18px;
+  display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; opacity: calc(1 - var(--d) * .28);
+  background: linear-gradient(135deg, var(--c1), var(--c2)); box-shadow: 0 14px 30px -18px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.12); transition: all .3s ease; }
+.acc-card::after { content: ''; position: absolute; right: -40px; top: -60px; width: 180px; height: 180px; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,.16), transparent 65%); }
+.acc-card.t-spending { --c1: color-mix(in srgb, var(--accent) 85%, #000); --c2: color-mix(in srgb, var(--accent) 45%, #0b0f1a); }
+.acc-card.t-savings { --c1: color-mix(in srgb, var(--teal) 80%, #000); --c2: color-mix(in srgb, var(--teal) 40%, #0b0f1a); }
+.acc-card.t-debt { --c1: color-mix(in srgb, var(--amber) 80%, #000); --c2: color-mix(in srgb, var(--amber) 40%, #0b0f1a); }
+.acc-card-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.acc-card-top b { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.acc-card-top small { margin-left: auto; font-size: 11.5px; opacity: .8; white-space: nowrap; }
+.acc-card-ic { width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center; background: rgba(255,255,255,.16); flex: none; }
+.acc-card-val { font-size: 24px; font-weight: 750; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.acc-card-val.neg { color: #ffd2d2; }
+.acc-dots { position: absolute; right: 16px; bottom: 12px; display: flex; gap: 4px; }
+.acc-dots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.35); } .acc-dots i.on { background: #fff; }
+.acc-stack:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 18px; }
+@media (prefers-reduced-motion: reduce) { .acc-card { transition: none; } }
+/* Início no telemóvel: foto + "Olá," pequeno + primeiro nome (sem cortar letras em cima) */
+.mv-hello { display: flex; align-items: center; gap: 12px; }
+.mv-hello .mv-avatar, .mv-hello img { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; flex: none; }
+.mv-hello-txt { min-width: 0; line-height: 1.25; }
+.mv-hello-txt small { font-size: 13px; }
+.mv-hello-txt h1 { margin: 0; font-size: 20px; line-height: 1.3; padding-top: 1px; }
+/* Modo simples: Início simplificado */
+.sh-hero { gap: 6px; }
+.sh-big { font-size: 40px; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.sh-big.neg { color: var(--red); }
+.sh-bar { height: 10px; border-radius: 99px; background: var(--track); overflow: hidden; margin: 6px 0 4px; }
+.sh-bar i { display: block; height: 100%; border-radius: 99px; background: var(--mv); transition: width .4s; } .sh-bar i.hot { background: var(--red); }
+.sh-row { display: flex; justify-content: space-between; }
+.sh-row span { display: flex; flex-direction: column; } .sh-row span:last-child { text-align: right; }
+.sh-row b { font-size: 17px; font-variant-numeric: tabular-nums; } .sh-row small { color: var(--muted); font-size: 13px; }
+.sh-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.sh-btn { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 64px; border-radius: 22px; font-size: 18px; font-weight: 750; text-decoration: none; }
+.sh-btn.out { background: var(--card); border: 1px solid var(--border); color: var(--text); }
+.sh-btn.in { background: var(--mv); color: var(--mv-ink, #032a2d); }
+.sh-save { display: flex; align-items: center; gap: 14px; text-decoration: none; color: var(--text); }
+.sh-save-ic { width: 46px; height: 46px; border-radius: 15px; display: grid; place-items: center; background: color-mix(in srgb, #2fbf8a 22%, transparent); color: #2fbf8a; flex: none; }
+.sh-save-txt { flex: 1; display: flex; flex-direction: column; } .sh-save-txt small { color: var(--muted); font-size: 13px; } .sh-save-txt b { font-size: 22px; font-variant-numeric: tabular-nums; }
+.sh-tx { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-top: 1px solid var(--border); }
+.sh-tx:first-of-type { border-top: 0; }
+.sh-tx-main { flex: 1; min-width: 0; display: flex; flex-direction: column; } .sh-tx-main b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .sh-tx-main small { color: var(--muted); font-size: 12.5px; }
+/* Modo simples modo simples */
+.mb-allbtn { display: block; width: 100%; margin-top: 12px; padding: 14px; border-radius: 16px; border: 1px solid var(--border); background: var(--card-2); color: var(--text); font: inherit; font-weight: 650; cursor: pointer; }
+.sh-seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 4px; border-radius: 16px; background: var(--card); border: 1px solid var(--border); }
+.sh-seg button { min-height: 44px; border: 0; border-radius: 12px; background: none; color: var(--muted); font: inherit; font-size: 16px; font-weight: 700; cursor: pointer; }
+.sh-seg button.on { background: var(--card-2); color: var(--text); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--mv) 40%, transparent); }
+.sh-pct { color: var(--muted); font-size: 13.5px; }
+.sh-hero .mv-month::first-letter { text-transform: uppercase; }
+
+.sh-title { margin: 0; font-size: 22px; font-weight: 750; flex: 1; }
+.sh-link { align-self: center; display: inline-flex; align-items: center; gap: 4px; color: var(--mv); font-weight: 650; font-size: 14.5px; text-decoration: none; margin-top: -4px; }
+.sh-groups-row { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; margin: 0 -2px; padding: 2px; }
+.sh-groups-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sh-group { flex: none; width: 150px; min-height: 96px; padding: 12px 14px; border-radius: 18px; display: flex; flex-direction: column; gap: 2px; text-decoration: none; color: var(--text);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--g, var(--mv)) 30%, var(--card-2)), var(--card-2)); border: 1px solid color-mix(in srgb, var(--g, var(--mv)) 35%, var(--border)); font: inherit; text-align: left; cursor: pointer; }
+.sh-groups-grid .sh-group { width: auto; }
+.sh-group b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .sh-group span { font-size: 19px; font-weight: 750; margin-top: auto; } .sh-group small { color: var(--muted); font-size: 12px; }
+.sh-group.new { background: none; border-style: dashed; align-items: center; justify-content: center; color: var(--mv); gap: 6px; }
+.sh-group.new input { width: 100%; border: 0; border-bottom: 1px solid var(--border); background: none; color: var(--text); font: inherit; font-size: 15px; padding: 4px 0; outline: none; }
+.sh-btn.sm { min-height: 40px; font-size: 15px; width: 100%; border: 0; margin-top: 8px; }
+.sh-goal { display: flex; flex-direction: column; gap: 4px; } .sh-goal small { color: var(--muted); font-size: 12.5px; }
+.sh-danger { align-self: center; border: 0; background: none; color: var(--red); font: inherit; font-weight: 650; padding: 12px; cursor: pointer; }
+
+/* Modo simples: Contas e Limites (modo simples) */
+.sh-total { align-self: center; display: flex; flex-direction: column; align-items: center; padding: 10px 22px; border-radius: 99px; background: var(--card); border: 1px solid var(--border); }
+.sh-total small { color: var(--muted); font-size: 12.5px; } .sh-total b { font-size: 22px; font-variant-numeric: tabular-nums; } .sh-total.neg b { color: var(--red); }
+.sh-info { margin: 0; padding: 12px 14px; border-radius: 16px; background: var(--card); border: 1px solid var(--border); color: var(--muted); font-size: 13.5px; line-height: 1.45; }
+.acc-card.sh-acc { position: relative; inset: auto; left: auto; right: auto; bottom: auto; opacity: 1; height: 116px; color: #fff; }
+.sh-form { display: flex; flex-direction: column; gap: 10px; }
+.sh-form label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.sh-form input, .sh-form select { min-height: 46px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--card-2); color: var(--text); font: inherit; font-size: 16px; }
+.sh-btn.out.sm { border: 1px dashed var(--border); width: 100%; margin-top: 10px; background: none; }
+.sh-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 6px 0; }
+.sh-two span { display: flex; flex-direction: column; padding: 10px 12px; border-radius: 14px; background: color-mix(in srgb, var(--card-2) 70%, transparent); }
+.sh-two small { color: var(--muted); font-size: 12.5px; } .sh-two b { font-size: 18px; font-variant-numeric: tabular-nums; }
+.sh-limits { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.sh-limit { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 6px; border-radius: 16px; background: var(--card-2); text-align: center; }
+.sh-ring { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--mv) calc(var(--p) * 360deg), var(--track) 0); }
+.sh-ring > * { box-shadow: 0 0 0 4px var(--card-2); border-radius: 50%; }
+.sh-limit.warn .sh-ring { background: conic-gradient(var(--amber) calc(var(--p) * 360deg), var(--track) 0); }
+.sh-limit.over .sh-ring { background: conic-gradient(var(--red) 360deg, var(--track) 0); } .sh-limit.over small { color: var(--red); }
+.sh-limit b { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; } .sh-limit small { color: var(--muted); font-size: 12.5px; }
+
+.sh-goalcard { display: flex; flex-direction: column; gap: 6px; width: 100%; text-align: left; font: inherit; color: var(--text); cursor: pointer; }
+.sh-accpick { display: flex; flex-direction: column; gap: 6px; } .sh-accpick > small { color: var(--muted); font-size: 13px; }
+.sh-form .sh-toggle { flex-direction: row; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 12px; background: var(--card-2); }
+.sh-toggle span { display: flex; flex-direction: column; } .sh-toggle b { color: var(--text); font-size: 15px; }
+.sh-form .sh-toggle input { width: 22px; height: 22px; min-height: 0; accent-color: var(--mv); }
+
+.sh-eta { color: var(--mv); font-size: 12.5px; font-weight: 600; }
+.sh-pill { align-self: center; display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 18px; border: 0; border-radius: 99px; background: var(--mv); color: var(--mv-ink, #032a2d); font: inherit; font-size: 14.5px; font-weight: 700; cursor: pointer; box-shadow: 0 8px 20px -10px color-mix(in srgb, var(--mv) 70%, transparent); transition: transform .15s, filter .15s; }
+.sh-pill:active { transform: scale(.96); } .sh-pill:hover { filter: brightness(1.06); }
+/* Botões de criar/guardar: pílula pequena como o "Criar meta" (só "Gastei" e "Recebi" ficam grandes) */
+.sh .sh-btn:not(.sh-actions .sh-btn):not(.out) { align-self: center; width: auto; min-height: 40px; height: 40px; padding: 0 18px; gap: 6px; border-radius: 99px; font-size: 14.5px; margin-top: 4px; }
+.sh .sh-btn.in:not(.sh-actions .sh-btn):not(.out) { box-shadow: 0 8px 20px -10px color-mix(in srgb, var(--mv) 70%, transparent); }
+.sh .sh-btn:not(.sh-actions .sh-btn):not(.out) svg { width: 16px; height: 16px; }
+.sh .sh-btn:not(.sh-actions .sh-btn):not(.out):active, .sh-pill:active { transform: scale(.96); }
+.sh-groups-grid .sh-btn.sm { align-self: stretch; }
+
+/* Comparação, % do ano, prazo das metas */
+.sh-cmp { font-size: 13px; font-weight: 650; }
+.sh-split { display: flex; flex-direction: column; gap: 3px; font-size: 13.5px; color: var(--muted); }
+.sh-split span { display: flex; align-items: center; gap: 6px; } .sh-split b { font-size: 14px; }
+.sh-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; } .sh-dot.spent { background: var(--red); } .sh-dot.saved { background: #2fbf8a; }
+.sh-deadline { font-size: 12.5px; font-weight: 650; }
+.sh-alert { margin: 10px 0 0; padding: 10px 12px; border-radius: 12px; font-size: 13.5px; line-height: 1.45; background: color-mix(in srgb, var(--red) 14%, transparent); color: var(--text); border: 1px solid color-mix(in srgb, var(--red) 40%, transparent); }
+.sh-alert.ok { background: color-mix(in srgb, #2fbf8a 14%, transparent); border-color: color-mix(in srgb, #2fbf8a 40%, transparent); }
+
+.sh-cmp { display: block; }
+
+/* Resumo do mês (modo simples) */
+.sh-monthnav { display: flex; align-items: center; justify-content: space-between; padding: 6px; border-radius: 16px; background: var(--card); border: 1px solid var(--border); }
+.sh-monthnav .mv-month::first-letter { text-transform: uppercase; }
+.sh-bars { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; height: 150px; align-items: end; }
+.sh-barcol { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; padding: 6px 0 4px; border: 0; border-radius: 12px; background: none; color: var(--muted); font: inherit; cursor: pointer; }
+.sh-barcol.on { background: var(--card-2); color: var(--text); font-weight: 700; }
+.sh-barpair { flex: 1; width: 100%; display: flex; align-items: flex-end; justify-content: center; gap: 4px; }
+.sh-barpair i { width: 10px; min-height: 3px; border-radius: 5px 5px 2px 2px; transition: height .3s; }
+.sh-barpair i.inc { background: #2fbf8a; } .sh-barpair i.exp { background: var(--red); opacity: .85; }
+.sh-barcol small { font-size: 11.5px; text-transform: capitalize; }
+.sh-legend { display: flex; justify-content: center; gap: 16px; margin-top: 8px; font-size: 12.5px; color: var(--muted); }
+.sh-legend span { display: flex; align-items: center; gap: 6px; }
+.sh-lines { margin-top: 10px; }
+.sh-line { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-top: 1px solid var(--border); font-size: 14.5px; }
+.sh-line span { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+.sh-line.sub { border-top: 0; padding: 0 0 7px 16px; font-size: 13px; margin-top: -3px; }
+.sh-line.sub span:first-child::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: #2fbf8a; opacity: .75; }
+.sh-day + .sh-day { margin-top: 8px; }
+.sh-dayhead { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0 2px; } .sh-dayhead b { font-size: 13.5px; text-transform: capitalize; } .sh-dayhead small { color: var(--muted); font-size: 12px; }
+.sh-seg.small { margin-bottom: 14px; } .sh-seg.small button { min-height: 38px; font-size: 14.5px; }
+.sh-donut { width: 180px; height: 180px; margin: 4px auto 16px; border-radius: 50%; display: grid; place-items: center; }
+.sh-donut span { width: 124px; height: 124px; border-radius: 50%; background: var(--card); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.sh-donut small { color: var(--muted); font-size: 12px; } .sh-donut b { font-size: 18px; }
+.sh-catrow { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--border); }
+.sh-catbar { display: block; height: 5px; border-radius: 99px; background: var(--track); margin-top: 5px; overflow: hidden; } .sh-catbar i { display: block; height: 100%; border-radius: 99px; }
+.sh-catval { display: flex; flex-direction: column; align-items: flex-end; } .sh-catval small { color: var(--muted); font-size: 12px; }
+
+.sh-bars { display: flex; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.sh-bars::-webkit-scrollbar { display: none; }
+.sh-barcol { flex: 0 0 calc((100% - 30px) / 6); scroll-snap-align: center; }
+
+.sh-valrow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sh-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+.sh-kpi { display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: 16px; background: color-mix(in srgb, var(--card-2) 75%, transparent); min-width: 0; }
+.sh-kpi > small { color: var(--muted); font-size: 13px; } .sh-kpi b { font-size: 18px; font-variant-numeric: tabular-nums; }
+.sh-kpi .sh-cmp { font-size: 12px; }
+
+.fx-chip.warn { background: color-mix(in srgb, var(--amber) 18%, transparent); color: var(--amber); }
+.sh-bar i.good { background: #2fbf8a; } .sh-bar i.warn { background: var(--amber); } .sh-bar i.bad { background: var(--red); }
+
+/* Caixa neutra: cinzenta mas bem visível */
+.sh .fx-chip.neutral { background: color-mix(in srgb, var(--text) 10%, transparent); color: var(--text); border: 1px solid color-mix(in srgb, var(--text) 14%, transparent); }
+
+/* Valor e caixa % sempre na mesma linha */
+.sh-valrow { flex-wrap: nowrap; min-width: 0; }
+.sh-kpi .sh-valrow { gap: 6px; }
+.sh-kpi .sh-valrow b { font-size: clamp(14px, 4.6vw, 18px); white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.sh-kpi .fx-chip { padding: 2px 6px; font-size: 11.5px; }
+
+/* Caixa neutra: fundo branco, letras escuras, sem bordas */
+.sh .fx-chip.neutral { background: #f1f5f9; color: #0b0f14; border: 0; }
+
+/* Caixa neutra: cinzento como no PC, um pouco mais claro que o fundo para se ver */
+.sh .fx-chip.neutral { background: color-mix(in srgb, var(--text) 13%, transparent); color: var(--text); border: 0; }
+
+/* Adicionar (modo simples) */
+.sh-amount { display: flex; align-items: baseline; justify-content: center; gap: 8px; padding: 6px 0; }
+.sh-amount input { width: 100%; max-width: 260px; border: 0; background: none; outline: none; text-align: center; font: inherit; font-size: 52px; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.sh-amount input::placeholder { color: color-mix(in srgb, var(--muted) 50%, transparent); }
+.sh-amount small { color: var(--muted); font-size: 15px; font-weight: 650; }
+.sh-rows { padding-top: 4px; padding-bottom: 4px; }
+.sh-rowf { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; border-top: 1px solid var(--border); }
+.sh-rowf:first-child { border-top: 0; }
+.sh-rowf > span { display: flex; align-items: center; gap: 10px; font-size: 15px; color: var(--text); white-space: nowrap; }
+.sh-rowf > span svg { color: var(--muted); }
+.sh-rowf select, .sh-rowf input:not([type=checkbox]) { min-width: 0; max-width: 58%; border: 0; background: none; color: var(--mv); font: inherit; font-size: 15px; font-weight: 600; text-align: right; outline: none; }
+.sh-rowf input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--mv); }
+.sh-rowf select option { color: #000; }
+/* Escolha do "+" */
+.sh-pick { display: flex; flex-direction: column; gap: 10px; }
+.sh-pickbtn { display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 16px; border-radius: 18px; border: 1px solid var(--border); background: var(--card-2); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.sh-pickbtn span { display: flex; flex-direction: column; } .sh-pickbtn b { font-size: 17px; } .sh-pickbtn small { color: var(--muted); font-size: 13px; }
+.sh-pickbtn.in { background: var(--mv); color: var(--mv-ink, #032a2d); border-color: transparent; } .sh-pickbtn.in small { color: inherit; opacity: .75; }
+/* Contas: cartão clicável */
+.sh-accwrap { display: flex; flex-direction: column; gap: 8px; }
+button.acc-card.sh-acc { width: 100%; border: 0; text-align: left; font: inherit; cursor: pointer; }
+.sh-seg.small button { font-size: 13.5px; }
+
+.sh-rowf .sh-catpick { max-width: 60%; }
+
+/* Modo simples: formulário "Nova transação" no estilo do app de referência (só modo simples) */
+.tx-amt { display: block; width: 100%; margin: 14px 0 0; border: 0; background: none; outline: none; text-align: center; color: var(--text); font: inherit; font-size: 56px; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.tx-amt::placeholder { color: var(--text); opacity: .9; }
+.tx-amt.exp:not(:placeholder-shown) { color: var(--red); } .tx-amt.inc:not(:placeholder-shown) { color: #2fbf8a; }
+.tx-cur { display: table; margin: 6px auto 10px; padding: 6px 14px; border-radius: 99px; background: var(--card-2); color: var(--muted); font-size: 13.5px; font-weight: 600; }
+.tx-rows { display: flex; flex-direction: column; }
+.tx-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; border-bottom: 1px solid var(--border); }
+.tx-row > span { display: flex; align-items: center; gap: 12px; font-size: 16px; font-weight: 600; color: var(--text); white-space: nowrap; }
+.tx-row > span svg { color: var(--muted); }
+.tx-row .tx-val, .tx-row .fx-input.tx-val { min-width: 0; max-width: 60%; border: 0; background: none; color: var(--mv); font: inherit; font-size: 15.5px; font-weight: 600; text-align: right; outline: none; padding: 0; box-shadow: none; }
+.tx-row input.tx-val::placeholder { color: var(--muted); font-weight: 500; }
+.tx-row select.tx-val option { color: #000; }
+.tx-row .fx-dp, .tx-row .fx-dp-btn { max-width: 60%; }
+.tx-rec { padding: 4px 0; } .tx-rec > * { width: 100%; }
+.tx-recopts { margin-top: 10px; }
+.tx-addbtn { margin: 0 auto; display: inline-flex; align-items: center; justify-content: center; height: 48px; padding: 0 30px; border: 0; border-radius: 99px; background: var(--mv); color: var(--mv-ink, #032a2d); font: inherit; font-size: 16px; font-weight: 750; cursor: pointer; box-shadow: 0 10px 24px -12px color-mix(in srgb, var(--mv) 75%, transparent); }
+
+.tx-row .fx-selectbtn { width: auto; max-width: 60%; min-height: 0; height: auto; padding: 0; border: 0; background: none; box-shadow: none; color: var(--mv); font-size: 15.5px; font-weight: 600; justify-content: flex-end; gap: 6px; }
+.tx-row .fx-selectbtn svg { color: var(--mv); opacity: .8; }
+
+.tx-muted { color: var(--muted); font-size: 15.5px; font-weight: 600; }
+.tx-acc { min-height: 64px; }
+.tx-accval { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.tx-accpick { display: flex; flex-direction: column; align-items: flex-end; min-width: 0; }
+.tx-accpick .tx-val { max-width: 150px; }
+.tx-accpick small { font-size: 13px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.tx-sep { width: 2px; height: 22px; border-radius: 2px; background: var(--mv); opacity: .8; }
+.tx-swap { width: 38px; height: 38px; flex: none; border-radius: 50%; border: 0; display: grid; place-items: center; cursor: pointer; background: #2fbf8a; color: #052e1c; }
+.tx-swap.off { background: color-mix(in srgb, var(--red) 75%, #fff); color: #4a0b0b; }
+.tx-row .ob-toggle { flex: none; }
+
+/* Despesa | Rendimento como no app de referência: pílula larga, duas metades iguais */
+.tx-seg .fx-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; width: 100%; padding: 5px; border-radius: 99px; background: color-mix(in srgb, #000 35%, var(--card)); border: 1px solid var(--border); }
+.tx-seg .fx-seg button { min-height: 46px; border: 0; border-radius: 99px; background: none; color: var(--muted); font: inherit; font-size: 16.5px; font-weight: 650; cursor: pointer; transition: background .2s, color .2s; }
+.tx-seg .fx-seg button.on { background: var(--card-2); color: var(--text); box-shadow: 0 6px 16px -10px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.06); }
+
+/* Textos dos valores a branco (simples e legível); botão "Transferir" bem visível */
+.tx-row .tx-val, .tx-row .fx-input.tx-val, .tx-row .fx-selectbtn { color: var(--text); }
+.tx-row .fx-selectbtn svg { color: var(--muted); opacity: 1; }
+.tx-swap { width: auto; height: 36px; padding: 0 12px; gap: 6px; display: inline-flex; align-items: center; border-radius: 99px; background: color-mix(in srgb, #2fbf8a 18%, transparent); color: #2fbf8a; border: 1.5px solid #2fbf8a; font: inherit; font-size: 13.5px; font-weight: 700; }
+.tx-swap.off { width: 36px; padding: 0; justify-content: center; background: color-mix(in srgb, var(--red) 18%, transparent); color: var(--red); border-color: var(--red); }
+
+/* Opções das listas legíveis no tema escuro */
+.tx-row select.tx-val option, .sh-rowf select option, .sh-form select option { color: var(--text); background: var(--card); }
+/* Transferir: pequeno, por baixo do saldo */
+.tx-swapmini { margin-top: 4px; display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 99px; border: 1px solid color-mix(in srgb, #2fbf8a 55%, transparent); background: color-mix(in srgb, #2fbf8a 12%, transparent); color: #2fbf8a; font: inherit; font-size: 12px; font-weight: 650; cursor: pointer; white-space: nowrap; }
+.tx-acc { min-height: 72px; padding: 6px 0; }
+/* Recorrente: sub-linhas compactas, mesma letra das outras */
+.tx-row.tx-sub { min-height: 46px; padding-left: 30px; }
+.tx-row.tx-sub > span { font-size: 15px; font-weight: 500; color: var(--muted); }
+
+.sh-kpis.three { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 0; }
+.sh-kpis.three .sh-kpi { padding: 12px 10px; background: var(--card); border: 1px solid var(--border); }
+.sh-kpis.three .sh-kpi b { font-size: clamp(14px, 4.2vw, 17px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sh-lines.mv-card { padding-top: 4px; padding-bottom: 4px; }
+.sh-lines .sh-line:first-child { border-top: 0; }
+.sh-linkrow { text-decoration: none; color: inherit; }
+.sh-linkrow b { display: inline-flex; align-items: center; gap: 4px; color: var(--text); }
+
+/* Modo simples: Transações no estilo do Resumo (modo simples) */
+.tx-simple > :not(.txs-new) { display: none !important; }
+.txs-new { display: flex; flex-direction: column; gap: 14px; }
+.sh-seg.three { grid-auto-columns: 1fr; }
+.txs-search { display: flex; align-items: center; gap: 10px; padding: 0 14px; min-height: 48px; border-radius: 16px; background: var(--card); border: 1px solid var(--border); color: var(--muted); }
+.txs-search input { flex: 1; min-width: 0; border: 0; background: none; outline: none; color: var(--text); font: inherit; font-size: 15.5px; }
+button.sh-tx.txs-row { width: 100%; border: 0; border-top: 1px solid var(--border); background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.sh-day .sh-tx:first-of-type, .sh-dayhead + div > .txs-row { border-top: 0; }
+.txs-actions { display: flex; justify-content: flex-end; padding: 0 0 6px; }
+.txs-actions .sh-danger { padding: 6px 12px; }
+.txs-tric { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--card-2); color: var(--muted); flex: none; }
+
+/* Calendário no Resumo do mês */
+.sh-cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
+.sh-calh { text-align: center; font-size: 11.5px; color: var(--muted); padding-bottom: 2px; }
+.sh-calday { min-height: 48px; padding: 5px 2px; border: 0; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; font: inherit; color: var(--text);
+  background: color-mix(in srgb, var(--red) calc(var(--i) * 100%), var(--card-2)); }
+.sh-calday span { font-size: 12.5px; font-weight: 600; }
+.sh-calday small { font-size: clamp(8.5px, 2.4vw, 10.5px); font-weight: 650; white-space: nowrap; letter-spacing: -0.02em; }
+.sh-calday.today { box-shadow: inset 0 0 0 2px var(--mv); }
+.sh-calbest { margin: 12px 0 0; font-size: 13.5px; color: var(--muted); }
+.txs-daychip { align-self: flex-start; margin: 4px 0 6px; padding: 6px 12px; border-radius: 99px; border: 1px solid var(--border); background: var(--card-2); color: var(--text); font: inherit; font-size: 13px; cursor: pointer; }
+.sh-seg.three, .sh-seg:has(> :nth-child(3)) { grid-auto-columns: 1fr; }
+
+.sh-ycal { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.sh-ymonth { min-height: 58px; padding: 8px; border: 0; border-radius: 12px; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 4px; cursor: pointer; font: inherit; color: var(--text);
+  background: color-mix(in srgb, var(--red) calc(var(--i) * 100%), var(--card-2)); }
+.sh-ymonth span { font-size: 13px; font-weight: 650; text-transform: capitalize; } .sh-ymonth small { font-size: 12.5px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.sh-ymonth.today { box-shadow: inset 0 0 0 2px var(--mv); }
+
+.sh-best { margin-top: 10px; } .sh-best b { text-transform: none; }
+
+.sh-best b { white-space: nowrap; }
+
+/* "Maior despesa": cartão pequeno e arrumado */
+.sh-bestcard { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 12px 14px; border-radius: 16px; background: color-mix(in srgb, var(--red) 9%, var(--card-2)); border: 1px solid color-mix(in srgb, var(--red) 22%, transparent); }
+.sh-bestcard i { width: 34px; height: 34px; flex: none; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--red) 20%, transparent); color: var(--red); }
+.sh-bestcard span { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.sh-bestcard small { color: var(--muted); font-size: 12px; }
+.sh-bestcard b { font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sh-bestcard b::first-letter { text-transform: uppercase; }
+.sh-bestcard strong { color: var(--red); font-size: 16px; font-weight: 750; white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* Calendários: tom neutro, com a cor da app (mais forte = mais gasto) */
+.sh-calday, .sh-ymonth { background: color-mix(in srgb, var(--mv) calc(var(--i) * 55%), var(--card-2)); }
+.sh-bestcard { background: var(--card-2); border-color: var(--border); }
+.sh-bestcard i { background: color-mix(in srgb, var(--mv) 18%, transparent); color: var(--mv); }
+.sh-bestcard strong { color: var(--text); }

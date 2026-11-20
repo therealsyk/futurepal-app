@@ -125,6 +125,8 @@
     "kpiIncomeSub": "Salário {{salary}} · Extras {{extras}}",
     "kpiTopSub": "{{value}} das despesas",
     "noIncome": "Sem salário registado",
+    "vsPrevMonth": "vs mês anterior",
+    "vsPrevYear": "vs ano anterior",
     "vsPrevious": "vs período anterior",
     "customize": "Personalizar",
     "done": "Concluído",
@@ -205,6 +207,7 @@
     "avgPerMonthLong": "média de {{value}} por mês",
     "error": "Ocorreu um erro ao carregar. Tenta novamente.",
     "spentInMonth": "Gasto em {{month}}",
+    "accStackHint": "Clica para ver a próxima conta",
     "perDayRate": "{{value}}/dia",
     "perMonthRate": "{{value}}/mês",
     "perDayShort": "≈ {{value}}/dia",
@@ -337,6 +340,7 @@
     "catTravel": "Viagens",
     "catEducation": "Educação",
     "catPhone": "Telefone",
+    "catPension": "Pensão",
     "catOtherIncome": "Outros rendimentos",
     "catWater": "Água",
     "catTelephone": "Telemóvel",
@@ -624,7 +628,7 @@
     "tabOverview": "Resumo",
     "tabCategories": "Categorias",
     "last12": "Os 12 meses do ano",
-    "incomeSalary": "Do salário",
+    "incomeSalary": "Salário",
     "incomeExtras": "Extras",
     "savingsRate": "Taxa de poupança",
     "txCount": "{{count}} transações",
@@ -635,6 +639,13 @@
     "averages": "Médias",
     "perDay": "média deste mês",
     "perMonthYear": "média de {{year}}"
+  },
+  "simple": {
+    "tabLimits": "Limites",
+    "groups": "Grupos",
+    "tabMoves": "Movimentos",
+    "tabSavings": "Poupança",
+    "allFeatures": "Ver todas as funções"
   },
   "mobile": {
     "more": "Mais",
@@ -1131,6 +1142,7 @@
     "interestTotal": "Total"
   },
   "acct": {
+    "hello": "Olá,",
     "guest": "Convidado",
     "notifications": "Notificações",
     "noNotes": "Não tens notificações.",

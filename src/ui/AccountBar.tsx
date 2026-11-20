@@ -93,7 +93,7 @@ export function AccountBar() {
       <AccountSwitcher open={switcher} onClose={() => setSwitcher(false)} />
       <button type="button" className="ab-chip" onClick={() => setOpen(open === 'menu' ? null : 'menu')} aria-haspopup="menu" aria-expanded={open === 'menu'}>
         <UserAvatar user={auth.user} name={name} />
-        <span className="ab-who"><b>{name}</b><small>{masked}</small></span>
+        <span className="ab-who"><small className="ab-hello">{t('acct.hello')}</small><b className="ab-full">{name}</b><b className="ab-first">{name.split(' ')[0]}!</b><small className="ab-mail">{masked}</small></span>
         <Ic d={GEAR} size={18} />
       </button>
       <button type="button" className="ab-bell" onClick={() => setOpen(open === 'bell' ? null : 'bell')} aria-label={t('acct.notifications')} aria-expanded={open === 'bell'}>

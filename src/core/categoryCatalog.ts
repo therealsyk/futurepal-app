@@ -65,7 +65,7 @@ export const CAT_ICONS: Record<string, string> = {
 };
 
 export const CATEGORY_GROUPS: CatalogGroup[] = [
-  { id: 'income', color: '#16a34a', items: [{ key: 'catSalary', icon: 'salary' }, { key: 'catOtherIncome', icon: 'income' }] },
+  { id: 'income', color: '#16a34a', items: [{ key: 'catSalary', icon: 'salary' }, { key: 'catPension', icon: 'income' }, { key: 'catOtherIncome', icon: 'income' }] },
   { id: 'housing', color: '#0ea5e9', items: [
     { key: 'catHome', icon: 'home' }, { key: 'catRent', icon: 'key' }, { key: 'catBills', icon: 'receipt' }, { key: 'catElectricity', icon: 'bolt' },
     { key: 'catWater', icon: 'drop' }, { key: 'catInternet', icon: 'wifi' }, { key: 'catTelephone', icon: 'phone' }, { key: 'catTv', icon: 'tv' },

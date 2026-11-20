@@ -82,6 +82,7 @@ export interface Goal extends BaseRecord {
   targetDate?: string | null;
   notes?: string;
   accountIds?: string[]; // contas que alimentam a meta (opcional)
+  contributions?: Array<{ date: string; cents: number }>; // cada vez que se junta dinheiro (para a previsão por padrões)
 }
 
 export type RecurringFrequency = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'bimonthly' | 'quarterly' | 'semiannual' | 'yearly';
@@ -96,6 +97,7 @@ export interface Recurring extends BaseRecord {
   accountId?: string;
   nextDate: string; // YYYY-MM-DD
   endDate?: string | null;
+  toAccountId?: string; // preenchido = transferência recorrente (de accountId para toAccountId)
 }
 
 export interface Group extends BaseRecord {

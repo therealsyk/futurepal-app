@@ -1,4 +1,4 @@
-import type { WalletDB, Transaction, Category, Budget, Goal, Recurring, Group } from '../db/database';
+import type { Transfer, WalletDB, Transaction, Category, Budget, Goal, Recurring, Group } from '../db/database';
 import { stampNew } from '../db/database';
 import { assertCents } from './money';
 import { CATALOG_ITEMS } from './categoryCatalog';
@@ -495,7 +495,8 @@ export async function contributeToGoal(db: WalletDB, goalId: string, amountCents
   const goal = await db.goals.get(goalId);
   if (!goal || goal.deletedAt) throw new Error('Meta nao encontrada');
   const current = goal.currentCents + amountCents;
-  await db.goals.update(goalId, { currentCents: current, updatedAt: new Date().toISOString() });
+  const now = new Date().toISOString();
+  await db.goals.update(goalId, { currentCents: current, contributions: [...(goal.contributions ?? []), { date: now.slice(0, 10), cents: amountCents }], updatedAt: now });
   return (await db.goals.get(goalId))!;
 }
 
@@ -597,15 +598,16 @@ export async function addRecurring(db: WalletDB, input: Omit<Recurring, 'id' | '
 
 // Generate transactions for recurring entries up to `untilDate` (YYYY-MM-DD).
 // Returns the list of transactions that should be inserted.
-export async function expandRecurring(db: WalletDB, untilDate: string): Promise<Omit<Transaction, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>[]> {
+type RecurringOut = Omit<Transaction, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'> & { toAccountId?: string };
+export async function expandRecurring(db: WalletDB, untilDate: string): Promise<RecurringOut[]> {
   const recs = (await db.recurrings.toArray()).filter((r) => r.deletedAt === null);
-  const out: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>[] = [];
+  const out: RecurringOut[] = [];
   for (const r of recs) {
     let date = r.nextDate;
     const anchor = Number(r.nextDate.slice(8, 10));
     const end = r.endDate && r.endDate < untilDate ? r.endDate : untilDate;
     while (date <= end) {
-      out.push({ date, type: r.type, categoryId: r.categoryId, description: r.description, amountCents: r.amountCents, currency: r.currency, recurringId: r.id, accountId: r.accountId });
+      out.push({ date, type: r.type, categoryId: r.categoryId, description: r.description, amountCents: r.amountCents, currency: r.currency, recurringId: r.id, accountId: r.accountId, ...(r.toAccountId ? { toAccountId: r.toAccountId } : {}) });
       date = advanceDate(date, r.frequency, anchor);
     }
     // Advance nextDate past untilDate so re-running doesn't duplicate.
@@ -618,7 +620,14 @@ export async function expandRecurring(db: WalletDB, untilDate: string): Promise<
 // Seguro para chamar várias vezes: cada ocorrência só é criada uma vez. Devolve quantas criou.
 export async function materializeDueRecurrings(db: WalletDB, today: string): Promise<number> {
   const items = await expandRecurring(db, today);
-  for (const it of items) await db.transactions.add(stampNew<Transaction>(it));
+  for (const it of items) {
+    if (it.toAccountId && it.accountId) { // transferência recorrente
+      await db.transfers.add(stampNew<Transfer>({ fromAccountId: it.accountId, toAccountId: it.toAccountId, amountCents: it.amountCents, date: it.date, note: it.description, categoryId: null, transactionId: null }));
+      continue;
+    }
+    const { toAccountId: _skip, ...tx } = it; // eslint-disable-line @typescript-eslint/no-unused-vars
+    await db.transactions.add(stampNew<Transaction>(tx));
+  }
   return items.length;
 }
 

@@ -79,6 +79,27 @@ function Meter({ ratio }: { ratio: number | null }) {
   );
 }
 
+// ── Contas em cartões empilhados (PC): o da frente mostra tudo; clicar passa o seguinte para a frente
+function AccountStack({ items, hint }: { items: Array<{ id: string; name: string; kind: string; type: string; value: string; neg: boolean; icon: string }>; hint: string }) {
+  const [front, setFront] = useState(0);
+  if (!items.length) return null;
+  const order = items.map((_, i) => items[(front + i) % items.length]).slice(0, 3);
+  return (
+    <button type="button" className="acc-stack" style={{ ['--n' as string]: order.length }} onClick={() => setFront((front + 1) % items.length)} title={items.length > 1 ? hint : undefined}>
+      {order.slice().reverse().map((a, ri) => {
+        const depth = order.length - 1 - ri;
+        return (
+          <div key={a.id} className={'acc-card t-' + a.type} style={{ ['--d' as string]: depth }} aria-hidden={depth > 0}>
+            <div className="acc-card-top"><span className="acc-card-ic"><Ic d={a.icon} size={16} /></span><b>{a.name}</b><small>{a.kind}</small></div>
+            <div className={'acc-card-val' + (a.neg ? ' neg' : '')}>{a.value}</div>
+          </div>
+        );
+      })}
+      {items.length > 1 && <span className="acc-dots">{items.map((x, i) => <i key={x.id} className={i === front ? 'on' : ''} />)}</span>}
+    </button>
+  );
+}
+
 // ── Caixa de indicador (Despesas / Poupança / Rendimento / Categoria) ──
 function Kpi({ icon, color, label, value, pct, pctTone = 'neutral', sub }: {
   icon: string; color: string; label: string; value: string;
@@ -842,15 +863,19 @@ export function Dashboard() {
           <Card title={t('panel.w_accounts')} action={seeAll('/contas', t('accounts.title'))}>
             <div className="fx-label">{t('accounts.netWorth')}</div>
             <div className="fx-big" style={{ margin: '4px 0 12px' }}>{money(netWorthCents(accounts, txsAsOf, salaryToDate, transfersAsOf))}</div>
-            <div className="fx-list">
-              {accounts.map((a) => (
-                <div key={a.id} className="fx-item">
-                  <span className="fx-avatar" style={{ background: a.type === 'savings' ? 'var(--teal)' : a.type === 'debt' ? 'var(--amber)' : 'var(--accent)', color: '#fff' }}><Ic d={typeIcon[a.type]} size={16} /></span>
-                  <div className="fx-item-main"><b>{a.name}</b><span>{t('accounts.type_' + a.type)}</span></div>
-                  <span className={'fx-num' + (balOf(a) < 0 ? ' fx-neg' : '')}>{money(balOf(a))}</span>
-                </div>
-              ))}
-            </div>
+            {NATIVE_APP ? (
+              <div className="fx-list">
+                {accounts.map((a) => (
+                  <div key={a.id} className="fx-item">
+                    <span className="fx-avatar" style={{ background: a.type === 'savings' ? 'var(--teal)' : a.type === 'debt' ? 'var(--amber)' : 'var(--accent)', color: '#fff' }}><Ic d={typeIcon[a.type]} size={16} /></span>
+                    <div className="fx-item-main"><b>{a.name}</b><span>{t('accounts.type_' + a.type)}</span></div>
+                    <span className={'fx-num' + (balOf(a) < 0 ? ' fx-neg' : '')}>{money(balOf(a))}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <AccountStack items={accounts.map((a) => ({ id: a.id, name: a.name, kind: t('accounts.type_' + a.type), type: a.type, value: money(balOf(a)), neg: balOf(a) < 0, icon: typeIcon[a.type] }))} hint={t('panel.accStackHint')} />
+            )}
           </Card>
         );
       case 'forecast': {
@@ -1016,7 +1041,7 @@ export function Dashboard() {
             {spent > 0 && <span data-testid="kpi-per-day">{t('panel.perDayRate', { value: money(avgDay) })}</span>}
             {deltaSpent !== null && (
               <b className={deltaSpent > 0 ? 'fx-neg' : 'fx-pos'} style={{ marginLeft: 6, fontWeight: 600 }}>
-                {deltaSpent > 0 ? '↑' : '↓'} {Math.abs(Math.round(deltaSpent * 100))}% {t('panel.vsPrevious')}
+                {deltaSpent > 0 ? '↑' : '↓'} {Math.abs(Math.round(deltaSpent * 100))}% {t(period === 'year' ? 'panel.vsPrevYear' : 'panel.vsPrevMonth')}
               </b>
             )}
           </>} />

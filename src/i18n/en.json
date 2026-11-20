@@ -125,6 +125,8 @@
     "kpiIncomeSub": "Salary {{salary}} · Extras {{extras}}",
     "kpiTopSub": "{{value}} of spending",
     "noIncome": "No salary recorded",
+    "vsPrevMonth": "vs last month",
+    "vsPrevYear": "vs last year",
     "vsPrevious": "vs previous period",
     "customize": "Customize",
     "done": "Done",
@@ -205,6 +207,7 @@
     "avgPerMonthLong": "average {{value}} per month",
     "error": "Something went wrong while loading. Try again.",
     "spentInMonth": "Spent in {{month}}",
+    "accStackHint": "Click to see the next account",
     "perDayRate": "{{value}}/day",
     "perMonthRate": "{{value}}/month",
     "perDayShort": "≈ {{value}}/day",
@@ -425,6 +428,7 @@
     "catTravel": "Travel",
     "catEducation": "Education",
     "catPhone": "Phone",
+    "catPension": "Pension",
     "catOtherIncome": "Other income",
     "catWater": "Water",
     "catTelephone": "Phone",
@@ -624,7 +628,7 @@
     "tabOverview": "Overview",
     "tabCategories": "Categories",
     "last12": "The 12 months of the year",
-    "incomeSalary": "From salary",
+    "incomeSalary": "Salary",
     "incomeExtras": "Extras",
     "savingsRate": "Savings rate",
     "txCount": "{{count}} transactions",
@@ -635,6 +639,13 @@
     "averages": "Averages",
     "perDay": "this month’s average",
     "perMonthYear": "{{year}} average"
+  },
+  "simple": {
+    "tabLimits": "Limits",
+    "groups": "Groups",
+    "tabMoves": "Activity",
+    "tabSavings": "Savings",
+    "allFeatures": "See all features"
   },
   "mobile": {
     "more": "More",
@@ -1131,6 +1142,7 @@
     "interestTotal": "Total"
   },
   "acct": {
+    "hello": "Hello,",
     "guest": "Guest",
     "notifications": "Notifications",
     "noNotes": "No notifications.",
