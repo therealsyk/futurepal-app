@@ -371,12 +371,20 @@ export function SimpleOverview({ yearly = false }: { yearly?: boolean }) {
   // comparação com o mês (ou ano) anterior, como no Início
   const pm = yearly ? sumOf(String(cur.y - 1)) : sumOf(key(cur.m === 0 ? cur.y - 1 : cur.y, (cur.m + 11) % 12));
   const prevBal = pm.income - pm.expense;
-  const cmpTo = yearly ? 'vs ano anterior' : 'vs mês anterior';
+  // nome do período anterior, em palavras ("outubro", "2025")
+  const prevName = yearly ? String(cur.y - 1)
+    : new Intl.DateTimeFormat(loadSettings().language, { month: 'long' }).format(new Date(cur.m === 0 ? cur.y - 1 : cur.y, (cur.m + 11) % 12, 1));
   const cmp = (now_: number, before: number, upIsGood: boolean) => {
-    if (before === 0 || now_ === 0 && before === 0) return null;
+    if (before === 0) return null;
     const pctv = Math.round(((now_ - before) / Math.abs(before)) * 100);
-    const good = pctv === 0 ? null : (pctv > 0) === upIsGood;
-    return (<><small className={'sh-cmp ' + (good === null ? '' : good ? 'fx-pos' : 'fx-neg')}>{pctv > 0 ? '↑' : pctv < 0 ? '↓' : '='} {Math.abs(pctv)}%</small><small className="sh-cmp-sub">{cmpTo}</small></>);
+    const tone = pctv === 0 ? 'same' : (pctv > 0) === upIsGood ? 'good' : 'bad';
+    const words = pctv > 0 ? `mais do que em ${prevName}` : pctv < 0 ? `menos do que em ${prevName}` : `igual a ${prevName}`;
+    return (
+      <span className="sh-trend-wrap" title={`${pctv > 0 ? '+' : ''}${pctv}% em relação a ${prevName}`}>
+        <span className={'sh-trend ' + tone}>{pctv > 0 ? '▲' : pctv < 0 ? '▼' : '●'} {Math.abs(pctv)}%</span>
+        <span className="sh-trend-words">{words}</span>
+      </span>
+    );
   };
   const bars = Array.from({ length: yearly ? 12 : 24 }, (_, i) => { const dt = new Date(yearly ? cur.y : cur.y - 1, i, 1); const v = sumOf(key(dt.getFullYear(), dt.getMonth())); return { y: dt.getFullYear(), mo: dt.getMonth(), ...v }; });
   const max = Math.max(1, ...bars.map((b) => Math.max(b.income, b.expense)));
