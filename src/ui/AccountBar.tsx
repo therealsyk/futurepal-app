@@ -114,16 +114,16 @@ export function AccountBar() {
           <div className="ab-head">
             <UserAvatar user={auth.user} name={name} />
             <div><b>{name}</b><small>{email || t('settings2.localMode')}</small></div>
-            <span className={'ab-plan' + (plan === 'free' ? '' : ' paid')}>{planName}</span>
+            {auth.user && <span className={'ab-plan' + (plan === 'free' ? '' : ' paid')}>{planName}</span>}
           </div>
-          <button type="button" role="menuitem" className="ab-item accent" onClick={() => go('/plus')}><Ic d={ITEMS.plan} />{plan === 'free' ? t('acct.upgrade') : t('acct.myPlan')}</button>
+          {/* Sem conta: "Entrar ou criar conta" é a primeira opção */}
+          {!auth.user && <button type="button" role="menuitem" className="ab-item accent" onClick={() => go('/definicoes')}><Ic d={ITEMS.in} />{t('acct.signIn')}</button>}
+          {auth.user && <button type="button" role="menuitem" className="ab-item accent" onClick={() => go('/plus')}><Ic d={ITEMS.plan} />{plan === 'free' ? t('acct.upgrade') : t('acct.myPlan')}</button>}
           <button type="button" role="menuitem" className="ab-item" onClick={() => go('/definicoes')}><Ic d={ITEMS.backup} />{t('acct.backup')}</button>
           {isAdmin && <button type="button" role="menuitem" className="ab-item" onClick={() => go('/admin')}><Ic d={ITEMS.admin} />{t('admin.title')}</button>}
           {auth.configured && <button type="button" role="menuitem" className="ab-item" onClick={() => { setOpen(null); setSwitcher(true); }} data-testid="switch-account"><Ic d={ITEMS.swap} />{t('switcher.menu')}</button>}
           <hr />
-          {auth.user
-            ? <button type="button" role="menuitem" className="ab-item danger" onClick={async () => { setOpen(null); await signOut().catch(() => {}); }}><Ic d={ITEMS.out} />{t('acct.signOut')}</button>
-            : <button type="button" role="menuitem" className="ab-item" onClick={() => go('/definicoes')}><Ic d={ITEMS.in} />{t('acct.signIn')}</button>}
+          {auth.user && <button type="button" role="menuitem" className="ab-item danger" onClick={async () => { setOpen(null); await signOut().catch(() => {}); }}><Ic d={ITEMS.out} />{t('acct.signOut')}</button>}
         </div>
       )}
     </div>
