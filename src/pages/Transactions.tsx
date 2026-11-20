@@ -171,6 +171,13 @@ export function Transactions() {
   const dayLabel = (d: string) => new Intl.DateTimeFormat(settings.language, { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(d + 'T12:00:00'));
 
   const [openRow, setOpenRow] = useState<string | null>(null);
+  // Nº de transações do período anterior (mês ou ano), para a comparação em %
+  const [prevCount, setPrevCount] = useState<number | null>(null);
+  useEffect(() => {
+    const py = period === 'year' ? year - 1 : month === 1 ? year - 1 : year;
+    const pm = period === 'year' ? undefined : month === 1 ? 12 : month - 1;
+    filterTransactions(db, { year: py, month: pm }).then((r) => setPrevCount(txsOfAccount(r, active, accounts).filter((x) => kind === 'all' || x.type === kind).length)).catch(() => setPrevCount(null));
+  }, [year, month, period, kind, active, accounts]);
   const [dayOnly, setDayOnly] = useState<string | null>(new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('dia'));
   const shiftP = (k: number) => {
     if (period === 'year') { setYear(year + k); return; }
@@ -210,10 +217,12 @@ export function Transactions() {
             const avg = span > 0 ? n / span : 0;
             const top = visible.filter((x) => x.type === 'expense').sort((a2, b2) => b2.amountCents - a2.amountCents)[0];
             const topCat = top ? cats.find((k) => k.id === top.categoryId) : undefined;
+            const pctCmp = prevCount ? Math.round(((n - prevCount) / prevCount) * 100) : null;
+            const cmp = pctCmp === null ? null : <span className={'fx-chip ' + (pctCmp > 0 ? 'warn' : pctCmp < 0 ? 'good' : 'neutral')} title={period === 'month' ? 'vs mês anterior' : 'vs ano anterior'}>{pctCmp > 0 ? '+' : ''}{pctCmp}% <small>{period === 'month' ? 'vs mês ant.' : 'vs ano ant.'}</small></span>;
             return (
               <div className="txs-stats">
-                <div><small>{period === 'month' ? 'Transações no mês' : 'Transações no ano'}</small><b>{n}</b></div>
-                <div><small>{period === 'month' ? 'Média por dia' : 'Média por mês'}</small><b>{avg.toLocaleString(settings.language, { maximumFractionDigits: 1 })}</b></div>
+                <div><small>{period === 'month' ? 'Transações no mês' : 'Transações no ano'}</small><span className="txs-v"><b>{n}</b>{cmp}</span></div>
+                <div><small>{period === 'month' ? 'Média por dia' : 'Média por mês'}</small><span className="txs-v"><b>{avg.toLocaleString(settings.language, { maximumFractionDigits: 1 })}</b>{cmp}</span></div>
                 <div className="wide"><small>Compra mais cara</small><b>{top ? <>{top.description || (topCat ? catLabel(t, topCat) : '')} · <span className="fx-neg">{money(top.amountCents)}</span></> : '—'}</b></div>
               </div>
             );

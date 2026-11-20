@@ -1388,3 +1388,5 @@ html.pcm .fx-page.sh > .es { flex: 1 1 100% !important; width: 100% !important; 
 .sal-add { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 44px; min-width: 200px; padding: 0 22px; border: 0; border-radius: 99px;
   background: var(--mv); color: var(--mv-ink, #032a2d); font: inherit; font-size: 15px; font-weight: 750; cursor: pointer; box-shadow: 0 12px 28px -12px rgba(0,0,0,.7), 0 8px 20px -12px color-mix(in srgb, var(--mv) 70%, transparent); transition: filter .15s, transform .15s; }
 .sal-add:hover { filter: brightness(1.08); transform: translate(-50%, -1px); }
+
+.txs-v { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; } .txs-v .fx-chip small { font-weight: 500; opacity: .8; }
