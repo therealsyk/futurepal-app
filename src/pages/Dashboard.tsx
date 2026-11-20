@@ -123,7 +123,7 @@ function SimpleKpi({ label, value, valueClass, chip, chipTone, chipTitle, sub, i
 }
 
 // ── Gráfico de área: rendimento vs despesas por mês ─────────────────────
-function OverviewChart({ series, upTo, money, t }: {
+export function OverviewChart({ series, upTo, money, t }: {
   series: { label: string; tick?: string; earning: number; spending: number }[];
   upTo: number; // último índice com dados (meses futuros não são desenhados)
   money: (c: number) => string;
