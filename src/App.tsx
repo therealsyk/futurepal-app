@@ -14,7 +14,6 @@ import { Settings } from './pages/Settings';
 import { MobileHome } from './pages/MobileHome';
 import { SimpleHome } from './pages/SimpleHome';
 import { SIMPLE_UI, PC_MOBILE } from './core/uiMode';
-import { PcPanel } from './pages/PcPanel';
 import { Groups } from './pages/Groups';
 import { SimpleAccounts, SimpleGoals, SimpleLimits, SimpleOverview } from './pages/SimplePages';
 import { AdminPage } from './pages/Admin';
@@ -176,7 +175,7 @@ export default function App() {
       <Rail />
       <main className="app-main" key={dbName}>
         <Routes>
-          <Route path="/" element={PC_MOBILE ? <PcPanel /> : isMobile ? (SIMPLE_UI ? <SimpleHome /> : <MobileHome />) : <Dashboard />} />
+          <Route path="/" element={!PC_MOBILE && isMobile ? (SIMPLE_UI ? <SimpleHome /> : <MobileHome />) : <Dashboard />} />
           <Route path="/painel" element={<Dashboard />} />
           <Route path="/resumo-ano" element={<SimpleOverview yearly />} />
           <Route path="/grupos" element={<Groups />} />
@@ -208,7 +207,7 @@ export default function App() {
         </Routes>
       </main>
       <MobileNav />
-      <MobileTutorial enabled={isMobile} />
+      <MobileTutorial enabled={isMobile && !PC_MOBILE} />
       {!IS_DEMO && <UpdateNotice />}
       {IS_DEMO && <DemoGate />}
       <Sheet open={mergeCount > 0} onClose={() => { if (!merging) decideMerge(false); }} title={t('accountData.title')}>

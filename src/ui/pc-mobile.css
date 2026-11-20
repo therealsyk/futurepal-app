@@ -1,53 +1,8 @@
-/* PC com a interface da app de telemóvel (?pc=mobile) — PRÉ-VISUALIZAÇÃO.
-   As regras do telemóvel valem em qualquer ecrã (uiMode.applyMobileStylesEverywhere);
-   aqui: volta a barra lateral do PC, sai a barra de baixo, e o Painel junta Início + Resumo, espaçoso. */
+/* PC com as páginas da app de telemóvel (?pc=mobile) — PRÉ-VISUALIZAÇÃO.
+   Fica a estrutura do PC (barra lateral, Painel com Personalizar); as outras páginas (Metas, Limites, Contas…)
+   são as do telemóvel, centradas e mais largas. */
+html.pcm .fx-page.mv { max-width: 1100px; margin: 0 auto; }
+html.pcm .fx-page.mv .mv-card { padding: 22px; }
 
-/* ---------------------------------------------------------------- estrutura do PC: barra lateral à esquerda */
-html.pcm .app-shell { display: flex; flex-direction: row; height: 100vh; overflow: hidden; }
-html.pcm .fx-rail { display: flex; width: 76px; flex-direction: column; align-items: center; padding: 18px 0; }
-html.pcm .app-main { height: 100vh; overflow-y: auto; padding: 36px 48px 48px !important; }
-html.pcm .mb-tabbar, html.pcm .mb-plus { display: none !important; }
-html.pcm .fx-page { max-width: 1680px; margin: 0 auto; padding: 0 !important; }
-html.pcm .fx-page.mv:not(.pcp) { max-width: 1100px; }
-
-/* ---------------------------------------------------------------- Painel: Início + Resumo juntos */
-.pcp-head { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; margin-bottom: 28px; }
-.pcp-head h1 { margin: 0; font-size: 34px; letter-spacing: -0.02em; flex: 1; }
-.pcp-seg { width: 240px; margin: 0; }
-.pcp-nav { margin: 0; min-width: 300px; }
-.pcp-grid {
-  display: grid; gap: 24px; align-items: start;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  grid-template-areas:
-    "hero hero hero hero chart chart chart chart chart chart chart chart"
-    "tot tot tot tot tot tot tot tot tot tot tot tot"
-    "lines lines lines lines cal cal cal cal cats cats cats cats"
-    "latest latest latest latest latest latest goals goals goals groups groups groups";
-}
-.pcp-hero { grid-area: hero; } .pcp-chart { grid-area: chart; } .pcp-totals { grid-area: tot; }
-.pcp-lines { grid-area: lines; } .pcp-cal { grid-area: cal; } .pcp-cats { grid-area: cats; }
-.pcp-latest { grid-area: latest; } .pcp-goals { grid-area: goals; } .pcp-groups { grid-area: groups; }
-.pcp .sh-embed { gap: 16px; }
-.pcp .sh-link { display: none; }
-.pcp .mv-card, .pcp .mv-hero { padding: 24px; border-radius: 26px; margin: 0; }
-.pcp .sh-hero .sh-big { font-size: 56px; }
-.pcp .sh-bars { height: 240px; }
-.pcp .sh-barcol { flex: 0 0 calc((100% - 66px) / 12); } /* 12 meses visíveis em vez de 6 */
-.pcp .sh-kpis.three { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
-.pcp .sh-kpis.three .sh-kpi { padding: 20px 24px; }
-.pcp .sh-kpis.three .sh-kpi b { font-size: 24px; }
-.pcp .sh-tx { padding: 12px 0; }
-@media (max-width: 1400px) {
-  .pcp-grid { grid-template-areas:
-    "hero hero hero hero hero hero chart chart chart chart chart chart"
-    "tot tot tot tot tot tot tot tot tot tot tot tot"
-    "lines lines lines lines lines lines cal cal cal cal cal cal"
-    "cats cats cats cats cats cats latest latest latest latest latest latest"
-    "goals goals goals goals goals goals groups groups groups groups groups groups"; }
-}
-
-/* ---------------------------------------------------------------- janelas: ao centro em vez de virem de baixo */
-html.pcm .fx-backdrop { place-items: center !important; padding: 24px !important; }
-html.pcm .fx-sheet, html.pcm .fx-sheet.wide { width: min(640px, 100%) !important; max-height: 90vh; border-radius: 26px !important; padding-bottom: 0 !important; }
-html.pcm .mb-backdrop { align-items: center; justify-content: center; }
-html.pcm .mb-sheet { width: min(680px, 92vw); border-radius: 26px; padding-bottom: 20px; }
+/* Caixas do topo: as 5 na mesma linha em ecrã largo */
+@media (min-width: 1280px) { html.pcm .fx-kpis { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
