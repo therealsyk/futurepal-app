@@ -207,7 +207,7 @@ export function Transactions() {
             {dayOnly && <button type="button" className="txs-daychip" onClick={() => setDayOnly(null)}>Só {new Date(dayOnly).toLocaleDateString(settings.language, { day: 'numeric', month: 'long' })} · ver o mês todo ✕</button>}
             {byDay.filter(([day]) => !dayOnly || day === dayOnly).map(([day, g]) => (
               <div key={day} className="sh-day">
-                <div className="sh-dayhead"><b>{new Date(day).toLocaleDateString(settings.language, { weekday: 'short', day: 'numeric', month: 'short' })}</b><small>{g.txs.length + g.trs.length} {g.txs.length + g.trs.length === 1 ? 'movimento' : 'movimentos'}</small></div>
+                <div className="sh-dayhead"><b>{new Date(day).toLocaleDateString(settings.language, { weekday: 'short', day: 'numeric', month: 'short' })}</b></div>
                 {g.txs.map((x) => { const c = cats.find((k) => k.id === x.categoryId); return (
                   <div key={x.id}>
                     <button type="button" className="sh-tx txs-row" onClick={() => setOpenRow(openRow === x.id ? null : x.id)}>

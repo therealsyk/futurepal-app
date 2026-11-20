@@ -33,3 +33,6 @@ release/
 asartmp/
 _asar_test/
 logs/
+
+# cache do TypeScript
+*.tsbuildinfo
