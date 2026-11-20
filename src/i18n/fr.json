@@ -535,5 +535,38 @@
     "moreText": "Budgets, salaires, catégories et réglages sont ici.",
     "helpTitle": "Besoin d'aide ?",
     "helpText": "Touchez ce bouton pour refaire cette visite."
+  },
+  "pco": {
+    "summary": "Résumé",
+    "monthly": "Résumé mensuel",
+    "yearly": "Résumé annuel",
+    "prevMonth": "Mois précédent",
+    "nextMonth": "Mois suivant",
+    "prevYear": "Année précédente",
+    "nextYear": "Année suivante",
+    "incomeAnalysis": "Analyse des revenus",
+    "income": "Revenus",
+    "expenses": "Dépenses",
+    "earnedYear": "Gagné cette année",
+    "incomeMonth": "Revenus ce mois-ci",
+    "spentYear": "Dépensé cette année",
+    "spentMonth": "Déjà dépensé",
+    "savedYear": "Épargné cette année",
+    "leftMonth": "Il me reste",
+    "avgMonth": "En moyenne {{v}} par mois",
+    "avgDay": "En moyenne {{v}} par jour",
+    "vs": "vs"
+  },
+  "blk": {
+    "latest": "Derniers mouvements",
+    "seeAll": "Tout voir",
+    "noTx": "Rien enregistré pour l’instant. Touchez « Dépensé » ou « Reçu ».",
+    "perDay": "Dépenses par jour",
+    "perMonth": "Dépenses par mois",
+    "biggest": "Plus grosse dépense",
+    "spending": "Dépenses",
+    "income": "Revenus",
+    "noData": "Pas de données pour cette période.",
+    "total": "Total"
   }
 }

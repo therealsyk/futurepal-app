@@ -535,5 +535,38 @@
     "moreText": "Presupuestos, salarios, categorías y ajustes están aquí.",
     "helpTitle": "¿Necesitas ayuda?",
     "helpText": "Toca este botón cuando quieras repetir el recorrido."
+  },
+  "pco": {
+    "summary": "Resumen",
+    "monthly": "Resumen mensual",
+    "yearly": "Resumen anual",
+    "prevMonth": "Mes anterior",
+    "nextMonth": "Mes siguiente",
+    "prevYear": "Año anterior",
+    "nextYear": "Año siguiente",
+    "incomeAnalysis": "Análisis de ingresos",
+    "income": "Ingresos",
+    "expenses": "Gastos",
+    "earnedYear": "Gané este año",
+    "incomeMonth": "Ingresos este mes",
+    "spentYear": "Gasté este año",
+    "spentMonth": "Ya gasté",
+    "savedYear": "Ahorré este año",
+    "leftMonth": "Aún tengo",
+    "avgMonth": "De media {{v}} al mes",
+    "avgDay": "De media {{v}} al día",
+    "vs": "vs"
+  },
+  "blk": {
+    "latest": "Últimos movimientos",
+    "seeAll": "Ver todos",
+    "noTx": "Aún no has registrado nada. Toca «Gasté» o «Recibí».",
+    "perDay": "Gastos por día",
+    "perMonth": "Gastos por mes",
+    "biggest": "Mayor gasto",
+    "spending": "Gastos",
+    "income": "Ingresos",
+    "noData": "Sin datos en este periodo.",
+    "total": "Total"
   }
 }

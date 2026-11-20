@@ -734,5 +734,38 @@
     "moreText": "Orçamentos, salários, categorias e configurações ficam aqui.",
     "helpTitle": "Precisa de ajuda?",
     "helpText": "Toque neste botão sempre que quiser repetir este tour."
+  },
+  "pco": {
+    "summary": "Resumo",
+    "monthly": "Resumo mensal",
+    "yearly": "Resumo anual",
+    "prevMonth": "Mês anterior",
+    "nextMonth": "Próximo mês",
+    "prevYear": "Ano anterior",
+    "nextYear": "Próximo ano",
+    "incomeAnalysis": "Análise de receitas",
+    "income": "Receitas",
+    "expenses": "Despesas",
+    "earnedYear": "Ganhei este ano",
+    "incomeMonth": "Receita deste mês",
+    "spentYear": "Gastei este ano",
+    "spentMonth": "Já gastei",
+    "savedYear": "Economizei este ano",
+    "leftMonth": "Ainda tenho",
+    "avgMonth": "Em média {{v}} por mês",
+    "avgDay": "Em média {{v}} por dia",
+    "vs": "vs"
+  },
+  "blk": {
+    "latest": "Últimas movimentações",
+    "seeAll": "Ver todas",
+    "noTx": "Você ainda não registrou nada. Toque em “Gastei” ou “Recebi”.",
+    "perDay": "Despesas por dia",
+    "perMonth": "Despesas por mês",
+    "biggest": "Maior despesa",
+    "spending": "Gastos",
+    "income": "Receitas",
+    "noData": "Sem dados neste período.",
+    "total": "Total"
   }
 }

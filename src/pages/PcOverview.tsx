@@ -21,9 +21,9 @@ const IC = {
   chart: 'M4 20V10M10 20V4M16 20v-7M22 20H2',
 };
 
-function Metric({ icon, tone, title, value, valueClass, delta, deltaGoodUp, prevName, sub, bar }: {
+function Metric({ icon, tone, title, value, valueClass, delta, deltaGoodUp, prevName, vsLabel, sub, bar }: {
   icon: string; tone: 'inc' | 'exp' | 'sav'; title: string; value: string; valueClass?: string;
-  delta: number | null; deltaGoodUp: boolean; prevName: string; sub?: string; bar: number;
+  delta: number | null; deltaGoodUp: boolean; prevName: string; vsLabel: string; sub?: string; bar: number;
 }) {
   const pct = delta === null ? null : Math.round(delta * 100);
   const good = pct === null || pct === 0 ? null : (pct > 0) === deltaGoodUp;
@@ -32,7 +32,7 @@ function Metric({ icon, tone, title, value, valueClass, delta, deltaGoodUp, prev
       <div className="pco-mhead">
         <span className="pco-mic"><Ic d={icon} size={18} /></span>
         <h3>{title}</h3>
-        {pct !== null && <span className={'pco-delta ' + (good === null ? 'same' : good ? 'good' : 'bad')}>{pct > 0 ? '+' : ''}{pct}% <small>vs {prevName}</small></span>}
+        {pct !== null && <span className={'pco-delta ' + (good === null ? 'same' : good ? 'good' : 'bad')}>{pct > 0 ? '+' : ''}{pct}% <small>{vsLabel} {prevName}</small></span>}
       </div>
       <strong className={'pco-value ' + (valueClass ?? '')}>{value}</strong>
       {sub && <small className="pco-sub">{sub}</small>}
@@ -83,14 +83,14 @@ export function PcOverview() {
     <div className="fx-page pco">
       <header className="pco-head">
         <div className="pco-title">
-          <div className="sh-seg pco-seg" role="tablist" aria-label="Resumo">
-            <button type="button" role="tab" aria-selected={!yearly} className={!yearly ? 'on' : ''} onClick={() => setMode('month')}>Resumo mensal</button>
-            <button type="button" role="tab" aria-selected={yearly} className={yearly ? 'on' : ''} onClick={() => setMode('year')}>Resumo anual</button>
+          <div className="sh-seg pco-seg" role="tablist" aria-label={t('pco.summary')}>
+            <button type="button" role="tab" aria-selected={!yearly} className={!yearly ? 'on' : ''} onClick={() => setMode('month')}>{t('pco.monthly')}</button>
+            <button type="button" role="tab" aria-selected={yearly} className={yearly ? 'on' : ''} onClick={() => setMode('year')}>{t('pco.yearly')}</button>
           </div>
           <div className="sh-monthnav pco-nav">
-            <button type="button" className="mv-chev" onClick={() => shift(-1)} aria-label={yearly ? 'Ano anterior' : 'Mês anterior'}><Ic d={ICON.left} size={18} /></button>
+            <button type="button" className="mv-chev" onClick={() => shift(-1)} aria-label={t(yearly ? 'pco.prevYear' : 'pco.prevMonth')}><Ic d={ICON.left} size={18} /></button>
             <span className="mv-month">{label.charAt(0).toUpperCase() + label.slice(1)}</span>
-            <button type="button" className="mv-chev" onClick={() => shift(1)} aria-label={yearly ? 'Ano seguinte' : 'Mês seguinte'}><Ic d={ICON.right} size={18} /></button>
+            <button type="button" className="mv-chev" onClick={() => shift(1)} aria-label={t(yearly ? 'pco.nextYear' : 'pco.nextMonth')}><Ic d={ICON.right} size={18} /></button>
           </div>
         </div>
         <AccountBar />
@@ -98,20 +98,20 @@ export function PcOverview() {
 
       <div className="pco-grid">
         <section className="mv-card pco-chart">
-          <div className="pco-mhead"><span className="pco-mic"><Ic d={IC.chart} size={18} /></span><h3>Análise de rendimentos</h3>
-            <span className="pco-legend"><i className="inc" />Rendimentos <i className="exp" />Despesas</span></div>
+          <div className="pco-mhead"><span className="pco-mic"><Ic d={IC.chart} size={18} /></span><h3>{t('pco.incomeAnalysis')}</h3>
+            <span className="pco-legend"><i className="inc" />{t('pco.income')} <i className="exp" />{t('pco.expenses')}</span></div>
           <OverviewChart series={series} upTo={upTo} money={money} t={t} />
         </section>
 
         <div className="pco-metrics">
-          <Metric icon={IC.income} tone="inc" title={yearly ? 'Ganhei este ano' : 'Rendimento este mês'} value={money(a.inc)} valueClass="fx-pos"
-            delta={delta(a.inc, p.inc)} deltaGoodUp prevName={prevName} bar={a.inc > 0 ? 1 : 0} />
-          <Metric icon={IC.spent} tone="exp" title={yearly ? 'Gastei este ano' : 'Já gastei'} value={money(a.exp)} valueClass={a.exp > 0 ? 'fx-neg' : ''}
-            delta={delta(a.exp, p.exp)} deltaGoodUp={false} prevName={prevName} bar={ratio(a.exp)}
-            sub={yearly ? `Em média ${money(Math.round(a.exp / months))} por mês` : `Em média ${money(Math.round(a.exp / days))} por dia`} />
-          <Metric icon={IC.saved} tone="sav" title={yearly ? 'Poupei este ano' : 'Ainda tenho'} value={money(left)} valueClass={left < 0 ? 'fx-neg' : 'fx-pos'}
-            delta={delta(left, prevLeft)} deltaGoodUp prevName={prevName} bar={ratio(Math.max(0, left))}
-            sub={yearly ? `Em média ${money(Math.round(left / months))} por mês` : undefined} />
+          <Metric icon={IC.income} tone="inc" title={t(yearly ? 'pco.earnedYear' : 'pco.incomeMonth')} value={money(a.inc)} valueClass="fx-pos"
+            delta={delta(a.inc, p.inc)} deltaGoodUp prevName={prevName} vsLabel={t('pco.vs')} bar={a.inc > 0 ? 1 : 0} />
+          <Metric icon={IC.spent} tone="exp" title={t(yearly ? 'pco.spentYear' : 'pco.spentMonth')} value={money(a.exp)} valueClass={a.exp > 0 ? 'fx-neg' : ''}
+            delta={delta(a.exp, p.exp)} deltaGoodUp={false} prevName={prevName} vsLabel={t('pco.vs')} bar={ratio(a.exp)}
+            sub={yearly ? t('pco.avgMonth', { v: money(Math.round(a.exp / months)) }) : t('pco.avgDay', { v: money(Math.round(a.exp / days)) })} />
+          <Metric icon={IC.saved} tone="sav" title={t(yearly ? 'pco.savedYear' : 'pco.leftMonth')} value={money(left)} valueClass={left < 0 ? 'fx-neg' : 'fx-pos'}
+            delta={delta(left, prevLeft)} deltaGoodUp prevName={prevName} vsLabel={t('pco.vs')} bar={ratio(Math.max(0, left))}
+            sub={yearly ? t('pco.avgMonth', { v: money(Math.round(left / months)) }) : undefined} />
         </div>
 
         <div className="pco-latest"><SimpleHome key={'l' + mode + pref} embed={{ mode, y: cur.y, m: cur.m, part: 'latest' }} /></div>

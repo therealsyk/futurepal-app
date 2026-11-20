@@ -111,8 +111,8 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
   const latestEl = (<>
       {/* 4. Últimos movimentos, em linguagem simples */}
       <section className="mv-card">
-        <div className="mv-card-head"><h2>Últimos movimentos</h2><Link to="/transacoes" className="mv-link">Ver todos</Link></div>
-        {latest.length === 0 ? <p className="fx-muted">Ainda não registaste nada. Toca em “Gastei” ou “Recebi”.</p> : latest.map((x) => {
+        <div className="mv-card-head"><h2>{t('blk.latest')}</h2><Link to="/transacoes" className="mv-link">{t('blk.seeAll')}</Link></div>
+        {latest.length === 0 ? <p className="fx-muted">{t('blk.noTx')}</p> : latest.map((x) => {
           const c = catOf(x.categoryId);
           return (
             <div key={x.id} className="sh-tx">

@@ -432,9 +432,9 @@ export function SimpleOverview({ yearly = false, embed }: { yearly?: boolean; em
         const short = (c: number) => (c >= 10000 ? new Intl.NumberFormat(s.language, { style: 'currency', currency: s.currency, maximumFractionDigits: 0 }).format(Math.round(c / 100)) : money(c));
         return (
           <section className="mv-card">
-            <div className="mv-card-head"><h2>Despesas por dia</h2></div>
+            <div className="mv-card-head"><h2>{t('blk.perDay')}</h2></div>
             <div className="sh-cal">
-              {['S', 'T', 'Q', 'Q', 'S', 'S', 'D'].map((w, k) => <span key={k} className="sh-calh">{w}</span>)}
+              {Array.from({ length: 7 }, (_, k) => new Date(2024, 0, 1 + k).toLocaleDateString(s.language, { weekday: 'narrow' })).map((w, k) => <span key={k} className="sh-calh">{w}</span>)}
               {Array.from({ length: lead }, (_, k) => <span key={'e' + k} />)}
               {Array.from({ length: days }, (_, k) => {
                 const dd = k + 1, v = spentDay[dd] ?? 0;
@@ -447,7 +447,7 @@ export function SimpleOverview({ yearly = false, embed }: { yearly?: boolean; em
                 );
               })}
             </div>
-            {best && <div className="sh-bestcard"><i><Ic d="M12 19V5M5 12l7-7 7 7" size={16} /></i><span><small>Maior despesa</small><b>{new Date(cur.y, cur.m, +best[0]).toLocaleDateString(s.language, { day: 'numeric', month: 'long' })}</b></span><strong>{money(best[1])}</strong></div>}
+            {best && <div className="sh-bestcard"><i><Ic d="M12 19V5M5 12l7-7 7 7" size={16} /></i><span><small>{t('blk.biggest')}</small><b>{new Date(cur.y, cur.m, +best[0]).toLocaleDateString(s.language, { day: 'numeric', month: 'long' })}</b></span><strong>{money(best[1])}</strong></div>}
           </section>
         );
   };
@@ -459,7 +459,7 @@ export function SimpleOverview({ yearly = false, embed }: { yearly?: boolean; em
     const bestM = tot.indexOf(top);
     return (
       <section className="mv-card">
-        <div className="mv-card-head"><h2>Despesas por mês</h2></div>
+        <div className="mv-card-head"><h2>{t('blk.perMonth')}</h2></div>
         <div className="sh-ycal">
           {tot.map((v, k) => (
             <button key={k} type="button" className={'sh-ymonth' + (cur.y === now.getFullYear() && k === now.getMonth() ? ' today' : '')} style={{ ['--i' as string]: top && v ? 0.15 + 0.6 * (v / top) : 0 }} onClick={() => navigate(`/transacoes?mes=${key(cur.y, k)}`)}>
@@ -468,7 +468,7 @@ export function SimpleOverview({ yearly = false, embed }: { yearly?: boolean; em
             </button>
           ))}
         </div>
-        {top > 0 && <div className="sh-bestcard"><i><Ic d="M12 19V5M5 12l7-7 7 7" size={16} /></i><span><small>Maior despesa</small><b>{new Date(cur.y, bestM, 1).toLocaleDateString(s.language, { month: 'long', year: 'numeric' })}</b></span><strong>{money(top)}</strong></div>}
+        {top > 0 && <div className="sh-bestcard"><i><Ic d="M12 19V5M5 12l7-7 7 7" size={16} /></i><span><small>{t('blk.biggest')}</small><b>{new Date(cur.y, bestM, 1).toLocaleDateString(s.language, { month: 'long', year: 'numeric' })}</b></span><strong>{money(top)}</strong></div>}
       </section>
     );
   };
@@ -506,12 +506,12 @@ export function SimpleOverview({ yearly = false, embed }: { yearly?: boolean; em
   const catsEl = (<>
         <section className="mv-card">
           <div className="sh-seg small" role="tablist">
-            <button type="button" className={kind === 'expense' ? 'on' : ''} onClick={() => setKind('expense')}>Gastos</button>
-            <button type="button" className={kind === 'income' ? 'on' : ''} onClick={() => setKind('income')}>Rendimentos</button>
+            <button type="button" className={kind === 'expense' ? 'on' : ''} onClick={() => setKind('expense')}>{t('blk.spending')}</button>
+            <button type="button" className={kind === 'income' ? 'on' : ''} onClick={() => setKind('income')}>{t('blk.income')}</button>
           </div>
-          {catRows.total === 0 ? <p className="fx-muted" style={{ textAlign: 'center' }}>Sem dados neste mês.</p> : (
+          {catRows.total === 0 ? <p className="fx-muted" style={{ textAlign: 'center' }}>{t('blk.noData')}</p> : (
             <>
-              <div className="sh-donut" style={{ background: `conic-gradient(${donut})` }}><span><small>Total</small><b>{money(catRows.total)}</b></span></div>
+              <div className="sh-donut" style={{ background: `conic-gradient(${donut})` }}><span><small>{t('blk.total')}</small><b>{money(catRows.total)}</b></span></div>
               {catRows.list.map((x, i) => (
                 <div key={x.id} className="sh-catrow">
                   <i className="sh-dot" style={{ background: COLS[i % COLS.length] }} />

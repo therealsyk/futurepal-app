@@ -1393,5 +1393,38 @@
     "familyText": "Share with up to 5 people on Pro.",
     "noAdsTitle": "No ads with Plus",
     "noAdsText": "Plus unlimited accounts, goals and budgets."
+  },
+  "pco": {
+    "summary": "Summary",
+    "monthly": "Monthly summary",
+    "yearly": "Yearly summary",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "prevYear": "Previous year",
+    "nextYear": "Next year",
+    "incomeAnalysis": "Income analysis",
+    "income": "Income",
+    "expenses": "Expenses",
+    "earnedYear": "Earned this year",
+    "incomeMonth": "Income this month",
+    "spentYear": "Spent this year",
+    "spentMonth": "Spent so far",
+    "savedYear": "Saved this year",
+    "leftMonth": "Still left",
+    "avgMonth": "On average {{v}} per month",
+    "avgDay": "On average {{v}} per day",
+    "vs": "vs"
+  },
+  "blk": {
+    "latest": "Latest transactions",
+    "seeAll": "See all",
+    "noTx": "Nothing recorded yet. Tap “Spent” or “Received”.",
+    "perDay": "Spending per day",
+    "perMonth": "Spending per month",
+    "biggest": "Biggest expense",
+    "spending": "Spending",
+    "income": "Income",
+    "noData": "No data for this period.",
+    "total": "Total"
   }
 }

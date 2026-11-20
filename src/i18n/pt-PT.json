@@ -1387,5 +1387,38 @@
     "familyText": "Partilha com até 5 pessoas no Pro.",
     "noAdsTitle": "Sem anúncios no Plus",
     "noAdsText": "E contas, metas e orçamentos sem limites."
+  },
+  "pco": {
+    "summary": "Resumo",
+    "monthly": "Resumo mensal",
+    "yearly": "Resumo anual",
+    "prevMonth": "Mês anterior",
+    "nextMonth": "Mês seguinte",
+    "prevYear": "Ano anterior",
+    "nextYear": "Ano seguinte",
+    "incomeAnalysis": "Análise de rendimentos",
+    "income": "Rendimentos",
+    "expenses": "Despesas",
+    "earnedYear": "Ganhei este ano",
+    "incomeMonth": "Rendimento este mês",
+    "spentYear": "Gastei este ano",
+    "spentMonth": "Já gastei",
+    "savedYear": "Poupei este ano",
+    "leftMonth": "Ainda tenho",
+    "avgMonth": "Em média {{v}} por mês",
+    "avgDay": "Em média {{v}} por dia",
+    "vs": "vs"
+  },
+  "blk": {
+    "latest": "Últimos movimentos",
+    "seeAll": "Ver todos",
+    "noTx": "Ainda não registaste nada. Toca em “Gastei” ou “Recebi”.",
+    "perDay": "Despesas por dia",
+    "perMonth": "Despesas por mês",
+    "biggest": "Maior despesa",
+    "spending": "Gastos",
+    "income": "Rendimentos",
+    "noData": "Sem dados neste período.",
+    "total": "Total"
   }
 }
