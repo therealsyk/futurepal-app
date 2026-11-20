@@ -1,8 +1,15 @@
 /* PC com as páginas da app de telemóvel (?pc=mobile) — PRÉ-VISUALIZAÇÃO.
    Fica a estrutura do PC (barra lateral, Painel com Personalizar); as outras páginas (Metas, Limites, Contas…)
    são as do telemóvel, centradas e mais largas. */
-html.pcm .fx-page.mv { max-width: 1100px; margin: 0 auto; }
-html.pcm .fx-page.mv .mv-card { padding: 22px; }
+/* Todas as páginas do telemóvel no PC: largura toda; controlos lado a lado numa linha (como no Resumo); cartões a toda a largura */
+html.pcm .mv.sh:not(.sh-embed) { width: 100%; max-width: 1720px; margin: 0 auto; display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; align-content: flex-start; gap: 18px 16px; }
+html.pcm .mv.sh:not(.sh-embed) > * { flex: 1 1 100%; min-width: 0; margin: 0; }
+html.pcm .mv.sh:not(.sh-embed) > .mv-head { flex-basis: 100%; }
+html.pcm .mv.sh:not(.sh-embed) > .sh-seg { flex: 0 0 320px; }
+html.pcm .mv.sh:not(.sh-embed) > .sh-seg.small.three { flex: 0 0 420px; }
+html.pcm .mv.sh:not(.sh-embed) > .sh-monthnav { flex: 0 0 300px; }
+html.pcm .mv.sh:not(.sh-embed) > .txs-search { flex: 1 1 280px; }
+html.pcm .mv.sh:not(.sh-embed) .mv-card { padding: 24px; border-radius: 26px; }
 
 /* Caixas do topo: as 4 na mesma linha em ecrã largo */
 @media (min-width: 1280px) { html.pcm .fx-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
@@ -56,3 +63,5 @@ html.pcm .fx-page.mv .mv-card { padding: 22px; }
 .pco-metric.exp .pco-bar i { background: linear-gradient(90deg, color-mix(in srgb, var(--red) 35%, transparent), var(--red)); }
 .pco-metric.sav .pco-bar i { background: linear-gradient(90deg, color-mix(in srgb, var(--mv) 35%, transparent), var(--mv)); }
 @media (max-width: 1400px) { .pco-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "chart chart" "metrics latest" "cats cal"; } }
+html.pcm .fx-page.tx-simple { max-width: 1720px; width: 100%; }
+html.pcm .mv.sh:not(.sh-embed) > button, html.pcm .mv.sh:not(.sh-embed) > a:not(.mv-card) { flex: 0 0 auto; min-width: 220px; padding-inline: 28px; }
