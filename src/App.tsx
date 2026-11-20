@@ -13,7 +13,8 @@ import DayDetail from './pages/DayDetail';
 import { Settings } from './pages/Settings';
 import { MobileHome } from './pages/MobileHome';
 import { SimpleHome } from './pages/SimpleHome';
-import { SIMPLE_UI } from './core/uiMode';
+import { SIMPLE_UI, PC_MOBILE } from './core/uiMode';
+import { PcPanel } from './pages/PcPanel';
 import { Groups } from './pages/Groups';
 import { SimpleAccounts, SimpleGoals, SimpleLimits, SimpleOverview } from './pages/SimplePages';
 import { AdminPage } from './pages/Admin';
@@ -175,7 +176,7 @@ export default function App() {
       <Rail />
       <main className="app-main" key={dbName}>
         <Routes>
-          <Route path="/" element={isMobile ? (SIMPLE_UI ? <SimpleHome /> : <MobileHome />) : <Dashboard />} />
+          <Route path="/" element={PC_MOBILE ? <PcPanel /> : isMobile ? (SIMPLE_UI ? <SimpleHome /> : <MobileHome />) : <Dashboard />} />
           <Route path="/painel" element={<Dashboard />} />
           <Route path="/resumo-ano" element={<SimpleOverview yearly />} />
           <Route path="/grupos" element={<Groups />} />
