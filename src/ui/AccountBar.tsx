@@ -94,7 +94,6 @@ export function AccountBar() {
       <button type="button" className="ab-chip" onClick={() => setOpen(open === 'menu' ? null : 'menu')} aria-haspopup="menu" aria-expanded={open === 'menu'}>
         <UserAvatar user={auth.user} name={name} />
         <span className="ab-who"><small className="ab-hello">{t('acct.hello')}</small><b className="ab-full">{name}</b><b className="ab-first">{name.split(' ')[0]}!</b><small className="ab-mail">{masked}</small></span>
-        <Ic d={GEAR} size={18} />
       </button>
       <button type="button" className="ab-bell" onClick={() => setOpen(open === 'bell' ? null : 'bell')} aria-label={t('acct.notifications')} aria-expanded={open === 'bell'}>
         <Ic d={BELL} size={20} />
@@ -118,7 +117,6 @@ export function AccountBar() {
             <span className={'ab-plan' + (plan === 'free' ? '' : ' paid')}>{planName}</span>
           </div>
           <button type="button" role="menuitem" className="ab-item accent" onClick={() => go('/plus')}><Ic d={ITEMS.plan} />{plan === 'free' ? t('acct.upgrade') : t('acct.myPlan')}</button>
-          <button type="button" role="menuitem" className="ab-item" onClick={() => go('/definicoes')}><Ic d={ITEMS.settings} />{t('nav.settings')}</button>
           <button type="button" role="menuitem" className="ab-item" onClick={() => go('/definicoes')}><Ic d={ITEMS.backup} />{t('acct.backup')}</button>
           {isAdmin && <button type="button" role="menuitem" className="ab-item" onClick={() => go('/admin')}><Ic d={ITEMS.admin} />{t('admin.title')}</button>}
           {auth.configured && <button type="button" role="menuitem" className="ab-item" onClick={() => { setOpen(null); setSwitcher(true); }} data-testid="switch-account"><Ic d={ITEMS.swap} />{t('switcher.menu')}</button>}
