@@ -150,3 +150,15 @@ html.pcm .fx-page:has(> .pm-plans) > * { margin-top: 0 !important; margin-bottom
 /* Painel: só um + redondo no canto */
 .pc-fab { width: 56px; height: 56px; min-width: 0 !important; padding: 0 !important; border-radius: 50%; font-size: 0; gap: 0; }
 .pc-fab svg { width: 24px; height: 24px; }
+/* Transações: filtros numa linha, números por baixo, depois a lista */
+html.pcm .tx-simple .txs-new { display: grid !important; grid-template-columns: 220px 300px auto minmax(240px, 1fr); gap: 14px; align-items: stretch; }
+html.pcm .txs-new > .mv-head { grid-column: 1 / -1; grid-row: 1; }
+html.pcm .txs-new > .sh-seg:not(.three) { grid-column: 1; grid-row: 2; margin: 0; }
+html.pcm .txs-new > .sh-monthnav { grid-column: 2; grid-row: 2; margin: 0; width: auto !important; }
+html.pcm .txs-new > .sh-seg.three { grid-column: 3; grid-row: 2; margin: 0; }
+html.pcm .txs-new > .txs-search { grid-column: 4; grid-row: 2; margin: 0; }
+html.pcm .txs-new > .txs-stats { grid-column: 1 / -1; grid-row: 3; grid-template-columns: 1fr 1fr 2fr; }
+html.pcm .txs-new > section { grid-column: 1 / -1; grid-row: 4; }
+html.pcm .txs-new > .sh-seg, html.pcm .txs-new > .sh-monthnav, html.pcm .txs-new > .txs-search { min-height: 54px; }
+html.pcm .tx-simple .txs-new { grid-template-columns: minmax(170px, .8fr) minmax(240px, 1fr) minmax(320px, 1.3fr) minmax(200px, 1fr) !important; }
+html.pcm .txs-new > .sh-seg.three { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; }
