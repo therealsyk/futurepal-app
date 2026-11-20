@@ -1288,3 +1288,10 @@ button.sh-tx.txs-row { width: 100%; border: 0; border-top: 1px solid var(--borde
 .sh-kpis.three .sh-kpi > small { font-size: 14.5px; color: var(--text); font-weight: 600; }
 .sh-kpis.three .sh-valline { flex-wrap: nowrap; justify-content: flex-end; gap: 8px; }
 .sh-kpis.three .sh-kpi b { font-size: 17px; }
+
+/* Painel do computador: caixas Despesas/Poupança no estilo da app de telemóvel */
+.fx-kpi-simple { background: color-mix(in srgb, var(--card-2) 55%, var(--card)); }
+.fx-kpi-simple .fx-kpi-label { color: var(--muted); font-weight: 600; }
+.fx-kpi-simple .fx-kpi-value { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+.fx-kpi-simple .fx-kpi-value > span:first-child { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.fx-kpi-simple .fx-kpi-sub { margin-top: 6px; }

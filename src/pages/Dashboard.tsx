@@ -122,6 +122,19 @@ function Kpi({ icon, color, label, value, pct, pctTone = 'neutral', sub }: {
   );
 }
 
+/** Caixa no estilo da app de telemóvel: título, valor a cores e etiqueta de % ao lado (sem ícone). */
+function SimpleKpi({ label, value, valueClass, chip, chipTone, sub }: {
+  label: string; value: string; valueClass?: string; chip?: string | null; chipTone?: string; sub?: ReactNode;
+}) {
+  return (
+    <section className="fx-card fx-kpi fx-kpi-simple">
+      <div className="fx-kpi-label">{label}</div>
+      <div className="fx-kpi-value"><span className={valueClass}>{value}</span>{chip && <span className={'fx-chip ' + (chipTone ?? 'neutral')}>{chip}</span>}</div>
+      {sub ? <div className="fx-kpi-sub">{sub}</div> : null}
+    </section>
+  );
+}
+
 // ── Gráfico de área: rendimento vs despesas por mês ─────────────────────
 function OverviewChart({ series, upTo, money, t }: {
   series: { label: string; tick?: string; earning: number; spending: number }[];
@@ -1035,8 +1048,8 @@ export function Dashboard() {
       </header>
 
       <div className="fx-kpis">
-        <Kpi label={t('panel.expenses')} color="#4f8ff0" icon="M3 7a2 2 0 0 1 2-2h12v4M3 7v10a2 2 0 0 0 2 2h14V9H5a2 2 0 0 1-2-2zM16 14h.01"
-          value={money(spent)} pct={pctTxt(pctSpent)} pctTone={pctSpent !== null && pctSpent > 1 ? 'bad' : 'neutral'}
+        <SimpleKpi label={t('panel.expenses')} value={money(spent)} valueClass="fx-neg"
+          chip={pctTxt(pctSpent)} chipTone={pctSpent === null ? 'neutral' : pctSpent >= 0.8 ? 'bad' : pctSpent >= 0.5 ? 'warn' : 'neutral'}
           sub={<>
             {spent > 0 && <span data-testid="kpi-per-day">{t('panel.perDayRate', { value: money(avgDay) })}</span>}
             {deltaSpent !== null && (
@@ -1045,9 +1058,8 @@ export function Dashboard() {
               </b>
             )}
           </>} />
-        <Kpi label={t('panel.savings')} color="#2fbf8a" icon="M19 7a3 3 0 0 0-3-2H9a6 6 0 0 0-6 6c0 2 1 3.5 2 4.5V19h3v-2h5v2h3v-3a6 6 0 0 0 2-3h2V9h-2zM15 10h.01"
-          value={savings === null ? '—' : money(savings)} pct={pctTxt(savings === null || income === 0 ? null : savings / income)}
-          pctTone={savings !== null && savings < 0 ? 'bad' : 'good'}
+        <SimpleKpi label={t('panel.savings')} value={savings === null ? '—' : money(savings)} valueClass={savings !== null && savings < 0 ? 'fx-neg' : 'fx-pos'}
+          chip={pctTxt(savings === null || income === 0 ? null : savings / income)} chipTone={savings !== null && savings < 0 ? 'bad' : 'good'}
           sub={savings === null ? t('panel.noIncome') : period === 'year' && avgMonthSavings !== null
             ? <span data-testid="kpi-avg-savings">{t('panel.perMonthRate', { value: money(avgMonthSavings) })}</span>
             : null} />
