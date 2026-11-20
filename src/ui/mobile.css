@@ -1270,3 +1270,6 @@ button.sh-tx.txs-row { width: 100%; border: 0; border-top: 1px solid var(--borde
 .sh-bestcard { background: var(--card-2); border-color: var(--border); }
 .sh-bestcard i { background: color-mix(in srgb, var(--mv) 18%, transparent); color: var(--mv); }
 .sh-bestcard strong { color: var(--text); }
+
+/* Resumo do mês/ano: comparação com o período anterior em cada caixa */
+.sh-kpi .sh-cmp-sub { color: var(--muted); font-size: 11px; line-height: 1.2; }

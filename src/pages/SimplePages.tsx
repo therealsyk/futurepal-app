@@ -368,6 +368,16 @@ export function SimpleOverview({ yearly = false }: { yearly?: boolean }) {
   const pref = yearly ? String(cur.y) : key(cur.y, cur.m);
   const m = sumOf(pref);
   const bal = m.income - m.expense;
+  // comparação com o mês (ou ano) anterior, como no Início
+  const pm = yearly ? sumOf(String(cur.y - 1)) : sumOf(key(cur.m === 0 ? cur.y - 1 : cur.y, (cur.m + 11) % 12));
+  const prevBal = pm.income - pm.expense;
+  const cmpTo = yearly ? 'vs ano anterior' : 'vs mês anterior';
+  const cmp = (now_: number, before: number, upIsGood: boolean) => {
+    if (before === 0 || now_ === 0 && before === 0) return null;
+    const pctv = Math.round(((now_ - before) / Math.abs(before)) * 100);
+    const good = pctv === 0 ? null : (pctv > 0) === upIsGood;
+    return (<><small className={'sh-cmp ' + (good === null ? '' : good ? 'fx-pos' : 'fx-neg')}>{pctv > 0 ? '↑' : pctv < 0 ? '↓' : '='} {Math.abs(pctv)}%</small><small className="sh-cmp-sub">{cmpTo}</small></>);
+  };
   const bars = Array.from({ length: yearly ? 12 : 24 }, (_, i) => { const dt = new Date(yearly ? cur.y : cur.y - 1, i, 1); const v = sumOf(key(dt.getFullYear(), dt.getMonth())); return { y: dt.getFullYear(), mo: dt.getMonth(), ...v }; });
   const max = Math.max(1, ...bars.map((b) => Math.max(b.income, b.expense)));
   const label = yearly ? String(cur.y) : new Date(cur.y, cur.m, 1).toLocaleDateString(s.language, { month: 'long', year: 'numeric' });
@@ -470,9 +480,9 @@ export function SimpleOverview({ yearly = false }: { yearly?: boolean }) {
           </section>
 
           <div className="sh-kpis three">
-            <div className="sh-kpi"><small>Rendimentos</small><b className="fx-pos">{money(m.income)}</b></div>
-            <div className="sh-kpi"><small>Despesas</small><b className="fx-neg">{money(m.expense)}</b></div>
-            <div className="sh-kpi"><small>Saldo</small><b className={bal < 0 ? 'fx-neg' : 'fx-pos'}>{money(bal)}</b></div>
+            <div className="sh-kpi"><small>Rendimentos</small><b className="fx-pos">{money(m.income)}</b>{cmp(m.income, pm.income, true)}</div>
+            <div className="sh-kpi"><small>Despesas</small><b className="fx-neg">{money(m.expense)}</b>{cmp(m.expense, pm.expense, false)}</div>
+            <div className="sh-kpi"><small>Saldo</small><b className={bal < 0 ? 'fx-neg' : 'fx-pos'}>{money(bal)}</b>{cmp(bal, prevBal, true)}</div>
           </div>
           <section className="mv-card sh-lines">
             {m.income > 0 && <div className="sh-line"><span>Salário</span><b>{money(m.salary)}</b></div>}
