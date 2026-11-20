@@ -167,3 +167,7 @@ html.pcm .fx-page:has(> .ct-section) > .fx-head .fx-btn.primary { position: fixe
   box-shadow: 0 14px 34px -12px rgba(0,0,0,.7), 0 8px 22px -12px color-mix(in srgb, var(--mv) 70%, transparent); transition: filter .15s, transform .15s; }
 html.pcm .fx-page:has(> .ct-section) > .fx-head .fx-btn.primary:hover { filter: brightness(1.08); transform: translate(-50%, -1px); }
 html.pcm .fx-page:has(> .ct-section) { padding-bottom: 130px !important; }
+/* Todos os botões de criar com o tamanho do "Novo limite" */
+html.pcm .fx-page.sh > .sh-btn.in, html.pcm .fx-page.sh > .sh-pill, html.pcm .txs-new > .txs-add, html.pcm .fx-page.sh .mv-card > .sh-btn.out.sm,
+html.pcm .fx-page:has(> .ct-section) > .fx-head .fx-btn.primary, html.pcm .sal-add {
+  height: 48px !important; min-height: 48px !important; min-width: 220px !important; padding: 0 26px !important; font-size: 15.5px !important; font-weight: 750 !important; border-radius: 99px !important; gap: 8px; }
