@@ -1272,9 +1272,19 @@ button.sh-tx.txs-row { width: 100%; border: 0; border-top: 1px solid var(--borde
 .sh-bestcard strong { color: var(--text); }
 
 /* Resumo do mês/ano: comparação com o período anterior em cada caixa */
-.sh-trend-wrap { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; margin-top: 2px; }
-.sh-trend { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 99px; font-size: 12.5px; font-weight: 750; font-variant-numeric: tabular-nums; line-height: 1.3; }
+.sh-trend { border: 0; font-family: inherit; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 99px; font-size: 12.5px; font-weight: 750; font-variant-numeric: tabular-nums; line-height: 1.3; }
 .sh-trend.good { color: var(--pos); background: color-mix(in srgb, var(--pos) 16%, transparent); }
 .sh-trend.bad { color: var(--red); background: color-mix(in srgb, var(--red) 15%, transparent); }
 .sh-trend.same { color: var(--muted); background: var(--card-2); }
-.sh-trend-words { color: var(--muted); font-size: 12px; line-height: 1.25; }
+.sh-valline { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; min-width: 0; }
+.sh-trend-box { position: relative; display: inline-flex; }
+.sh-trend { padding: 2px 7px; font-size: 11.5px; }
+.sh-tip { position: absolute; z-index: 30; top: calc(100% + 6px); right: 0; width: max-content; max-width: 170px; padding: 7px 10px; border-radius: 10px; background: var(--text); color: var(--bg); font-size: 12.5px; font-weight: 600; line-height: 1.3; box-shadow: 0 10px 24px -10px rgba(0,0,0,.6); animation: fx-fade .15s ease both; }
+.sh-tip::before { content: ""; position: absolute; top: -5px; right: 14px; width: 10px; height: 10px; background: inherit; transform: rotate(45deg); border-radius: 2px; }
+.sh-kpis.three .sh-kpi { overflow: visible; }
+/* Resumo: Rendimentos / Despesas / Saldo em linhas (nome à esquerda, valor e % à direita) */
+.sh-kpis.three { grid-template-columns: 1fr; gap: 8px; }
+.sh-kpis.three .sh-kpi { flex-direction: row; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; }
+.sh-kpis.three .sh-kpi > small { font-size: 14.5px; color: var(--text); font-weight: 600; }
+.sh-kpis.three .sh-valline { flex-wrap: nowrap; justify-content: flex-end; gap: 8px; }
+.sh-kpis.three .sh-kpi b { font-size: 17px; }

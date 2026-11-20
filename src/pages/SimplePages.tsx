@@ -356,6 +356,8 @@ export function SimpleOverview({ yearly = false }: { yearly?: boolean }) {
   const [tab, setTab] = useState<'sum' | 'cat'>('sum');
   const navigate = useNavigate();
   const [kind, setKind] = useState<'expense' | 'income'>('expense');
+  const [tip, setTip] = useState<string | null>(null);
+  useEffect(() => { if (!tip) return; const id = setTimeout(() => setTip(null), 2500); const off = () => setTip(null); document.addEventListener('click', off); return () => { clearTimeout(id); document.removeEventListener('click', off); }; }, [tip]);
   useEffect(() => { loadAll().then(setD).catch(() => {}); }, []);
 
   const shift = (k: number) => setCur((c) => (yearly ? { y: c.y + k, m: c.m } : { y: c.y + Math.floor((c.m + k) / 12), m: ((c.m + k) % 12 + 12) % 12 }));
@@ -374,15 +376,19 @@ export function SimpleOverview({ yearly = false }: { yearly?: boolean }) {
   // nome do período anterior, em palavras ("outubro", "2025")
   const prevName = yearly ? String(cur.y - 1)
     : new Intl.DateTimeFormat(loadSettings().language, { month: 'long' }).format(new Date(cur.m === 0 ? cur.y - 1 : cur.y, (cur.m + 11) % 12, 1));
-  const cmp = (now_: number, before: number, upIsGood: boolean) => {
+  // etiqueta com a % ao lado do valor; ao tocar mostra "Em comparação com outubro"
+  const cmp = (id: string, now_: number, before: number, upIsGood: boolean) => {
     if (before === 0) return null;
     const pctv = Math.round(((now_ - before) / Math.abs(before)) * 100);
     const tone = pctv === 0 ? 'same' : (pctv > 0) === upIsGood ? 'good' : 'bad';
-    const words = pctv > 0 ? `mais do que em ${prevName}` : pctv < 0 ? `menos do que em ${prevName}` : `igual a ${prevName}`;
+    const label = `Em comparação com ${prevName}`;
     return (
-      <span className="sh-trend-wrap" title={`${pctv > 0 ? '+' : ''}${pctv}% em relação a ${prevName}`}>
-        <span className={'sh-trend ' + tone}>{pctv > 0 ? '▲' : pctv < 0 ? '▼' : '●'} {Math.abs(pctv)}%</span>
-        <span className="sh-trend-words">{words}</span>
+      <span className="sh-trend-box">
+        <button type="button" className={'sh-trend ' + tone} aria-label={`${pctv > 0 ? 'Mais' : pctv < 0 ? 'Menos' : 'Igual'} ${Math.abs(pctv)}%. ${label}`}
+          onClick={(e) => { e.stopPropagation(); setTip(tip === id ? null : id); }}>
+          {pctv > 0 ? '▲' : pctv < 0 ? '▼' : '●'} {Math.abs(pctv)}%
+        </button>
+        {tip === id && <span className="sh-tip" role="status">{label}</span>}
       </span>
     );
   };
@@ -488,9 +494,9 @@ export function SimpleOverview({ yearly = false }: { yearly?: boolean }) {
           </section>
 
           <div className="sh-kpis three">
-            <div className="sh-kpi"><small>Rendimentos</small><b className="fx-pos">{money(m.income)}</b>{cmp(m.income, pm.income, true)}</div>
-            <div className="sh-kpi"><small>Despesas</small><b className="fx-neg">{money(m.expense)}</b>{cmp(m.expense, pm.expense, false)}</div>
-            <div className="sh-kpi"><small>Saldo</small><b className={bal < 0 ? 'fx-neg' : 'fx-pos'}>{money(bal)}</b>{cmp(bal, prevBal, true)}</div>
+            <div className="sh-kpi"><small>Rendimentos</small><span className="sh-valline"><b className="fx-pos">{money(m.income)}</b>{cmp('inc', m.income, pm.income, true)}</span></div>
+            <div className="sh-kpi"><small>Despesas</small><span className="sh-valline"><b className="fx-neg">{money(m.expense)}</b>{cmp('exp', m.expense, pm.expense, false)}</span></div>
+            <div className="sh-kpi"><small>Saldo</small><span className="sh-valline"><b className={bal < 0 ? 'fx-neg' : 'fx-pos'}>{money(bal)}</b>{cmp('bal', bal, prevBal, true)}</span></div>
           </div>
           <section className="mv-card sh-lines">
             {m.income > 0 && <div className="sh-line"><span>Salário</span><b>{money(m.salary)}</b></div>}
