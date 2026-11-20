@@ -1057,9 +1057,9 @@ export function Dashboard() {
       </header>
 
       <div className="fx-kpis">
-        <SimpleKpi label={t('panel.expenses')} value={money(spent)}
+        <SimpleKpi label={t('panel.expenses')} value={money(spent)} valueClass={spent > 0 ? 'fx-neg' : undefined}
           chip={deltaChip(deltaSpent)} chipTone={deltaTone(deltaSpent, false)} chipTitle={vsLabel} />
-        <SimpleKpi label={t('panel.savings')} value={savings === null ? '—' : money(savings)}
+        <SimpleKpi label={t('panel.savings')} value={savings === null ? '—' : money(savings)} valueClass={savings === null || savings === 0 ? undefined : savings < 0 ? 'fx-neg' : 'fx-pos'}
           chip={deltaChip(deltaSavings)} chipTone={deltaTone(deltaSavings, true)} chipTitle={vsLabel} />
         <Kpi label={t('panel.income')} color="#8b6cf0" icon="M12 3v18M7 8l5-5 5 5M5 21h14"
           value={money(income)}
