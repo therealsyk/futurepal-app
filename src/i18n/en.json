@@ -222,7 +222,9 @@
     "w_statSavingsAvg": "Savings / month (average)",
     "wd_statSavingsAvg": "How much you save per month on average.",
     "stretchWidget": "Stretch (show more)",
-    "shrinkWidget": "Shrink"
+    "shrinkWidget": "Shrink",
+    "cmpPrevMonth": "Compared with last month",
+    "cmpPrevYear": "Compared with last year"
   },
   "transactions": {
     "title": "Transactions",

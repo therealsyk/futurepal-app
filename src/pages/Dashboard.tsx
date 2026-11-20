@@ -123,13 +123,13 @@ function Kpi({ icon, color, label, value, pct, pctTone = 'neutral', sub }: {
 }
 
 /** Caixa no estilo da app de telemóvel: título, valor a cores e etiqueta de % ao lado (sem ícone). */
-function SimpleKpi({ label, value, valueClass, chip, chipTone, sub }: {
-  label: string; value: string; valueClass?: string; chip?: string | null; chipTone?: string; sub?: ReactNode;
+function SimpleKpi({ label, value, valueClass, chip, chipTone, chipTitle, sub }: {
+  label: string; value: string; valueClass?: string; chip?: string | null; chipTone?: string; chipTitle?: string; sub?: ReactNode;
 }) {
   return (
     <section className="fx-card fx-kpi fx-kpi-simple">
       <div className="fx-kpi-label">{label}</div>
-      <div className="fx-kpi-value"><span className={valueClass}>{value}</span>{chip && <span className={'fx-chip ' + (chipTone ?? 'neutral')}>{chip}</span>}</div>
+      <div className="fx-kpi-value"><span className={valueClass}>{value}</span>{chip && <span className={'fx-chip ' + (chipTone ?? 'neutral')} title={chipTitle} aria-label={chipTitle ? `${chip} ${chipTitle}` : undefined}>{chip}</span>}</div>
       {sub ? <div className="fx-kpi-sub">{sub}</div> : null}
     </section>
   );
@@ -496,7 +496,6 @@ export function Dashboard() {
   const income = salaryCents + extrasCents;
   const spent = kpis.totalSpentCents;
   const savings = income > 0 ? income - spent : null;
-  const pctSpent = income > 0 ? spent / income : null;
   const avgDay = Math.round(spent / Math.max(1, elapsedDays || daysInPeriod));
   // Poupança média por mês, como no Excel: (rendimento − despesas) ÷ dias do período × 30,44 (dias de um mês médio).
   const avgMonthSavings = savings === null ? null : Math.round((savings / daysInPeriod) * 30.44);
@@ -505,6 +504,16 @@ export function Dashboard() {
     : String(year - 1);
   const prevSpent = accTxs.filter((tx) => tx.type === 'expense' && tx.date.startsWith(prevPrefix)).reduce((a, tx) => a + tx.amountCents, 0);
   const deltaSpent = prevSpent > 0 ? (spent - prevSpent) / prevSpent : null;
+  // Poupança do período anterior (mesma conta: salários + extras − despesas), para comparar
+  const prevSalary = !salaryHere ? 0 : salaries
+    .filter((s) => (period === 'year' ? s.year === year - 1 : (month === 1 ? s.year === year - 1 && s.month === 12 : s.year === year && s.month === month - 1)))
+    .reduce((a, s) => a + s.amountCents, 0);
+  const prevIncome = prevSalary + accTxs.filter((tx) => tx.type === 'income' && tx.date.startsWith(prevPrefix)).reduce((a, tx) => a + tx.amountCents, 0);
+  const prevSavings = prevIncome > 0 ? prevIncome - prevSpent : null;
+  const deltaSavings = savings !== null && prevSavings !== null && prevSavings !== 0 ? (savings - prevSavings) / Math.abs(prevSavings) : null;
+  const deltaChip = (r: number | null) => (r === null ? null : `${r > 0 ? '▲' : r < 0 ? '▼' : '●'} ${Math.abs(Math.round(r * 100))}%`);
+  const deltaTone = (r: number | null, upIsGood: boolean) => (r === null || Math.round(r * 100) === 0 ? 'neutral' : (r > 0) === upIsGood ? 'good' : 'bad');
+  const vsLabel = t(period === 'year' ? 'panel.cmpPrevYear' : 'panel.cmpPrevMonth');
   const pctTxt = (r: number | null) => (r === null ? null : `${Math.round(r * 100)}%`);
 
   // Despesas por categoria (ordenadas)
@@ -1048,21 +1057,10 @@ export function Dashboard() {
       </header>
 
       <div className="fx-kpis">
-        <SimpleKpi label={t('panel.expenses')} value={money(spent)} valueClass="fx-neg"
-          chip={pctTxt(pctSpent)} chipTone={pctSpent === null ? 'neutral' : pctSpent >= 0.8 ? 'bad' : pctSpent >= 0.5 ? 'warn' : 'neutral'}
-          sub={<>
-            {spent > 0 && <span data-testid="kpi-per-day">{t('panel.perDayRate', { value: money(avgDay) })}</span>}
-            {deltaSpent !== null && (
-              <b className={deltaSpent > 0 ? 'fx-neg' : 'fx-pos'} style={{ marginLeft: 6, fontWeight: 600 }}>
-                {deltaSpent > 0 ? '↑' : '↓'} {Math.abs(Math.round(deltaSpent * 100))}% {t(period === 'year' ? 'panel.vsPrevYear' : 'panel.vsPrevMonth')}
-              </b>
-            )}
-          </>} />
-        <SimpleKpi label={t('panel.savings')} value={savings === null ? '—' : money(savings)} valueClass={savings !== null && savings < 0 ? 'fx-neg' : 'fx-pos'}
-          chip={pctTxt(savings === null || income === 0 ? null : savings / income)} chipTone={savings !== null && savings < 0 ? 'bad' : 'good'}
-          sub={savings === null ? t('panel.noIncome') : period === 'year' && avgMonthSavings !== null
-            ? <span data-testid="kpi-avg-savings">{t('panel.perMonthRate', { value: money(avgMonthSavings) })}</span>
-            : null} />
+        <SimpleKpi label={t('panel.expenses')} value={money(spent)}
+          chip={deltaChip(deltaSpent)} chipTone={deltaTone(deltaSpent, false)} chipTitle={vsLabel} />
+        <SimpleKpi label={t('panel.savings')} value={savings === null ? '—' : money(savings)}
+          chip={deltaChip(deltaSavings)} chipTone={deltaTone(deltaSavings, true)} chipTitle={vsLabel} />
         <Kpi label={t('panel.income')} color="#8b6cf0" icon="M12 3v18M7 8l5-5 5 5M5 21h14"
           value={money(income)}
           sub={t('panel.kpiIncomeSub', { salary: money(salaryCents), extras: money(extrasCents) })} />

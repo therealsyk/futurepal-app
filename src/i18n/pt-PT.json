@@ -222,7 +222,9 @@
     "w_statSavingsAvg": "Poupança por mês (média)",
     "wd_statSavingsAvg": "Quanto poupas, em média, por mês.",
     "stretchWidget": "Esticar (mostrar mais)",
-    "shrinkWidget": "Encolher"
+    "shrinkWidget": "Encolher",
+    "cmpPrevMonth": "Em comparação com o mês anterior",
+    "cmpPrevYear": "Em comparação com o ano anterior"
   },
   "transactions": {
     "title": "Transações",
