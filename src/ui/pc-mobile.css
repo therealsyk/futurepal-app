@@ -6,3 +6,14 @@ html.pcm .fx-page.mv .mv-card { padding: 22px; }
 
 /* Caixas do topo: as 4 na mesma linha em ecrã largo */
 @media (min-width: 1280px) { html.pcm .fx-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+/* Painel ao estilo "visão geral": saudação, caixas com ícone, coluna larga à esquerda e cartões à direita */
+.dash-greet { margin: 4px 0 18px; }
+.dash-greet h1 { margin: 0; font-size: 30px; letter-spacing: -0.02em; }
+.dash-greet p { margin: 4px 0 0; color: var(--muted); }
+.fx-grid { grid-template-columns: minmax(0, 6fr) minmax(280px, 3fr) minmax(290px, 3fr); }
+.fx-grid > .fx-col.center { order: -1; }
+.fx-kpi-simple .fx-kpi-row { display: flex; align-items: center; gap: 14px; }
+.fx-kpi-simple .fx-kpi-ic { width: 52px; height: 52px; border-radius: 16px; flex: none; display: grid; place-items: center; color: #fff; }
+.fx-kpi-simple .fx-kpi-value { margin-top: 0; }
+.fx-kpi-simple .fx-kpi-label { margin-top: 2px; }

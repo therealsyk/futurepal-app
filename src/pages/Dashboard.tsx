@@ -17,6 +17,7 @@ import { AccountBar } from '../ui/AccountBar';
 import { withoutSalaryTx } from '../core/salaryTx';
 import { SimpleHome } from './SimpleHome';
 import { SimpleOverview } from './SimplePages';
+import { useAuth } from '../auth/AuthContext';
 
 // Painel — visual "clean".
 // Toda a lógica trabalha em cêntimos inteiros; todo o texto passa por t().
@@ -104,14 +105,19 @@ function AccountStack({ items, hint }: { items: Array<{ id: string; name: string
 
 // ── Caixa de indicador (Despesas / Poupança / Rendimento / Categoria) ──
 /** Caixa no estilo da app de telemóvel: título, valor a cores e etiqueta de % ao lado (sem ícone). */
-function SimpleKpi({ label, value, valueClass, chip, chipTone, chipTitle, sub }: {
-  label: string; value: string; valueClass?: string; chip?: string | null; chipTone?: string; chipTitle?: string; sub?: ReactNode;
+function SimpleKpi({ label, value, valueClass, chip, chipTone, chipTitle, sub, icon, color }: {
+  label: string; value: string; valueClass?: string; chip?: string | null; chipTone?: string; chipTitle?: string; sub?: ReactNode; icon?: string; color?: string;
 }) {
   return (
     <section className="fx-card fx-kpi fx-kpi-simple">
-      <div className="fx-kpi-label">{label}</div>
-      <div className="fx-kpi-value"><span className={valueClass}>{value}</span>{chip && <span className={'fx-chip ' + (chipTone ?? 'neutral')} title={chipTitle} aria-label={chipTitle ? `${chip} ${chipTitle}` : undefined}>{chip}</span>}</div>
-      {sub ? <div className="fx-kpi-sub">{sub}</div> : null}
+      <div className="fx-kpi-row">
+        {icon && <span className="fx-kpi-ic" style={{ background: color }}><Ic d={icon} size={20} /></span>}
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div className="fx-kpi-value"><span className={valueClass}>{value}</span>{chip && <span className={'fx-chip ' + (chipTone ?? 'neutral')} title={chipTitle} aria-label={chipTitle ? `${chip} ${chipTitle}` : undefined}>{chip}</span>}</div>
+          <div className="fx-kpi-label">{label}</div>
+          {sub ? <div className="fx-kpi-sub">{sub}</div> : null}
+        </div>
+      </div>
     </section>
   );
 }
@@ -374,6 +380,7 @@ const NATIVE_APP = typeof window !== 'undefined' && !!(window as unknown as { Ca
 
 // ── Painel ──────────────────────────────────────────────────────────────
 export function Dashboard() {
+  const auth = useAuth();
   const { t, i18n } = useTranslation();
   const [settings, setSettings] = useState<AppSettings>(loadSettings());
   const [txs, setTxs] = useState<Transaction[]>([]);
@@ -500,10 +507,10 @@ export function Dashboard() {
   const prevBalance = prevIncome - prevSpent;
   const deltaBalance = prevBalance !== 0 && (prevIncome > 0 || prevSpent > 0) ? (balance - prevBalance) / Math.abs(prevBalance) : null;
   const kpiBox = (k: 'kExpenses' | 'kSavings' | 'kIncome' | 'kBalance') => {
-    if (k === 'kExpenses') return <SimpleKpi label={t('panel.expenses')} value={money(spent)} valueClass={spent > 0 ? 'fx-neg' : undefined} chip={deltaChip(deltaSpent)} chipTone={deltaTone(deltaSpent, false)} chipTitle={vsLabel} />;
-    if (k === 'kSavings') return <SimpleKpi label={t('panel.savings')} value={savings === null ? '—' : money(savings)} valueClass={savings === null || savings === 0 ? undefined : savings < 0 ? 'fx-neg' : 'fx-pos'} chip={deltaChip(deltaSavings)} chipTone={deltaTone(deltaSavings, true)} chipTitle={vsLabel} />;
-    if (k === 'kIncome') return <SimpleKpi label={t('panel.income')} value={money(income)} valueClass={income > 0 ? 'fx-pos' : undefined} chip={deltaChip(deltaIncome)} chipTone={deltaTone(deltaIncome, true)} chipTitle={vsLabel} />;
-    return <SimpleKpi label={t(period === 'year' ? 'panel.savings' : 'panel.balanceMonth')} value={money(balance)} valueClass={balance === 0 ? undefined : balance < 0 ? 'fx-neg' : 'fx-pos'} chip={deltaChip(deltaBalance)} chipTone={deltaTone(deltaBalance, true)} chipTitle={vsLabel} />;
+    if (k === 'kExpenses') return <SimpleKpi icon="M3 7a2 2 0 0 1 2-2h12v4M3 7v10a2 2 0 0 0 2 2h14V9H5a2 2 0 0 1-2-2zM16 14h.01" color="#4f8ff0" label={t('panel.expenses')} value={money(spent)} valueClass={spent > 0 ? 'fx-neg' : undefined} chip={deltaChip(deltaSpent)} chipTone={deltaTone(deltaSpent, false)} chipTitle={vsLabel} />;
+    if (k === 'kSavings') return <SimpleKpi icon="M19 7a3 3 0 0 0-3-2H9a6 6 0 0 0-6 6c0 2 1 3.5 2 4.5V19h3v-2h5v2h3v-3a6 6 0 0 0 2-3h2V9h-2zM15 10h.01" color="#2fbf8a" label={t('panel.savings')} value={savings === null ? '—' : money(savings)} valueClass={savings === null || savings === 0 ? undefined : savings < 0 ? 'fx-neg' : 'fx-pos'} chip={deltaChip(deltaSavings)} chipTone={deltaTone(deltaSavings, true)} chipTitle={vsLabel} />;
+    if (k === 'kIncome') return <SimpleKpi icon="M12 3v18M7 8l5-5 5 5M5 21h14" color="#8b6cf0" label={t('panel.income')} value={money(income)} valueClass={income > 0 ? 'fx-pos' : undefined} chip={deltaChip(deltaIncome)} chipTone={deltaTone(deltaIncome, true)} chipTitle={vsLabel} />;
+    return <SimpleKpi icon="M12 3v18M5 7h14M7 7l-3 7h6zM17 7l-3 7h6z" color="#e0a53a" label={t(period === 'year' ? 'panel.savings' : 'panel.balanceMonth')} value={money(balance)} valueClass={balance === 0 ? undefined : balance < 0 ? 'fx-neg' : 'fx-pos'} chip={deltaChip(deltaBalance)} chipTone={deltaTone(deltaBalance, true)} chipTitle={vsLabel} />;
   };
 
   // Despesas por categoria (ordenadas)
@@ -1057,6 +1064,17 @@ export function Dashboard() {
         </div>
       </header>
 
+      {(() => {
+        const h = new Date().getHours();
+        const meta = (auth.user?.user_metadata ?? {}) as { name?: string; full_name?: string };
+        const first = (meta.full_name || meta.name || auth.user?.email?.split('@')[0] || '').split(' ')[0];
+        return (
+          <div className="dash-greet">
+            <h1>{t(h < 12 ? 'panel.goodMorning' : h < 20 ? 'panel.goodAfternoon' : 'panel.goodEvening')}{first ? `, ${first}` : ''} ✨</h1>
+            <p>{t('panel.greetSub')}</p>
+          </div>
+        );
+      })()}
       <div className="fx-kpis">
         {kpiBox('kExpenses')}
         {kpiBox('kSavings')}

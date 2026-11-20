@@ -5,13 +5,14 @@ export type Layout = string[][];
 
 export const COLUMNS = 3;
 // Coluna 1: o mês/ano e os detalhes; coluna 2: gráfico e calendário; coluna 3: para onde foi o dinheiro e o dia a dia
+// Coluna do meio = a larga (aparece à esquerda): gráfico e transações; as outras duas aparecem à direita
 export const DEFAULT_LAYOUT: Layout = [
   ['mHero', 'rLines', 'mGoals'],
-  ['overview', 'rCal'],
-  ['rCats', 'mLatest', 'mGroups'],
+  ['overview', 'recent'],
+  ['rCats', 'rCal', 'mGroups'],
 ];
 // v2: disposição com os cartões da app de telemóvel (a anterior fica de lado)
-const KEY = 'wallet.dashLayout.v4';
+const KEY = 'wallet.dashLayout.v5';
 
 const clone = (l: Layout): Layout => l.map((c) => [...c]);
 

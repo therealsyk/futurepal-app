@@ -250,7 +250,11 @@
     "w_kIncome": "Income box",
     "wd_kIncome": "Everything you received, with the %",
     "w_kBalance": "Balance / Savings box",
-    "wd_kBalance": "Month balance (Year: savings), with the %"
+    "wd_kBalance": "Month balance (Year: savings), with the %",
+    "goodMorning": "Good morning",
+    "goodAfternoon": "Good afternoon",
+    "goodEvening": "Good evening",
+    "greetSub": "Here's an overview of your financial health."
   },
   "transactions": {
     "title": "Transactions",

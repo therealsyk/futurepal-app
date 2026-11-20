@@ -8,7 +8,7 @@ import { Ic, ICON } from './fx';
 // O arrasto usa só a pega (⠿); com o teclado: setas movem a janela.
 
 const GRIP = 'M9 5h.01M9 12h.01M9 19h.01M15 5h.01M15 12h.01M15 19h.01';
-const WIDE = new Set(['overview']); // ocupam as duas meias-colunas da coluna central
+const WIDE = new Set(['overview', 'recent']); // ocupam as duas meias-colunas da coluna central
 
 export interface WidgetGridProps {
   layout: Layout;

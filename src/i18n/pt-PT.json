@@ -250,7 +250,11 @@
     "w_kIncome": "Caixa Rendimento",
     "wd_kIncome": "Tudo o que recebeste, com a %",
     "w_kBalance": "Caixa Saldo / Poupança",
-    "wd_kBalance": "Saldo do mês (no Ano: poupança), com a %"
+    "wd_kBalance": "Saldo do mês (no Ano: poupança), com a %",
+    "goodMorning": "Bom dia",
+    "goodAfternoon": "Boa tarde",
+    "goodEvening": "Boa noite",
+    "greetSub": "Aqui está o resumo da tua vida financeira."
   },
   "transactions": {
     "title": "Transações",
