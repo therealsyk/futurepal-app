@@ -400,6 +400,10 @@ export function SimpleOverview({ yearly = false }: { yearly?: boolean }) {
   const monthsOfYear = cur.y === now.getFullYear() ? now.getMonth() + 1 : 12;
   const perDay = Math.round(m.expense / (isNow ? now.getDate() : days));
   const perMonth = Math.round(m.expense / monthsOfYear);
+  // média do período anterior, para comparar (mês anterior inteiro / ano anterior inteiro)
+  const prevDays = new Date(cur.m === 0 ? cur.y - 1 : cur.y, cur.m === 0 ? 12 : cur.m, 0).getDate();
+  const prevPerDay = Math.round(pm.expense / prevDays);
+  const prevPerMonth = Math.round(pm.expense / 12);
   const catOf = (id: string) => d?.cats.find((c) => c.id === id);
   // movimentos agrupados por dia
   const byDay = new Map<string, Transaction[]>();
@@ -501,7 +505,7 @@ export function SimpleOverview({ yearly = false }: { yearly?: boolean }) {
           <section className="mv-card sh-lines">
             {m.income > 0 && <div className="sh-line"><span>Salário</span><b>{money(m.salary)}</b></div>}
             {m.income > 0 && <div className="sh-line"><span>Extras</span><b>{money(m.income - m.salary)}</b></div>}
-            <div className="sh-line"><span>{yearly ? 'Despesas por mês' : 'Despesas por dia'}</span><b>{money(yearly ? perMonth : perDay)}</b></div>
+            <div className="sh-line"><span>{yearly ? 'Despesas por mês' : 'Despesas por dia'}</span><span className="sh-valline"><b>{money(yearly ? perMonth : perDay)}</b>{yearly ? cmp('pm', perMonth, prevPerMonth, false) : cmp('pd', perDay, prevPerDay, false)}</span></div>
             {m.income > 0 && <div className="sh-line"><span>Poupaste</span><b className={bal < 0 ? 'fx-neg' : 'fx-pos'}>{Math.round((bal / m.income) * 100)}% dos rendimentos</b></div>}
             <Link to={yearly ? `/transacoes?ano=${cur.y}` : `/transacoes?mes=${pref}`} className="sh-line sh-linkrow"><span>Movimentos</span><b>{m.rows.length} <Ic d={ICON.right} size={14} /></b></Link>
           </section>
