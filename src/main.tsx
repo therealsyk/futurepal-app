@@ -13,6 +13,10 @@ import { AuthProvider } from './auth/AuthContext';
 import './ui/theme.css';
 import './ui/finity.css';
 import './ui/mobile.css';
+import './ui/pc-mobile.css';
+import { applyMobileStylesEverywhere } from './core/uiMode';
+applyMobileStylesEverywhere();
+if (import.meta.hot) import.meta.hot.on('vite:afterUpdate', applyMobileStylesEverywhere);
 import { loadSettings, setTheme } from './core/settings';
 import { prepareDemo } from './demo/demo';
 
