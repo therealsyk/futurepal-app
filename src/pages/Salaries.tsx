@@ -75,7 +75,6 @@ export const Salaries = () => {
     <div className="fx-page">
       <PageHead title={t('salaries.title')} sub={t('salaries.subtitle')}>
         <MonthNav label={String(year)} onPrev={() => setYear(year - 1)} onNext={() => setYear(year + 1)} />
-        <button type="button" className="fx-btn primary" onClick={() => { setError(null); setOpen(true); }}><Ic d={ICON.plus} size={16} />{t('salaries.addExtra')}</button>
       </PageHead>
 
       <div className="fx-kpis">
@@ -104,7 +103,7 @@ export const Salaries = () => {
         </div>
       </div>
 
-      <div className="fx-card" style={{ marginTop: 16 }}>
+      <div className="fx-card sal-extras" style={{ marginTop: 16 }}>
         <div className="fx-card-head"><h2>{t('salaries.extras')}</h2><span className="fx-num">{fmt(extrasTotal)}</span></div>
         {extras.length === 0 ? <EmptyState icon={ICON.wallet} title={t('salaries.noExtras')} sub={t('salaries.noExtrasSub')} /> : (
           <div className="fx-list">
@@ -118,6 +117,8 @@ export const Salaries = () => {
             ))}
           </div>
         )}
+        {/* "Adicionar extra" a flutuar dentro da área dos rendimentos extra */}
+        <button type="button" className="sal-add" onClick={() => { setError(null); setOpen(true); }}><Ic d={ICON.plus} size={16} />{t('salaries.addExtra')}</button>
       </div>
 
       <Sheet open={open} onClose={() => setOpen(false)} title={t('salaries.addExtra')}
