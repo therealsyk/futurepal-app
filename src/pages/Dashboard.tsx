@@ -103,27 +103,6 @@ function AccountStack({ items, hint }: { items: Array<{ id: string; name: string
 }
 
 // ── Caixa de indicador (Despesas / Poupança / Rendimento / Categoria) ──
-function Kpi({ icon, color, label, value, pct, pctTone = 'neutral', sub }: {
-  icon: string; color: string; label: string; value: string;
-  pct?: string | null; pctTone?: 'good' | 'bad' | 'neutral'; sub: ReactNode;
-}) {
-  return (
-    <section className="fx-card fx-kpi">
-      <div className="fx-kpi-label">{label}</div>
-      <div className="fx-kpi-row">
-        <span className="fx-kpi-ic" style={{ background: color }}><Ic d={icon} size={20} /></span>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div className="fx-kpi-value">
-            <span>{value}</span>
-            {pct && <span className={'fx-chip ' + pctTone}>{pct}</span>}
-          </div>
-          <div className="fx-kpi-sub">{sub}</div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 /** Caixa no estilo da app de telemóvel: título, valor a cores e etiqueta de % ao lado (sem ícone). */
 function SimpleKpi({ label, value, valueClass, chip, chipTone, chipTitle, sub }: {
   label: string; value: string; valueClass?: string; chip?: string | null; chipTone?: string; chipTitle?: string; sub?: ReactNode;
@@ -526,7 +505,6 @@ export function Dashboard() {
     if (k === 'kIncome') return <SimpleKpi label={t('panel.income')} value={money(income)} valueClass={income > 0 ? 'fx-pos' : undefined} chip={deltaChip(deltaIncome)} chipTone={deltaTone(deltaIncome, true)} chipTitle={vsLabel} />;
     return <SimpleKpi label={t(period === 'year' ? 'panel.savings' : 'panel.balanceMonth')} value={money(balance)} valueClass={balance === 0 ? undefined : balance < 0 ? 'fx-neg' : 'fx-pos'} chip={deltaChip(deltaBalance)} chipTone={deltaTone(deltaBalance, true)} chipTitle={vsLabel} />;
   };
-  const pctTxt = (r: number | null) => (r === null ? null : `${Math.round(r * 100)}%`);
 
   // Despesas por categoria (ordenadas)
   const byCat = new Map<string, number>();
@@ -1084,9 +1062,6 @@ export function Dashboard() {
         {kpiBox('kSavings')}
         {kpiBox('kIncome')}
         {kpiBox('kBalance')}
-        <Kpi label={t('panel.topCategory')} color="#e0a53a" icon="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"
-          value={catItems[0] ? catItems[0].name : '—'} pct={catItems[0] && spent > 0 ? pctTxt(catItems[0].cents / spent) : null}
-          sub={catItems[0] ? t('panel.kpiTopSub', { value: money(catItems[0].cents) }) : t('panel.noTransactions')} />
       </div>
 
       {editing && (

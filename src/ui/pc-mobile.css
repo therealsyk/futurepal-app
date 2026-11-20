@@ -4,5 +4,5 @@
 html.pcm .fx-page.mv { max-width: 1100px; margin: 0 auto; }
 html.pcm .fx-page.mv .mv-card { padding: 22px; }
 
-/* Caixas do topo: as 5 na mesma linha em ecrã largo */
-@media (min-width: 1280px) { html.pcm .fx-kpis { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+/* Caixas do topo: as 4 na mesma linha em ecrã largo */
+@media (min-width: 1280px) { html.pcm .fx-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
