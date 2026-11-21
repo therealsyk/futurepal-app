@@ -362,7 +362,7 @@ export function SplitPage() {
         </div>}>
         {personal && <>
           <p className="fx-muted fx-small" style={{ textAlign: 'center', margin: '0 0 4px' }}>{L('Pagaste a tua parte. Regista-a também nas tuas despesas.')}</p>
-          <input className="tx-amt exp" inputMode="decimal" value={(personal.cents / 100).toFixed(2).replace('.', ',')}
+          <input className="tx-amt sp-amt" inputMode="decimal" value={(personal.cents / 100).toFixed(2).replace('.', ',')}
             onChange={(e) => { const c = parseMoneyToCents(e.target.value); if (c !== null) setPersonal({ ...personal, cents: c }); }} aria-label={t('transactions.amount')} />
           <span className="tx-cur">{group?.currency ?? s.currency}</span>
           <div className="tx-rows">

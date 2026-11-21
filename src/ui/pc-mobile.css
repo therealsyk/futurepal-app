@@ -1067,3 +1067,4 @@ button.sp-row { cursor: pointer; } button.sp-row:hover { background: color-mix(i
 .tx-row .fx-pick > .fx-btn { height: 36px; min-width: 0; padding: 0 12px; border: 0; background: none; font-weight: 700; color: var(--text); gap: 6px; }
 .tx-row .fx-pick > .fx-btn:hover { background: var(--card-2); }
 .tx-row .fx-pick-menu { right: 0; left: auto; min-width: 220px; z-index: 90; }
+.tx-amt.sp-amt { color: var(--text) !important; }
