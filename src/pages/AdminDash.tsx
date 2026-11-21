@@ -101,12 +101,12 @@ export function AdminDashboard({ part = 'main' }: { part?: 'main' | 'audience' }
       {part === 'main' && <>
       {/* Linha 1: cartões pequenos com mini-gráficos */}
       <div className="dsh-row6">
-        <Card title={L('Utilizadores')} sub={L('Total de contas')}><div className="dsh-kv"><b>{nf(s?.users_total)}</b><Delta v={s ? growth(s.users_7d, Math.max(0, s.users_30d - s.users_7d) / 3) : null} /></div><MiniBars data={last14} color="#2dd4bf" /></Card>
-        <Card title={L('Online agora')} sub={L('Últimos 3 minutos')}><div className="dsh-kv"><b>{nf(p?.now)}</b><i className="dsh-live" /></div><div className="dsh-sub2"><span>{L('Hoje')} <b>{nf(p?.today)}</b></span><span>7d <b>{nf(p?.week)}</b></span></div></Card>
-        <Card title="DAU" sub={L('Ativos hoje')}><Spark data={daily.slice(-30)} color="#8b7cf6" h={56} /><div className="dsh-kv"><b>{nf(a?.dau)}</b></div></Card>
-        <Card title="MAU" sub={L('Ativos em 30 dias')}><Spark data={daily} color="#60a5fa" h={56} fill /><div className="dsh-kv"><b>{nf(a?.mau)}</b><Delta v={a ? growth(a.mau, a.mau_prev) : null} /></div></Card>
-        <Card title={L('Novos registos')} sub={L('Últimos 7 dias')}><div className="dsh-kv big"><b>{nf(s?.users_7d)}</b></div><p className="dsh-note">{nf(s?.users_30d)} {L('em 30 dias')}</p></Card>
-        <Card title={L('Movimentos')} sub={L('Últimos 30 dias (só contagem)')}><div className="dsh-kv big"><b>{nf(s?.tx_30d)}</b></div><p className="dsh-note">{nf(s?.tx_total)} {L('no total')}</p></Card>
+        <Card title={L('Utilizadores')}><div className="dsh-kv"><b>{nf(s?.users_total)}</b><Delta v={s ? growth(s.users_7d, Math.max(0, s.users_30d - s.users_7d) / 3) : null} /></div><MiniBars data={last14} color="#2dd4bf" /></Card>
+        <Card title={L('Online agora')} ><div className="dsh-kv"><b>{nf(p?.now)}</b><i className="dsh-live" /></div><div className="dsh-sub2"><span>{L('Hoje')} <b>{nf(p?.today)}</b></span><span>7d <b>{nf(p?.week)}</b></span></div></Card>
+        <Card title="DAU" ><Spark data={daily.slice(-30)} color="#8b7cf6" h={56} /><div className="dsh-kv"><b>{nf(a?.dau)}</b></div></Card>
+        <Card title="MAU" sub="30d"><Spark data={daily} color="#60a5fa" h={56} fill /><div className="dsh-kv"><b>{nf(a?.mau)}</b><Delta v={a ? growth(a.mau, a.mau_prev) : null} /></div></Card>
+        <Card title={L('Novos registos')} sub="7d"><div className="dsh-kv big"><b>{nf(s?.users_7d)}</b></div><p className="dsh-note">30d: {nf(s?.users_30d)}</p></Card>
+        <Card title={L('Movimentos')} sub="30d"><div className="dsh-kv big"><b>{nf(s?.tx_30d)}</b></div><p className="dsh-note">{L('Total')}: {nf(s?.tx_total)}</p></Card>
       </div>
 
       {/* Linha 2: gráfico grande + relatório + ativos por dia */}
@@ -217,13 +217,13 @@ export function AdminMoreMetrics({ section }: { section: 'engagement' | 'health'
     <div className="dsh">
       {section === 'engagement' && <>
       <div className="dsh-stats">
-        <Stat ic="list" label={L('Despesas registadas')} value={nf(m.expenses_total)} hint={`${nf(m.expenses_30d)} ${L('em 30 dias')}`} />
-        <Stat ic="target" label={L('Metas criadas')} value={nf(m.goals_total)} hint={`${pct(m.pct_with_goal)} ${L('das contas têm metas')}`} />
-        <Stat ic="user" label={L('Despesas por utilizador ativo')} value={m.mau ? (m.expenses_30d / m.mau).toFixed(1) : '—'} hint={L('últimos 30 dias')} />
-        <Stat ic="clock" label={L('Tempo médio por dia')} value={m.avg_session_min === null ? '—' : `${m.avg_session_min} min`} hint={L('por pessoa, quando abre a app')} />
-        <Stat ic="cal" label={L('Frequência')} value={m.days_per_user_30 === null ? '—' : `${m.days_per_user_30} ${L('dias')}`} hint={L('dias ativos por pessoa em 30')} />
-        <Stat ic="chart" label={L('Usam relatórios')} value={pct(m.pct_reports)} hint={L('Resumo, calendário ou resumos do mês/ano')} />
-        <Stat ic="plus" label={L('Registos hoje')} value={nf(m.signups_today)} />
+        <Stat ic="list" label={L('Despesas')} value={nf(m.expenses_total)} hint={`+${nf(m.expenses_30d)} · 30d`} />
+        <Stat ic="target" label={L('Metas')} value={nf(m.goals_total)} hint={`${pct(m.pct_with_goal)} ${L('das contas')}`} />
+        <Stat ic="user" label={L('Por utilizador')} value={m.mau ? (m.expenses_30d / m.mau).toFixed(1) : '—'} hint={L('despesas · 30d')} />
+        <Stat ic="clock" label={L('Tempo / dia')} value={m.avg_session_min === null ? '—' : `${m.avg_session_min} min`} />
+        <Stat ic="cal" label={L('Dias ativos')} value={m.days_per_user_30 === null ? '—' : m.days_per_user_30} hint={L('em 30')} />
+        <Stat ic="chart" label={L('Relatórios')} value={pct(m.pct_reports)} hint={L('dos ativos')} />
+        <Stat ic="plus" label={L('Novos hoje')} value={nf(m.signups_today)} />
       </div>
 
       <div className="dsh-row2">
@@ -234,11 +234,10 @@ export function AdminMoreMetrics({ section }: { section: 'engagement' | 'health'
       </>}
       {section === 'health' && <>
       <div className="dsh-stats">
-        <Stat ic="db" label={L('Base de dados')} value={<span className="dsh-ok">● {L('Online')}</span>} hint={ping.db === null ? '…' : ping.db < 0 ? L('Sem resposta') : `${ping.db} ms ${L('de resposta')}`} />
-        <Stat ic="key" label={L('Autenticação')} value={ping.auth === null ? '…' : <span className={ping.auth ? 'dsh-ok' : 'dsh-bad'}>● {ping.auth ? L('Online') : L('Com problemas')}</span>} />
-        <Stat ic="disk" label={L('Tamanho da base de dados')} value={mb(m.db_size)} hint={`${nf(m.rows.transactions)} ${L('movimentos')}`} />
-        <Stat ic="bug" label={L('Erros da app (7 dias)')} value={nf(m.errors_7d)} />
-        <Stat ic="bell" label={L('Notificações push')} value="—" hint={L('A app ainda não envia notificações push')} />
+        <Stat ic="db" label={L('Base de dados')} value={<span className={ping.db !== null && ping.db < 0 ? 'dsh-bad' : 'dsh-ok'}>● {ping.db !== null && ping.db < 0 ? L('Offline') : L('Online')}</span>} hint={ping.db === null || ping.db < 0 ? undefined : `${ping.db} ms`} />
+        <Stat ic="key" label={L('Autenticação')} value={ping.auth === null ? '…' : <span className={ping.auth ? 'dsh-ok' : 'dsh-bad'}>● {ping.auth ? L('Online') : L('Offline')}</span>} />
+        <Stat ic="disk" label={L('Tamanho')} value={mb(m.db_size)} />
+        <Stat ic="bug" label={L('Erros')} value={nf(m.errors_7d)} hint="7d" />
       </div>
       <div className="dsh-row2">
         <section className="dsh-card"><header><h3>{L('Erros por versão')}</h3><small>{L('Últimos 7 dias')}</small></header><HBars data={m.errors_by_version} /></section>

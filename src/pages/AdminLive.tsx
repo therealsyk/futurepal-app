@@ -51,9 +51,9 @@ export function AdminLive() {
         <h3><span className="pco-mic ad-h3ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4" /></svg></span>{L('Online agora')} <i className="ad-dot" /> <span className="ad-fb-count">{online.length}</span></h3>
         {err ? <p className="fx-muted">{err}</p> : (<>
           {ps && <div className="ad-lboxes">
-            <LiveBox icon="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2" label={L('Agora')} value={ps.now} sub={L('pessoas com a app aberta')} live />
-            <LiveBox icon="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4" label={L('Hoje')} value={ps.today} sub={L('pessoas que abriram hoje')} />
-            <LiveBox icon="M4 19V9M10 19V5M16 19v-7M22 19H2" label={L('Últimos 7 dias')} value={ps.week} sub={L('pessoas diferentes')} />
+            <LiveBox icon="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2" label={L('Agora')} value={ps.now} live />
+            <LiveBox icon="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4" label={L('Hoje')} value={ps.today} />
+            <LiveBox icon="M4 19V9M10 19V5M16 19v-7M22 19H2" label={L('Últimos 7 dias')} value={ps.week} />
             <LiveBox icon="M5 3h14v14H5zM9 21h6M12 17v4" label={L('Plataformas')} list={ps.platforms} />
             <LiveBox icon="M12 3v12M7 10l5 5 5-5M4 19h16" label={L('Versões')} list={ps.versions} />
           </div>}
@@ -117,7 +117,7 @@ function LiveBox({ icon, label, value, sub, list, live }: { icon: string; label:
           {list && <svg className="ad-chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M6 9l6 6 6-6" /></svg>}
         </span>
         <b className="ad-lbox-value">{list ? entries.length : value ?? 0}</b>
-        <small className="ad-lbox-sub">{list ? (entries[0] ? `${L('Mais usada')}: ${entries[0][0]} · ${Math.round((entries[0][1] / Math.max(1, total)) * 100)}%` : '—') : sub}</small>
+        <small className="ad-lbox-sub">{list ? (entries[0] ? `${entries[0][0]} · ${Math.round((entries[0][1] / Math.max(1, total)) * 100)}%` : '—') : sub ?? '\u00a0'}</small>
       </Tag>
       {open && <div className="ad-lbox-pop">{entries.length === 0 ? <p className="fx-muted fx-small">—</p> : entries.map(([k, n]) => (
         <p key={k}><span>{k}</span><i><em style={{ width: `${(n / max) * 100}%` }} /></i><b>{n}</b></p>

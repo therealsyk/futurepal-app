@@ -466,6 +466,18 @@ export const PHRASES: Record<string, Tr> = {
   'pessoas que abriram hoje': ['people who opened it today', 'personas que la abrieron hoy', 'personnes l’ayant ouverte aujourd’hui'],
   'pessoas diferentes': ['different people', 'personas distintas', 'personnes différentes'],
   'Mais usada': ['Most used', 'Más usada', 'La plus utilisée'],
+  'das contas': ['of accounts', 'de las cuentas', 'des comptes'],
+  'Por utilizador': ['Per user', 'Por usuario', 'Par utilisateur'],
+  'despesas · 30d': ['expenses · 30d', 'gastos · 30d', 'dépenses · 30j'],
+  'Tempo / dia': ['Time / day', 'Tiempo / día', 'Temps / jour'],
+  'Dias ativos': ['Active days', 'Días activos', 'Jours actifs'],
+  'em 30': ['out of 30', 'de 30', 'sur 30'],
+  'Relatórios': ['Reports', 'Informes', 'Rapports'],
+  'dos ativos': ['of active users', 'de los activos', 'des actifs'],
+  'Novos hoje': ['New today', 'Nuevos hoy', 'Nouveaux aujourd’hui'],
+  'Offline': ['Offline', 'Sin conexión', 'Hors ligne'],
+  'Tamanho': ['Size', 'Tamaño', 'Taille'],
+  'Erros': ['Errors', 'Errores', 'Erreurs'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */
