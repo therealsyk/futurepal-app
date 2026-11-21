@@ -125,7 +125,7 @@ export function AdminPage() {
     setSaved(true); setTimeout(() => setSaved(false), 2500); await load();
   };
 
-  if (!isAdmin) return <div className="fx-page"><PageHead title={t('admin.title')} sub={t('admin.noAccess')} /></div>;
+  if (!isAdmin) return <div className="fx-page ad-page"><PageHead title={t('admin.title')} sub={t('admin.noAccess')} /></div>;
 
   const kpis: Array<[string, number | undefined]> = stats ? [
     [t('admin.usersTotal'), stats.users_total], [t('admin.users7d'), stats.users_7d], [t('admin.active7d'), stats.active_7d],
@@ -134,9 +134,9 @@ export function AdminPage() {
   ] : [];
   const maxDay = Math.max(1, ...(stats?.signups_by_day ?? []).map((d) => d.n));
 
-  if (mfa.needCode) return <div className="fx-page"><PageHead title={t('admin.title')} sub={t('admin.sub')} /><AdminMfaGate verify={mfa.verify} /></div>;
+  if (mfa.needCode) return <div className="fx-page ad-page"><PageHead title={t('admin.title')} sub={t('admin.sub')} /><AdminMfaGate verify={mfa.verify} /></div>;
   if (tab !== 'overview') return (
-    <div className="fx-page">
+    <div className="fx-page ad-page">
       <PageHead title={t('admin.title')} sub={t('admin.sub')} />
       <AdminTabs tab={tab} onTab={setTab} />
       <AdminPhase1 tab={tab} />
@@ -144,7 +144,7 @@ export function AdminPage() {
     </div>
   );
   return (
-    <div className="fx-page">
+    <div className="fx-page ad-page">
       <PageHead title={t('admin.title')} sub={t('admin.sub')}>
         <button type="button" className="fx-btn" onClick={() => load()}>{t('admin.refresh')}</button>
       </PageHead>
