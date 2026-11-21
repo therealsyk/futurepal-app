@@ -1,4 +1,5 @@
 import { AdminLive } from './AdminLive';
+import { AdminActivity, AdminMfaGate, AdminPhase1, AdminTabs, useAdminMfa, type AdminTab } from './AdminPhase1';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getSupabase } from '../auth/supabase';
@@ -38,6 +39,8 @@ export function AdminPage() {
   const [versions, setVersions] = useState<VersionRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [interest, setInterest] = useState<Array<{ plan: string; period: string; n: number }>>([]);
+  const [tab, setTab] = useState<AdminTab>('overview');
+  const mfa = useAdminMfa();
   const [v, setV] = useState({ platform: 'windows', version: '', min: '', notes: '', url: '' });
   const [saved, setSaved] = useState(false);
   const [subs, setSubs] = useState<SubRow[]>([]);
@@ -131,13 +134,24 @@ export function AdminPage() {
   ] : [];
   const maxDay = Math.max(1, ...(stats?.signups_by_day ?? []).map((d) => d.n));
 
+  if (mfa.needCode) return <div className="fx-page"><PageHead title={t('admin.title')} sub={t('admin.sub')} /><AdminMfaGate verify={mfa.verify} /></div>;
+  if (tab !== 'overview') return (
+    <div className="fx-page">
+      <PageHead title={t('admin.title')} sub={t('admin.sub')} />
+      <AdminTabs tab={tab} onTab={setTab} />
+      <AdminPhase1 tab={tab} />
+      <p className="fx-muted fx-small">{t('admin.privacy')}</p>
+    </div>
+  );
   return (
     <div className="fx-page">
       <PageHead title={t('admin.title')} sub={t('admin.sub')}>
         <button type="button" className="fx-btn" onClick={() => load()}>{t('admin.refresh')}</button>
       </PageHead>
       {error && <p className="fx-error">{error}</p>}
+      <AdminTabs tab={tab} onTab={setTab} />
       <div className="pm-wrapped">{kpis.map(([l, n]) => <div key={l} className="pm-wcard"><small>{l}</small><strong>{n ?? '—'}</strong></div>)}</div>
+      <AdminActivity />
       <AdminLive />
 
       <div className="fx-card ad-card">

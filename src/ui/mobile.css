@@ -1402,3 +1402,30 @@ html.pcm .fx-page.sh > .es { flex: 1 1 100% !important; width: 100% !important; 
 .ad-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--pos, #4ade80); box-shadow: 0 0 0 0 color-mix(in srgb, var(--pos, #4ade80) 60%, transparent); animation: ad-pulse 1.8s infinite; }
 @keyframes ad-pulse { 70% { box-shadow: 0 0 0 8px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
 .ad-live-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 4px 16px; margin-bottom: 10px; }
+/* Admin — Fase 1 */
+.ad-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 16px; padding: 4px; border-radius: 16px; background: var(--card); border: 1px solid var(--border); width: fit-content; max-width: 100%; }
+.ad-tabs button { height: 40px; padding: 0 16px; border: 0; border-radius: 12px; background: none; color: var(--muted); font: inherit; font-weight: 650; cursor: pointer; }
+.ad-tabs button.on { background: var(--card-2); color: var(--text); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--mv, var(--accent)) 50%, transparent); }
+.ad-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.ad-filters > select { width: auto; min-width: 150px; }
+.ad-search { display: flex; gap: 8px; flex: 1 1 320px; }
+.ad-search input { flex: 1; min-width: 0; }
+.ad-row { cursor: pointer; } .ad-row:hover td { background: var(--card-2); }
+.ad-st { padding: 2px 8px; border-radius: 99px; font-size: 12px; font-weight: 700; background: var(--card-2); }
+.ad-st.active { color: var(--pos); } .ad-st.suspended { color: var(--red); } .ad-st.unconfirmed { color: #f5b85a; }
+.ad-act { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--muted); }
+.ad-act.now { background: var(--pos); } .ad-act.day { background: #f5b85a; } .ad-act.week { background: color-mix(in srgb, var(--text) 50%, transparent); } .ad-act.off { background: var(--track); }
+.ad-pager { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+.ad-pager span { margin-right: auto; }
+.ad-kvs { display: grid; gap: 2px; margin-bottom: 12px; }
+.ad-link { border: 0; background: none; color: var(--accent); font: inherit; font-size: 12.5px; cursor: pointer; padding: 0 4px; }
+.ad-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.ad-confirm { display: grid; gap: 8px; padding: 12px; border-radius: 16px; background: var(--card-2); margin-bottom: 8px; }
+.ad-h4 { margin: 16px 0 6px; font-size: 14px; }
+.ad-ticket { padding: 12px 14px; border-radius: 16px; background: var(--card-2); border-left: 4px solid var(--track); display: grid; gap: 8px; }
+.ad-ticket.p-high { border-left-color: #f5b85a; } .ad-ticket.p-urgent { border-left-color: var(--red); } .ad-ticket.p-low { border-left-color: color-mix(in srgb, var(--text) 25%, transparent); }
+.ad-ticket-msg { margin: 0; white-space: pre-wrap; }
+.ad-ticket-ctl { gap: 8px; flex-wrap: wrap; } .ad-ticket-ctl select { width: auto; } .ad-ticket-ctl input { flex: 1; min-width: 200px; }
+.ad-qr { width: 180px; height: 180px; background: #fff; border-radius: 12px; padding: 8px; }
+.ad-mfa { max-width: 460px; }
+@media (max-width: 768px) { .ad-tabs { width: 100%; overflow-x: auto; flex-wrap: nowrap; } .ad-tabs button { flex: none; } .ad-table th:nth-child(5), .ad-table td:nth-child(5), .ad-table th:nth-child(6), .ad-table td:nth-child(6) { display: none; } }

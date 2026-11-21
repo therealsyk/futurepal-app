@@ -15,6 +15,9 @@ export function usePresence(userId: string | undefined) {
     const beat = () => {
       if (document.visibilityState === 'hidden') return;
       const page = (window.location.hash.replace(/^#/, '').split('?')[0] || '/').slice(0, 60);
+      // um registo por dia (para DAU/WAU/MAU e retenção); repetido no mesmo dia é ignorado
+      const day = new Date().toLocaleDateString('sv-SE');
+      try { if (localStorage.getItem('wallet.presenceDay') !== userId + day) { sb.from('presence_days').upsert({ user_id: userId, day, platform: currentPlatform() }, { onConflict: 'user_id,day', ignoreDuplicates: true }).then(({ error }) => { if (!error) localStorage.setItem('wallet.presenceDay', userId + day); }, () => {}); } } catch { /* sem storage */ }
       sb.from('presence').upsert({ user_id: userId, last_seen: new Date().toISOString(), platform: currentPlatform(), app_version: APP_VERSION, page }).then(() => {}, () => {});
     };
     beat();

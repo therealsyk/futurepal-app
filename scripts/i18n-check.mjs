@@ -21,6 +21,7 @@ const has = (l, k) => has1(l, k) || has1(FALLBACK[l] || 'pt-PT', k);
 const files = [];
 const walk = (d) => { for (const f of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, f.name); if (f.isDirectory()) walk(p); else if (/\.tsx?$/.test(f.name) && !/\.test\./.test(f.name)) files.push(p); } };
 walk(path.join(ROOT, 'src'));
+files.splice(0, files.length, ...files.filter((f) => !f.endsWith('phrases.ts')));
 
 const problems = { missingKey: [], missingLang: [], missingPhrase: [], hardcoded: [], untranslated: [] };
 // frases L('...') têm de existir em src/i18n/phrases.ts
@@ -35,7 +36,7 @@ for (const f of files) {
   for (const m of src.matchAll(/\bt\(\s*'([a-zA-Z0-9_]+\.[a-zA-Z0-9_.]*[a-zA-Z0-9])'/g)) {
     for (const l of langs) if (!has(l, m[1])) problems.missingKey.push(`${rel}: '${m[1]}' falta em ${l}`);
   }
-  for (const m of src.matchAll(/L\('([^']+)'\)/g)) if (!phraseSet.has(m[1])) problems.missingPhrase.push(`${rel}: L('${m[1]}') sem tradução em phrases.ts`);
+  for (const m of src.matchAll(/\bL\('([^']+)'\)/g)) if (!phraseSet.has(m[1])) problems.missingPhrase.push(`${rel}: L('${m[1]}') sem tradução em phrases.ts`);
   // 3. texto português no JSX: >Texto< ou atributos visíveis
   lines.forEach((ln, i) => {
     if (/^\s*(\/\/|\*|\/\*)/.test(ln)) return;
