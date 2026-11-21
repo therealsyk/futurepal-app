@@ -1,7 +1,7 @@
 // Dashboard do admin (ao estilo shadcn-admin): cartões com mini-gráficos e painéis maiores.
 // Só dados agregados: contagens, percentagens e distribuições. Nada de valores ou dados de pessoas.
 import { useEffect, useState } from 'react';
-import { getSupabase } from '../auth/supabase';
+import { getAdminSupabase as getSupabase } from '../auth/supabase';
 import { L } from '../i18n/phrases';
 
 type Stats = { users_total: number; users_7d: number; users_30d: number; active_7d: number; active_30d: number; unconfirmed: number; with_data: number;

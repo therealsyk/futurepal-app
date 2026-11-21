@@ -741,3 +741,5 @@ html:has(.win-titlebar) .adm { top: 34px; }
 
 .adm-avatar { align-self: center; display: grid; place-items: center; border-radius: 50%; padding: 3px; background: conic-gradient(var(--mv, var(--accent)), color-mix(in srgb, var(--mv, var(--accent)) 30%, transparent), var(--mv, var(--accent))); animation: fx-pop .25s ease both; }
 .adm-avatar img, .adm-avatar .ab-initials { width: 64px !important; height: 64px !important; border-radius: 50%; border: 3px solid var(--card); font-size: 24px; }
+
+.ad-rowbtns { display: flex; gap: 6px; justify-content: flex-end; }

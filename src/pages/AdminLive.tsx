@@ -1,7 +1,7 @@
 // Administração (extra): quem está a usar a app agora, aviso para todos e apagar contas.
 // Precisa de supabase/admin_extra.sql.
 import { useEffect, useState } from 'react';
-import { getSupabase } from '../auth/supabase';
+import { getAdminSupabase as getSupabase } from '../auth/supabase';
 import { loadSettings } from '../core/settings';
 import { L } from '../i18n/phrases';
 

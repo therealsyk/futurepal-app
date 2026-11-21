@@ -4,9 +4,9 @@ import { PcOverview } from './PcOverview';
 import { AdminLogin, AdminPhase1, AdminShell, allowedTab, isUnlocked, useAdminRole, type AdminTab } from './AdminPhase1';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getSupabase } from '../auth/supabase';
+import { getAdminSupabase as getSupabase, getSupabase as getAppSupabase } from '../auth/supabase';
 import { useAuth } from '../auth/AuthContext';
-import { PageHead, Field } from '../ui/fx';
+import { Field } from '../ui/fx';
 import { DatePicker } from '../ui/DatePicker';
 import { githubLatest, GITHUB_REPO } from '../core/updates';
 import { compareVersions } from '../core/version';
@@ -25,7 +25,7 @@ export function useIsAdmin(): boolean {
   const auth = useAuth();
   const [admin, setAdmin] = useState(false);
   useEffect(() => {
-    const sb = getSupabase();
+    const sb = getAppSupabase();
     if (!sb || !auth.user) { setAdmin(false); return; }
     sb.rpc('admin_role').then(({ data }) => setAdmin(data === 'super'), () => setAdmin(false));
   }, [auth.user]);
@@ -36,8 +36,8 @@ const date = (s: string | null) => (s ? new Date(s).toLocaleDateString() : '—'
 
 export function AdminPage() {
   const { t } = useTranslation();
-  const role = useAdminRole();
   const [unlocked, setUnlocked] = useState(isUnlocked());
+  const role = useAdminRole(unlocked);
   const isAdmin = unlocked && (role === 'super' || role === 'admin');
   const [stats, setStats] = useState<Stats | null>(null);
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -131,9 +131,9 @@ export function AdminPage() {
   };
 
   void stats; void interest; // o Dashboard (AdminDash) carrega os seus próprios dados
-  if (role === undefined) return <div className="fx-page ad-page" />;
-  if (role === null) return <div className="fx-page ad-page"><PageHead title={t('admin.title')} sub={t('admin.noAccess')} /></div>;
   if (!unlocked) return <><PcOverview /><AdminLogin onDone={() => setUnlocked(true)} onCancel={() => { window.location.hash = '#/'; }} /></>;
+  if (role === undefined) return <div className="fx-page ad-page" />;
+  if (role === null) return <><PcOverview /><AdminLogin onDone={() => setUnlocked(true)} onCancel={() => { window.location.hash = '#/'; }} /></>;
   const shown: AdminTab = allowedTab(role, tab) ? tab : 'overview';
   return (
     <AdminShell tab={shown} onTab={setTab} onRefresh={() => load()} role={role}>

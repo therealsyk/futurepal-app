@@ -13,6 +13,21 @@ export function hasSupabaseConfig(): boolean {
 }
 
 let client: SupabaseClient | null = null;
+let adminClient: SupabaseClient | null = null;
+/** Domínio interno das contas do painel (a pessoa só escreve o nome de utilizador). */
+export const STAFF_DOMAIN = 'staff.futurepal.app';
+
+/** Sessão própria do painel de administração (nome de utilizador + senha + 2FA), separada da conta da app.
+ *  Guarda-se só nesta janela (sessionStorage): fechar a janela termina a sessão do painel. */
+export function getAdminSupabase(): SupabaseClient | null {
+  if (!hasSupabaseConfig()) return null;
+  if (!adminClient) {
+    adminClient = createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: 'futurepal-admin', storage: typeof window !== 'undefined' ? window.sessionStorage : undefined },
+    });
+  }
+  return adminClient;
+}
 
 export function getSupabase(): SupabaseClient | null {
   if (!hasSupabaseConfig()) return null;

@@ -1,11 +1,9 @@
 // Administração — Fase 1: atividade (DAU/WAU/MAU, retenção), utilizadores (pseudónimos), tickets, auditoria e 2FA.
 // Precisa de supabase/admin_phase1.sql. Privacidade: nada aqui mostra valores, despesas, categorias ou metas.
 import { useEffect, useState } from 'react';
-import { getSupabase } from '../auth/supabase';
+import { getAdminSupabase as getSupabase, STAFF_DOMAIN } from '../auth/supabase';
 import { loadSettings } from '../core/settings';
 import { Sheet, PickMenu } from '../ui/fx';
-import { useAuth } from '../auth/AuthContext';
-import { UserAvatar } from '../ui/UserAvatar';
 import { L } from '../i18n/phrases';
 
 export type AdminTab = 'overview' | 'live' | 'users' | 'plans' | 'tickets' | 'versions' | 'audit' | 'security' | 'team';
@@ -432,7 +430,7 @@ export function AdminShell({ tab, onTab, onRefresh, role, children }: { tab: Adm
           ))}
         </nav>
         <p className="adm-role">{L('Cargo')}: <b>{L(ROLE_NAME[role] ?? role)}</b></p>
-        <button type="button" className="adm-back" onClick={() => { try { sessionStorage.removeItem(UNLOCK_KEY); } catch { /* */ } window.location.hash = '#/'; }}>← {L('Sair do painel')}</button>
+        <button type="button" className="adm-back" onClick={() => { try { sessionStorage.removeItem(UNLOCK_KEY); } catch { /* */ } getSupabase()?.auth.signOut().catch(() => {}); window.location.hash = '#/'; }}>← {L('Sair do painel')}</button>
       </aside>
       {open && <div className="adm-scrim" onClick={() => setOpen(false)} />}
       <div className="adm-main">
@@ -460,14 +458,13 @@ const UNLOCK_KEY = 'wallet.adminUnlock';
 export const ADMIN_LOGIN_EVENT = 'wallet:admin-login';
 
 /** Cargo da pessoa no painel (null = sem acesso; undefined = a carregar). Não precisa de 2FA para saber o cargo. */
-export function useAdminRole(): string | null | undefined {
-  const auth = useAuth();
+export function useAdminRole(unlocked: boolean): string | null | undefined {
   const [role, setRole] = useState<string | null | undefined>(undefined);
   useEffect(() => {
     const c = getSupabase();
-    if (!c || !auth.user) { setRole(null); return; }
+    if (!c || !unlocked) { setRole(null); return; }
     c.rpc('admin_role').then(({ data, error }) => setRole(error ? null : ((data as string) ?? null)), () => setRole(null));
-  }, [auth.user]);
+  }, [unlocked]);
   return role;
 }
 
@@ -476,14 +473,10 @@ export function isUnlocked(): boolean {
   try { return Number(sessionStorage.getItem(UNLOCK_KEY) || 0) > Date.now(); } catch { return false; }
 }
 
-/** Login do painel: email e palavra-passe da conta e, a seguir, o código da app autenticadora (obrigatório). */
+/** Login do painel: nome de utilizador e senha (conta do painel, separada da conta da app) e, a seguir, o código 2FA. */
 export function AdminLogin({ onDone, onCancel }: { onDone: () => void; onCancel?: () => void }) {
-  const auth = useAuth();
-  const providers = ((auth.user?.app_metadata as { providers?: string[] } | undefined)?.providers ?? []);
-  const noPassword = !!auth.user && !providers.includes('email');
-  const [step, setStep] = useState<'pass' | 'create' | 'code' | 'enroll'>(noPassword ? 'create' : 'pass');
-  const [pass2, setPass2] = useState('');
-  const [email, setEmail] = useState(auth.user?.email ?? '');
+  const [step, setStep] = useState<'pass' | 'code' | 'enroll'>('pass');
+  const [user, setUser] = useState('');
   const [pass, setPass] = useState('');
   const [code, setCode] = useState('');
   const [factor, setFactor] = useState<string | null>(null);
@@ -492,34 +485,18 @@ export function AdminLogin({ onDone, onCancel }: { onDone: () => void; onCancel?
   const [busy, setBusy] = useState(false);
   const signIn = async () => {
     setErr(null);
-    if (auth.user?.email && email.trim().toLowerCase() !== auth.user.email.toLowerCase()) { setErr(L('Usa a mesma conta com que entraste na app.')); return; }
+    const u = user.trim().toLowerCase();
+    if (!/^[a-z0-9._-]{3,32}$/.test(u)) { setErr(L('Nome de utilizador ou senha errados.')); return; }
     setBusy(true);
-    const { error } = await sb().auth.signInWithPassword({ email: email.trim(), password: pass });
+    const { error } = await sb().auth.signInWithPassword({ email: `${u}@${STAFF_DOMAIN}`, password: pass });
     setBusy(false); setPass('');
-    if (error) { setErr(L('Email ou palavra-passe errados.')); return; }
+    if (error) { setErr(L('Nome de utilizador ou senha errados.')); return; }
     const role = (await sb().rpc('admin_role')).data;
-    if (!role) { setErr(L('Esta conta não tem acesso ao painel.')); return; }
+    if (!role) { await sb().auth.signOut(); setErr(L('Esta conta não tem acesso ao painel.')); return; }
     const f = (await sb().auth.mfa.listFactors()).data?.totp.find((x) => x.status === 'verified');
     if (f) { setFactor(f.id); setStep('code'); return; }
-    // 2FA ainda não configurado: obrigatório antes de entrar
-    const { data, error: e2 } = await sb().auth.mfa.enroll({ factorType: 'totp', friendlyName: 'FuturePal Admin ' + Date.now() });
-    if (e2 || !data) { setErr(e2?.message ?? 'Erro'); return; }
-    setFactor(data.id); setQr({ qr: data.totp.qr_code, secret: data.totp.secret }); setStep('enroll');
-  };
-  /** Cria a palavra-passe (conta que entrava só com Google) e segue para o 2FA. */
-  const create = async () => {
-    setErr(null);
-    if (pass.length < 10) { setErr(L('A palavra-passe tem de ter pelo menos 10 caracteres.')); return; }
-    if (pass !== pass2) { setErr(L('As palavras-passe não são iguais.')); return; }
-    setBusy(true);
-    const { error } = await sb().auth.updateUser({ password: pass });
-    setBusy(false); setPass(''); setPass2('');
-    if (error) { setErr(error.message); return; }
-    const role = (await sb().rpc('admin_role')).data;
-    if (!role) { setErr(L('Esta conta não tem acesso ao painel.')); return; }
-    const f = (await sb().auth.mfa.listFactors()).data?.totp.find((x) => x.status === 'verified');
-    if (f) { setFactor(f.id); setStep('code'); return; }
-    const { data, error: e2 } = await sb().auth.mfa.enroll({ factorType: 'totp', friendlyName: 'FuturePal Admin ' + Date.now() });
+    // 2FA ainda não configurado nesta conta: obrigatório antes de entrar
+    const { data, error: e2 } = await sb().auth.mfa.enroll({ factorType: 'totp', friendlyName: 'FuturePal ' + u + ' ' + Date.now() });
     if (e2 || !data) { setErr(e2?.message ?? 'Erro'); return; }
     setFactor(data.id); setQr({ qr: data.totp.qr_code, secret: data.totp.secret }); setStep('enroll');
   };
@@ -532,25 +509,17 @@ export function AdminLogin({ onDone, onCancel }: { onDone: () => void; onCancel?
     try { sessionStorage.setItem(UNLOCK_KEY, String(Date.now() + 12 * 3600 * 1000)); } catch { /* sem storage */ }
     onDone();
   };
+  const cancel = () => { if (step !== 'pass') sb().auth.signOut().catch(() => {}); if (onCancel) onCancel(); else window.location.hash = '#/'; };
   return (
-    <div className="adm-login" onMouseDown={(e) => { if (e.target === e.currentTarget && onCancel) onCancel(); }}>
-      <form className="adm-login-card" onSubmit={(e) => { e.preventDefault(); if (step === 'pass') signIn(); else if (step === 'create') create(); else verify(); }}>
-        {/* foto da conta quando o email escrito é o da conta com sessão iniciada (não revela fotos de outras contas) */}
-        {auth.user?.email && email.trim().toLowerCase() === auth.user.email.toLowerCase()
-          ? <span className="adm-avatar"><UserAvatar user={auth.user} name={(auth.user.user_metadata?.full_name as string) || auth.user.email} size={64} /></span>
-          : <span className="adm-logo big">F</span>}
+    <div className="adm-login" onMouseDown={(e) => { if (e.target === e.currentTarget) cancel(); }}>
+      <form className="adm-login-card" onSubmit={(e) => { e.preventDefault(); if (step === 'pass') signIn(); else verify(); }}>
+        <span className="adm-logo big">F</span>
         <h1>{L('Painel de administração')}</h1>
-        <div className="adm-steps"><i className={step === 'pass' || step === 'create' ? 'on' : 'done'}>1</i><span /><i className={step === 'code' || step === 'enroll' ? 'on' : ''}>2</i></div>
-        {step === 'create' ? (<>
-          <p>{L('A tua conta entra com o Google e ainda não tem palavra-passe. Cria uma só para o painel (pelo menos 10 caracteres).')}</p>
-          <label><span>Email</span><input className="fx-input" type="email" value={auth.user?.email ?? ''} readOnly /></label>
-          <label><span>{L('Nova palavra-passe')}</span><input className="fx-input" type="password" autoComplete="new-password" value={pass} onChange={(e) => setPass(e.target.value)} required /></label>
-          <label><span>{L('Repetir palavra-passe')}</span><input className="fx-input" type="password" autoComplete="new-password" value={pass2} onChange={(e) => setPass2(e.target.value)} required /></label>
-          <button type="submit" className="fx-btn primary" disabled={busy}>{busy ? '…' : L('Criar e continuar')}</button>
-        </>) : step === 'pass' ? (<>
-          <p>{L('Entra com o email e a palavra-passe da tua conta.')}</p>
-          <label><span>Email</span><input className="fx-input" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
-          <label><span>{L('Palavra-passe')}</span><input className="fx-input" type="password" autoComplete="current-password" value={pass} onChange={(e) => setPass(e.target.value)} required /></label>
+        <div className="adm-steps"><i className={step === 'pass' ? 'on' : 'done'}>1</i><span /><i className={step !== 'pass' ? 'on' : ''}>2</i></div>
+        {step === 'pass' ? (<>
+          <p>{L('Entra com o teu nome de utilizador e senha do painel.')}</p>
+          <label><span>{L('Nome de utilizador')}</span><input className="fx-input" autoComplete="username" autoCapitalize="none" spellCheck={false} value={user} onChange={(e) => setUser(e.target.value)} required autoFocus /></label>
+          <label><span>{L('Senha')}</span><input className="fx-input" type="password" autoComplete="current-password" value={pass} onChange={(e) => setPass(e.target.value)} required /></label>
           <button type="submit" className="fx-btn primary" disabled={busy}>{busy ? '…' : L('Continuar')}</button>
         </>) : (<>
           {step === 'enroll' && qr && (<>
@@ -562,60 +531,68 @@ export function AdminLogin({ onDone, onCancel }: { onDone: () => void; onCancel?
           <button type="submit" className="fx-btn primary" disabled={busy || code.length !== 6}>{busy ? '…' : L('Entrar no painel')}</button>
         </>)}
         {err && <p className="fx-error">{err}</p>}
-        <button type="button" className="adm-login-back" onClick={() => (onCancel ? onCancel() : (window.location.hash = '#/'))}>{L('Cancelar')}</button>
+        <button type="button" className="adm-login-back" onClick={cancel}>{L('Cancelar')}</button>
       </form>
     </div>
   );
 }
 
-/** Equipa: dar cargos a outras pessoas (só o administrador principal). */
-type Member = { email: string; role: string; created_at: string; last_seen: string | null };
+/** Equipa: criar contas do painel (nome de utilizador + senha inicial + cargo). Só o administrador principal. */
+type Staff = { username: string; role: string; created_at: string; last_sign_in_at: string | null; has_2fa: boolean };
 function TeamPanel() {
-  const [rows, setRows] = useState<Member[]>([]);
-  const [email, setEmail] = useState('');
-  const [role, setRole] = useState('moderator');
+  const [rows, setRows] = useState<Staff[]>([]);
+  const [nu, setNu] = useState({ user: '', pass: '', role: 'moderator' });
   const [msg, setMsg] = useState<string | null>(null);
   const load = async () => {
-    const { data, error } = await sb().rpc('admin_team_list');
-    if (error) { setMsg(L('Corre o ficheiro supabase/admin_team.sql no Supabase.')); return; }
-    setRows((data ?? []) as Member[]);
+    const { data, error } = await sb().rpc('admin_staff_list');
+    if (error) { setMsg(L('Corre o ficheiro supabase/admin_staff.sql no Supabase.')); return; }
+    setRows((data ?? []) as Staff[]);
   };
   useEffect(() => { load().catch(() => {}); }, []);
-  const add = async () => {
-    if (!email.trim()) return;
-    const { error } = await sb().rpc('admin_team_set', { p_email: email.trim(), p_role: role });
-    if (error) { setMsg(error.message.includes('not found') ? L('Não existe nenhuma conta com esse email.') : error.message); return; }
-    setEmail(''); setMsg(L('Feito.')); load();
+  const errText = (m: string) => (m.includes('taken') ? L('Esse nome de utilizador já existe.') : m.includes('username') ? L('Nome de utilizador inválido: 3 a 32 letras minúsculas, números, ponto, hífen ou _.') : m.includes('short') ? L('A senha tem de ter pelo menos 10 caracteres.') : m);
+  const create = async () => {
+    setMsg(null);
+    const { error } = await sb().rpc('admin_staff_create', { p_username: nu.user.trim(), p_password: nu.pass, p_role: nu.role });
+    if (error) { setMsg(errText(error.message)); return; }
+    setMsg(L('Conta criada. Dá o nome de utilizador e a senha à pessoa; no primeiro login vai ativar o 2FA.')); setNu({ user: '', pass: '', role: nu.role }); load();
   };
-  const remove = async (m: Member) => {
-    if (!window.confirm(L('Retirar o acesso ao painel?') + '\n' + m.email)) return;
-    await sb().rpc('admin_team_remove', { p_email: m.email }); load();
+  const reset = async (m: Staff) => {
+    const p = window.prompt(L('Nova senha para') + ' ' + m.username + ' (' + L('mínimo 10 caracteres') + ')');
+    if (!p) return;
+    const { error } = await sb().rpc('admin_staff_reset', { p_username: m.username, p_password: p });
+    setMsg(error ? errText(error.message) : L('Senha alterada. A pessoa vai configurar o 2FA de novo no próximo login.'));
+    load();
+  };
+  const remove = async (m: Staff) => {
+    if (!window.confirm(L('Apagar a conta do painel?') + '\n' + m.username)) return;
+    await sb().rpc('admin_staff_delete', { p_username: m.username }); load();
   };
   const roles = ['moderator', 'support', 'finance', 'readonly', 'admin'];
   return (
     <>
       <div className="fx-card ad-card">
-        <h3>{L('Adicionar pessoa')}</h3>
-        <p className="fx-muted fx-small">{L('A pessoa tem de ter conta no FuturePal. Ao entrar no painel pela primeira vez, vai ter de ativar o 2FA.')}</p>
+        <h3>{L('Criar conta no painel')}</h3>
+        <p className="fx-muted fx-small">{L('Cria um nome de utilizador e uma senha para a pessoa. Ela entra no painel com esses dados e ativa o 2FA no primeiro login.')}</p>
         <div className="ad-filters">
-          <input className="fx-input" type="email" value={email} placeholder="email@exemplo.com" onChange={(e) => setEmail(e.target.value)} style={{ flex: '1 1 260px' }} />
-          <PickMenu label={L('Cargo')} value={role} options={roles.map((r) => ({ value: r, label: L(ROLE_NAME[r]), sub: L(ROLE_DESC[r]) }))} onChange={(v) => setRole(String(v))} />
-          <button type="button" className="fx-btn primary" onClick={add}>{L('Adicionar')}</button>
+          <input className="fx-input" value={nu.user} placeholder={L('Nome de utilizador')} autoCapitalize="none" spellCheck={false} onChange={(e) => setNu({ ...nu, user: e.target.value })} style={{ flex: '1 1 180px' }} />
+          <input className="fx-input" type="text" value={nu.pass} placeholder={L('Senha inicial (mín. 10)')} autoComplete="new-password" onChange={(e) => setNu({ ...nu, pass: e.target.value })} style={{ flex: '1 1 180px' }} />
+          <PickMenu label={L('Cargo')} value={nu.role} options={roles.map((r) => ({ value: r, label: L(ROLE_NAME[r]), sub: L(ROLE_DESC[r]) }))} onChange={(v) => setNu({ ...nu, role: String(v) })} />
+          <button type="button" className="fx-btn primary" onClick={create} disabled={!nu.user.trim() || nu.pass.length < 10}>{L('Criar conta')}</button>
         </div>
         {msg && <p className="fx-muted fx-small">{msg}</p>}
       </div>
       <div className="fx-card ad-card">
         <h3>{L('Equipa')}</h3>
         <div className="ad-table-wrap"><table className="ad-table">
-          <thead><tr><th>Email</th><th>{L('Cargo')}</th><th>{L('Desde')}</th><th>{L('Atividade')}</th><th /></tr></thead>
+          <thead><tr><th>{L('Nome de utilizador')}</th><th>{L('Cargo')}</th><th>2FA</th><th>{L('Último login')}</th><th /></tr></thead>
           <tbody>{rows.map((m) => (
-            <tr key={m.email}>
-              <td>{m.email}</td>
+            <tr key={m.username}>
+              <td><b>{m.username}</b></td>
               <td>{m.role === 'super' ? <b>{L(ROLE_NAME.super)}</b> : <PickMenu label={L('Cargo')} compact value={m.role} options={roles.map((r) => ({ value: r, label: L(ROLE_NAME[r]) }))}
-                onChange={async (v) => { await sb().rpc('admin_team_set', { p_email: m.email, p_role: String(v) }); load(); }} />}</td>
-              <td>{new Date(m.created_at).toLocaleDateString(loadSettings().language)}</td>
-              <td><i className={'ad-act ' + ago(m.last_seen).dot} />{ago(m.last_seen).text}</td>
-              <td>{m.role !== 'super' && <button type="button" className="fx-btn danger" onClick={() => remove(m)}>{L('Retirar')}</button>}</td>
+                onChange={async (v) => { await sb().rpc('admin_staff_role', { p_username: m.username, p_role: String(v) }); load(); }} />}</td>
+              <td>{m.has_2fa ? <span className="fx-pos">✓</span> : <span className="fx-muted">{L('por ativar')}</span>}</td>
+              <td>{fmtDate(m.last_sign_in_at)}</td>
+              <td className="ad-rowbtns">{m.role !== 'super' && <><button type="button" className="fx-btn" onClick={() => reset(m)}>{L('Nova senha')}</button><button type="button" className="fx-btn danger" onClick={() => remove(m)}>{L('Apagar')}</button></>}</td>
             </tr>
           ))}</tbody>
         </table></div>
