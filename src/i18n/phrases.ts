@@ -195,6 +195,8 @@ export const PHRASES: Record<string, Tr> = {
   'Modelo de IA': ['AI model', 'Modelo de IA', 'Modèle d’IA'],
   'IA do FuturePal': ['FuturePal AI', 'IA de FuturePal', 'IA de FuturePal'],
   'A pensar…': ['Thinking…', 'Pensando…', 'Réflexion…'],
+  'Usar a minha chave API': ['Use my own API key', 'Usar mi clave API', 'Utiliser ma clé API'],
+  'Escolhe o fornecedor, cola a tua chave API e o modelo. Sem chave, usa a IA do FuturePal.': ['Choose the provider, paste your API key and pick the model. Without a key, FuturePal AI is used.', 'Elige el proveedor, pega tu clave API y el modelo. Sin clave, se usa la IA de FuturePal.', 'Choisissez le fournisseur, collez votre clé API et le modèle. Sans clé, l’IA de FuturePal est utilisée.'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */

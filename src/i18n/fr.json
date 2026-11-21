@@ -577,7 +577,11 @@
     "customize": "Personnaliser",
     "done": "Terminé",
     "reset": "Réinitialiser",
-    "dragHint": "Faites glisser les blocs pour les échanger."
+    "dragHint": "Faites glisser les blocs pour les échanger.",
+    "prev_m1": "mois précédent",
+    "prev_q": "3 mois précédents",
+    "prev_s": "6 mois précédents",
+    "prev_custom": "période précédente"
   },
   "blk": {
     "latest": "Derniers mouvements",

@@ -1435,7 +1435,11 @@
     "customize": "Customize",
     "done": "Done",
     "reset": "Reset",
-    "dragHint": "Drag the blocks to swap their places."
+    "dragHint": "Drag the blocks to swap their places.",
+    "prev_m1": "previous month",
+    "prev_q": "previous 3 months",
+    "prev_s": "previous 6 months",
+    "prev_custom": "previous period"
   },
   "blk": {
     "latest": "Latest transactions",

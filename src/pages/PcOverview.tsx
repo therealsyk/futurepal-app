@@ -37,7 +37,8 @@ export function Metric({ icon, tone, title, value, valueClass, delta, deltaGoodU
       <div className="pco-mhead">
         <span className="pco-mic"><Ic d={icon} size={18} /></span>
         <h3>{title}</h3>
-        {pct !== null && <span className={'pco-delta ' + (good === null ? 'same' : good ? 'good' : 'bad')}>{pct > 0 ? '+' : ''}{pct}% <small>{vsLabel} {prevName}</small></span>}
+        {pct !== null ? <span className={'pco-delta ' + (good === null ? 'same' : good ? 'good' : 'bad')}>{pct > 0 ? '+' : ''}{pct}% <small>{vsLabel} {prevName}</small></span>
+          : prevName ? <span className="pco-delta same" title={vsLabel + ' ' + prevName}>— <small>{vsLabel} {prevName}</small></span> : null}
       </div>
       <strong className={'pco-value ' + (valueClass ?? '')}>{value}</strong>
       {sub && <small className="pco-sub">{sub}</small>}
@@ -139,7 +140,7 @@ export function PcOverview() {
   const spanEnd = range.to > todayIso ? todayIso : range.to;
   const days = Math.max(1, Math.round((new Date(spanEnd + 'T00:00:00').getTime() - new Date(range.from + 'T00:00:00').getTime()) / 864e5) + 1);
   const months = yearly ? (per.y === now.getFullYear() ? now.getMonth() + 1 : 12) : Math.max(1, Math.round(days / 30.4));
-  const prevName = yearly ? String(per.y - 1) : ranged ? t('pco.prevPeriod') : new Date(per.y, per.m - 1, 1).toLocaleDateString(s.language, { month: 'long' });
+  const prevName = yearly ? String(per.y - 1) : ranged ? t('pco.prev_' + per.preset) : new Date(per.y, per.m - 1, 1).toLocaleDateString(s.language, { month: 'long' });
 
   // gráfico: os 12 meses do ano do período
   const endY = Number(range.to.slice(0, 4)), endM = Number(range.to.slice(5, 7)) - 1;
@@ -170,11 +171,11 @@ export function PcOverview() {
       <div className="pco-metrics">
         <Metric icon={IC.income} tone="inc" title={t('pco.inc_' + vm)} value={money(a.inc)} valueClass="fx-pos"
           delta={delta(a.inc, p.inc)} deltaGoodUp prevName={prevName} vsLabel={t('pco.vs')} bar={a.inc > 0 ? 1 : 0}
-          sub={long ? t('pco.avgMonth', { v: money(Math.round(a.inc / months)) }) : undefined} />
+          />
         <Metric icon={IC.spent} tone="exp" title={t('pco.spent_' + vm)} value={money(a.exp)} valueClass={a.exp > 0 ? 'fx-neg' : ''}
           delta={delta(a.exp, p.exp)} deltaGoodUp={false} prevName={prevName} vsLabel={t('pco.vs')} bar={ratio(a.exp)} sub={avg(a.exp)} />
         <Metric icon={IC.saved} tone="sav" title={isNowMonth ? t('pco.leftMonth') : t('pco.saved_' + vm)} value={money(left)} valueClass={left < 0 ? 'fx-neg' : 'fx-pos'}
-          delta={delta(left, prevLeft)} deltaGoodUp prevName={prevName} vsLabel={t('pco.vs')} bar={ratio(Math.max(0, left))} sub={long ? avg(left) : undefined} />
+          delta={delta(left, prevLeft)} deltaGoodUp prevName={prevName} vsLabel={t('pco.vs')} bar={ratio(Math.max(0, left))} />
       </div>
     ),
     latest: <SimpleHome key={'l' + ek} embed={{ mode: yearly ? 'year' : 'month', ...em, part: 'latest', range }} />,

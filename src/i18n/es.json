@@ -577,7 +577,11 @@
     "customize": "Personalizar",
     "done": "Hecho",
     "reset": "Restablecer",
-    "dragHint": "Arrastra los bloques para cambiarlos de sitio."
+    "dragHint": "Arrastra los bloques para cambiarlos de sitio.",
+    "prev_m1": "mes anterior",
+    "prev_q": "3 meses anteriores",
+    "prev_s": "6 meses anteriores",
+    "prev_custom": "periodo anterior"
   },
   "blk": {
     "latest": "Últimos movimientos",

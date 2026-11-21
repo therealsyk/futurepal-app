@@ -776,7 +776,11 @@
     "customize": "Personalizar",
     "done": "Concluído",
     "reset": "Repor",
-    "dragHint": "Arrasta os blocos para trocar de lugar."
+    "dragHint": "Arrasta os blocos para trocar de lugar.",
+    "prev_m1": "mês anterior",
+    "prev_q": "3 meses anteriores",
+    "prev_s": "6 meses anteriores",
+    "prev_custom": "período anterior"
   },
   "blk": {
     "latest": "Últimas movimentações",
