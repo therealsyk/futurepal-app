@@ -460,6 +460,8 @@ export const PHRASES: Record<string, Tr> = {
   'Suporte e segurança': ['Support and security', 'Soporte y seguridad', 'Support et sécurité'],
   'Tickets, tipos de problema e sinais de abuso (só números agregados).': ['Tickets, problem types and abuse signals (aggregated numbers only).', 'Tickets, tipos de problema y señales de abuso (solo números agregados).', 'Tickets, types de problèmes et signes d’abus (chiffres agrégés).'],
   'Subscritores, conversão, MRR, ARR, churn e LTV (estimativas).': ['Subscribers, conversion, MRR, ARR, churn and LTV (estimates).', 'Suscriptores, conversión, MRR, ARR, churn y LTV (estimaciones).', 'Abonnés, conversion, MRR, ARR, churn et LTV (estimations).'],
+  'Prioridade': ['Priority', 'Prioridad', 'Priorité'],
+  'Tipo': ['Type', 'Tipo', 'Type'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */

@@ -80,7 +80,7 @@ function UsersPanel() {
   useEffect(() => { load(0).catch(() => {}); setPage(0); }, [f.plan, f.status, f.platform, f.active]); // eslint-disable-line react-hooks/exhaustive-deps
   const total = rows[0]?.total ?? 0;
   const sel = (k: keyof typeof f, opts: Array<[string, string]>) => (
-    <select className="fx-input" value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })}>{opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+    <PickMenu label={opts[0][1]} value={f[k]} options={opts.map(([v, l]) => ({ value: v, label: l }))} onChange={(v) => setF({ ...f, [k]: String(v) })} />
   );
   return (
     <div className="fx-card ad-card">
@@ -218,9 +218,7 @@ function TicketsPanel() {
   return (
     <div className="fx-card ad-card">
       <div className="ad-filters">
-        <select className="fx-input" value={st} onChange={(e) => setSt(e.target.value)}>
-          <option value="open">{L('Abertos')}</option><option value="">{L('Todos')}</option>{ST.map(([v, l]) => <option key={v} value={v}>{L(l)}</option>)}
-        </select>
+        <PickMenu label={L('Estado')} value={st} options={[{ value: 'open', label: L('Abertos') }, { value: '', label: L('Todos') }, ...ST.map(([v, l]) => ({ value: v, label: L(l) }))]} onChange={(v) => setSt(String(v))} />
         <span className="fx-muted fx-small">{counts.open} {L('abertos')} · {counts.urgent} {L('urgentes')}</span>
       </div>
       {err && <p className="fx-muted">{err}</p>}
@@ -235,8 +233,8 @@ function TicketsPanel() {
               </div>
               <p className="ad-ticket-msg">{t.message}</p>
               <div className="fx-inline ad-ticket-ctl">
-                <select className="fx-input" value={t.status} onChange={(e) => upd(t, { status: e.target.value })}>{ST.map(([v, l]) => <option key={v} value={v}>{L(l)}</option>)}</select>
-                <select className="fx-input" value={t.priority} onChange={(e) => upd(t, { priority: e.target.value })}>{PR.map(([v, l]) => <option key={v} value={v}>{L(l)}</option>)}</select>
+                <PickMenu label={L('Estado')} compact value={t.status} options={ST.map(([v, l]) => ({ value: v, label: L(l) }))} onChange={(v) => upd(t, { status: String(v) })} />
+                <PickMenu label={L('Prioridade')} compact value={t.priority} options={PR.map(([v, l]) => ({ value: v, label: L(l) }))} onChange={(v) => upd(t, { priority: String(v) })} />
                 {t.email && <a className="fx-btn" href={`mailto:${t.email}?subject=${encodeURIComponent('FuturePal — T-' + t.id.slice(0, 6).toUpperCase())}`}>{L('Responder por email')}</a>}
               </div>
               <div className="fx-inline ad-ticket-ctl">

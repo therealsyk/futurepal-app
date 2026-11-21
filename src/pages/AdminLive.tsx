@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { getAdminSupabase as getSupabase } from '../auth/supabase';
 import { loadSettings } from '../core/settings';
 import { L } from '../i18n/phrases';
+import { PickMenu } from '../ui/fx';
 
 type Online = { email: string; platform: string | null; app_version: string | null; page: string | null; last_seen: string };
 type PStats = { now: number; today: number; week: number; platforms: Record<string, number>; versions: Record<string, number> };
@@ -70,9 +71,7 @@ export function AdminLive() {
           <h3>{L('Aviso para todos')}</h3>
           <textarea className="fx-input" rows={3} maxLength={500} value={ann.message} placeholder={L('Ex.: Nova versão disponível com muitas melhorias!')} onChange={(e) => setAnn({ ...ann, message: e.target.value })} />
           <div className="fx-inline" style={{ marginTop: 10, gap: 10 }}>
-            <select className="fx-input" value={ann.level} onChange={(e) => setAnn({ ...ann, level: e.target.value })} style={{ maxWidth: 180 }}>
-              <option value="info">{L('Informação')}</option><option value="warn">{L('Importante')}</option>
-            </select>
+            <PickMenu label={L('Tipo')} value={ann.level} options={[{ value: 'info', label: L('Informação') }, { value: 'warn', label: L('Importante') }]} onChange={(v) => setAnn({ ...ann, level: String(v) })} />
             <label className="ad-fb-all"><input type="checkbox" checked={ann.active} onChange={(e) => setAnn({ ...ann, active: e.target.checked })} /> {L('Mostrar na app')}</label>
             <span style={{ flex: 1 }} />
             <button type="button" className="fx-btn primary" onClick={saveAnn}>{L('Guardar')}</button>

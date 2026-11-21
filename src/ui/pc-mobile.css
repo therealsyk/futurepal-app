@@ -753,3 +753,8 @@ html:has(.win-titlebar) .adm { top: 34px; }
 .dsh-kvs p { display: flex; justify-content: space-between; margin: 0; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13.5px; }
 .dsh-kvs p:last-child { border-bottom: 0; } .dsh-kvs span { color: var(--muted); }
 .dsh-hbars > div { grid-template-columns: minmax(90px, 140px) 1fr 52px; }
+
+/* Admin: menus de escolha iguais aos da app (PickMenu) */
+.adm .fx-pick > .fx-btn { min-width: 170px; justify-content: space-between; gap: 10px; height: 38px; border-radius: 10px; background: var(--card); }
+.adm .fx-pick.compact > .fx-btn { min-width: 130px; height: 34px; }
+.adm .fx-pick-menu { border-radius: 14px; padding: 6px; min-width: 200px; }
