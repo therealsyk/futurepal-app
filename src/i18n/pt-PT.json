@@ -1317,7 +1317,19 @@
     "personalText": "Pagaste {{amount}}. Queres registar isto também nas tuas despesas pessoais?",
     "personalYes": "Adicionar",
     "personalNo": "Agora não",
-    "addedPersonal": "{{amount}} adicionado às tuas despesas."
+    "addedPersonal": "{{amount}} adicionado às tuas despesas.",
+    "kpiOwe": "Deves",
+    "kpiOweSub": "A tua parte por pagar",
+    "kpiOwed": "Devem-te",
+    "kpiOwedSub": "Nas despesas que criaste",
+    "kpiOpen": "Por fechar",
+    "kpiSettled": "{{n}} já pagas",
+    "kpiMembers": "{{n}} no grupo",
+    "paidOf": "{{paid}} pagos de {{total}}",
+    "paid": "pagou",
+    "owes": "falta {{amount}}",
+    "iPaid": "Já paguei {{amount}}",
+    "undoPaid": "Afinal não paguei"
   },
   "profile": {
     "title": "Foto de perfil",

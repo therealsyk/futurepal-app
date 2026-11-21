@@ -9,7 +9,8 @@ import { activeCategories, addTransaction } from '../core/finance';
 import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
 
-import { billStatus, myPending, parseContact, toBills, type SplitBill } from '../core/split';
+import { billProgress, groupSummary, parseContact, toBills, type SplitBill } from '../core/split';
+import { avatarUrl } from '../core/avatar';
 import { LockedPreview } from '../ui/LockedPreview';
 import { catFitsKind, catLabel, EmptyState, Field, Ic, ICON, PageHead, Sheet } from '../ui/fx';
 import { DatePicker } from '../ui/DatePicker';
@@ -20,7 +21,7 @@ import { L } from '../i18n/phrases';
 // e quem já pagou / falta pagar. Criar grupos é do plano Família; quem é convidado participa em qualquer plano.
 
 interface Group { id: string; name: string; owner_id: string; currency: string }
-interface Member { userId: string; displayName: string }
+interface Member { userId: string; displayName: string; avatarUrl: string | null }
 interface Invite { id: string; group_id: string; group_name: string; invited_by_name: string }
 interface PendingOut { id: string; email: string | null; phone: string | null }
 type AddPersonal = { description: string; cents: number; date: string; categoryId: string };
@@ -70,7 +71,7 @@ export function SplitPage() {
     const sb = getSupabase();
     if (!sb || !gid) { setMembers([]); setBills([]); setOutInv([]); return; }
     const [m, b, i] = await Promise.all([
-      sb.from('split_members').select('user_id, display_name').eq('group_id', gid).order('joined_at'),
+      sb.from('split_members').select('*').eq('group_id', gid).order('joined_at'),
       sb.from('split_bills').select('*').eq('group_id', gid).is('deleted_at', null).order('date', { ascending: false }).limit(300),
       sb.from('split_invites').select('id, email, phone').eq('group_id', gid).eq('status', 'pending'),
     ]);
@@ -78,12 +79,19 @@ export function SplitPage() {
     const sh = ids.length ? await sb.from('split_shares').select('*').in('bill_id', ids) : { data: [], error: null };
     const err = m.error || b.error || i.error || sh.error;
     if (err) setError(errText(err));
-    setMembers((m.data ?? []).map((r: any) => ({ userId: r.user_id, displayName: r.display_name })));
+    setMembers((m.data ?? []).map((r: any) => ({ userId: r.user_id, displayName: r.display_name, avatarUrl: r.avatar_url ?? null })));
     setBills(toBills(b.data ?? [], sh.data ?? []));
     setOutInv((i.data ?? []) as PendingOut[]);
   }, []);
 
   useEffect(() => { loadList().catch((e) => setError(errText(e))); activeCategories(db).then(setCats).catch(() => {}); }, [loadList]);
+  // Partilha a minha foto com os grupos (RPC idempotente; se a migração ainda não correu, ignora em silêncio).
+  const myAvatar = avatarUrl(auth.user);
+  useEffect(() => {
+    const sb = getSupabase();
+    if (!sb || !me) return;
+    Promise.resolve(sb.rpc('set_split_avatar', { p_url: myAvatar })).catch(() => {});
+  }, [me, myAvatar]);
   useEffect(() => { loadGroup(sel).catch((e) => setError(errText(e))); }, [sel, loadGroup]);
 
   if (!getSupabase() || !auth.user) {
@@ -158,7 +166,7 @@ export function SplitPage() {
   };
 
   const canCreate = canSplit; // criar grupos: Plus ou Pro (aceitar convites: qualquer plano)
-  const pend = myPending(bills, me);
+  const sum = groupSummary(bills, me);
 
   return (
     <div className="fx-page">
@@ -191,40 +199,69 @@ export function SplitPage() {
           </div>
           {group && (
             <>
-              <div className="fx-card fm-head">
-                <div style={{ flex: 1 }}>
-                  <b className="fm-name">{group.name}</b>
-                  <small className="fx-muted">{pend.count > 0 ? t('split.youOwe', { amount: money(pend.cents), count: pend.count }) : t('split.youOweNothing')}</small>
+              <div className="fx-kpis sp-kpis">
+                <div className="fx-card fx-kpi">
+                  <div className="fx-kpi-label">{t('split.kpiOwe')}</div>
+                  <div className={'fx-kpi-value' + (sum.iOweCents > 0 ? ' fx-neg' : '')}>{money(sum.iOweCents)}</div>
+                  <div className="fx-kpi-sub">{sum.iOweCents > 0 ? t('split.kpiOweSub') : t('split.youOweNothing')}</div>
                 </div>
-                <button type="button" className="fx-btn primary" onClick={() => setBill({ description: '', amount: '', date: today(), members: members.map((m) => m.userId), iPaid: true })}><Ic d={ICON.plus} /> {t('split.newBill')}</button>
+                <div className="fx-card fx-kpi">
+                  <div className="fx-kpi-label">{t('split.kpiOwed')}</div>
+                  <div className={'fx-kpi-value' + (sum.owedToMeCents > 0 ? ' fx-pos' : '')}>{money(sum.owedToMeCents)}</div>
+                  <div className="fx-kpi-sub">{t('split.kpiOwedSub')}</div>
+                </div>
+                <div className="fx-card fx-kpi">
+                  <div className="fx-kpi-label">{t('split.kpiOpen')}</div>
+                  <div className="fx-kpi-value">{sum.openBills}</div>
+                  <div className="fx-kpi-sub">{t('split.kpiSettled', { n: sum.settledBills })}</div>
+                </div>
+                <div className="fx-card fx-kpi">
+                  <div className="fx-kpi-label">{t('family.people')}</div>
+                  <div className="sp-faces">{members.slice(0, 5).map((m) => <Face key={m.userId} m={m} />)}{members.length > 5 && <span className="sp-more">+{members.length - 5}</span>}</div>
+                  <div className="fx-kpi-sub">{t('split.kpiMembers', { n: members.length })}</div>
+                </div>
               </div>
 
               <div className="fx-two">
                 <div>
-                  <h2 className="pm-h2">{t('split.bills')}</h2>
-                  {bills.length === 0 ? <p className="fx-muted">{t('split.noBills')}</p> : (
+                  <div className="sp-head">
+                    <h2 className="pm-h2">{t('split.bills')}</h2>
+                    <button type="button" className="fx-btn primary" onClick={() => setBill({ description: '', amount: '', date: today(), members: members.map((m) => m.userId), iPaid: true })}><Ic d={ICON.plus} /> {t('split.newBill')}</button>
+                  </div>
+                  {bills.length === 0 ? <div className="fx-card"><p className="fx-muted">{t('split.noBills')}</p></div> : (
                     <div className="pm-list">
                       {bills.map((b) => {
-                        const st = billStatus(b);
+                        const pr = billProgress(b);
+                        const mine = b.shares.find((x) => x.userId === me);
                         return (
-                          <div key={b.id} className="fx-card sp-bill">
-                            <div className="pm-sub">
-                              <div className="pm-sub-main"><b>{b.description}</b><small className="fx-muted">{b.date.split('-').reverse().join('/')} · {t('split.perPerson', { amount: money(b.shares[0]?.shareCents ?? 0), n: b.shares.length })}</small></div>
-                              <div className="pm-sub-right"><b>{money(b.amountCents)}</b><span className={'pm-chip' + (st.done ? '' : ' warn')}>{st.done ? t('split.allPaid') : t('split.missing', { amount: money(st.unpaidCents) })}</span></div>
+                          <div key={b.id} className={'fx-card sp-bill' + (pr.done ? ' done' : '')}>
+                            <div className="sp-bill-top">
+                              <div className="fx-item-main"><b>{b.description}</b><span>{b.date.split('-').reverse().join('/')} · {t('split.perPerson', { amount: money(pr.eachCents), n: pr.people })}</span></div>
+                              <div className="sp-bill-amt"><b className="fx-num">{money(pr.totalCents)}</b>
+                                <span className={'pm-chip' + (pr.done ? '' : ' warn')}>{pr.done ? t('split.allPaid') : t('split.missing', { amount: money(pr.remainingCents) })}</span></div>
                             </div>
+                            <div className="sp-progress" role="progressbar" aria-valuenow={pr.pct} aria-valuemin={0} aria-valuemax={100}><i style={{ width: pr.pct + '%' }} /></div>
+                            <div className="sp-progress-foot fx-muted">{t('split.paidOf', { paid: money(pr.paidCents), total: money(pr.totalCents) })} · {pr.pct}%</div>
                             <div className="sp-people">
                               {b.shares.map((x) => {
-                                const can = x.userId === me || b.createdBy === me;
+                                const can = b.createdBy === me && x.userId !== me;
+                                const m = members.find((mm) => mm.userId === x.userId) ?? { userId: x.userId, displayName: nameOf(x.userId), avatarUrl: null };
                                 return (
                                   <button key={x.userId} type="button" disabled={!can} className={'sp-person' + (x.paidAt ? ' paid' : '')}
                                     title={can ? (x.paidAt ? t('split.markUnpaid') : t('split.markPaid')) : ''}
                                     onClick={() => setPaid(b, x.userId, !x.paidAt)}>
-                                    {x.paidAt ? '✓' : '○'} {nameOf(x.userId)} · {money(x.shareCents)}
+                                    <Face m={m} small />
+                                    <span>{nameOf(x.userId)}</span>
+                                    <span className="sp-person-st">{x.paidAt ? '✓ ' + t('split.paid') : t('split.owes', { amount: money(x.shareCents) })}</span>
                                   </button>
                                 );
                               })}
                             </div>
-                            {b.createdBy === me && <button type="button" className="fx-link" onClick={() => removeBill(b)}>{t('common.delete')}</button>}
+                            <div className="sp-bill-actions">
+                              {mine && !mine.paidAt && mine.shareCents > 0 && <button type="button" className="fx-btn primary" onClick={() => setPaid(b, me, true)}>{t('split.iPaid', { amount: money(mine.shareCents) })}</button>}
+                              {mine && mine.paidAt && <button type="button" className="fx-link" onClick={() => setPaid(b, me, false)}>{t('split.undoPaid')}</button>}
+                              {b.createdBy === me && <button type="button" className="fx-link" onClick={() => removeBill(b)}>{t('common.delete')}</button>}
+                            </div>
                           </div>
                         );
                       })}
@@ -233,8 +270,20 @@ export function SplitPage() {
                 </div>
                 <div className="fx-card">
                   <h3>{t('family.people')}</h3>
-                  <div className="pm-list">{members.map((m) => <div key={m.userId}>{m.displayName}{m.userId === me ? ` (${t('family.you')})` : ''}</div>)}</div>
-                  {outInv.length > 0 && <p className="fx-muted fx-small">{t('split.waiting')}: {outInv.map((i) => i.email ?? '+' + i.phone).join(', ')}</p>}
+                  <div className="fx-list">
+                    {members.map((m) => (
+                      <div key={m.userId} className="fx-item">
+                        <Face m={m} />
+                        <div className="fx-item-main"><b>{m.displayName}{m.userId === me ? ` (${t('family.you')})` : ''}</b></div>
+                      </div>
+                    ))}
+                    {outInv.map((i) => (
+                      <div key={i.id} className="fx-item sp-waiting">
+                        <span className="fx-avatar sp-face">?</span>
+                        <div className="fx-item-main"><b>{i.email ?? '+' + i.phone}</b><span>{t('split.waiting')}</span></div>
+                      </div>
+                    ))}
+                  </div>
                   <Field label={t('split.inviteLabel')}>
                     <div className="as-input">
                       <input className="fx-input" value={contact} placeholder={t('split.invitePh')} onChange={(e) => setContact(e.target.value)} />
@@ -294,4 +343,12 @@ export function SplitPage() {
       </Sheet>
     </div>
   );
+}
+
+/** Foto do membro (partilhada via set_split_avatar) ou a inicial num círculo colorido. */
+function Face({ m, small }: { m: Member; small?: boolean }) {
+  const hue = [...m.userId].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
+  const cls = 'fx-avatar sp-face' + (small ? ' sm' : '');
+  if (m.avatarUrl) return <img className={cls} src={m.avatarUrl} alt="" referrerPolicy="no-referrer" />;
+  return <span className={cls} style={{ background: `hsl(${hue} 55% 52%)` }} aria-hidden="true">{(m.displayName || '?').trim().charAt(0).toUpperCase()}</span>;
 }

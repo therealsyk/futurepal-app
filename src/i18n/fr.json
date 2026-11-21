@@ -661,6 +661,18 @@
     "tip": "Par rapport à {{ref}}"
   },
   "split": {
-    "createNeedsFamily": "Créer des groupes (Plus ou Pro)"
+    "createNeedsFamily": "Créer des groupes (Plus ou Pro)",
+    "kpiOwe": "Tu dois",
+    "kpiOweSub": "Ta part à payer",
+    "kpiOwed": "On te doit",
+    "kpiOwedSub": "Sur les dépenses que tu as créées",
+    "kpiOpen": "En cours",
+    "kpiSettled": "{{n}} réglées",
+    "kpiMembers": "{{n}} dans le groupe",
+    "paidOf": "{{paid}} payés sur {{total}}",
+    "paid": "a payé",
+    "owes": "doit {{amount}}",
+    "iPaid": "J'ai payé {{amount}}",
+    "undoPaid": "En fait je n'ai pas payé"
   }
 }

@@ -832,6 +832,18 @@
     "tip": "Em comparação com {{ref}}"
   },
   "split": {
-    "createNeedsFamily": "Criar grupos (Plus ou Pro)"
+    "createNeedsFamily": "Criar grupos (Plus ou Pro)",
+    "kpiOwe": "Você deve",
+    "kpiOweSub": "Sua parte a pagar",
+    "kpiOwed": "Te devem",
+    "kpiOwedSub": "Nas despesas que você criou",
+    "kpiOpen": "Em aberto",
+    "kpiSettled": "{{n}} já pagas",
+    "kpiMembers": "{{n}} no grupo",
+    "paidOf": "{{paid}} pagos de {{total}}",
+    "paid": "pagou",
+    "owes": "falta {{amount}}",
+    "iPaid": "Já paguei {{amount}}",
+    "undoPaid": "Na verdade não paguei"
   }
 }

@@ -1317,7 +1317,19 @@
     "personalText": "You paid {{amount}}. Do you also want to record it in your personal expenses?",
     "personalYes": "Add",
     "personalNo": "Not now",
-    "addedPersonal": "{{amount}} added to your expenses."
+    "addedPersonal": "{{amount}} added to your expenses.",
+    "kpiOwe": "You owe",
+    "kpiOweSub": "Your unpaid share",
+    "kpiOwed": "Owed to you",
+    "kpiOwedSub": "On expenses you created",
+    "kpiOpen": "Open",
+    "kpiSettled": "{{n}} settled",
+    "kpiMembers": "{{n}} in the group",
+    "paidOf": "{{paid}} paid of {{total}}",
+    "paid": "paid",
+    "owes": "owes {{amount}}",
+    "iPaid": "I paid {{amount}}",
+    "undoPaid": "Actually I didn't pay"
   },
   "account": {
     "title": "Account",
