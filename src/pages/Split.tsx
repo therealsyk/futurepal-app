@@ -358,7 +358,10 @@ export function SplitPage() {
 
       {/* Registar a minha parte nas despesas: o mesmo formulário da "Nova transação" */}
       <Sheet open={!!personal} onClose={() => setPersonal(null)} title={L('Registar nas tuas despesas')}
-        footer={<button type="button" className="tx-addbtn" disabled={!personal?.categoryId} onClick={savePersonal}>{L('Adicionar despesa')}</button>}>
+        footer={<div className="sp-pfoot">
+          <button type="button" className="sp-pbtn no" onClick={() => setPersonal(null)}>{t('split.personalNo')}</button>
+          <button type="button" className="sp-pbtn yes" disabled={!personal?.categoryId} onClick={savePersonal}>{L('Adicionar despesa')}</button>
+        </div>}>
         {personal && <>
           <p className="fx-muted fx-small" style={{ textAlign: 'center', margin: '0 0 4px' }}>{L('Pagaste a tua parte. Regista-a também nas tuas despesas.')}</p>
           <input className="tx-amt exp" inputMode="decimal" value={(personal.cents / 100).toFixed(2).replace('.', ',')}
@@ -377,7 +380,6 @@ export function SplitPage() {
             <div className="tx-row"><span><Ic d="M5 5h14v15H5zM5 10h14M9 3v4M15 3v4" size={18} />{t('transactions.date')}</span>
               <DatePicker value={personal.date} onChange={(v) => setPersonal({ ...personal, date: v })} className="fx-input tx-val" /></div>
           </div>
-          <button type="button" className="sp-notnow" onClick={() => setPersonal(null)}>{t('split.personalNo')}</button>
         </>}
       </Sheet>
       {closing && (() => {
