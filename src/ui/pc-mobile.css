@@ -1016,3 +1016,5 @@ button.sp-row { cursor: pointer; } button.sp-row:hover { background: color-mix(i
 .spi-face.warn { background: color-mix(in srgb, var(--red) 85%, #000); color: #fff; }
 .spi-warn { margin: -4px 0 0; padding: 8px 14px; border-radius: 12px; color: #f5b85a; background: color-mix(in srgb, #f5b85a 12%, transparent); font-size: 14px; font-weight: 650; }
 .spi-btn.danger { background: var(--red); color: #fff; }
+.sp-bill-sub { color: var(--muted); font-size: 13px; font-weight: 500; }
+.sp-bill-facts { display: none; }

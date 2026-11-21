@@ -253,15 +253,11 @@ export function SplitPage() {
                             {/* título e total numa caixa própria; data e valor por pessoa em etiquetas por baixo */}
                             {b.createdBy === me && <button type="button" className="sp-x" onClick={() => setClosing(b)} aria-label={L('Fechar conta')} title={L('Fechar conta')}>✕</button>}
                             <div className="sp-bill-head">
-                              <b className="sp-bill-title">{b.description}</b>
+                              <span className="sp-bill-tt"><b className="sp-bill-title">{b.description}</b><small className="sp-bill-sub">{b.date.split('-').reverse().join('/')} · {money(each ?? pr.eachCents)} {L('por pessoa')}</small></span>
                               <span className="sp-bill-total">
                                 <small>{t('split.total')}</small><b>{money(pr.totalCents)}</b>
                                 <span className={'sp-tag ' + (left > 0 ? 'warn' : 'ok')}>{left > 0 ? t('split.missing', { amount: money(left) }) : t('split.allPaid')}</span>
                               </span>
-                            </div>
-                            <div className="sp-bill-facts">
-                              <span><small>{L('Data')}</small><b>{b.date.split('-').reverse().join('/')}</b></span>
-                              <span><small>{L('Cada pessoa paga')}</small><b>{money(each ?? pr.eachCents)}</b></span>
                             </div>
                             {/* Pessoas: foto e nome, estado do convite à frente; por baixo quanto paga e se já pagou */}
                             <div className="sp-list">
