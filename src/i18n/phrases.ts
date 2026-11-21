@@ -524,6 +524,7 @@ export const PHRASES: Record<string, Tr> = {
   'Não vai pagar esta conta': ['Won’t pay this bill', 'No pagará esta cuenta', 'Ne paiera pas cette dépense'],
   'Vai pagar': ['Will pay', 'Pagará', 'Paiera'],
   'quando aceitar': ['once they accept', 'cuando acepte', 'après avoir accepté'],
+  'por pessoa': ['per person', 'por persona', 'par personne'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */

@@ -246,10 +246,15 @@ export function SplitPage() {
                         const each = pendN ? Math.round(pr.totalCents / (b.shares.length + pendN)) : null;
                         return (
                           <div key={b.id} className={'fx-card sp-bill' + (pr.done ? ' done' : '')}>
-                            <div className="sp-bill-top">
-                              <div className="fx-item-main"><b>{b.description}</b><span>{b.date.split('-').reverse().join('/')} · {t('split.perPerson', { amount: money(each ?? pr.eachCents), n: pr.people + pendN })}</span></div>
-                              <div className="sp-bill-amt"><span className="fx-muted fx-small">{t('split.total')}</span><b className="fx-num">{money(pr.totalCents)}</b>
-                                <span className={'pm-chip' + (pr.done ? '' : ' warn')}>{pr.done ? (outInv.length ? L('À espera que aceitem o convite') : t('split.allPaid')) : t('split.missing', { amount: money(pr.remainingCents) })}</span></div>
+                            {/* título e total numa caixa própria; data e valor por pessoa em etiquetas por baixo */}
+                            <div className="sp-bill-head">
+                              <b className="sp-bill-title">{b.description}</b>
+                              <span className="sp-bill-total"><small>{t('split.total')}</small><b>{money(pr.totalCents)}</b></span>
+                            </div>
+                            <div className="sp-bill-tags">
+                              <span className="sp-tag">📅 {b.date.split('-').reverse().join('/')}</span>
+                              <span className="sp-tag">👥 {money(each ?? pr.eachCents)} {L('por pessoa')}</span>
+                              <span className={'sp-tag ' + (pr.done ? 'ok' : 'warn')}>{pr.done ? (outInv.length ? L('À espera que aceitem o convite') : t('split.allPaid')) : t('split.missing', { amount: money(pr.remainingCents) })}</span>
                             </div>
                             <div className="sp-progress" role="progressbar" aria-valuenow={pr.pct} aria-valuemin={0} aria-valuemax={100}><i style={{ width: pr.pct + '%' }} /></div>
                             <div className="sp-progress-foot fx-muted">{t('split.paidOf', { paid: money(pr.paidCents), total: money(pr.totalCents) })} · {pr.pct}%</div>
