@@ -12,7 +12,7 @@ import { loadSettings } from '../core/settings';
 import { billProgress, groupSummary, parseContact, toBills, type SplitBill } from '../core/split';
 import { avatarUrl } from '../core/avatar';
 import { LockedPreview } from '../ui/LockedPreview';
-import { catFitsKind, catLabel, EmptyState, Field, Ic, ICON, PageHead, Sheet } from '../ui/fx';
+import { catFitsKind, catLabel, CategorySelect, EmptyState, Field, Ic, ICON, PageHead, Sheet } from '../ui/fx';
 import { DatePicker } from '../ui/DatePicker';
 import { usePlan } from './Premium';
 import { L } from '../i18n/phrases';
@@ -46,15 +46,15 @@ export function SplitPage() {
   const [cats, setCats] = useState<Category[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
-  const [myName, setMyName] = useState((auth.user?.email ?? '').split('@')[0]);
-  const [newGroup, setNewGroup] = useState<string | null>(null);
-  const [contact, setContact] = useState('');
-  const [bill, setBill] = useState<{ description: string; amount: string; date: string; members: string[]; iPaid: boolean } | null>(null);
+  const meta = (auth.user?.user_metadata ?? {}) as { full_name?: string; name?: string };
+  const myName = meta.full_name || meta.name || (auth.user?.email ?? '').split('@')[0] || '—'; // nome da conta, automático
+  const [bill, setBill] = useState<{ description: string; amount: string; date: string; out: string[]; iPaid: boolean; categoryId: string; addMine: boolean; withGroup: string; invites: string } | null>(null);
   const [personal, setPersonal] = useState<AddPersonal | null>(null);
 
   const group = groups.find((g) => g.id === sel) ?? null;
   const money = (c: number) => formatMoney(c, group?.currency ?? s.currency, s.language);
   const nameOf = (id: string) => (id === me ? t('family.you') : members.find((m) => m.userId === id)?.displayName ?? '?');
+  const expCats = useMemo(() => cats.filter((c) => catFitsKind(c, 'expense')), [cats]);
   const labeled = useMemo(() => cats.filter((c) => catFitsKind(c, 'expense')).map((c) => ({ id: c.id, label: catLabel(t, c) })), [cats, t]);
 
   const loadList = useCallback(async () => {
@@ -112,36 +112,61 @@ export function SplitPage() {
   const otherCat = () => (labeled.find((c) => /restaur|aliment|food|casa|home|outr|other/i.test(c.label)) ?? labeled[0])?.id ?? '';
   const askPersonal = (description: string, cents: number, date: string) => setPersonal({ description, cents, date, categoryId: otherCat() });
 
-  const createGroup = async () => {
-    if (!newGroup?.trim() || !myName.trim()) return;
-    if (await rpc('create_split_group', { p_name: newGroup, p_display_name: myName, p_currency: s.currency })) { setNewGroup(null); await loadList(); }
+  const openBill = () => setBill({ description: '', amount: '', date: today(), out: [], iPaid: true, categoryId: otherCat(), addMine: true, withGroup: sel, invites: '' });
+  const contactsOf = (raw: string) => raw.split(/[,;\n]+/).map((x) => x.trim()).filter(Boolean);
+  const [invDraft, setInvDraft] = useState('');
+  // Convites como "chips": Enter, vírgula ou sair do campo confirma; só aceita email/telemóvel válido.
+  const commitInvite = () => {
+    const v = invDraft.trim().replace(/,$/, '');
+    if (!bill || !v || !parseContact(v)) return;
+    const list = contactsOf(bill.invites);
+    if (!list.includes(v)) setBill({ ...bill, invites: [...list, v].join('\n') });
+    setInvDraft('');
   };
   const answer = async (inv: Invite, accept: boolean) => {
     if (accept && !myName.trim()) return;
     if (await rpc('answer_split_invite', { p_invite: inv.id, p_accept: accept, p_display_name: myName })) { await loadList(); if (accept) setSel(inv.group_id); }
   };
-  const invite = async () => {
-    const c = parseContact(contact);
-    if (!c) { setError(t('split.badContact')); return; }
-    if (await rpc('invite_to_split', { p_group: sel, p_email: c.email, p_phone: c.phone })) { setContact(''); setInfo(t('split.invited')); await loadGroup(sel); }
-  };
+  
   const saveBill = async () => {
     if (!bill) return;
     const cents = parseMoneyToCents(bill.amount) ?? 0;
-    if (!bill.description.trim() || cents <= 0 || bill.members.length === 0) return;
-    setError(null);
+    const contacts = contactsOf(bill.invites);
+    const isNew = !bill.withGroup;
+    let ids = members.map((m) => m.userId).filter((id) => !bill.out.includes(id));
+    if (!bill.description.trim() || cents <= 0) return;
+    if (isNew ? contacts.length === 0 || !myName.trim() : ids.length === 0) return;
+    setError(null); setInfo(null);
     const sb = getSupabase()!;
-    const { data: bid, error: e } = await sb.rpc('add_split_bill', { p_group: sel, p_description: bill.description, p_amount_cents: cents, p_date: bill.date, p_members: bill.members, p_creator_paid: bill.iPaid });
+    let gid = bill.withGroup;
+    let people = ids.length;
+    if (isNew) {
+      const parsed = contacts.map((raw) => ({ raw, c: parseContact(raw) }));
+      const bad = parsed.filter((p) => !p.c).map((p) => p.raw);
+      if (bad.length) { setError(t('split.badContact') + ' ' + bad.join(', ')); return; }
+      const name = [myName.trim(), ...contacts.map((c) => c.split('@')[0])].join(' + ');
+      const g = await sb.rpc('create_split_group', { p_name: name, p_display_name: myName, p_currency: s.currency });
+      if (g.error) { setError(errText(g.error)); return; }
+      gid = String(g.data);
+      for (const p of parsed) {
+        const r = await sb.rpc('invite_to_split', { p_group: gid, p_email: p.c!.email, p_phone: p.c!.phone });
+        if (r.error) { setError(errText(r.error)); return; }
+      }
+      ids = [me];
+      people = 1 + contacts.length;
+    }
+    const { error: e } = await sb.rpc('add_split_bill', { p_group: gid, p_description: bill.description, p_amount_cents: cents, p_date: bill.date, p_members: ids, p_creator_paid: bill.iPaid });
     if (e) { setError(errText(e)); return; }
-    const mine = bill.members.includes(me);
-    const { data: myRow } = mine ? await sb.from('split_shares').select('share_cents').eq('bill_id', bid).eq('user_id', me).maybeSingle() : { data: null };
-    const myShare = Number(myRow?.share_cents ?? 0);
-    const desc = bill.description.trim();
-    const date = bill.date;
-    const iPaid = bill.iPaid;
+    const mine = ids.includes(me);
+    const myShare = mine ? Math.ceil(cents / people) : 0;
+    const { description, date, iPaid, addMine, categoryId } = bill;
     setBill(null);
-    await loadGroup(sel);
-    if (iPaid && mine && myShare > 0) askPersonal(`${desc} (${group?.name ?? ''})`, myShare, date);
+    if (isNew) await loadList();
+    if (gid === sel) await loadGroup(gid); else setSel(gid);
+    if (iPaid && mine && myShare > 0 && addMine && categoryId) {
+      await addTransaction(db, { date, type: 'expense', categoryId, description: description.trim(), amountCents: myShare, currency: group?.currency ?? s.currency });
+      setInfo(t('split.addedPersonal', { amount: money(myShare) }));
+    }
   };
   const setPaid = async (b: SplitBill, userId: string, paid: boolean) => {
     if (!(await rpc('set_split_paid', { p_bill: b.id, p_user: userId, p_paid: paid }))) return;
@@ -169,19 +194,15 @@ export function SplitPage() {
   const sum = groupSummary(bills, me);
 
   return (
-    <div className="fx-page">
-      <PageHead title={t('split.title')} sub={t('split.sub')}>
-        {canCreate
-          ? <button type="button" className="fx-btn primary" onClick={() => setNewGroup('')}><Ic d={ICON.plus} /> {t('split.newGroup')}</button>
-          : <Link to="/plus" className="fx-btn">{t('split.createNeedsFamily')}</Link>}
-      </PageHead>
+    <div className="fx-page sh">
+      <PageHead title={t('split.title')} sub={t('split.sub')}>{!canCreate && <Link to="/plus" className="fx-btn">{t('split.createNeedsFamily')}</Link>}</PageHead>
+      {(canCreate || groups.length > 0) && <button type="button" className="sh-pill" onClick={openBill}><Ic d={ICON.plus} size={16} />{t('split.newBill')}</button>}
       {error && <p className="fx-error">{error}</p>}
       {info && <p className="fx-muted">{info}</p>}
 
       {invites.length > 0 && (
         <div className="fx-card sp-invites">
           <h3>{t('split.invitesTitle')}</h3>
-          <Field label={t('family.yourName')}><input className="fx-input" value={myName} onChange={(e) => setMyName(e.target.value)} /></Field>
           {invites.map((i) => (
             <div key={i.id} className="pm-sub">
               <div className="pm-sub-main"><b>{i.group_name}</b><small className="fx-muted">{t('split.invitedBy', { name: i.invited_by_name })}</small></div>
@@ -195,7 +216,9 @@ export function SplitPage() {
       {groups.length === 0 ? <EmptyState icon={ICON.check} title={t('split.empty')} sub={t('split.emptySub')} /> : (
         <>
           <div className="sp-tabs">
-            {groups.map((g) => <button key={g.id} type="button" className={'fx-btn' + (g.id === sel ? ' primary' : '')} onClick={() => setSel(g.id)}>{g.name}</button>)}
+            {groups.length > 1
+              ? <select className="fx-input sp-group-select" value={sel} onChange={(e) => setSel(e.target.value)}>{groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}</select>
+              : <h2 className="pm-h2">{group?.name}</h2>}
           </div>
           {group && (
             <>
@@ -222,11 +245,11 @@ export function SplitPage() {
                 </div>
               </div>
 
-              <div className="fx-two">
+              <div className="sp-main">
                 <div>
                   <div className="sp-head">
                     <h2 className="pm-h2">{t('split.bills')}</h2>
-                    <button type="button" className="fx-btn primary" onClick={() => setBill({ description: '', amount: '', date: today(), members: members.map((m) => m.userId), iPaid: true })}><Ic d={ICON.plus} /> {t('split.newBill')}</button>
+                    
                   </div>
                   {bills.length === 0 ? <div className="fx-card"><p className="fx-muted">{t('split.noBills')}</p></div> : (
                     <div className="pm-list">
@@ -237,8 +260,8 @@ export function SplitPage() {
                           <div key={b.id} className={'fx-card sp-bill' + (pr.done ? ' done' : '')}>
                             <div className="sp-bill-top">
                               <div className="fx-item-main"><b>{b.description}</b><span>{b.date.split('-').reverse().join('/')} · {t('split.perPerson', { amount: money(pr.eachCents), n: pr.people })}</span></div>
-                              <div className="sp-bill-amt"><b className="fx-num">{money(pr.totalCents)}</b>
-                                <span className={'pm-chip' + (pr.done ? '' : ' warn')}>{pr.done ? t('split.allPaid') : t('split.missing', { amount: money(pr.remainingCents) })}</span></div>
+                              <div className="sp-bill-amt"><span className="fx-muted fx-small">{t('split.total')}</span><b className="fx-num">{money(pr.totalCents)}</b>
+                                <span className={'pm-chip' + (pr.done ? '' : ' warn')}>{pr.done ? (outInv.length ? L('À espera que aceitem o convite') : t('split.allPaid')) : t('split.missing', { amount: money(pr.remainingCents) })}</span></div>
                             </div>
                             <div className="sp-progress" role="progressbar" aria-valuenow={pr.pct} aria-valuemin={0} aria-valuemax={100}><i style={{ width: pr.pct + '%' }} /></div>
                             <div className="sp-progress-foot fx-muted">{t('split.paidOf', { paid: money(pr.paidCents), total: money(pr.totalCents) })} · {pr.pct}%</div>
@@ -268,62 +291,52 @@ export function SplitPage() {
                     </div>
                   )}
                 </div>
-                <div className="fx-card">
-                  <h3>{t('family.people')}</h3>
-                  <div className="fx-list">
-                    {members.map((m) => (
-                      <div key={m.userId} className="fx-item">
-                        <Face m={m} />
-                        <div className="fx-item-main"><b>{m.displayName}{m.userId === me ? ` (${t('family.you')})` : ''}</b></div>
-                      </div>
-                    ))}
-                    {outInv.map((i) => (
-                      <div key={i.id} className="fx-item sp-waiting">
-                        <span className="fx-avatar sp-face">?</span>
-                        <div className="fx-item-main"><b>{i.email ?? '+' + i.phone}</b><span>{t('split.waiting')}</span></div>
-                      </div>
-                    ))}
-                  </div>
-                  <Field label={t('split.inviteLabel')}>
-                    <div className="as-input">
-                      <input className="fx-input" value={contact} placeholder={t('split.invitePh')} onChange={(e) => setContact(e.target.value)} />
-                      <button type="button" className="fx-btn primary" disabled={!contact.trim()} onClick={invite}>{t('split.invite')}</button>
-                    </div>
-                  </Field>
-                  <p className="fx-muted fx-small">{t('split.inviteHint')}</p>
-                  <button type="button" className="fx-link" onClick={leave}>{t('split.leave')}</button>
-                </div>
+                {outInv.length > 0 && <p className="fx-muted fx-small">{t('split.waiting')}: {outInv.map((i) => i.email ?? '+' + i.phone).join(', ')}</p>}
+                <button type="button" className="fx-link sp-leave" onClick={leave}>{t('split.leave')}</button>
               </div>
             </>
           )}
         </>
       )}
 
-      <Sheet open={newGroup !== null} onClose={() => setNewGroup(null)} title={t('split.newGroup')}
-        footer={<><span style={{ flex: 1 }} /><button type="button" className="fx-btn" onClick={() => setNewGroup(null)}>{t('common.cancel')}</button><button type="button" className="fx-btn primary" onClick={createGroup}>{t('common.add')}</button></>}>
-        <Field label={t('split.groupName')}><input className="fx-input" value={newGroup ?? ''} placeholder={t('split.groupNamePh')} onChange={(e) => setNewGroup(e.target.value)} /></Field>
-        <Field label={t('family.yourName')}><input className="fx-input" value={myName} onChange={(e) => setMyName(e.target.value)} /></Field>
-      </Sheet>
-
-      <Sheet open={!!bill} onClose={() => setBill(null)} title={t('split.newBill')}
-        footer={<><span style={{ flex: 1 }} /><button type="button" className="fx-btn" onClick={() => setBill(null)}>{t('common.cancel')}</button><button type="button" className="fx-btn primary" onClick={saveBill}>{t('common.add')}</button></>}>
-        {bill && <>
-          <Field label={t('family.what')}><input className="fx-input" value={bill.description} placeholder={t('split.billPh')} onChange={(e) => setBill({ ...bill, description: e.target.value })} /></Field>
-          <div className="fx-two">
-            <Field label={t('split.total')}><input className="fx-input" inputMode="decimal" value={bill.amount} placeholder="0,00" onChange={(e) => setBill({ ...bill, amount: e.target.value })} /></Field>
-            <Field label={t('family.date')}><DatePicker value={bill.date} onChange={(v) => setBill({ ...bill, date: v })} /></Field>
+      <Sheet open={!!bill} onClose={() => { setBill(null); setInvDraft(''); }} title={t('split.newBill')}
+        footer={bill ? <button type="button" className="tx-addbtn" disabled={!bill.description.trim() || !(parseMoneyToCents(bill.amount) ?? 0) || (bill.withGroup ? members.every((m) => bill.out.includes(m.userId)) : contactsOf(bill.invites).length === 0 || !myName.trim())} onClick={saveBill}>{t('common.add')}</button> : null}>
+        {bill && (<>
+          {error && <p className="fx-error">{error}</p>}
+          <input className="tx-amt exp" autoFocus inputMode="decimal" value={bill.amount} placeholder="0" onChange={(e) => setBill({ ...bill, amount: e.target.value.replace(/[^\d.,]/g, '') })} aria-label={t('split.total')} />
+          <span className="tx-cur">{group?.currency ?? s.currency}</span>
+          {(() => { const c = parseMoneyToCents(bill.amount) ?? 0; const n = bill.withGroup ? members.filter((m) => !bill.out.includes(m.userId)).length : 1 + contactsOf(bill.invites).length; return c > 0 && n > 0 ? <p className="sp-each">{t('split.eachPays', { amount: money(Math.ceil(c / n)) })}</p> : null; })()}
+          <div className="tx-rows">
+            <label className="tx-row"><span><Ic d="M4 20h4L19 9l-4-4L4 16z" size={18} />{t('transactions.description')}</span>
+              <input className="tx-val" value={bill.description} placeholder={t('split.billPh')} onChange={(e) => setBill({ ...bill, description: e.target.value })} /></label>
+            <div className="tx-row"><span><Ic d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" size={18} />{t('transactions.category')}</span>
+              <CategorySelect cats={expCats} kind="expense" value={bill.categoryId} onChange={(v) => setBill({ ...bill, categoryId: v })} ariaLabel={t('transactions.category')} emptyLabel={L('Escolher…')} className="fx-input tx-val" /></div>
+            <div className="tx-row"><span><Ic d="M5 5h14v15H5zM5 10h14M9 3v4M15 3v4" size={18} />{t('transactions.date')}</span>
+              <DatePicker value={bill.date} onChange={(v) => setBill({ ...bill, date: v })} ariaLabel={t('transactions.date')} /></div>
+            <label className="tx-row"><span><Ic d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M22 19v-1a4 4 0 0 0-3-3.9M16 4.1a3 3 0 0 1 0 5.8" size={18} />{L('Com quem?')}</span>
+              <select className="tx-val" value={bill.withGroup} onChange={(e) => { const g = e.target.value; if (g) setSel(g); setBill({ ...bill, withGroup: g, out: [] }); }}>
+                {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                {canCreate && <option value="">{L('Pessoas novas')}</option>}
+              </select></label>
+            {bill.withGroup ? members.map((m) => (
+              <div key={m.userId} className="tx-row tx-sub"><span className="sp-toggle-who"><Face m={m} small />{m.userId === me ? t('family.you') : m.displayName}</span>
+                <button type="button" role="switch" aria-checked={!bill.out.includes(m.userId)} className={'ob-toggle' + (!bill.out.includes(m.userId) ? ' on' : '')} onClick={() => setBill({ ...bill, out: bill.out.includes(m.userId) ? bill.out.filter((x) => x !== m.userId) : [...bill.out, m.userId] })} aria-label={m.displayName}><i /></button></div>
+            )) : <>
+              <div className="tx-row sp-invrow"><span><Ic d="M4 6h16v12H4zM4 7l8 6 8-6" size={18} />{t('split.inviteLabel')}</span>
+                <div className="sp-chips">
+                  {contactsOf(bill.invites).map((c) => <span key={c} className="sp-chip">{c}<button type="button" aria-label={t('common.delete')} onClick={() => setBill({ ...bill, invites: contactsOf(bill.invites).filter((x) => x !== c).join('\n') })}>×</button></span>)}
+                  <input className={'tx-val sp-chipin' + (invDraft.trim() && !parseContact(invDraft) ? ' bad' : '')} value={invDraft} inputMode="email" placeholder={contactsOf(bill.invites).length ? L('Adicionar outro') : t('split.invitePh')}
+                    onChange={(e) => setInvDraft(e.target.value)}
+                    onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ',') && invDraft.trim()) { e.preventDefault(); commitInvite(); } else if (e.key === 'Backspace' && !invDraft) { const l = contactsOf(bill.invites); setBill({ ...bill, invites: l.slice(0, -1).join('\n') }); } }}
+                    onBlur={commitInvite} />
+                </div></div>
+            </>}
+            <div className="tx-row"><span><Ic d="M20 6 9 17l-5-5" size={18} />{t('split.iPaidMine')}</span>
+              <button type="button" role="switch" aria-checked={bill.iPaid} className={'ob-toggle' + (bill.iPaid ? ' on' : '')} onClick={() => setBill({ ...bill, iPaid: !bill.iPaid })} aria-label={t('split.iPaidMine')}><i /></button></div>
+            {bill.iPaid && <div className="tx-row tx-sub"><span>{L('Adicionar a minha parte às minhas despesas')}</span>
+              <button type="button" role="switch" aria-checked={bill.addMine} className={'ob-toggle' + (bill.addMine ? ' on' : '')} onClick={() => setBill({ ...bill, addMine: !bill.addMine })} aria-label={L('Adicionar a minha parte às minhas despesas')}><i /></button></div>}
           </div>
-          <Field label={t('family.splitWith')}>
-            <div className="fm-split">
-              {members.map((m) => (
-                <label key={m.userId}><input type="checkbox" checked={bill.members.includes(m.userId)}
-                  onChange={() => setBill({ ...bill, members: bill.members.includes(m.userId) ? bill.members.filter((x) => x !== m.userId) : [...bill.members, m.userId] })} /> {m.displayName}</label>
-              ))}
-            </div>
-          </Field>
-          {(() => { const c = parseMoneyToCents(bill.amount) ?? 0; return c > 0 && bill.members.length > 0 ? <p className="fx-muted">{t('split.eachPays', { amount: money(Math.ceil(c / bill.members.length)) })}</p> : null; })()}
-          <label className="fm-split"><input type="checkbox" checked={bill.iPaid} onChange={(e) => setBill({ ...bill, iPaid: e.target.checked })} /> {t('split.iPaidMine')}</label>
-        </>}
+        </>)}
       </Sheet>
 
       <Sheet open={!!personal} onClose={() => setPersonal(null)} title={t('split.personalTitle')}

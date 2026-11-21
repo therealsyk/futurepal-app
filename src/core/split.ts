@@ -41,7 +41,7 @@ export function billProgress(bill: SplitBill) {
     remainingCents,
     pct,
     people,
-    eachCents: people > 0 ? Math.round(totalCents / people) : 0,
+    eachCents: people > 0 ? Math.ceil(totalCents / people) : 0,
     paid: st.paid,
     unpaid: st.unpaid,
     done: st.done,

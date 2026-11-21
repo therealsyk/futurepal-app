@@ -1451,3 +1451,25 @@ html.pcm .fx-page.sh > .es { flex: 1 1 100% !important; width: 100% !important; 
 .ad-qr { width: 180px; height: 180px; background: #fff; border-radius: 12px; padding: 8px; }
 .ad-mfa { max-width: 460px; }
 @media (max-width: 768px) { .ad-tabs { width: 100%; overflow-x: auto; flex-wrap: nowrap; } .ad-tabs button { flex: none; } .ad-table th:nth-child(5), .ad-table td:nth-child(5), .ad-table th:nth-child(6), .ad-table td:nth-child(6) { display: none; } }
+
+/* Divisão de contas: pessoas em cartões grandes e fáceis de ler */
+.sp-people { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.sp-person { font-size: 1.05em; padding: 12px; }
+.sp-person .sp-person-st { font-weight: 600; }
+.sp-main { display: grid; gap: 16px; }
+.sp-group-select { max-width: 280px; }
+.sp-leave { justify-self: start; white-space: nowrap; font-size: .9em; opacity: .7; }
+.sp-each { margin: 4px 0; text-align: center; font-size: 1.15em; font-weight: 750; color: var(--mv); }
+.sp-toggle-who { display: flex; align-items: center; gap: 10px; }
+.sp-with { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Split: convites em chips, dentro de uma linha .tx-row (caixa discreta, sem textarea) */
+.tx-row.sp-invrow { align-items: flex-start; padding-top: 14px; padding-bottom: 10px; }
+.tx-row.sp-invrow > span { flex: none; padding-top: 2px; }
+.sp-chips { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px; min-width: 0; flex: 1; }
+.sp-chip { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; padding: 4px 6px 4px 10px; border-radius: 99px; background: color-mix(in srgb, var(--mv) 14%, transparent); color: var(--mv); font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sp-chip button { border: 0; background: none; color: inherit; font-size: 15px; line-height: 1; padding: 0 4px; cursor: pointer; opacity: .7; }
+.sp-chip button:hover { opacity: 1; }
+.tx-row .tx-val.sp-chipin { flex: 1 1 120px; max-width: 100%; }
+.tx-row .tx-val.sp-chipin.bad { color: var(--danger, #ff6b6b); }
+.sp-invhint { margin: 6px 0 4px; font-size: 12.5px; color: var(--muted); text-align: right; }

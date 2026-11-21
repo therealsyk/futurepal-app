@@ -333,10 +333,10 @@ export function Transactions() {
           <input className={'tx-amt ' + (type === 'expense' ? 'exp' : 'inc')} autoFocus inputMode="decimal" value={amount} placeholder="0" onChange={(e) => setAmount(e.target.value)} aria-label={t('transactions.amount')} />
           <span className="tx-cur">{settings.currency}</span>
           <div className="tx-rows">
-            <div className="tx-row"><span><Ic d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" size={18} />{t('transactions.category')}</span>
-              {toAccount ? <span className="tx-muted">{L('Transferência')}</span> : <CategorySelect cats={cats} kind={type} value={categoryId} onChange={setCategoryId} ariaLabel={t('transactions.category')} className="fx-input tx-val" />}</div>
             <label className="tx-row"><span><Ic d="M4 20h4L19 9l-4-4L4 16z" size={18} />{t('transactions.description')}</span>
               <input className="tx-val" value={description} placeholder={L('Opcional')} onChange={(e) => setDescription(e.target.value)} /></label>
+            <div className="tx-row"><span><Ic d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" size={18} />{t('transactions.category')}</span>
+              {toAccount ? <span className="tx-muted">{L('Transferência')}</span> : <CategorySelect cats={cats} kind={type} value={categoryId} onChange={setCategoryId} ariaLabel={t('transactions.category')} className="fx-input tx-val" />}</div>
             <div className="tx-row tx-acc"><span><Ic d={ICON.wallet} size={18} />{toAccount ? L('Da conta') : t('accounts.account')}</span>
               <span className="tx-accval">
                 <span className="tx-accpick">
