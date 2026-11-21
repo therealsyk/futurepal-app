@@ -596,11 +596,17 @@
   "period": {
     "range": "Période",
     "m1": "Dernier mois",
-    "q": "Dernier trimestre",
-    "s": "Dernier semestre",
-    "custom": "Autre",
+    "q": "3 derniers mois",
+    "s": "6 derniers mois",
+    "custom": "Autres dates…",
     "from": "Du",
-    "to": "Au"
+    "to": "Au",
+    "filter": "Filtrer",
+    "pickTitle": "Choisir les dates",
+    "tapFrom": "Touchez le jour de début",
+    "tapTo": "Touchez maintenant le jour de fin",
+    "apply": "Voir ces dates",
+    "clear": "Retirer le filtre"
   },
   "txs": {
     "title": "Transactions",

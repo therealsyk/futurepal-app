@@ -12,6 +12,7 @@ import { useAuth } from '../auth/AuthContext';
 import { UserAvatar } from '../ui/UserAvatar';
 import { Ic, ICON, CatIcon, catLabel } from '../ui/fx';
 import { L } from '../i18n/phrases';
+import { PeriodFilter, initialPeriod, periodRange, previousRange, type Period } from '../ui/PeriodFilter';
 
 const GEAR = 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z';
 
@@ -37,15 +38,15 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
   }, []);
 
   const now = new Date();
-  const [modeS, setMode] = useState<'month' | 'year'>('month');
-  const mode = embed?.mode ?? modeS;
-  const [curS, setCur] = useState({ y: now.getFullYear(), m: now.getMonth() });
-  const cur = embed ? { y: embed.y, m: embed.m } : curS;
-  const shift = (d: number) => setCur((c) => (mode === 'year' ? { y: c.y + d, m: c.m } : { y: c.y + Math.floor((c.m + d) / 12), m: ((c.m + d) % 12 + 12) % 12 }));
+  const [per, setPer] = useState<Period>(() => initialPeriod(now));
+  const ranged = !embed && per.mode === 'range';
+  const mode = embed?.mode ?? (per.mode === 'month' ? 'month' : 'year');
+  const cur = embed ? { y: embed.y, m: embed.m } : { y: per.y, m: per.m };
   const prefix = mode === 'year' ? String(cur.y) : `${cur.y}-${String(cur.m + 1).padStart(2, '0')}`;
-  const month = (data?.txs ?? []).filter((x) => x.date.startsWith(prefix));
+  const pr = embed ? null : periodRange(per), ppr = embed ? null : previousRange(per);
+  const month = (data?.txs ?? []).filter((x) => (pr ? x.date >= pr.from && x.date <= pr.to : x.date.startsWith(prefix)));
   const prevPrefix = mode === 'year' ? String(cur.y - 1) : (() => { const pd = new Date(cur.y, cur.m - 1, 1); return `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, '0')}`; })();
-  const prevSpent = (data?.txs ?? []).filter((x) => x.type === 'expense' && x.date.startsWith(prevPrefix)).reduce((a, x) => a + x.amountCents, 0);
+  const prevSpent = (data?.txs ?? []).filter((x) => x.type === 'expense' && (ppr ? x.date >= ppr.from && x.date <= ppr.to : x.date.startsWith(prevPrefix))).reduce((a, x) => a + x.amountCents, 0);
   const received = month.filter((x) => x.type === 'income').reduce((a, x) => a + x.amountCents, 0);
   const spent = month.filter((x) => x.type === 'expense').reduce((a, x) => a + x.amountCents, 0);
   const left = received - spent;
@@ -53,27 +54,21 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
   const salaryToDate = (data?.salaries ?? []).filter((x) => x.year * 100 + x.month <= now.getFullYear() * 100 + now.getMonth() + 1).reduce((a, x) => a + x.amountCents, 0);
   // Só contas com dinheiro (as dívidas, ex.: empréstimo da casa, ficam de fora para não assustar)
   const saved = data ? data.accounts.filter((a) => a.type !== 'debt').reduce((sum, a) => sum + accountBalanceCents(a, data.txs, data.accounts, salaryToDate, data.transfers), 0) : 0;
-  const rng = embed?.range;
+  const rng = embed ? embed.range : ranged ? pr ?? undefined : undefined;
   const inRange = (data?.txs ?? []).filter((x) => !rng || (x.date >= rng.from && x.date <= rng.to));
   const latest = [...inRange].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt)).slice(0, 5);
   const catOf = (id: string) => data?.cats.find((c) => c.id === id);
   const meta = (auth.user?.user_metadata ?? {}) as { name?: string; full_name?: string };
   const name = meta.full_name || meta.name || auth.user?.email?.split('@')[0] || '';
-  const periodLabel = mode === 'year' ? String(cur.y) : new Date(cur.y, cur.m, 1).toLocaleDateString(s.language, { month: 'long', year: 'numeric' });
 
   const heroEl = (<>
       <section className="mv-hero sh-hero">
-        {!embed && <div className="mv-hero-top">
-          <button type="button" className="mv-chev" onClick={() => shift(-1)} aria-label={mode === 'month' ? L('Mês anterior') : L('Ano anterior')}><Ic d={ICON.left} size={18} /></button>
-          <span className="mv-month">{periodLabel}</span>
-          <button type="button" className="mv-chev" onClick={() => shift(1)} aria-label={mode === 'month' ? L('Mês seguinte') : L('Ano seguinte')}><Ic d={ICON.right} size={18} /></button>
-        </div>}
         {(() => {
           const pct = received > 0 ? Math.round((spent / received) * 100) : null;
           // cor do quanto já se gastou do rendimento: sem cor até 50% (normal), amarelo até 80%, vermelho a partir daí
           const tone = (p: number) => (p >= 80 ? 'bad' : p >= 50 ? 'warn' : 'neutral');
           const dlt = prevSpent > 0 && spent > 0 ? Math.round(((spent - prevSpent) / prevSpent) * 100) : null;
-          const cmp = dlt === null ? null : <small className={'sh-cmp ' + (dlt > 0 ? 'fx-neg' : 'fx-pos')}>{dlt > 0 ? '↑' : '↓'} {Math.abs(dlt)}% vs {mode === 'month' ? L('mês anterior') : L('ano anterior')}</small>;
+          const cmp = dlt === null ? null : <small className={'sh-cmp ' + (dlt > 0 ? 'fx-neg' : 'fx-pos')}>{dlt > 0 ? '↑' : '↓'} {Math.abs(dlt)}% vs {ranged ? L('período anterior') : mode === 'month' ? L('mês anterior') : L('ano anterior')}</small>;
           return mode === 'month' ? (
             <>
               <small className="mv-hero-label">{L('Ainda tens para gastar')}</small>
@@ -83,7 +78,7 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
             </>
           ) : (
             <>
-              <small className="mv-hero-label">{L('Recebeste este ano')}</small>
+              <small className="mv-hero-label">{ranged ? L('Recebeste neste período') : L('Recebeste este ano')}</small>
               <div className="sh-valrow"><span className="sh-big fx-pos">{money(received)}</span></div>
               <div className="sh-bar" aria-hidden="true"><i style={{ width: `${ratio * 100}%` }} /></div>
               <div className="sh-kpis">
@@ -95,7 +90,7 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
         })()}
       </section>
 
-      <Link to={mode === 'month' ? '/visao-mensal' : `/resumo-ano?ano=${cur.y}`} className="sh-link">{mode === 'month' ? L('Ver resumo do mês') : L('Ver resumo do ano')} <Ic d={ICON.right} size={14} /></Link>
+      <Link to={ranged && pr ? `/transacoes?de=${pr.from}&ate=${pr.to}` : mode === 'month' ? '/visao-mensal' : `/resumo-ano?ano=${cur.y}`} className="sh-link">{ranged ? L('Ver movimentos do período') : mode === 'month' ? L('Ver resumo do mês') : L('Ver resumo do ano')} <Ic d={ICON.right} size={14} /></Link>
 
       {/* 2. As duas ações (só no mês; no ano o foco é o balanço) */}
       {mode === 'month' && !embed && <div className="sh-actions">
@@ -172,10 +167,7 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
       </header>
 
       {/* 1. A pergunta principal, com uma escolha clara: este mês ou o ano todo */}
-      <div className="sh-seg" role="tablist" aria-label={L('Período')}>
-        <button type="button" role="tab" aria-selected={mode === 'month'} className={mode === 'month' ? 'on' : ''} onClick={() => setMode('month')}>{L('Este mês')}</button>
-        <button type="button" role="tab" aria-selected={mode === 'year'} className={mode === 'year' ? 'on' : ''} onClick={() => setMode('year')}>{L('O ano todo')}</button>
-      </div>
+      <PeriodFilter value={per} onChange={setPer} />
       {heroEl}
       {latestEl}
       {groupsEl}

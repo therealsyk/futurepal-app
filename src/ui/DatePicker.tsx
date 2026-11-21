@@ -19,7 +19,7 @@ export function formatDateShort(iso: string): string {
 }
 
 /** Gastos (despesas) de cada dia de um mês, sempre atualizados (liveQuery acompanha a base de dados). */
-function useMonthSpend(y: number, m: number, on: boolean): number[] {
+export function useMonthSpend(y: number, m: number, on: boolean): number[] {
   const [spend, setSpend] = useState<number[]>([]);
   useEffect(() => {
     if (!on) return;

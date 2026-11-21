@@ -1448,11 +1448,17 @@
   "period": {
     "range": "Período",
     "m1": "Último mês",
-    "q": "Último trimestre",
-    "s": "Último semestre",
-    "custom": "Outro",
+    "q": "Últimos 3 meses",
+    "s": "Últimos 6 meses",
+    "custom": "Outras datas…",
     "from": "De",
-    "to": "Até"
+    "to": "Até",
+    "filter": "Filtrar",
+    "pickTitle": "Escolher datas",
+    "tapFrom": "Toca no dia em que começa",
+    "tapTo": "Agora toca no dia em que acaba",
+    "apply": "Ver estas datas",
+    "clear": "Tirar filtro"
   },
   "txs": {
     "title": "Transações",

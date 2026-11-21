@@ -177,6 +177,9 @@ export const PHRASES: Record<string, Tr> = {
   'Importante': ['Important', 'Importante', 'Important'],
   'Mostrar na app': ['Show in the app', 'Mostrar en la app', 'Afficher dans l’app'],
   'Apaga a conta e todos os dados dela no servidor. Os administradores não podem ser apagados.': ['Deletes the account and all its data on the server. Admins cannot be deleted.', 'Elimina la cuenta y todos sus datos del servidor. Los administradores no se pueden eliminar.', 'Supprime le compte et toutes ses données sur le serveur. Les administrateurs ne peuvent pas être supprimés.'],
+  'período anterior': ['previous period', 'periodo anterior', 'période précédente'],
+  'Recebeste neste período': ['Received in this period', 'Recibiste en este periodo', 'Reçu sur cette période'],
+  'Ver movimentos do período': ['See transactions in this period', 'Ver movimientos del periodo', 'Voir les opérations de la période'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */
