@@ -1032,3 +1032,10 @@ button.sp-row { cursor: pointer; } button.sp-row:hover { background: color-mix(i
 .sp-bill-actions { padding-top: 8px !important; }
 .sp-bill-actions .fx-btn, .sp-bill-actions .fx-link, .sp-leave-in { height: 32px !important; font-size: 12.5px !important; padding: 0 12px !important; }
 .sp-hero { max-width: 520px; padding: 14px 18px; } .sp-hero b { font-size: 26px; }
+/* Dividir contas: três blocos separados — caixa azul (título e total), caixa das pessoas, botões em baixo */
+.sp-bill { background: none !important; border: 0 !important; box-shadow: none !important; padding: 0 !important; gap: 10px !important; }
+.sp-bill-head { padding: 14px 16px !important; border-radius: 18px !important; }
+.sp-list { border-radius: 18px; border: 1px solid var(--border); background: var(--card); }
+.sp-bill-actions { border-top: 0 !important; padding-top: 0 !important; justify-content: space-between; }
+.sp-bill-actions .sp-leave-in { margin-left: auto; }
+.sp-x { top: -8px; right: -8px; }
