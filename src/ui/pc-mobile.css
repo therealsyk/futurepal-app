@@ -898,3 +898,25 @@ button.ad-lbox-body { cursor: pointer; }
 button.sh-limit { border: 0; font: inherit; color: inherit; cursor: pointer; transition: transform .15s, filter .15s; }
 button.sh-limit:hover { filter: brightness(1.08); } button.sh-limit:active { transform: scale(.97); }
 .lim-editcat { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 17px; margin-bottom: 4px; }
+
+/* Dividir contas: cartão de despesa compacto (como as metas) e botões arrumados */
+.sp-bill { border-radius: 22px !important; padding: 16px 18px !important; display: flex; flex-direction: column; gap: 10px; max-width: 720px; }
+.sp-bill-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.sp-bill-top .fx-item-main b { font-size: 17px; }
+.sp-bill-amt { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; }
+.sp-bill-amt b { font-size: 22px; font-weight: 800; }
+.sp-progress { height: 8px; border-radius: 8px; background: var(--track); overflow: hidden; }
+.sp-progress i { display: block; height: 100%; border-radius: 8px; background: var(--pos); }
+.sp-progress-foot { font-size: 12.5px; margin-top: -4px; }
+.sp-people { display: flex; flex-wrap: wrap; gap: 8px; }
+.sp-person { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px 0 4px; border-radius: 99px; border: 1px solid var(--border); background: var(--card-2); color: var(--text); font: inherit; font-size: 13.5px; }
+.sp-person.paid { border-color: color-mix(in srgb, var(--pos) 50%, transparent); }
+.sp-person-st { color: var(--muted); font-size: 12px; } .sp-person.paid .sp-person-st { color: var(--pos); }
+.sp-bill-actions { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border); }
+.sp-bill-actions .fx-btn, .sp-bill-actions .fx-link, .fx-link.sp-leave {
+  width: auto !important; min-width: 0 !important; height: 36px !important; min-height: 0 !important; padding: 0 16px !important; border-radius: 99px !important;
+  display: inline-flex; align-items: center; justify-content: center; font: inherit; font-size: 13.5px; font-weight: 650; cursor: pointer;
+  border: 1px solid var(--border); background: var(--card-2); color: var(--text); position: static !important; translate: none !important; box-shadow: none; }
+.sp-bill-actions .fx-btn.primary { background: var(--mv, var(--accent)); color: var(--mv-ink, #032a2d); border-color: transparent; }
+.sp-bill-actions .fx-link:last-child { color: var(--red); border-color: color-mix(in srgb, var(--red) 40%, transparent); }
+.fx-link.sp-leave { margin-top: 12px; color: var(--red); border-color: color-mix(in srgb, var(--red) 40%, transparent); }
