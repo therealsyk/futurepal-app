@@ -1,6 +1,6 @@
 -- FuturePal: contas do painel com NOME DE UTILIZADOR e senha (separadas das contas normais da app).
 -- Corre UMA vez no Supabase > SQL Editor (depois de admin_team.sql).
--- Cada conta do painel é um utilizador do Supabase Auth com um email interno "<nome>@staff.futurepal.app"
+-- Cada conta do painel é um utilizador do Supabase Auth com um email interno "<nome>@staff.futurepal.invalid"
 -- (a pessoa só vê e escreve o nome de utilizador). O 2FA continua obrigatório no primeiro login.
 
 create extension if not exists pgcrypto with schema extensions;
@@ -14,7 +14,7 @@ begin
   if p_username !~ '^[a-z0-9._-]{3,32}$' then raise exception 'invalid username'; end if;
   if length(coalesce(p_password, '')) < 10 then raise exception 'password too short'; end if;
   if p_role not in ('super', 'admin', 'moderator', 'support', 'finance', 'readonly') then raise exception 'invalid role'; end if;
-  em := p_username || '@staff.futurepal.app';
+  em := p_username || '@staff.futurepal.invalid';
   select id into uid from auth.users where email = em;
   if uid is null then
     uid := gen_random_uuid();
@@ -40,7 +40,7 @@ declare uid uuid;
 begin
   if not public.admin_can('team') then raise exception 'not allowed'; end if;
   if p_role = 'super' then raise exception 'invalid role'; end if;
-  if exists (select 1 from auth.users where email = lower(trim(p_username)) || '@staff.futurepal.app') then raise exception 'username taken'; end if;
+  if exists (select 1 from auth.users where email = lower(trim(p_username)) || '@staff.futurepal.invalid') then raise exception 'username taken'; end if;
   uid := public._staff_upsert(p_username, p_password, p_role);
   perform public._audit('staff_create', lower(trim(p_username)), null, json_build_object('role', p_role)::jsonb, null);
 end $$;
@@ -51,7 +51,7 @@ returns void language plpgsql security definer set search_path = public, auth, e
 declare uid uuid; r text;
 begin
   if not public.admin_can('team') then raise exception 'not allowed'; end if;
-  select u.id, a.role into uid, r from auth.users u join public.admins a on a.user_id = u.id where u.email = lower(trim(p_username)) || '@staff.futurepal.app';
+  select u.id, a.role into uid, r from auth.users u join public.admins a on a.user_id = u.id where u.email = lower(trim(p_username)) || '@staff.futurepal.invalid';
   if uid is null or uid = auth.uid() then raise exception 'not allowed'; end if;
   perform public._staff_upsert(p_username, p_password, r);
   delete from auth.mfa_factors where user_id = uid;  -- volta a configurar o 2FA no próximo login
@@ -65,7 +65,7 @@ returns void language plpgsql security definer set search_path = public, auth as
 declare uid uuid;
 begin
   if not public.admin_can('team') then raise exception 'not allowed'; end if;
-  select id into uid from auth.users where email = lower(trim(p_username)) || '@staff.futurepal.app';
+  select id into uid from auth.users where email = lower(trim(p_username)) || '@staff.futurepal.invalid';
   if uid is null or uid = auth.uid() then raise exception 'not allowed'; end if;
   if exists (select 1 from public.admins where user_id = uid and role = 'super') then raise exception 'not allowed'; end if;
   perform public._audit('staff_delete', lower(trim(p_username)), null, null, null);
@@ -79,7 +79,7 @@ declare uid uuid;
 begin
   if not public.admin_can('team') then raise exception 'not allowed'; end if;
   if p_role not in ('admin', 'moderator', 'support', 'finance', 'readonly') then raise exception 'invalid role'; end if;
-  select id into uid from auth.users where email = lower(trim(p_username)) || '@staff.futurepal.app';
+  select id into uid from auth.users where email = lower(trim(p_username)) || '@staff.futurepal.invalid';
   if uid is null or uid = auth.uid() then raise exception 'not allowed'; end if;
   update public.admins set role = p_role where user_id = uid and role <> 'super';
   perform public._audit('staff_role', lower(trim(p_username)), null, json_build_object('role', p_role)::jsonb, null);
@@ -94,7 +94,7 @@ begin
   return query select split_part(u.email, '@', 1)::text, a.role, u.created_at, u.last_sign_in_at,
     exists (select 1 from auth.mfa_factors f where f.user_id = u.id and f.status = 'verified')
     from public.admins a join auth.users u on u.id = a.user_id
-    where u.email like '%@staff.futurepal.app'
+    where u.email like '%@staff.futurepal.invalid'
     order by (a.role = 'super') desc, u.created_at;
 end $$;
 
@@ -112,3 +112,8 @@ end $$;
 --
 -- select public._staff_upsert('adminrafael', 'A_TUA_SENHA', 'super');
 -- ============================================================================================
+
+-- MUDANÇA DE DOMÍNIO (corre uma vez se já tinhas criado contas com "@staff.futurepal.app"):
+update auth.users set email = replace(email, '@staff.futurepal.app', '@staff.futurepal.invalid') where email like '%@staff.futurepal.app';
+update auth.identities set identity_data = jsonb_set(identity_data, '{email}', to_jsonb(replace(identity_data->>'email', '@staff.futurepal.app', '@staff.futurepal.invalid')))
+  where provider = 'email' and identity_data->>'email' like '%@staff.futurepal.app';

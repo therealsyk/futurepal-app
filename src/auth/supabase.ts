@@ -15,7 +15,7 @@ export function hasSupabaseConfig(): boolean {
 let client: SupabaseClient | null = null;
 let adminClient: SupabaseClient | null = null;
 /** Domínio interno das contas do painel (a pessoa só escreve o nome de utilizador). */
-export const STAFF_DOMAIN = 'staff.futurepal.app';
+export const STAFF_DOMAIN = 'staff.futurepal.invalid'; // .invalid: reservado, nunca pode ser registado (ninguém recebe emails de recuperação)
 
 /** Sessão própria do painel de administração (nome de utilizador + senha + 2FA), separada da conta da app.
  *  Guarda-se só nesta janela (sessionStorage): fechar a janela termina a sessão do painel. */
