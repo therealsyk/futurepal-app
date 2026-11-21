@@ -18,7 +18,7 @@ import { catFitsKind, catLabel, CategorySelect, EmptyState, Ic, ICON, PageHead, 
 import { DatePicker } from '../ui/DatePicker';
 import { usePlan } from './Premium';
 import { L } from '../i18n/phrases';
-import { defaultAccountId } from '../core/accounts';
+import { accountBalanceCents, defaultAccountId } from '../core/accounts';
 
 // Divisão de contas: grupos com convite por email/telemóvel (a pessoa aceita), contas divididas em partes iguais
 // e quem já pagou / falta pagar. Criar grupos é do plano Família; quem é convidado participa em qualquer plano.
@@ -55,7 +55,16 @@ export function SplitPage() {
   const [bill, setBill] = useState<{ description: string; amount: string; date: string; out: string[]; iPaid: boolean; categoryId: string; addMine: boolean; withGroup: string; invites: string } | null>(null);
   const [personal, setPersonal] = useState<AddPersonal | null>(null);
   const [accs, setAccs] = useState<Account[]>([]);
-  useEffect(() => { db.accounts.toArray().then((r) => setAccs(r.filter((a2) => a2.deletedAt === null && a2.type !== 'debt'))).catch(() => {}); }, []);
+  const [bals, setBals] = useState<Record<string, number>>({});
+  useEffect(() => {
+    (async () => {
+      const live = <T extends { deletedAt: string | null }>(r: T[]) => r.filter((x) => x.deletedAt === null);
+      const all = live(await db.accounts.toArray()), txs = live(await db.transactions.toArray()), trs = live(await db.transfers.toArray()), sals = live(await db.salaries.toArray());
+      const n = new Date(); const sal = sals.filter((x) => x.year * 100 + x.month <= n.getFullYear() * 100 + n.getMonth() + 1).reduce((a2, x) => a2 + x.amountCents, 0);
+      setAccs(all.filter((a2) => a2.type !== 'debt'));
+      setBals(Object.fromEntries(all.map((a2) => [a2.id, accountBalanceCents(a2, txs, all, sal, trs)])));
+    })().catch(() => {});
+  }, []);
 
   const group = groups.find((g) => g.id === sel) ?? null;
   const money = (c: number) => formatMoney(c, group?.currency ?? s.currency, s.language);
@@ -179,7 +188,7 @@ export function SplitPage() {
     if (!(await rpc('set_split_paid', { p_bill: b.id, p_user: userId, p_paid: paid }))) return;
     await loadGroup(sel);
     const share = b.shares.find((x) => x.userId === userId);
-    if (paid && userId === me && share) askPersonal(`${b.description} (${group?.name ?? ''})`, share.shareCents, today());
+    if (paid && userId === me && share) askPersonal(b.description, outInv.length ? Math.round(b.amountCents / (b.shares.length + outInv.length)) : share.shareCents, today());
   };
   const [closing, setClosing] = useState<SplitBill | null>(null);
   const removeBill = async (b: SplitBill) => {
@@ -360,12 +369,15 @@ export function SplitPage() {
               <input className="tx-val" value={personal.description} onChange={(e) => setPersonal({ ...personal, description: e.target.value })} /></label>
             <div className="tx-row"><span><Ic d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" size={18} />{t('transactions.category')}</span>
               <CategorySelect cats={expCats} kind="expense" value={personal.categoryId} onChange={(v) => setPersonal({ ...personal, categoryId: v })} ariaLabel={t('transactions.category')} emptyLabel={L('Escolher…')} className="fx-input tx-val" /></div>
-            {accs.length > 0 && <label className="tx-row"><span><Ic d={ICON.wallet} size={18} />{t('accounts.account')}</span>
-              <select className="tx-val" value={personal.accountId ?? ''} onChange={(e) => setPersonal({ ...personal, accountId: e.target.value })}>{accs.map((a2) => <option key={a2.id} value={a2.id}>{a2.name}</option>)}</select></label>}
+            {accs.length > 0 && <div className="tx-row tx-acc"><span><Ic d={ICON.wallet} size={18} />{t('accounts.account')}</span>
+              <span className="tx-accval"><span className="tx-accpick">
+                <select className="tx-val" value={personal.accountId || defaultAccountId(accs) || ''} onChange={(e) => setPersonal({ ...personal, accountId: e.target.value })} aria-label={t('accounts.account')}>{accs.map((a2) => <option key={a2.id} value={a2.id}>{a2.name}</option>)}</select>
+                {bals[personal.accountId || defaultAccountId(accs) || ''] !== undefined && <small className={bals[personal.accountId || defaultAccountId(accs) || ''] < 0 ? 'fx-neg' : 'fx-pos'}>{money(bals[personal.accountId || defaultAccountId(accs) || ''])}</small>}
+              </span></span></div>}
             <div className="tx-row"><span><Ic d="M5 5h14v15H5zM5 10h14M9 3v4M15 3v4" size={18} />{t('transactions.date')}</span>
               <DatePicker value={personal.date} onChange={(v) => setPersonal({ ...personal, date: v })} className="fx-input tx-val" /></div>
           </div>
-          <button type="button" className="fx-link sp-notnow" onClick={() => setPersonal(null)}>{t('split.personalNo')}</button>
+          <button type="button" className="sp-notnow" onClick={() => setPersonal(null)}>{t('split.personalNo')}</button>
         </>}
       </Sheet>
       {closing && (() => {
