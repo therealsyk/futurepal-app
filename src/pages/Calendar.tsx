@@ -61,6 +61,9 @@ export default function Calendar() {
   const prevYearTotal = sumBetween(`${calYear - 1}-01-01`, `${calYear - 1}-12-31`);
   const pr = previousRange(per);
   const prevRangeTotal = sumBetween(pr.from, pr.to);
+  // média por mês do ano anterior (só meses com gastos), para a comparação na vista anual
+  const prevMonths = Array.from({ length: 12 }, (_, i) => sumBetween(`${calYear - 1}-${String(i + 1).padStart(2, '0')}-01`, `${calYear - 1}-${String(i + 1).padStart(2, '0')}-31`));
+  const prevAvg = prevMonths.filter((v) => v > 0).length ? prevMonths.reduce((x, y) => x + y, 0) / prevMonths.filter((v) => v > 0).length : 0;
   const dl = (n: number, b: number) => (b === 0 ? null : (n - b) / b);
   const vs = t('pco.vs');
   const prevMonthName = pm.toLocaleDateString(settings.language, { month: 'long' });
@@ -107,7 +110,7 @@ export default function Calendar() {
           </div>
           <div className="fx-col">
             <Metric icon={IC_SPENT} tone="exp" title={t('calendar.yearTotal')} value={money(yearTotal)} valueClass={yearTotal > 0 ? 'fx-neg' : ''} delta={dl(yearTotal, prevYearTotal)} deltaGoodUp={false} prevName={String(calYear - 1)} vsLabel={vs} bar={1} />
-            <Metric icon={IC_CAL} tone="sav" title={t('calendar.monthAverage')} value={monthsWithSpend ? money(Math.round(yearTotal / monthsWithSpend)) : '—'} delta={null} deltaGoodUp={false} prevName="" vsLabel="" bar={yearMax > 0 && monthsWithSpend ? Math.min(1, (yearTotal / monthsWithSpend) / Math.max(1, topMonth?.total ?? 1)) : 0} />
+            <Metric icon={IC_CAL} tone="sav" title={t('calendar.monthAverage')} value={monthsWithSpend ? money(Math.round(yearTotal / monthsWithSpend)) : '—'} delta={monthsWithSpend && prevAvg ? dl(yearTotal / monthsWithSpend, prevAvg) : null} deltaGoodUp={false} prevName={prevYearName} vsLabel={vs} bar={yearMax > 0 && monthsWithSpend ? Math.min(1, (yearTotal / monthsWithSpend) / Math.max(1, topMonth?.total ?? 1)) : 0} />
             <Metric icon={IC_TOP} tone="inc" title={t('calendar.topMonth')} value={topMonth && topMonth.total > 0 ? money(topMonth.total) : '—'} delta={null} deltaGoodUp={false} prevName="" vsLabel="" sub={topMonth && topMonth.total > 0 ? monthNames[topMonth.i] : t('calendar.yearHint')} bar={topMonth && yearTotal > 0 ? topMonth.total / yearTotal : 0} />
           </div>
         </div>
