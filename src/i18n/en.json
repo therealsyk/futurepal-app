@@ -1464,7 +1464,9 @@
     "tapFrom": "Tap the day it starts",
     "tapTo": "Now tap the day it ends",
     "apply": "Show these dates",
-    "clear": "Remove filter"
+    "clear": "Remove filter",
+    "month": "Monthly",
+    "year": "Yearly"
   },
   "txs": {
     "title": "Transactions",

@@ -805,6 +805,8 @@
     "tapFrom": "Toque no dia em que começa",
     "tapTo": "Agora toque no dia em que termina",
     "apply": "Ver estas datas",
-    "clear": "Remover filtro"
+    "clear": "Remover filtro",
+    "month": "Mensal",
+    "year": "Anual"
   }
 }

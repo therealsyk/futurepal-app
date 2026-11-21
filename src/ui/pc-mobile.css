@@ -364,3 +364,40 @@ html.pcm .sal-page { padding-bottom: 110px !important; }
 .pco-accpop .pco-acc { padding: 10px 12px; }
 .pco-accall { align-self: center; margin-top: 4px; }
 .fx-cal-d.out { opacity: .3; }
+
+/* ---- Resumo v4: caixas como eram (barra grande e "vs mês"), widgets que se juntam/tiram, Personalizar discreto */
+.pf-seg { width: 240px; }
+.pco-metric { justify-content: flex-start; gap: 4px; padding: 18px 22px !important; }
+.pco-metric .pco-delta small { display: inline; }
+.pco-metric .pco-value { font-size: clamp(26px, 1.8vw, 34px); margin-top: 6px; }
+.pco-metric .pco-bar { height: 22px; margin-top: auto; }
+.pco-metric .pco-sub { margin-top: 2px; }
+.pco-sq { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 16px; border: 1px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; transition: color .15s, background .15s; }
+.pco-sq:hover { color: var(--text); background: var(--card-2); }
+.pco-grid.b1 .pco-slot.s2 { grid-column: span 12; }
+.pco-grid.b2 .pco-slot:nth-child(n+3) { grid-column: span 6; }
+.pco-grid.b3 .pco-slot:nth-child(n+3) { grid-column: span 4; }
+.pco-grid.b4 .pco-slot:nth-child(n+3) { grid-column: span 3; }
+.pco-grid.one { grid-template-rows: minmax(0, 1fr); }
+.pco-wdel { position: absolute; top: -8px; left: -8px; z-index: 3; width: 28px; height: 28px; border-radius: 50%; border: 0; background: var(--red); color: #fff; font-size: 13px; cursor: pointer; pointer-events: auto !important; flex: none !important; box-shadow: 0 6px 14px -6px rgba(0,0,0,.7); }
+.pco-grid.editing .pco-slot > .pco-wdel { pointer-events: auto; }
+.pco-addw { position: relative; }
+.pco-addmenu { left: auto; right: 0; min-width: 280px; }
+.pco-addmenu button:last-child { border-top: 0; margin-top: 0; border-radius: 12px; }
+.pco-addmenu button:disabled { opacity: .45; cursor: default; }
+.pco-addfull { margin: 6px 10px 8px; color: var(--muted); font-size: 13px; }
+/* widgets extra */
+.pco-w { display: flex; flex-direction: column; gap: 12px; }
+.pco-wlist { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+.pco-lim { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 14px; background: var(--card-2); }
+.pco-limbar { display: block; height: 6px; margin-top: 5px; border-radius: 6px; background: var(--track); overflow: hidden; }
+.pco-limbar i { display: block; height: 100%; border-radius: 6px; background: var(--pos); }
+.pco-limbar i.warn { background: #f5b85a; } .pco-limbar i.bad { background: var(--red); }
+.pco-ai-sub { margin: 0; font-size: 14px; }
+.pco-ai-ex { display: flex; flex-direction: column; gap: 6px; }
+.pco-ai-ex button { text-align: left; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--border); background: var(--card-2); color: var(--text); font: inherit; font-size: 13.5px; cursor: pointer; }
+.pco-ai-ex button:hover { border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+.pco-ai-in { display: flex; gap: 8px; margin-top: auto; }
+.pco-ai-in input { flex: 1; min-width: 0; height: 44px; padding: 0 14px; border-radius: 99px; border: 1px solid var(--border); background: var(--card-2); color: var(--text); font: inherit; }
+.pco-ai-in button { width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--mv, var(--accent)); color: var(--mv-ink, #032a2d); display: grid; place-items: center; cursor: pointer; }
+.pco-ai-in button:disabled { opacity: .5; }

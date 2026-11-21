@@ -14,6 +14,8 @@ import { PeriodFilter, initialPeriod, periodRange, previousRange, type Period } 
 import { OverviewChart } from './Dashboard';
 import { SimpleHome } from './SimpleHome';
 import { SimpleOverview } from './SimplePages';
+import { AccountsWidget, AssistantWidget, LimitsWidget } from './PcWidgets';
+import { L } from '../i18n/phrases';
 
 const IC = {
   income: 'M12 19V5M5 12l7-7 7 7',
@@ -38,22 +40,29 @@ export function Metric({ icon, tone, title, value, valueClass, delta, deltaGoodU
         {pct !== null && <span className={'pco-delta ' + (good === null ? 'same' : good ? 'good' : 'bad')}>{pct > 0 ? '+' : ''}{pct}% <small>{vsLabel} {prevName}</small></span>}
       </div>
       <strong className={'pco-value ' + (valueClass ?? '')}>{value}</strong>
-      <small className="pco-sub">{sub || ' '}</small>
+      {sub && <small className="pco-sub">{sub}</small>}
       <div className="pco-bar" aria-hidden="true"><i style={{ width: `${Math.max(2, Math.min(100, bar * 100))}%` }} /></div>
     </section>
   );
 }
 
-type WidgetId = 'chart' | 'metrics' | 'latest' | 'cats' | 'cal';
+type WidgetId = 'chart' | 'metrics' | 'latest' | 'cats' | 'cal' | 'goals' | 'limits' | 'accounts' | 'groups' | 'assistant';
+const ALL_WIDGETS: WidgetId[] = ['chart', 'metrics', 'latest', 'cats', 'cal', 'goals', 'limits', 'accounts', 'groups', 'assistant'];
 const DEFAULT_ORDER: WidgetId[] = ['chart', 'metrics', 'latest', 'cats', 'cal'];
-const ORDER_KEY = 'wallet.pcoOrder.v2';
+const MAX_WIDGETS = 6; // 2 em cima + até 4 em baixo: tudo cabe no ecrã sem scroll
+const ORDER_KEY = 'wallet.pcoOrder.v3';
 function loadOrder(): WidgetId[] {
   try {
     const v = JSON.parse(localStorage.getItem(ORDER_KEY) || 'null') as WidgetId[] | null;
-    if (Array.isArray(v) && v.length === DEFAULT_ORDER.length && DEFAULT_ORDER.every((x) => v.includes(x))) return v;
+    if (Array.isArray(v) && v.length >= 1 && v.length <= MAX_WIDGETS && v.every((x) => ALL_WIDGETS.includes(x)) && new Set(v).size === v.length) return v;
   } catch { /* sem storage */ }
   return DEFAULT_ORDER;
 }
+const SLIDERS = 'M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M16 4v4M10 10v4M18 16v4';
+const WNAME: Record<WidgetId, string> = {
+  chart: 'Gráfico de rendimentos', metrics: 'Rendimento, gastos e poupança', latest: 'Últimos movimentos', cats: 'Categorias',
+  cal: 'Calendário de gastos', goals: 'Metas', limits: 'Limites do mês', accounts: 'Contas', groups: 'Grupos', assistant: 'Assistente IA',
+};
 
 /** Contas, de forma discreta: um botão no topo com o total; ao carregar mostra cada conta. */
 function AccountsChip({ money }: { money: (c: number) => string }) {
@@ -110,6 +119,7 @@ export function PcOverview() {
   const [txs, setTxs] = useState<Transaction[]>([]);
   const [order, setOrder] = useState<WidgetId[]>(loadOrder);
   const [editing, setEditing] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
   const [drag, setDrag] = useState<WidgetId | null>(null);
   useEffect(() => { db.transactions.toArray().then((r) => setTxs(r.filter((x) => x.deletedAt === null))).catch(() => {}); }, []);
 
@@ -160,16 +170,21 @@ export function PcOverview() {
       <div className="pco-metrics">
         <Metric icon={IC.income} tone="inc" title={t('pco.inc_' + vm)} value={money(a.inc)} valueClass="fx-pos"
           delta={delta(a.inc, p.inc)} deltaGoodUp prevName={prevName} vsLabel={t('pco.vs')} bar={a.inc > 0 ? 1 : 0}
-          sub={t('pco.txCount', { count: a.n })} />
+          sub={long ? t('pco.avgMonth', { v: money(Math.round(a.inc / months)) }) : undefined} />
         <Metric icon={IC.spent} tone="exp" title={t('pco.spent_' + vm)} value={money(a.exp)} valueClass={a.exp > 0 ? 'fx-neg' : ''}
           delta={delta(a.exp, p.exp)} deltaGoodUp={false} prevName={prevName} vsLabel={t('pco.vs')} bar={ratio(a.exp)} sub={avg(a.exp)} />
         <Metric icon={IC.saved} tone="sav" title={isNowMonth ? t('pco.leftMonth') : t('pco.saved_' + vm)} value={money(left)} valueClass={left < 0 ? 'fx-neg' : 'fx-pos'}
-          delta={delta(left, prevLeft)} deltaGoodUp prevName={prevName} vsLabel={t('pco.vs')} bar={ratio(Math.max(0, left))} sub={avg(left)} />
+          delta={delta(left, prevLeft)} deltaGoodUp prevName={prevName} vsLabel={t('pco.vs')} bar={ratio(Math.max(0, left))} sub={long ? avg(left) : undefined} />
       </div>
     ),
     latest: <SimpleHome key={'l' + ek} embed={{ mode: yearly ? 'year' : 'month', ...em, part: 'latest', range }} />,
     cats: <SimpleOverview key={'c' + ek} yearly={multiMonth} embed={{ ...em, part: 'cats', range: ranged ? range : undefined }} />,
     cal: <SimpleOverview key={'k' + ek} yearly={multiMonth} embed={{ ...em, part: 'cal' }} />,
+    goals: <SimpleHome key="g" embed={{ mode: 'month', y: now.getFullYear(), m: now.getMonth(), part: 'goals' }} />,
+    groups: <SimpleHome key="gr" embed={{ mode: 'month', y: now.getFullYear(), m: now.getMonth(), part: 'groups' }} />,
+    limits: <LimitsWidget money={money} y={em.y} m={em.m} />,
+    accounts: <AccountsWidget money={money} />,
+    assistant: <AssistantWidget />,
   };
 
   const onDrop = (target: WidgetId) => (e: DragEvent) => {
@@ -180,7 +195,10 @@ export function PcOverview() {
     setOrder(next); setDrag(null);
     try { localStorage.setItem(ORDER_KEY, JSON.stringify(next)); } catch { /* sem storage */ }
   };
+  const save = (next: WidgetId[]) => { setOrder(next); try { localStorage.setItem(ORDER_KEY, JSON.stringify(next)); } catch { /* sem storage */ } };
   const reset = () => { setOrder(DEFAULT_ORDER); try { localStorage.removeItem(ORDER_KEY); } catch { /* sem storage */ } };
+  const hidden = ALL_WIDGETS.filter((w) => !order.includes(w));
+  const bottomN = Math.max(1, order.length - 2);
 
   return (
     <div className="fx-page pco">
@@ -189,19 +207,30 @@ export function PcOverview() {
           <PeriodFilter value={per} onChange={setPer} />
         </div>
         <div className="pco-right">
-          {editing && <button type="button" className="pf-chip" onClick={reset}>{t('pco.reset')}</button>}
-          <button type="button" className={'pf-chip' + (editing ? ' on' : '')} onClick={() => setEditing(!editing)}>{editing ? t('pco.done') : t('pco.customize')}</button>
+          {editing && <>
+            <div className="pco-addw">
+              <button type="button" className="pf-chip on" onClick={() => setAddOpen(!addOpen)} disabled={hidden.length === 0}>+ {L('Adicionar widget')}</button>
+              {addOpen && <div className="pf-menu pco-addmenu" role="menu">
+                {order.length >= MAX_WIDGETS && <p className="pco-addfull">{L('Tira um widget primeiro para caber tudo no ecrã.')}</p>}
+                {hidden.map((w) => <button key={w} type="button" role="menuitem" disabled={order.length >= MAX_WIDGETS} onClick={() => { save([...order, w]); setAddOpen(false); }}>{L(WNAME[w])}</button>)}
+              </div>}
+            </div>
+            <button type="button" className="pf-chip" onClick={reset}>{t('pco.reset')}</button>
+            <button type="button" className="pf-chip on" onClick={() => { setEditing(false); setAddOpen(false); }}>{t('pco.done')}</button>
+          </>}
+          {!editing && <button type="button" className="pco-sq" onClick={() => setEditing(true)} aria-label={t('pco.customize')} title={t('pco.customize')}><Ic d={SLIDERS} size={19} /></button>}
           <AccountsChip money={money} />
           <AccountBar />
         </div>
       </header>
       {editing && <p className="pco-hint">{t('pco.dragHint')}</p>}
 
-      <div className={'pco-grid' + (editing ? ' editing' : '')}>
+      <div className={'pco-grid b' + bottomN + (order.length <= 2 ? ' one' : '') + (editing ? ' editing' : '')}>
         {order.map((id, i) => (
           <div key={id} className={`pco-slot s${i}` + (drag === id ? ' dragging' : '')} draggable={editing}
             onDragStart={() => setDrag(id)} onDragEnd={() => setDrag(null)} onDragOver={(e) => { if (editing) e.preventDefault(); }} onDrop={onDrop(id)}>
             {editing && <span className="pco-grip"><Ic d={IC.grip} size={18} /></span>}
+            {editing && order.length > 1 && <button type="button" className="pco-wdel" onClick={() => save(order.filter((x) => x !== id))} aria-label={L('Tirar widget')}>✕</button>}
             {blocks[id]}
           </div>
         ))}

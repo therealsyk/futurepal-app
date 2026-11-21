@@ -123,8 +123,8 @@ export function PeriodFilter({ value, onChange }: { value: Period; onChange: (p:
   return (
     <div className="pf">
       <div className="sh-seg pf-seg" role="tablist" aria-label={t('pco.summary')}>
-        <button type="button" role="tab" aria-selected={p.mode === 'month'} className={p.mode === 'month' ? 'on' : ''} onClick={() => onChange({ ...p, mode: 'month' })}>{t('pco.monthly')}</button>
-        <button type="button" role="tab" aria-selected={p.mode === 'year'} className={p.mode === 'year' ? 'on' : ''} onClick={() => onChange({ ...p, mode: 'year' })}>{t('pco.yearly')}</button>
+        <button type="button" role="tab" aria-selected={p.mode === 'month'} className={p.mode === 'month' ? 'on' : ''} onClick={() => onChange({ ...p, mode: 'month' })}>{t('period.month')}</button>
+        <button type="button" role="tab" aria-selected={p.mode === 'year'} className={p.mode === 'year' ? 'on' : ''} onClick={() => onChange({ ...p, mode: 'year' })}>{t('period.year')}</button>
       </div>
       {ranged ? (
         <div className="sh-monthnav pf-nav pf-active">

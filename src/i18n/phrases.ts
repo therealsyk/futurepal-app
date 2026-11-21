@@ -181,6 +181,20 @@ export const PHRASES: Record<string, Tr> = {
   'Recebeste neste período': ['Received in this period', 'Recibiste en este periodo', 'Reçu sur cette période'],
   'Ver movimentos do período': ['See transactions in this period', 'Ver movimientos del periodo', 'Voir les opérations de la période'],
   'Gasto no período': ['Spent in period', 'Gastado en el periodo', 'Dépensé sur la période'],
+  'Adicionar widget': ['Add widget', 'Añadir widget', 'Ajouter un widget'],
+  'Tira um widget primeiro para caber tudo no ecrã.': ['Remove a widget first so everything fits on screen.', 'Quita un widget primero para que todo quepa en pantalla.', 'Retirez d’abord un widget pour que tout tienne à l’écran.'],
+  'Tirar widget': ['Remove widget', 'Quitar widget', 'Retirer le widget'],
+  'Gráfico de rendimentos': ['Income chart', 'Gráfico de ingresos', 'Graphique des revenus'],
+  'Rendimento, gastos e poupança': ['Income, spending and savings', 'Ingresos, gastos y ahorro', 'Revenus, dépenses et épargne'],
+  'Últimos movimentos': ['Latest transactions', 'Últimos movimientos', 'Dernières opérations'],
+  'Calendário de gastos': ['Spending calendar', 'Calendario de gastos', 'Calendrier des dépenses'],
+  'Assistente IA': ['AI assistant', 'Asistente IA', 'Assistant IA'],
+  'Abrir': ['Open', 'Abrir', 'Ouvrir'],
+  'Pergunta qualquer coisa sobre o teu dinheiro.': ['Ask anything about your money.', 'Pregunta lo que quieras sobre tu dinero.', 'Posez n’importe quelle question sur votre argent.'],
+  'Novo chat': ['New chat', 'Nuevo chat', 'Nouveau chat'],
+  'Modelo de IA': ['AI model', 'Modelo de IA', 'Modèle d’IA'],
+  'IA do FuturePal': ['FuturePal AI', 'IA de FuturePal', 'IA de FuturePal'],
+  'A pensar…': ['Thinking…', 'Pensando…', 'Réflexion…'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */

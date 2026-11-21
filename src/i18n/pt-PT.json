@@ -1458,7 +1458,9 @@
     "tapFrom": "Toca no dia em que começa",
     "tapTo": "Agora toca no dia em que acaba",
     "apply": "Ver estas datas",
-    "clear": "Tirar filtro"
+    "clear": "Tirar filtro",
+    "month": "Mensal",
+    "year": "Anual"
   },
   "txs": {
     "title": "Transações",
