@@ -1,5 +1,6 @@
 // Contas e Limites, organizados como no vídeo de referência, no estilo FuturePal.
 import { useEffect, useState } from 'react';
+import { appConfirm } from '../ui/confirm';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
@@ -71,7 +72,7 @@ export function SimpleAccounts() {
     await updateAccount(db, a.id, { name: eName.trim() || a.name, initialBalanceCents: a.initialBalanceCents + (v - balOf(a)) });
     setEdit(null); reload();
   };
-  const delAcc = async (a: Account) => { if (window.confirm(`Apagar a conta "${a.name}"?`)) { await removeAccount(db, a.id); setEdit(null); reload(); } };
+  const delAcc = async (a: Account) => { if (await appConfirm(`${L('Apagar conta')} "${a.name}"?`)) { await removeAccount(db, a.id); setEdit(null); reload(); } };
   const list = (d?.accounts ?? []).filter((a) => a.type === tab).sort((a, b) => a.order - b.order);
   const create = async () => {
     if (!name.trim()) return;
@@ -349,7 +350,7 @@ export function SimpleGoals() {
             <button type="button" className="sh-btn in sm" disabled={!add} onClick={async () => { const c = parseMoneyToCents(add); if (c) { await contributeToGoal(db, g.id, Math.abs(c)); setAdd(''); reload(); } }}>{L('Juntar')}</button>
           </section>
         )}
-        <button type="button" className="sh-danger" onClick={async () => { if (window.confirm(`${L('Apagar meta')} "${g.name}"?`)) { const t2 = new Date().toISOString(); await db.goals.update(g.id, { deletedAt: t2, updatedAt: t2 }); setOpen(null); reload(); } }}>{L('Apagar meta')}</button>
+        <button type="button" className="sh-danger" onClick={async () => { if (await appConfirm(`${L('Apagar meta')} "${g.name}"?`)) { const t2 = new Date().toISOString(); await db.goals.update(g.id, { deletedAt: t2, updatedAt: t2 }); setOpen(null); reload(); } }}>{L('Apagar meta')}</button>
       </div>
     );
   }

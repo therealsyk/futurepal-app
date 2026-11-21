@@ -1,6 +1,7 @@
 // Administração (extra): quem está a usar a app agora, aviso para todos e apagar contas.
 // Precisa de supabase/admin_extra.sql.
 import { useEffect, useRef, useState } from 'react';
+import { appConfirm } from '../ui/confirm';
 import { getAdminSupabase as getSupabase } from '../auth/supabase';
 import { loadSettings } from '../core/settings';
 import { L } from '../i18n/phrases';
@@ -38,7 +39,7 @@ export function AdminLive() {
     setAnnMsg(error ? error.message : L('Aviso guardado.'));
   };
   const deleteUser = async () => {
-    if (!del.trim() || !window.confirm(L('Apagar esta conta e todos os dados dela? Não dá para desfazer.') + '\n' + del.trim())) return;
+    if (!del.trim() || !await appConfirm(L('Apagar esta conta e todos os dados dela? Não dá para desfazer.') + '\n' + del.trim())) return;
     const { data, error } = await getSupabase()!.rpc('admin_delete_user', { p_email: del.trim() });
     setDelMsg(error ? error.message : data ? L('Conta apagada.') : L('Não existe nenhuma conta com esse email.'));
     if (data) setDel('');

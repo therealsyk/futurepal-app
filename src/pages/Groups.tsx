@@ -1,5 +1,6 @@
 // Grupos (ex.: "Férias", "Casa nova") — juntar despesas e ver quanto custou cada coisa.
 import { useEffect, useState } from 'react';
+import { appConfirm } from '../ui/confirm';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { db } from '../db/app-db';
 import type { Group, Transaction } from '../db/database';
@@ -36,7 +37,7 @@ export function Groups() {
     setName(''); setAdding(false); await load();
   };
   const remove = async (g: Group) => {
-    if (!window.confirm(`Apagar o grupo "${g.name}"? As despesas ficam, só deixam de estar no grupo.`)) return;
+    if (!await appConfirm(`${L('Apagar grupo')} "${g.name}"? ${L('As despesas ficam, só deixam de estar no grupo.')}`)) return;
     const now = new Date().toISOString();
     await db.groups.update(g.id, { deletedAt: now, updatedAt: now });
     for (const x of of(g.id)) await db.transactions.update(x.id, { groupId: undefined, updatedAt: now });

@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
+import { appConfirm } from '../ui/confirm';
 import { useTranslation } from 'react-i18next';
 import { SIMPLE_UI } from '../core/uiMode';
 import { EmptyState as EmptyHero } from '../ui/EmptyState';
@@ -235,7 +236,7 @@ export function Transactions() {
                       <span className="sh-tx-main"><b>{x.description || (c ? catLabel(t, c) : '')}</b><small>{c ? catLabel(t, c) : ''}</small></span>
                       <b className={x.type === 'income' ? 'fx-pos' : 'fx-neg'}>{x.type === 'income' ? '+' : '−'}{money(x.amountCents)}</b>
                     </button>
-                    {openRow === x.id && <div className="txs-actions"><button type="button" className="sh-danger" onClick={() => { if (window.confirm(L('Apagar este movimento?'))) { remove(x.id); setOpenRow(null); } }}>{L('Apagar')}</button></div>}
+                    {openRow === x.id && <div className="txs-actions"><button type="button" className="sh-danger" onClick={async () => { if (await appConfirm(L('Apagar este movimento?'))) { remove(x.id); setOpenRow(null); } }}>{L('Apagar')}</button></div>}
                   </div>
                 ); })}
                 {g.trs.map((tr) => (

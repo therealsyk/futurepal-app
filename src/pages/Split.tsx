@@ -1,4 +1,5 @@
 import { createPortal } from 'react-dom';
+import { appConfirm } from '../ui/confirm';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -186,7 +187,7 @@ export function SplitPage() {
     if (e) setError(errText(e)); else await loadGroup(sel);
   };
   const leave = async () => {
-    if (!window.confirm(t('split.leaveConfirm'))) return;
+    if (!await appConfirm(t('split.leaveConfirm'))) return;
     if (await rpc('leave_split_group', { p_group: sel })) { setSel(''); await loadList(); }
   };
   const savePersonal = async () => {

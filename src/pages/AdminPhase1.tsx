@@ -1,6 +1,7 @@
 // Administração — Fase 1: atividade (DAU/WAU/MAU, retenção), utilizadores (pseudónimos), tickets, auditoria e 2FA.
 // Precisa de supabase/admin_phase1.sql. Privacidade: nada aqui mostra valores, despesas, categorias ou metas.
 import { useEffect, useState } from 'react';
+import { appConfirm } from '../ui/confirm';
 import { getAdminSupabase as getSupabase, STAFF_DOMAIN } from '../auth/supabase';
 import { loadSettings } from '../core/settings';
 import { Sheet, PickMenu } from '../ui/fx';
@@ -568,7 +569,7 @@ function TeamPanel() {
     load();
   };
   const remove = async (m: Staff) => {
-    if (!window.confirm(L('Apagar a conta do painel?') + '\n' + m.username)) return;
+    if (!await appConfirm(L('Apagar a conta do painel?') + '\n' + m.username)) return;
     await sb().rpc('admin_staff_delete', { p_username: m.username }); load();
   };
   const roles = ['moderator', 'support', 'finance', 'readonly', 'admin'];

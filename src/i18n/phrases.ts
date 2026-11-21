@@ -539,6 +539,7 @@ export const PHRASES: Record<string, Tr> = {
   'Tens a certeza que queres fechar a conta': ['Are you sure you want to close the bill', '¿Seguro que quieres cerrar la cuenta', 'Voulez-vous vraiment clôturer la dépense'],
   'Registar nas tuas despesas': ['Add to your expenses', 'Añadir a tus gastos', 'Ajouter à vos dépenses'],
   'Pagaste a tua parte. Regista-a também nas tuas despesas.': ['You paid your share. Add it to your expenses too.', 'Pagaste tu parte. Regístrala también en tus gastos.', 'Vous avez payé votre part. Ajoutez-la aussi à vos dépenses.'],
+  'As despesas ficam, só deixam de estar no grupo.': ['The expenses stay, they just leave the group.', 'Los gastos se quedan, solo dejan de estar en el grupo.', 'Les dépenses restent, elles quittent seulement le groupe.'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */

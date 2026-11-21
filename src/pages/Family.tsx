@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { appConfirm } from '../ui/confirm';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getSupabase } from '../auth/supabase';
@@ -143,7 +144,7 @@ function FamilyInner() {
     const { error: e } = await sb.from('household_expenses').update({ deleted_at: new Date().toISOString() }).eq('id', id);
     if (e) fail(e); else await load();
   };
-  const leave = () => { if (window.confirm(t('family.leaveConfirm'))) rpc('leave_household', { p_household: hh.id }); };
+  const leave = async () => { if (await appConfirm(t('family.leaveConfirm'))) rpc('leave_household', { p_household: hh.id }); };
   const toggleSplit = (id: string) => setF({ ...f, split: f.split.includes(id) ? f.split.filter((x) => x !== id) : [...f.split, id] });
 
   return (
