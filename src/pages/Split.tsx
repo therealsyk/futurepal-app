@@ -320,7 +320,7 @@ export function SplitPage() {
         footer={bill ? <button type="button" className="tx-addbtn" disabled={!bill.description.trim() || !(parseMoneyToCents(bill.amount) ?? 0) || (bill.withGroup ? members.every((m) => bill.out.includes(m.userId)) : contactsOf(bill.invites).length === 0 || !myName.trim())} onClick={saveBill}>{t('common.add')}</button> : null}>
         {bill && (<>
           {error && <p className="fx-error">{error}</p>}
-          <input className="tx-amt exp" autoFocus inputMode="decimal" value={bill.amount} placeholder="0" onChange={(e) => setBill({ ...bill, amount: e.target.value.replace(/[^\d.,]/g, '') })} aria-label={t('split.total')} />
+          <input className="tx-amt sp-amt" autoFocus inputMode="decimal" value={bill.amount} placeholder="0" onChange={(e) => setBill({ ...bill, amount: e.target.value.replace(/[^\d.,]/g, '') })} aria-label={t('split.total')} />
           <span className="tx-cur">{group?.currency ?? s.currency}</span>
           {(() => { const c = parseMoneyToCents(bill.amount) ?? 0; const n = bill.withGroup ? members.filter((m) => !bill.out.includes(m.userId)).length : 1 + contactsOf(bill.invites).length; return c > 0 && n > 0 ? <p className="sp-each">{t('split.eachPays', { amount: money(Math.ceil(c / n)) })}</p> : null; })()}
           <div className="tx-rows">
