@@ -3,10 +3,12 @@
 import { useEffect, useState } from 'react';
 import { getSupabase } from '../auth/supabase';
 import { loadSettings } from '../core/settings';
-import { Sheet } from '../ui/fx';
+import { Sheet, PickMenu } from '../ui/fx';
+import { useAuth } from '../auth/AuthContext';
 import { L } from '../i18n/phrases';
 
-export type AdminTab = 'overview' | 'live' | 'users' | 'plans' | 'tickets' | 'versions' | 'audit' | 'security';
+export type AdminTab = 'overview' | 'live' | 'users' | 'plans' | 'tickets' | 'versions' | 'audit' | 'security' | 'team';
+const PLAN_NAME: Record<string, string> = { free: 'Free', plus: 'Plus', family: 'Family', pro: 'Pro' };
 const sb = () => getSupabase()!;
 const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleString(loadSettings().language, { dateStyle: 'short', timeStyle: 'short' }) : '—');
 const ago = (d?: string | null) => {
@@ -33,6 +35,7 @@ export function AdminPhase1({ tab }: { tab: AdminTab }) {
   if (tab === 'tickets') return <TicketsPanel />;
   if (tab === 'audit') return <AuditPanel />;
   if (tab === 'security') return <SecurityPanel />;
+  if (tab === 'team') return <TeamPanel />;
   return null;
 }
 
@@ -144,24 +147,22 @@ function UserDetail({ row, onClose, onChanged }: { row: URow; onClose: () => voi
     if (action === 'delete') onClose(); else load();
   };
   const suspended = !!d?.suspended_until && new Date(d.suspended_until) > new Date();
+  const curPlan = d?.plan && ['active', 'trialing'].includes(d.plan.status) && new Date(d.plan.until) > new Date() ? d.plan.plan : 'free';
   return (
     <Sheet open onClose={onClose} title={`${L('Conta')} ${row.ref}`}>
       {!d ? <p className="fx-muted">…</p> : (<>
         <div className="ad-kvs">
           <p className="ad-kv"><span>Email</span><b>{showEmail ? d.email : row.email_masked} {!showEmail && <button type="button" className="ad-link" onClick={() => setShowEmail(true)}>{L('mostrar')}</button>}</b></p>
           <p className="ad-kv"><span>{L('Registo')}</span><b>{fmtDate(d.created_at)} · {d.provider}{d.confirmed ? '' : ' · ' + L('Por confirmar')}</b></p>
-          <p className="ad-kv"><span>{L('Plano')}</span><b>{d.plan ? `${d.plan.plan} · ${d.plan.status} · ${L('até')} ${fmtDate(d.plan.until)}` : 'free'}</b></p>
+          <div className="ad-kv ad-planrow"><span>{L('Plano')}</span>
+            <span className="ad-planpick">
+              <PickMenu label={L('Plano')} value={action === 'plan' ? plan : curPlan}
+                options={['free', 'plus', 'family', 'pro'].map((p) => ({ value: p, label: PLAN_NAME[p], sub: p === curPlan ? (d.plan && p !== 'free' ? `${L('atual')} · ${L('até')} ${fmtDate(d.plan.until)}` : L('atual')) : undefined }))}
+                onChange={(v) => { if (v === curPlan) { setAction(null); return; } setPlan(String(v)); setAction('plan'); setMsg(null); }} />
+            </span></div>
           <p className="ad-kv"><span>{L('Estado')}</span><b className={suspended ? 'fx-neg' : 'fx-pos'}>{suspended ? L('Suspensa') : L('Ativa')}</b></p>
           <p className="ad-kv"><span>{L('Plataforma')}</span><b>{d.presence ? `${d.presence.platform} ${d.presence.version} · ${ago(d.presence.last_seen).text}` : '—'}</b></p>
           <p className="ad-kv"><span>{L('Utilização (só contagens)')}</span><b>{d.counts.transactions} {L('movimentos')} · {d.counts.goals} {L('metas')} · {d.counts.active_days_30} {L('dias ativos (30d)')}</b></p>
-        </div>
-        <h4 className="ad-h4">{L('Mudar plano')}</h4>
-        <div className="ad-plans">
-          {['free', 'plus', 'family', 'pro'].map((p) => {
-            const curPlan = d.plan && ['active', 'trialing'].includes(d.plan.status) && new Date(d.plan.until) > new Date() ? d.plan.plan : 'free';
-            return <button key={p} type="button" className={'ad-plan' + (curPlan === p ? ' cur' : '') + (action === 'plan' && plan === p ? ' on' : '')}
-              onClick={() => { setPlan(p); setAction('plan'); setMsg(null); }}>{p === 'free' ? 'Free' : p.charAt(0).toUpperCase() + p.slice(1)}{curPlan === p && <small>{L('atual')}</small>}</button>;
-          })}
         </div>
         <div className="ad-actions">
           <button type="button" className="fx-btn" onClick={() => setAction('logout')}>{L('Forçar logout')}</button>
@@ -172,7 +173,7 @@ function UserDetail({ row, onClose, onChanged }: { row: URow; onClose: () => voi
         {action && (
           <div className="ad-confirm">
             {action === 'plan' && <div className="fx-inline" style={{ gap: 8, alignItems: 'center' }}>
-              <b>{L('Novo plano')}: {plan}</b>
+              <b>{L('Novo plano')}: {PLAN_NAME[plan]}</b>
               {plan !== 'free' && <><span className="fx-muted fx-small">{L('até')}</span><input className="fx-input" type="date" value={until} onChange={(e) => setUntil(e.target.value)} aria-label={L('até')} /><span className="fx-muted fx-small">{L('(vazio = 1 ano)')}</span></>}
             </div>}
             <textarea className="fx-input" rows={2} maxLength={500} value={reason} placeholder={L('Motivo (obrigatório, fica na auditoria)')} onChange={(e) => setReason(e.target.value)} />
@@ -393,19 +394,32 @@ const NAV: Array<{ group: string; items: Array<{ id: AdminTab; label: string; de
   { group: 'Sistema', items: [
     { id: 'versions', label: 'Versões', desc: 'Publicar versões e definir a versão mínima.', icon: 'M12 3v12M7 10l5 5 5-5M4 19h16' },
     { id: 'audit', label: 'Auditoria', desc: 'Todas as ações de administração: quem, quando e porquê.', icon: 'M9 5h10M9 12h10M9 19h10M5 5h.01M5 12h.01M5 19h.01' },
+    { id: 'team', label: 'Equipa', desc: 'Dá cargos (moderador, suporte…) a outras pessoas para ajudarem no painel.', icon: 'M16 19a4 4 0 0 0-8 0M12 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19 8v6M22 11h-6' },
     { id: 'security', label: 'Segurança', desc: 'O teu papel e a verificação em dois passos (2FA).', icon: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4' },
   ] },
 ];
 
-export function AdminShell({ tab, onTab, onRefresh, children }: { tab: AdminTab; onTab: (t: AdminTab) => void; onRefresh: () => void; children: React.ReactNode }) {
+// O que cada cargo vê no menu
+const ROLE_TABS: Record<string, AdminTab[]> = {
+  super: ['overview', 'live', 'users', 'tickets', 'versions', 'audit', 'team', 'security'],
+  admin: ['overview', 'live', 'users', 'tickets', 'versions', 'audit', 'security'],
+  moderator: ['overview', 'tickets', 'security'],
+  support: ['overview', 'users', 'tickets', 'security'],
+  finance: ['overview', 'users', 'security'],
+  readonly: ['overview', 'security'],
+};
+export const allowedTab = (role: string, tab: AdminTab) => (ROLE_TABS[role] ?? ['overview']).includes(tab);
+
+export function AdminShell({ tab, onTab, onRefresh, role, children }: { tab: AdminTab; onTab: (t: AdminTab) => void; onRefresh: () => void; role: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
-  const cur = NAV.flatMap((g) => g.items).find((i) => i.id === tab) ?? NAV[0].items[0];
+  const nav = NAV.map((g) => ({ ...g, items: g.items.filter((i) => allowedTab(role, i.id)) })).filter((g) => g.items.length);
+  const cur = nav.flatMap((g) => g.items).find((i) => i.id === tab) ?? nav[0].items[0];
   return (
     <div className="adm">
       <aside className={'adm-side' + (open ? ' open' : '')}>
         <div className="adm-brand"><span className="adm-logo">F</span><div><b>FuturePal</b><small>{L('Painel de administração')}</small></div></div>
         <nav className="adm-nav">
-          {NAV.map((g) => (
+          {nav.map((g) => (
             <div key={g.group} className="adm-group">
               <p>{L(g.group)}</p>
               {g.items.map((i) => (
@@ -416,7 +430,8 @@ export function AdminShell({ tab, onTab, onRefresh, children }: { tab: AdminTab;
             </div>
           ))}
         </nav>
-        <a className="adm-back" href="#/">← {L('Voltar à app')}</a>
+        <p className="adm-role">{L('Cargo')}: <b>{L(ROLE_NAME[role] ?? role)}</b></p>
+        <button type="button" className="adm-back" onClick={() => { try { sessionStorage.removeItem(UNLOCK_KEY); } catch { /* */ } window.location.hash = '#/'; }}>← {L('Sair do painel')}</button>
       </aside>
       {open && <div className="adm-scrim" onClick={() => setOpen(false)} />}
       <div className="adm-main">
@@ -434,3 +449,149 @@ export function AdminShell({ tab, onTab, onRefresh, children }: { tab: AdminTab;
     </div>
   );
 }
+
+
+/* ------------------------------------------------------------------------------------------------
+ * Cargos, login do painel (email + palavra-passe + 2FA) e equipa.
+ * ---------------------------------------------------------------------------------------------- */
+export const ROLE_NAME: Record<string, string> = { super: 'Administrador principal', admin: 'Administrador', moderator: 'Moderador', support: 'Suporte', finance: 'Financeiro', readonly: 'Só leitura' };
+const UNLOCK_KEY = 'wallet.adminUnlock';
+
+/** Cargo da pessoa no painel (null = sem acesso; undefined = a carregar). Não precisa de 2FA para saber o cargo. */
+export function useAdminRole(): string | null | undefined {
+  const auth = useAuth();
+  const [role, setRole] = useState<string | null | undefined>(undefined);
+  useEffect(() => {
+    const c = getSupabase();
+    if (!c || !auth.user) { setRole(null); return; }
+    c.rpc('admin_role').then(({ data, error }) => setRole(error ? null : ((data as string) ?? null)), () => setRole(null));
+  }, [auth.user]);
+  return role;
+}
+
+/** O painel fica desbloqueado nesta janela até 12 horas depois do login com 2FA. */
+export function isUnlocked(): boolean {
+  try { return Number(sessionStorage.getItem(UNLOCK_KEY) || 0) > Date.now(); } catch { return false; }
+}
+
+/** Login do painel: email e palavra-passe da conta e, a seguir, o código da app autenticadora (obrigatório). */
+export function AdminLogin({ onDone }: { onDone: () => void }) {
+  const auth = useAuth();
+  const [step, setStep] = useState<'pass' | 'code' | 'enroll'>('pass');
+  const [email, setEmail] = useState(auth.user?.email ?? '');
+  const [pass, setPass] = useState('');
+  const [code, setCode] = useState('');
+  const [factor, setFactor] = useState<string | null>(null);
+  const [qr, setQr] = useState<{ qr: string; secret: string } | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const signIn = async () => {
+    setErr(null);
+    if (auth.user?.email && email.trim().toLowerCase() !== auth.user.email.toLowerCase()) { setErr(L('Usa a mesma conta com que entraste na app.')); return; }
+    setBusy(true);
+    const { error } = await sb().auth.signInWithPassword({ email: email.trim(), password: pass });
+    setBusy(false); setPass('');
+    if (error) { setErr(L('Email ou palavra-passe errados.')); return; }
+    const role = (await sb().rpc('admin_role')).data;
+    if (!role) { setErr(L('Esta conta não tem acesso ao painel.')); return; }
+    const f = (await sb().auth.mfa.listFactors()).data?.totp.find((x) => x.status === 'verified');
+    if (f) { setFactor(f.id); setStep('code'); return; }
+    // 2FA ainda não configurado: obrigatório antes de entrar
+    const { data, error: e2 } = await sb().auth.mfa.enroll({ factorType: 'totp', friendlyName: 'FuturePal Admin ' + Date.now() });
+    if (e2 || !data) { setErr(e2?.message ?? 'Erro'); return; }
+    setFactor(data.id); setQr({ qr: data.totp.qr_code, secret: data.totp.secret }); setStep('enroll');
+  };
+  const verify = async () => {
+    if (!factor) return;
+    setBusy(true);
+    const { error } = await sb().auth.mfa.challengeAndVerify({ factorId: factor, code: code.trim() });
+    setBusy(false);
+    if (error) { setErr(L('Código errado. Tenta outra vez.')); setCode(''); return; }
+    try { sessionStorage.setItem(UNLOCK_KEY, String(Date.now() + 12 * 3600 * 1000)); } catch { /* sem storage */ }
+    onDone();
+  };
+  return (
+    <div className="adm-login">
+      <form className="adm-login-card" onSubmit={(e) => { e.preventDefault(); if (step === 'pass') signIn(); else verify(); }}>
+        <span className="adm-logo big">F</span>
+        <h1>{L('Painel de administração')}</h1>
+        <div className="adm-steps"><i className={step === 'pass' ? 'on' : 'done'}>1</i><span /><i className={step !== 'pass' ? 'on' : ''}>2</i></div>
+        {step === 'pass' ? (<>
+          <p>{L('Entra com o email e a palavra-passe da tua conta.')}</p>
+          <label><span>Email</span><input className="fx-input" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
+          <label><span>{L('Palavra-passe')}</span><input className="fx-input" type="password" autoComplete="current-password" value={pass} onChange={(e) => setPass(e.target.value)} required /></label>
+          <button type="submit" className="fx-btn primary" disabled={busy}>{busy ? '…' : L('Continuar')}</button>
+        </>) : (<>
+          {step === 'enroll' && qr && (<>
+            <p>{L('Para proteger o painel, ativa já a verificação em dois passos: lê este código QR com uma app autenticadora (Google Authenticator, Authy…).')}</p>
+            <img className="ad-qr" src={qr.qr} alt="QR" /><small className="adm-secret">{qr.secret}</small>
+          </>)}
+          {step === 'code' && <p>{L('Escreve o código de 6 dígitos da tua app autenticadora.')}</p>}
+          <label><span>{L('Código 2FA')}</span><input className="fx-input adm-code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} placeholder="000000" autoFocus /></label>
+          <button type="submit" className="fx-btn primary" disabled={busy || code.length !== 6}>{busy ? '…' : L('Entrar no painel')}</button>
+        </>)}
+        {err && <p className="fx-error">{err}</p>}
+        <a className="adm-login-back" href="#/">← {L('Voltar à app')}</a>
+      </form>
+    </div>
+  );
+}
+
+/** Equipa: dar cargos a outras pessoas (só o administrador principal). */
+type Member = { email: string; role: string; created_at: string; last_seen: string | null };
+function TeamPanel() {
+  const [rows, setRows] = useState<Member[]>([]);
+  const [email, setEmail] = useState('');
+  const [role, setRole] = useState('moderator');
+  const [msg, setMsg] = useState<string | null>(null);
+  const load = async () => {
+    const { data, error } = await sb().rpc('admin_team_list');
+    if (error) { setMsg(L('Corre o ficheiro supabase/admin_team.sql no Supabase.')); return; }
+    setRows((data ?? []) as Member[]);
+  };
+  useEffect(() => { load().catch(() => {}); }, []);
+  const add = async () => {
+    if (!email.trim()) return;
+    const { error } = await sb().rpc('admin_team_set', { p_email: email.trim(), p_role: role });
+    if (error) { setMsg(error.message.includes('not found') ? L('Não existe nenhuma conta com esse email.') : error.message); return; }
+    setEmail(''); setMsg(L('Feito.')); load();
+  };
+  const remove = async (m: Member) => {
+    if (!window.confirm(L('Retirar o acesso ao painel?') + '\n' + m.email)) return;
+    await sb().rpc('admin_team_remove', { p_email: m.email }); load();
+  };
+  const roles = ['moderator', 'support', 'finance', 'readonly', 'admin'];
+  return (
+    <>
+      <div className="fx-card ad-card">
+        <h3>{L('Adicionar pessoa')}</h3>
+        <p className="fx-muted fx-small">{L('A pessoa tem de ter conta no FuturePal. Ao entrar no painel pela primeira vez, vai ter de ativar o 2FA.')}</p>
+        <div className="ad-filters">
+          <input className="fx-input" type="email" value={email} placeholder="email@exemplo.com" onChange={(e) => setEmail(e.target.value)} style={{ flex: '1 1 260px' }} />
+          <PickMenu label={L('Cargo')} value={role} options={roles.map((r) => ({ value: r, label: L(ROLE_NAME[r]), sub: L(ROLE_DESC[r]) }))} onChange={(v) => setRole(String(v))} />
+          <button type="button" className="fx-btn primary" onClick={add}>{L('Adicionar')}</button>
+        </div>
+        {msg && <p className="fx-muted fx-small">{msg}</p>}
+      </div>
+      <div className="fx-card ad-card">
+        <h3>{L('Equipa')}</h3>
+        <div className="ad-table-wrap"><table className="ad-table">
+          <thead><tr><th>Email</th><th>{L('Cargo')}</th><th>{L('Desde')}</th><th>{L('Atividade')}</th><th /></tr></thead>
+          <tbody>{rows.map((m) => (
+            <tr key={m.email}>
+              <td>{m.email}</td>
+              <td>{m.role === 'super' ? <b>{L(ROLE_NAME.super)}</b> : <PickMenu label={L('Cargo')} compact value={m.role} options={roles.map((r) => ({ value: r, label: L(ROLE_NAME[r]) }))}
+                onChange={async (v) => { await sb().rpc('admin_team_set', { p_email: m.email, p_role: String(v) }); load(); }} />}</td>
+              <td>{new Date(m.created_at).toLocaleDateString(loadSettings().language)}</td>
+              <td><i className={'ad-act ' + ago(m.last_seen).dot} />{ago(m.last_seen).text}</td>
+              <td>{m.role !== 'super' && <button type="button" className="fx-btn danger" onClick={() => remove(m)}>{L('Retirar')}</button>}</td>
+            </tr>
+          ))}</tbody>
+        </table></div>
+      </div>
+    </>
+  );
+}
+const ROLE_DESC: Record<string, string> = {
+  moderator: 'Dashboard e tickets', support: 'Tickets, utilizadores e ações básicas', finance: 'Utilizadores e planos', readonly: 'Só ver o dashboard', admin: 'Quase tudo, menos a equipa',
+};

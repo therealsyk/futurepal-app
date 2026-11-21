@@ -72,11 +72,15 @@ export function AdminDashboard() {
   useEffect(() => {
     const sb = getSupabase();
     if (!sb) return;
-    sb.rpc('admin_stats').then(({ data }) => data && setS(data as Stats), () => {});
+    // admin_dash: só números agregados, aberto a todos os cargos da equipa
+    const loadDash = () => sb.rpc('admin_dash').then(({ data }) => {
+      if (!data) return;
+      const d = data as Stats & Pres & { interest: Record<string, number> };
+      setS(d); setP(d); setInterest(Object.entries(d.interest ?? {}).map(([plan, n]) => ({ plan, period: '', n: Number(n) })));
+    }, () => {});
+    loadDash();
     sb.rpc('admin_activity').then(({ data }) => data && setA(data as Act), () => {});
-    sb.rpc('admin_presence_stats').then(({ data }) => data && setP(data as Pres), () => {});
-    sb.rpc('admin_plan_interest').then(({ data }) => setInterest((data ?? []) as typeof interest), () => {});
-    const id = setInterval(() => { sb.rpc('admin_presence_stats').then(({ data }) => data && setP(data as Pres), () => {}); }, 30000);
+    const id = setInterval(loadDash, 30000);
     return () => clearInterval(id);
   }, []);
 

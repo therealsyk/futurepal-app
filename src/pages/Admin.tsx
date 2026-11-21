@@ -1,6 +1,6 @@
 import { AdminLive } from './AdminLive';
 import { AdminDashboard } from './AdminDash';
-import { AdminMfaGate, AdminPhase1, AdminShell, useAdminMfa, type AdminTab } from './AdminPhase1';
+import { AdminLogin, AdminPhase1, AdminShell, allowedTab, isUnlocked, useAdminRole, type AdminTab } from './AdminPhase1';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getSupabase } from '../auth/supabase';
@@ -19,13 +19,14 @@ type SubRow = { email: string; plan: string; status: string; current_period_end:
 type VersionRow = { platform: string; latest_version: string; min_version: string; notes: string; download_url: string; published_at: string };
 
 /** true se a conta com sessão iniciada é administradora. */
+/** A opção "Admin" no menu da conta só aparece ao administrador principal. */
 export function useIsAdmin(): boolean {
   const auth = useAuth();
   const [admin, setAdmin] = useState(false);
   useEffect(() => {
     const sb = getSupabase();
     if (!sb || !auth.user) { setAdmin(false); return; }
-    sb.rpc('is_admin').then(({ data }) => setAdmin(data === true), () => setAdmin(false));
+    sb.rpc('admin_role').then(({ data }) => setAdmin(data === 'super'), () => setAdmin(false));
   }, [auth.user]);
   return admin;
 }
@@ -34,14 +35,15 @@ const date = (s: string | null) => (s ? new Date(s).toLocaleDateString() : '—'
 
 export function AdminPage() {
   const { t } = useTranslation();
-  const isAdmin = useIsAdmin();
+  const role = useAdminRole();
+  const [unlocked, setUnlocked] = useState(isUnlocked());
+  const isAdmin = unlocked && (role === 'super' || role === 'admin');
   const [stats, setStats] = useState<Stats | null>(null);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [versions, setVersions] = useState<VersionRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [interest, setInterest] = useState<Array<{ plan: string; period: string; n: number }>>([]);
   const [tab, setTab] = useState<AdminTab>('overview');
-  const mfa = useAdminMfa();
   const [v, setV] = useState({ platform: 'windows', version: '', min: '', notes: '', url: '' });
   const [saved, setSaved] = useState(false);
   const [subs, setSubs] = useState<SubRow[]>([]);
@@ -127,22 +129,16 @@ export function AdminPage() {
     setSaved(true); setTimeout(() => setSaved(false), 2500); await load();
   };
 
-  if (!isAdmin) return <div className="fx-page ad-page"><PageHead title={t('admin.title')} sub={t('admin.noAccess')} /></div>;
-
-  const kpis: Array<[string, number | undefined]> = stats ? [
-    [t('admin.usersTotal'), stats.users_total], [t('admin.users7d'), stats.users_7d], [t('admin.active7d'), stats.active_7d],
-    [t('admin.active30d'), stats.active_30d], [t('admin.withData'), stats.with_data], [t('admin.unconfirmed'), stats.unconfirmed],
-    [t('admin.txTotal'), stats.tx_total], [t('admin.tx30d'), stats.tx_30d], [t('admin.accounts'), stats.accounts_total], [t('admin.goals'), stats.goals_total],
-  ] : [];
-  const maxDay = Math.max(1, ...(stats?.signups_by_day ?? []).map((d) => d.n));
-  void kpis; void maxDay; void interest; // o Dashboard (AdminDash) carrega os seus próprios dados
-
-  if (mfa.needCode) return <div className="fx-page ad-page"><PageHead title={t('admin.title')} sub={t('admin.sub')} /><AdminMfaGate verify={mfa.verify} /></div>;
+  void stats; void interest; // o Dashboard (AdminDash) carrega os seus próprios dados
+  if (role === undefined) return <div className="fx-page ad-page" />;
+  if (role === null) return <div className="fx-page ad-page"><PageHead title={t('admin.title')} sub={t('admin.noAccess')} /></div>;
+  if (!unlocked) return <AdminLogin onDone={() => setUnlocked(true)} />;
+  const shown: AdminTab = allowedTab(role, tab) ? tab : 'overview';
   return (
-    <AdminShell tab={tab} onTab={setTab} onRefresh={() => load()}>
+    <AdminShell tab={shown} onTab={setTab} onRefresh={() => load()} role={role}>
       {error && <p className="fx-error">{error}</p>}
-      {tab === 'overview' && <AdminDashboard />}
-      {tab === 'live' && <AdminLive />}
+      {shown === 'overview' && <AdminDashboard />}
+      {shown === 'live' && <AdminLive />}
       {tab === 'plans' && (<>
       <div className="fx-card ad-card">
         <h3>{t('admin.subsTitle')}</h3>
@@ -179,7 +175,7 @@ export function AdminPage() {
       </div>
 
       </>)}
-      {tab === 'versions' && (<>
+      {shown === 'versions' && (<>
       <div className="fx-card ad-card">
         <h3>{t('admin.versions')}</h3>
         {versions.map((r) => <p key={r.platform} className="ad-kv"><span>{r.platform}</span><b>{r.latest_version}</b><small>{date(r.published_at)}</small></p>)}
@@ -195,8 +191,8 @@ export function AdminPage() {
         <button type="button" className="fx-btn primary" onClick={publish}>{saved ? t('admin.published') : t('admin.publish')}</button>
       </div>
       </>)}
-      {(['users', 'tickets', 'audit', 'security'] as AdminTab[]).includes(tab) && <AdminPhase1 tab={tab} />}
-      {tab === 'overview' && <p className="fx-muted fx-small">{t('admin.privacy')}</p>}
+      {(['users', 'tickets', 'audit', 'security', 'team'] as AdminTab[]).includes(shown) && <AdminPhase1 tab={shown} />}
+      {shown === 'overview' && <p className="fx-muted fx-small">{t('admin.privacy')}</p>}
     </AdminShell>
   );
 }
