@@ -1068,3 +1068,13 @@ button.sp-row { cursor: pointer; } button.sp-row:hover { background: color-mix(i
 .tx-row .fx-pick > .fx-btn:hover { background: var(--card-2); }
 .tx-row .fx-pick-menu { right: 0; left: auto; min-width: 220px; z-index: 90; }
 .tx-amt.sp-amt { color: var(--text) !important; }
+
+/* Formulário com campos em falta: a janela abana, os campos ficam a vermelho e aparece um aviso */
+@keyframes fx-shake { 10%, 90% { transform: translateX(-2px); } 20%, 80% { transform: translateX(4px); } 30%, 50%, 70% { transform: translateX(-8px); } 40%, 60% { transform: translateX(8px); } }
+.fx-sheet:has(.sp-billform.shake), .bs-sheet:has(.shake) { animation: fx-shake .45s cubic-bezier(.36,.07,.19,.97) both; box-shadow: 0 0 0 2px color-mix(in srgb, var(--red) 70%, transparent), 0 30px 80px -20px rgba(0,0,0,.6) !important; }
+.sp-miss { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; padding: 10px 14px; border-radius: 14px; background: color-mix(in srgb, var(--red) 12%, transparent); border: 1px solid color-mix(in srgb, var(--red) 40%, transparent); color: var(--red); font-size: 14px; font-weight: 650; }
+.sp-miss-ic { font-size: 18px; line-height: 1; }
+.tx-row.miss { box-shadow: inset 3px 0 0 var(--red); background: color-mix(in srgb, var(--red) 7%, transparent); border-radius: 10px; }
+.tx-row.miss > span:first-child { color: var(--red); }
+.tx-amt.miss { color: var(--red) !important; }
+.tx-amt.miss::placeholder { color: color-mix(in srgb, var(--red) 70%, transparent); }

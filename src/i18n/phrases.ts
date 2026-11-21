@@ -540,6 +540,10 @@ export const PHRASES: Record<string, Tr> = {
   'Registar nas tuas despesas': ['Add to your expenses', 'Añadir a tus gastos', 'Ajouter à vos dépenses'],
   'Pagaste a tua parte. Regista-a também nas tuas despesas.': ['You paid your share. Add it to your expenses too.', 'Pagaste tu parte. Regístrala también en tus gastos.', 'Vous avez payé votre part. Ajoutez-la aussi à vos dépenses.'],
   'As despesas ficam, só deixam de estar no grupo.': ['The expenses stay, they just leave the group.', 'Los gastos se quedan, solo dejan de estar en el grupo.', 'Les dépenses restent, elles quittent seulement le groupe.'],
+  'Falta preencher': ['Please fill in', 'Falta rellenar', 'À remplir'],
+  'o valor': ['the amount', 'el importe', 'le montant'],
+  'a descrição': ['the description', 'la descripción', 'la description'],
+  'com quem dividir': ['who to split with', 'con quién dividir', 'avec qui partager'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */
