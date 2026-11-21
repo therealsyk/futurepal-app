@@ -129,6 +129,8 @@ export function SimpleLimits() {
   const now = new Date();
   const [cur, setCur] = useState({ y: now.getFullYear(), m: now.getMonth() });
   const [form, setForm] = useState(false);
+  const [edit, setEdit] = useState<Budget | null>(null);
+  const [editAmt, setEditAmt] = useState('');
   const [cat, setCat] = useState('');
   const [amt, setAmt] = useState('');
   const [hasEnd, setHasEnd] = useState(false);
@@ -185,16 +187,26 @@ export function SimpleLimits() {
           {limits.map((b) => {
             const c = catOf(b.categoryId), used = spentIn(b.categoryId), r = b.limitCents > 0 ? used / b.limitCents : 0, left = b.limitCents - used;
             return (
-              <div key={b.id} className={'sh-limit' + (r > 1 ? ' over' : r > 0.85 ? ' warn' : '')} style={{ ['--p' as string]: Math.min(1, r) }}>
+              <button type="button" key={b.id} className={'sh-limit' + (r > 1 ? ' over' : r > 0.85 ? ' warn' : '')} style={{ ['--p' as string]: Math.min(1, r) }}
+                onClick={() => { setEdit(b); setEditAmt((b.limitCents / 100).toFixed(2).replace('.', ',')); }} aria-label={`${L('Alterar limite')}: ${c ? catLabel(t, c) : ''}`}>
                 <span className="sh-ring"><CatIcon cat={c ?? {}} size={44} /></span>
                 <b>{c ? catLabel(t, c) : '—'}</b>
                 <small className={left < 0 ? 'fx-neg' : ''}>{left >= 0 ? `${L('Podes gastar')} ${money(left)}` : `${L('Passaste')} ${money(-left)}`}</small>
                 <em className="lim-of">{money(used)} / {money(b.limitCents)}</em>
-              </div>
+              </button>
             );
           })}
         </div>
 <button type="button" className="sh-btn out sm" onClick={() => setForm(true)}><Ic d={ICON.plus} size={18} />{L('Novo limite')}</button>
+      {edit && (() => { const c = catOf(edit.categoryId); return (
+        <BottomSheet title={L('Alterar limite')} onClose={() => setEdit(null)}>
+          <div className="sh-form">
+            <div className="lim-editcat"><CatIcon cat={c ?? {}} size={40} /><b>{c ? catLabel(t, c) : '—'}</b></div>
+            <label className="bs-amount"><small>{L('Máximo por mês')}</small><input className="tx-amt" inputMode="decimal" value={editAmt} onChange={(e) => setEditAmt(e.target.value.replace(/[^\d.,]/g, ''))} placeholder="0" /><span className="tx-cur">{loadSettings().currency}</span></label>
+            <button type="button" className="sh-btn in sm" disabled={!editAmt} onClick={async () => { const cents = parseMoneyToCents(editAmt); if (!cents) return; await setBudget(db, edit.categoryId, Math.abs(cents), edit.year, edit.month); setEdit(null); reload(); }}>{L('Guardar')}</button>
+            <button type="button" className="sh-danger" onClick={async () => { if (!window.confirm(L('Apagar este limite?'))) return; const t2 = new Date().toISOString(); await db.budgets.update(edit.id, { deletedAt: t2, updatedAt: t2 }); setEdit(null); reload(); }}>{L('Apagar limite')}</button>
+          </div>
+        </BottomSheet>); })()}
       {form && <BottomSheet title={L('Novo limite')} onClose={() => setForm(false)}>
           <div className="sh-form">
             <label>{L('Categoria')}<CategorySelect cats={expenseCats} kind="expense" value={cat} onChange={setCat} ariaLabel={L('Categoria')} emptyLabel={L('Escolher…')} className="fx-input tx-val" /></label>

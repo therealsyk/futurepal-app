@@ -499,6 +499,9 @@ export const PHRASES: Record<string, Tr> = {
   'que planeaste para este mês.': ['you planned for this month.', 'que planeaste para este mes.', 'prévus pour ce mois-ci.'],
   'Podes gastar': ['You can spend', 'Puedes gastar', 'Vous pouvez dépenser'],
   'Passaste': ['Over by', 'Te pasaste', 'Dépassé de'],
+  'Alterar limite': ['Edit limit', 'Cambiar límite', 'Modifier la limite'],
+  'Apagar este limite?': ['Delete this limit?', '¿Eliminar este límite?', 'Supprimer cette limite ?'],
+  'Apagar limite': ['Delete limit', 'Eliminar límite', 'Supprimer la limite'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */

@@ -893,3 +893,8 @@ button.ad-lbox-body { cursor: pointer; }
 /* Janelas que sobem do fundo: só a altura do conteúdo (sem espaço vazio em baixo); largura igual em todas */
 .bs-sheet, .fx-sheet, .fx-sheet.wide, html.pcm .fx-sheet, html.pcm .fx-sheet:has(.tx-rows), html.pcm .stm { min-height: 0 !important; }
 @media (max-width: 768px) { .bs-sheet, .fx-sheet, .fx-sheet.wide { min-height: 0 !important; } }
+
+/* Limites: cada limite abre para alterar ou apagar */
+button.sh-limit { border: 0; font: inherit; color: inherit; cursor: pointer; transition: transform .15s, filter .15s; }
+button.sh-limit:hover { filter: brightness(1.08); } button.sh-limit:active { transform: scale(.97); }
+.lim-editcat { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 17px; margin-bottom: 4px; }
