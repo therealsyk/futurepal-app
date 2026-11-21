@@ -235,7 +235,7 @@ export function SplitPage() {
               <div className="sp-main">
                 <div>
                   <div className="sp-head">
-                    <h2 className="pm-h2">{t('split.bills')}</h2>
+                    
                     
                   </div>
                   {bills.length === 0 ? <div className="fx-card"><p className="fx-muted">{t('split.noBills')}</p></div> : (

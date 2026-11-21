@@ -1018,3 +1018,17 @@ button.sp-row { cursor: pointer; } button.sp-row:hover { background: color-mix(i
 .spi-btn.danger { background: var(--red); color: #fff; }
 .sp-bill-sub { color: var(--muted); font-size: 13px; font-weight: 500; }
 .sp-bill-facts { display: none; }
+/* Dividir contas: caixa da conta mais pequena */
+.sp-bill { max-width: 520px !important; padding: 12px 14px !important; gap: 8px !important; border-radius: 18px !important; }
+.sp-bill-head { padding: 10px 12px !important; border-radius: 14px; }
+.sp-bill-title { font-size: 15.5px !important; }
+.sp-bill-total b { font-size: 19px !important; }
+.sp-bill-total small { font-size: 11px; }
+.sp-bill-total .sp-tag { height: 24px; padding: 0 10px; font-size: 11.5px; margin-top: 2px; }
+.sp-bill-sub { font-size: 12px !important; }
+.sp-row { padding: 8px 12px !important; gap: 10px !important; }
+.sp-row .sp-face, .sp-row img, .sp-face-ph { width: 32px !important; height: 32px !important; }
+.sp-row-top b { font-size: 13.5px !important; }
+.sp-bill-actions { padding-top: 8px !important; }
+.sp-bill-actions .fx-btn, .sp-bill-actions .fx-link, .sp-leave-in { height: 32px !important; font-size: 12.5px !important; padding: 0 12px !important; }
+.sp-hero { max-width: 520px; padding: 14px 18px; } .sp-hero b { font-size: 26px; }
