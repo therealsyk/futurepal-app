@@ -491,6 +491,14 @@ export const PHRASES: Record<string, Tr> = {
   'Planeado gastar': ['Planned spending', 'Previsto gastar', 'Dépenses prévues'],
   'soma dos teus limites': ['sum of your limits', 'suma de tus límites', 'somme de vos limites'],
   'recebido menos gasto': ['received minus spent', 'recibido menos gastado', 'reçu moins dépensé'],
+  'Ainda não tens limites este mês.': ['You have no limits this month yet.', 'Aún no tienes límites este mes.', 'Pas encore de limites ce mois-ci.'],
+  'Ainda podes gastar': ['You can still spend', 'Aún puedes gastar', 'Vous pouvez encore dépenser'],
+  'Passaste os limites em': ['You went over your limits by', 'Te pasaste de los límites en', 'Vous avez dépassé vos limites de'],
+  'Já gastaste': ['You have spent', 'Ya gastaste', 'Vous avez dépensé'],
+  'dos': ['of the', 'de los', 'sur les'],
+  'que planeaste para este mês.': ['you planned for this month.', 'que planeaste para este mes.', 'prévus pour ce mois-ci.'],
+  'Podes gastar': ['You can spend', 'Puedes gastar', 'Vous pouvez dépenser'],
+  'Passaste': ['Over by', 'Te pasaste', 'Dépassé de'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */

@@ -139,8 +139,6 @@ export function SimpleLimits() {
   const shift = (k: number) => setCur((c) => ({ y: c.y + Math.floor((c.m + k) / 12), m: ((c.m + k) % 12 + 12) % 12 }));
   const prefix = `${cur.y}-${String(cur.m + 1).padStart(2, '0')}`;
   const month = (d?.txs ?? []).filter((x) => x.date.startsWith(prefix));
-  const received = month.filter((x) => x.type === 'income').reduce((a, x) => a + x.amountCents, 0);
-  const spent = month.filter((x) => x.type === 'expense').reduce((a, x) => a + x.amountCents, 0);
   const limits = (d?.budgets ?? []).filter((b) => b.year === cur.y && b.month === cur.m + 1);
   const catOf = (id: string) => d?.cats.find((c) => c.id === id);
   const spentIn = (id: string) => month.filter((x) => x.type === 'expense' && x.categoryId === id).reduce((a, x) => a + x.amountCents, 0);
@@ -166,14 +164,18 @@ export function SimpleLimits() {
           <span className="mv-month">{label}</span>
           <button type="button" className="mv-chev" onClick={() => shift(1)} aria-label={L('Mês seguinte')}><Ic d={ICON.right} size={18} /></button>
         </div>
-        <div className="sh-two">
-          <span><small>{L('Recebido')}</small><b className="fx-pos">{money(received)}</b></span>
-          <span><small>{L('Gasto')}</small><b className="fx-neg">{money(spent)}</b></span>
-        </div>
-        <div className="lim-sum">
-          <div><small>{L('Planeado gastar')}</small><b>{money(limits.reduce((a2, b) => a2 + b.limitCents, 0))}</b><em>{L('soma dos teus limites')}</em></div>
-          <div><small>{L('Sobra do mês')}</small><b className={received - spent < 0 ? 'fx-neg' : 'fx-pos'}>{money(received - spent)}</b><em>{L('recebido menos gasto')}</em></div>
-        </div>
+        {limits.length === 0 ? <p className="lim-empty">{L('Ainda não tens limites este mês.')}</p> : (() => {
+          // tudo num só número, em linguagem simples: quanto ainda posso gastar dentro dos meus limites
+          const total = limits.reduce((a2, b) => a2 + b.limitCents, 0);
+          const used = limits.reduce((a2, b) => a2 + spentIn(b.categoryId), 0);
+          const left = total - used, r = total > 0 ? Math.min(1, used / total) : 0;
+          return (<>
+            <small className="mv-hero-label">{left >= 0 ? L('Ainda podes gastar') : L('Passaste os limites em')}</small>
+            <div className="sh-valrow"><span className={'sh-big ' + (left >= 0 ? 'fx-pos' : 'fx-neg')}>{money(Math.abs(left))}</span></div>
+            <div className={'sh-bar' + (left < 0 ? ' over' : r > 0.85 ? ' warn' : '')} aria-hidden="true"><i style={{ width: `${r * 100}%` }} /></div>
+            <p className="lim-line">{L('Já gastaste')} <b>{money(used)}</b> {L('dos')} <b>{money(total)}</b> {L('que planeaste para este mês.')}</p>
+          </>);
+        })()}
       </section>
 
       <section className="mv-card">
@@ -186,7 +188,8 @@ export function SimpleLimits() {
               <div key={b.id} className={'sh-limit' + (r > 1 ? ' over' : r > 0.85 ? ' warn' : '')} style={{ ['--p' as string]: Math.min(1, r) }}>
                 <span className="sh-ring"><CatIcon cat={c ?? {}} size={44} /></span>
                 <b>{c ? catLabel(t, c) : '—'}</b>
-                <small>{left >= 0 ? `sobram ${money(left)}` : `passaste ${money(-left)}`}</small>
+                <small className={left < 0 ? 'fx-neg' : ''}>{left >= 0 ? `${L('Podes gastar')} ${money(left)}` : `${L('Passaste')} ${money(-left)}`}</small>
+                <em className="lim-of">{money(used)} / {money(b.limitCents)}</em>
               </div>
             );
           })}

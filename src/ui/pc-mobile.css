@@ -867,3 +867,10 @@ button.ad-lbox-body { cursor: pointer; }
 .lim-sum small { font-size: 13px; font-weight: 650; opacity: .85; }
 .lim-sum b { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .lim-sum em { font-style: normal; font-size: 12px; opacity: .65; }
+
+/* Limites: uma frase simples e uma barra */
+.lim-line { margin: 10px 0 0; font-size: 14.5px; line-height: 1.45; opacity: .9; }
+.lim-line b { font-variant-numeric: tabular-nums; }
+.lim-empty { margin: 10px 0 4px; font-size: 15px; opacity: .85; }
+.sh-bar.warn i { background: #f5b85a; } .sh-bar.over i { background: var(--red); }
+.sh-limit .lim-of { font-style: normal; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
