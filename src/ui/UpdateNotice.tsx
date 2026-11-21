@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getSupabase } from '../auth/supabase';
 import { registerPlugin, Capacitor } from '@capacitor/core';
-import { checkForUpdate, currentPlatform, GITHUB_REPO, desktopUpdater, githubLatest, dismiss, isDismissed, openExternal, type UpdateInfo } from '../core/updates';
-import { APP_VERSION, compareVersions } from '../core/version';
+import { checkForUpdate, GITHUB_REPO, desktopUpdater, githubApk, dismiss, isDismissed, openExternal, type UpdateInfo } from '../core/updates';
+import { compareVersions } from '../core/version';
 
 // Aviso de atualização (banner) ou bloqueio (versão abaixo da mínima). Verifica ao abrir e de 6 em 6 horas.
 const EVERY_MS = 6 * 60 * 60 * 1000;
@@ -14,15 +14,9 @@ const ApkUpdater = registerPlugin<{ downloadAndInstall: (o: { url: string }) => 
 
 type Phase = 'idle' | 'downloading' | 'ready' | 'error';
 
-/** GitHub é a fonte principal: o aviso aparece logo ao publicar uma release. O Supabase (app_versions) fica como reforço/fallback. */
+/** Junta a tabela do Supabase com o atualizador nativo do Windows (GitHub Releases). */
 export async function fullCheck(): Promise<UpdateInfo> {
-  const platform = currentPlatform();
-  const current = APP_VERSION;
-  const gh = await githubLatest();
-  if (gh && compareVersions(gh.version, current) > 0) {
-    return { status: 'available', platform, current, latest: gh.version, notes: gh.notes, url: gh.apkUrl || `https://github.com/${GITHUB_REPO}/releases/latest` };
-  }
-  const info = await checkForUpdate(getSupabase(), platform, current);
+  const info = await checkForUpdate(getSupabase());
   const du = desktopUpdater();
   if (info.platform === 'windows' && du?.supported) {
     try {
@@ -32,8 +26,11 @@ export async function fullCheck(): Promise<UpdateInfo> {
       }
     } catch { /* sem internet ou sem releases: fica o resultado do Supabase */ }
   }
-  // Android fora da loja: se a tabela não tem URL, usa o APK da release do GitHub.
-  if (info.platform === 'android' && !info.url) info.url = gh?.apkUrl || `https://github.com/${GITHUB_REPO}/releases/latest`;
+  // Android: a versão nova é o APK da última release do GitHub (não precisa da tabela do Supabase).
+  if (info.platform === 'android' && info.status !== 'required') {
+    const apk = await githubApk();
+    if (apk && compareVersions(apk.version, info.current) > 0) return { ...info, status: 'available', latest: apk.version, notes: apk.notes || info.notes, url: apk.url };
+  }
   return info;
 }
 

@@ -89,9 +89,7 @@ export async function githubLatest(fetcher: typeof fetch = fetch): Promise<{ ver
     const r = await res.json() as GithubRelease;
     if (!r?.tag_name || r.draft || r.prerelease) return null;
     const apk = r.assets.find((x) => x.name.toLowerCase().endsWith('.apk'));
-    const exe = r.assets.find((x) => x.name.toLowerCase().endsWith('.exe'));
-    // Sem APK (ex.: só instalador Windows), o link de download é o .exe da release.
-    return { version: r.tag_name.replace(/^v/i, ''), notes: (r.body || '').trim(), windows: r.assets.some((x) => x.name === 'latest.yml'), apkUrl: apk?.browser_download_url ?? exe?.browser_download_url ?? null };
+    return { version: r.tag_name.replace(/^v/i, ''), notes: (r.body || '').trim(), windows: r.assets.some((x) => x.name === 'latest.yml'), apkUrl: apk?.browser_download_url ?? null };
   } catch { return null; }
 }
 
