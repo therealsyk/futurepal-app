@@ -246,6 +246,8 @@ export function SplitPage() {
                         // convites ainda pendentes já contam para a divisão (o servidor recalcula as partes quando aceitam)
                         const pendN = outInv.length;
                         const each = pendN ? Math.round(pr.totalCents / (b.shares.length + pendN)) : null;
+                        // quanto falta pagar: conta também com a parte de quem ainda não aceitou
+                        const left = each === null ? pr.remainingCents : Math.max(0, pr.totalCents - b.shares.filter((x) => x.paidAt).length * each);
                         return (
                           <div key={b.id} className={'fx-card sp-bill' + (pr.done ? ' done' : '')}>
                             {/* título e total numa caixa própria; data e valor por pessoa em etiquetas por baixo */}
@@ -254,7 +256,7 @@ export function SplitPage() {
                               <b className="sp-bill-title">{b.description}</b>
                               <span className="sp-bill-total">
                                 <small>{t('split.total')}</small><b>{money(pr.totalCents)}</b>
-                                <span className={'sp-tag ' + (pr.done ? 'ok' : 'warn')}>{pr.done ? (outInv.length ? L('À espera que aceitem o convite') : t('split.allPaid')) : t('split.missing', { amount: money(pr.remainingCents) })}</span>
+                                <span className={'sp-tag ' + (left > 0 ? 'warn' : 'ok')}>{left > 0 ? t('split.missing', { amount: money(left) }) : t('split.allPaid')}</span>
                               </span>
                             </div>
                             <div className="sp-bill-facts">
