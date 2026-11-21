@@ -22,7 +22,7 @@ describe('evaluate (aviso de atualização)', () => {
   });
 });
 
-import { apkFromRelease } from './updates';
+import { apkFromRelease, githubLatest } from './updates';
 describe('APK do GitHub', () => {
   it('lê a versão e o link do .apk da release', () => {
     const r = apkFromRelease({ tag_name: 'v0.2.7', body: ' Novidades ', assets: [{ name: 'latest.yml', browser_download_url: 'x' }, { name: 'FuturePal-0.2.7.apk', browser_download_url: 'https://g/a.apk' }] });
@@ -31,5 +31,21 @@ describe('APK do GitHub', () => {
   it('ignora releases sem APK, rascunhos e pré-lançamentos', () => {
     expect(apkFromRelease({ tag_name: 'v1.0.0', assets: [] })).toBeNull();
     expect(apkFromRelease({ tag_name: 'v1.0.0', prerelease: true, assets: [{ name: 'a.apk', browser_download_url: 'u' }] })).toBeNull();
+  });
+});
+
+describe('githubLatest (detecção via GitHub Releases)', () => {
+  const fakeFetch = (json: unknown, ok = true) => (() => Promise.resolve({ ok, json: async () => json })) as unknown as typeof fetch;
+  it('devolve a versão e o APK quando há release publicada', async () => {
+    const r = await githubLatest(fakeFetch({ tag_name: 'v1.0.4', body: 'notas', draft: false, prerelease: false, assets: [{ name: 'FuturePal-1.0.4.apk', browser_download_url: 'https://g/a.apk' }, { name: 'latest.yml', browser_download_url: 'y' }] }));
+    expect(r).toEqual({ version: '1.0.4', notes: 'notas', windows: true, apkUrl: 'https://g/a.apk' });
+  });
+  it('usa o .exe como download quando não há APK', async () => {
+    const r = await githubLatest(fakeFetch({ tag_name: 'v1.0.4', body: '', draft: false, prerelease: false, assets: [{ name: 'FuturePal-Setup-1.0.4.exe', browser_download_url: 'https://g/e.exe' }] }));
+    expect(r?.apkUrl).toBe('https://g/e.exe');
+  });
+  it('null em rascunho ou erro de rede', async () => {
+    expect(await githubLatest(fakeFetch({ tag_name: 'v2.0.0', draft: true, assets: [] }))).toBeNull();
+    expect(await githubLatest(fakeFetch({}, false))).toBeNull();
   });
 });
