@@ -490,3 +490,11 @@ html.pcm .txs-new > .pf .pf-seg button { flex: 1; }
 /* calendário do Resumo: a linha das letras dos dias não ocupa a altura de um dia (tirava espaço e criava scroll) */
 .pco-slot .sh-cal { grid-auto-rows: auto !important; gap: 4px; }
 .pco-slot .sh-calday { height: 44px !important; }
+
+/* ---- Topo do Resumo: o utilizador separado das ferramentas (linha vertical) e com um aspeto mais leve */
+.pco-right .ab { margin: 0 0 0 8px; padding-left: 18px; gap: 8px; border-left: 1px solid var(--border); height: 44px; }
+.pco-right .ab-chip { height: 48px; padding: 0 12px 0 4px; border: 0; background: transparent; border-radius: 99px; transition: background .15s; }
+.pco-right .ab-chip:hover { background: var(--card); }
+.pco-right .ab-chip img, .pco-right .ab-initials { width: 40px; height: 40px; box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px color-mix(in srgb, var(--mv, var(--accent)) 70%, transparent); }
+.pco-right .ab-bell { width: 42px; height: 42px; border: 0; background: transparent; color: var(--muted); }
+.pco-right .ab-bell:hover { background: var(--card); color: var(--text); }
