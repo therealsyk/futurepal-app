@@ -487,3 +487,6 @@ html.pcm .txs-new > .pf .pf-nav { min-width: 260px; }
 }
 html.pcm .txs-new > .pf .pf-seg { width: 240px !important; min-width: 240px; flex: none !important; }
 html.pcm .txs-new > .pf .pf-seg button { flex: 1; }
+/* calendário do Resumo: a linha das letras dos dias não ocupa a altura de um dia (tirava espaço e criava scroll) */
+.pco-slot .sh-cal { grid-auto-rows: auto !important; gap: 4px; }
+.pco-slot .sh-calday { height: 44px !important; }
