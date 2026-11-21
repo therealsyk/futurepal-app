@@ -5,7 +5,9 @@ import { db } from '../db/app-db';
 import { dailyTotals, buildCalendarGrid, weekdayLabels } from '../core/finance';
 import { formatMoney } from '../core/money';
 import { loadSettings } from '../core/settings';
-import { PageHead, MonthNav } from '../ui/fx';
+import { PageHead } from '../ui/fx';
+import { PeriodFilter, initialPeriod, periodRange, type Period } from '../ui/PeriodFilter';
+import { L } from '../i18n/phrases';
 import { useIsMobile } from '../ui/useIsMobile';
 import { Sponsored } from '../ui/Sponsored';
 
@@ -14,14 +16,25 @@ export default function Calendar() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const now = new Date();
-  const [calYear, setCalYear] = useState(now.getFullYear());
-  const [calMonth, setCalMonth] = useState(now.getMonth() + 1);
-  const [period, setPeriod] = useState<'month' | 'year'>('month'); // um mês, ou os 12 meses do ano
+  const [per, setPer] = useState<Period>(() => initialPeriod(now));
+  const ranged = per.mode === 'range';
+  const range = periodRange(per);
+  // mês ou ano; com um filtro de datas mostra o mês em que o período acaba (os dias fora do período ficam apagados)
+  const calYear = ranged ? +range.to.slice(0, 4) : per.y;
+  const calMonth = ranged ? +range.to.slice(5, 7) : per.m + 1;
+  const period: 'month' | 'year' = per.mode === 'year' ? 'year' : 'month';
   const [totals, setTotals] = useState<Record<string, number>>({});
   const settings = loadSettings();
   const isMobile = useIsMobile();
 
-  useEffect(() => { dailyTotals(db, calYear).then(setTotals).catch(() => setTotals({})); }, [calYear]);
+  const fromYear = ranged ? +range.from.slice(0, 4) : calYear;
+  useEffect(() => {
+    (async () => {
+      const out: Record<string, number> = {};
+      for (let y = fromYear; y <= calYear; y++) Object.assign(out, await dailyTotals(db, y));
+      setTotals(out);
+    })().catch(() => setTotals({}));
+  }, [calYear, fromYear]);
 
   const monthNames = t('calendar.monthNames', { returnObjects: true }) as string[];
   const grid = buildCalendarGrid(calYear, calMonth, settings.firstDayOfWeek);
@@ -32,17 +45,13 @@ export default function Calendar() {
   const dayMoney = (c: number) => (isMobile
     ? new Intl.NumberFormat(settings.language, { style: 'currency', currency: settings.currency, maximumFractionDigits: 0 }).format(Math.round(c / 100))
     : money(c));
-  const shift = (d: number) => {
-    if (period === 'year') { setCalYear((y) => y + d); return; }
-    let m = calMonth + d, y = calYear;
-    if (m < 1) { m = 12; y -= 1; } else if (m > 12) { m = 1; y += 1; }
-    setCalMonth(m); setCalYear(y);
-  };
 
   const prefix = `${calYear}-${String(calMonth).padStart(2, '0')}`;
   const monthValues = Object.entries(totals).filter(([d]) => d.startsWith(prefix));
   const monthTotal = monthValues.reduce((s, [, v]) => s + v, 0);
-  const yearTotal = Object.values(totals).reduce((a, b) => a + b, 0);
+  const yearTotal = Object.entries(totals).filter(([d]) => d.startsWith(String(calYear))).reduce((a, [, v]) => a + v, 0);
+  const rangeTotal = Object.entries(totals).filter(([d]) => d >= range.from && d <= range.to).reduce((a, [, v]) => a + v, 0);
+  const outOfRange = (d: string) => ranged && (d < range.from || d > range.to);
   const best = monthValues.sort((a, b) => b[1] - a[1])[0];
   const max = Math.max(1, ...monthValues.map(([, v]) => v));
   const weekdays = isMobile
@@ -58,16 +67,12 @@ export default function Calendar() {
   const yearMax = Math.max(1, ...Object.values(totals));
   const topMonth = [...yearMonths].sort((a, b) => b.total - a.total)[0];
   const monthsWithSpend = yearMonths.filter((m) => m.total > 0).length;
-  const openMonth = (m: number) => { setCalMonth(m); setPeriod('month'); };
+  const openMonth = (m: number) => setPer({ ...per, mode: 'month', y: calYear, m: m - 1 });
 
   return (
     <div className="fx-page">
       <PageHead title={t('calendar.title')} sub={t('calendar.subtitle')}>
-        <div className="fx-seg" role="group" aria-label={t('panel.period')}>
-          <button type="button" className={period === 'month' ? 'on' : ''} aria-pressed={period === 'month'} onClick={() => setPeriod('month')}>{t('panel.periodMonth')}</button>
-          <button type="button" className={period === 'year' ? 'on' : ''} aria-pressed={period === 'year'} onClick={() => setPeriod('year')}>{t('panel.periodYear')}</button>
-        </div>
-        <MonthNav label={period === 'month' ? `${monthNames[calMonth - 1]} ${calYear}` : String(calYear)} onPrev={() => shift(-1)} onNext={() => shift(1)} />
+        <PeriodFilter value={per} onChange={setPer} />
       </PageHead>
       {period === 'year' ? (
         <div className="fx-grid2 wide">
@@ -103,7 +108,7 @@ export default function Calendar() {
               if (day === 0) return <div key={`b${idx}`} aria-hidden="true" />;
               const spent = totals[iso(day)] ?? 0;
               return (
-                <button type="button" key={day} className={'fx-cal-d' + (isToday(day) ? ' today' : '')}
+                <button type="button" key={day} className={'fx-cal-d' + (isToday(day) ? ' today' : '') + (outOfRange(iso(day)) ? ' out' : '')}
                   style={spent > 0 ? { background: `color-mix(in srgb, var(--accent) ${12 + Math.round((spent / max) * 48)}%, var(--card-2))` } : undefined}
                   aria-label={`${day} ${monthNames[calMonth - 1]} — ${money(spent)}`} onClick={() => navigate(`/dia/${iso(day)}`)}>
                   <span>{day}</span><b>{spent > 0 ? dayMoney(spent) : ''}</b>
@@ -113,7 +118,7 @@ export default function Calendar() {
           </div>
         </div>
         <div className="fx-col">
-          <div className="fx-card mv-card pco-metric sav cal-metric"><div className="fx-label">{t('calendar.monthTotal')}</div><div className="fx-big pco-value">{money(monthTotal)}</div></div>
+          <div className="fx-card mv-card pco-metric sav cal-metric"><div className="fx-label">{ranged ? L('Gasto no período') : t('calendar.monthTotal')}</div><div className="fx-big pco-value">{money(ranged ? rangeTotal : monthTotal)}</div></div>
           <div className="fx-card mv-card pco-metric sav cal-metric"><div className="fx-label">{t('calendar.yearTotal')}</div><div className="fx-big pco-value">{money(yearTotal)}</div></div>
           <div className="fx-card mv-card pco-metric sav cal-metric"><div className="fx-label">{t('calendar.topDay')}</div>
             <div className="fx-big pco-value">{best ? money(best[1]) : '—'}</div>

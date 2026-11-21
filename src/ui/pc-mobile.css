@@ -332,3 +332,35 @@ html.pcm .sal-page { padding-bottom: 110px !important; }
 }
 @media (max-width: 768px) { .pf-nav .mv-month { white-space: nowrap; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; } }
 .txs-stats > .wide b { white-space: normal !important; display: -webkit-box !important; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font-size: 16px; line-height: 1.25; }
+
+/* ---- Resumo v3: 5 blocos (gráfico + caixas em cima; movimentos, categorias e calendário em baixo), sem scroll */
+.pco-head { gap: 14px; }
+.pco-right { display: flex; align-items: center; gap: 10px; }
+.pco-right .pf-chip { height: 48px; padding: 0 18px; border-radius: 16px; }
+.pco .pf-seg, .pco .pf-nav, .pco .pf-fbtn { height: 48px; }
+.pco-slot.s0 { grid-column: span 8; } .pco-slot.s1 { grid-column: span 4; }
+.pco-slot.s2, .pco-slot.s3, .pco-slot.s4 { grid-column: span 4; }
+.pco-slot .sh-embed > .mv-card { overflow-y: auto; scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--text) 26%, transparent) transparent; }
+.pco-slot .sh-embed > .mv-card::-webkit-scrollbar { width: 10px; display: block !important; }
+.pco-slot .sh-embed > .mv-card::-webkit-scrollbar-track { background: transparent; margin: 18px 0; }
+.pco-slot .sh-embed > .mv-card::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--text) 26%, transparent); border-radius: 99px; border: 3px solid var(--card); }
+.pco-slot .sh-embed > .mv-card::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--text) 45%, transparent); }
+/* Categorias: donut à esquerda e a lista à direita (as 6 maiores) para caber sem scroll */
+.pco-slot .sh-embed > .mv-card:has(.sh-donut) { display: grid; grid-template-columns: minmax(130px, 42%) 1fr; grid-auto-rows: min-content; column-gap: 16px; row-gap: 6px; align-content: start; }
+.pco-slot .mv-card:has(.sh-donut) > .sh-seg { grid-column: 1 / -1; margin-bottom: 8px; }
+.pco-slot .mv-card:has(.sh-donut) > .sh-donut { grid-column: 1; grid-row: 2 / span 6; width: 100%; max-width: 190px; height: auto; aspect-ratio: 1; margin: 0 auto; align-self: center; }
+.pco-slot .mv-card:has(.sh-donut) > .sh-catrow { grid-column: 2; margin: 0; padding: 4px 0; }
+.pco-slot .mv-card:has(.sh-donut) > .sh-catrow:nth-of-type(n+7) { display: none; }
+.pco-slot .mv-card:has(.sh-donut) > p { grid-column: 1 / -1; }
+/* Contas (discreto, no topo) */
+.pco-accchip { position: relative; }
+.pco-accbtn { display: inline-flex; align-items: center; gap: 10px; height: 48px; padding: 0 16px; border-radius: 16px; border: 1px solid var(--border); background: var(--card); color: var(--text); font: inherit; cursor: pointer; }
+.pco-accbtn:hover { background: var(--card-2); }
+.pco-accbtn > span { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.1; }
+.pco-accbtn small { color: var(--muted); font-size: 11.5px; }
+.pco-accbtn b { font-size: 15px; font-variant-numeric: tabular-nums; }
+.pco-accpop { position: absolute; top: calc(100% + 8px); right: 0; z-index: 70; width: 320px; display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 20px; background: var(--card); border: 1px solid var(--border); box-shadow: 0 22px 50px -18px rgba(0,0,0,.75); animation: ab-down .16s ease both; }
+.pco-accpop h4 { margin: 2px 4px 4px; font-size: 15px; }
+.pco-accpop .pco-acc { padding: 10px 12px; }
+.pco-accall { align-self: center; margin-top: 4px; }
+.fx-cal-d.out { opacity: .3; }

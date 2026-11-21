@@ -1,6 +1,6 @@
 // Resumo do PC: Mensal | Anual | Período, caixas de rendimento/gastos/poupança, gráfico, contas,
 // últimos movimentos do período, categorias e calendário. Os blocos podem ser trocados de sítio (Personalizar).
-import { useEffect, useState, type DragEvent, type JSX } from 'react';
+import { useEffect, useRef, useState, type DragEvent, type JSX } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
@@ -44,9 +44,9 @@ export function Metric({ icon, tone, title, value, valueClass, delta, deltaGoodU
   );
 }
 
-type WidgetId = 'chart' | 'metrics' | 'accounts' | 'latest' | 'cats' | 'cal';
-const DEFAULT_ORDER: WidgetId[] = ['chart', 'metrics', 'accounts', 'latest', 'cats', 'cal'];
-const ORDER_KEY = 'wallet.pcoOrder.v1';
+type WidgetId = 'chart' | 'metrics' | 'latest' | 'cats' | 'cal';
+const DEFAULT_ORDER: WidgetId[] = ['chart', 'metrics', 'latest', 'cats', 'cal'];
+const ORDER_KEY = 'wallet.pcoOrder.v2';
 function loadOrder(): WidgetId[] {
   try {
     const v = JSON.parse(localStorage.getItem(ORDER_KEY) || 'null') as WidgetId[] | null;
@@ -55,9 +55,12 @@ function loadOrder(): WidgetId[] {
   return DEFAULT_ORDER;
 }
 
-function AccountsWidget({ money }: { money: (c: number) => string }) {
+/** Contas, de forma discreta: um botão no topo com o total; ao carregar mostra cada conta. */
+function AccountsChip({ money }: { money: (c: number) => string }) {
   const { t } = useTranslation();
   const [rows, setRows] = useState<Array<{ a: Account; bal: number }>>([]);
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     (async () => {
       const live = <T extends { deletedAt: string | null }>(r: T[]) => r.filter((x) => x.deletedAt === null);
@@ -68,24 +71,33 @@ function AccountsWidget({ money }: { money: (c: number) => string }) {
       setRows(accs.map((a) => ({ a, bal: accountBalanceCents(a, txs, accs, salaryToDate, trs) })));
     })().catch(() => {});
   }, []);
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, [open]);
   const total = rows.filter((r) => r.a.type !== 'debt').reduce((s, r) => s + r.bal, 0);
-  const max = Math.max(1, ...rows.map((r) => Math.abs(r.bal)));
   return (
-    <section className="mv-card pco-accts">
-      <div className="pco-mhead"><span className="pco-mic"><Ic d={IC.wallet} size={18} /></span><h3>{t('pco.accounts')}</h3><Link to="/contas" className="mv-link">{t('blk.seeAll')}</Link></div>
-      <div className="pco-acc-total"><small>{t('pco.totalAccounts')}</small><strong className={total < 0 ? 'fx-neg' : ''}>{money(total)}</strong></div>
-      <div className="pco-acc-list">
-        {rows.length === 0 && <p className="fx-muted">{t('pco.noAccounts')}</p>}
-        {rows.map(({ a, bal }) => (
-          <div key={a.id} className={'pco-acc ' + a.type}>
-            <span className="pco-acc-dot" />
-            <span className="pco-acc-main"><b>{a.name}</b><small>{t('pco.accType_' + a.type)}</small></span>
-            <b className={a.type === 'debt' || bal < 0 ? 'fx-neg' : ''}>{money(bal)}</b>
-            <i className="pco-acc-bar" style={{ width: `${Math.max(3, (Math.abs(bal) / max) * 100)}%` }} />
-          </div>
-        ))}
-      </div>
-    </section>
+    <div className="pco-accchip" ref={ref}>
+      <button type="button" className="pco-accbtn" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <Ic d={IC.wallet} size={17} /><span><small>{t('pco.totalAccounts')}</small><b className={total < 0 ? 'fx-neg' : ''}>{money(total)}</b></span>
+      </button>
+      {open && (
+        <div className="pco-accpop" role="dialog" aria-label={t('pco.accounts')}>
+          <h4>{t('pco.accounts')}</h4>
+          {rows.length === 0 && <p className="fx-muted">{t('pco.noAccounts')}</p>}
+          {rows.map(({ a, bal }) => (
+            <div key={a.id} className={'pco-acc ' + a.type}>
+              <span className="pco-acc-dot" />
+              <span className="pco-acc-main"><b>{a.name}</b><small>{t('pco.accType_' + a.type)}</small></span>
+              <b className={a.type === 'debt' || bal < 0 ? 'fx-neg' : ''}>{money(bal)}</b>
+            </div>
+          ))}
+          <Link to="/contas" className="mv-link pco-accall">{t('blk.seeAll')}</Link>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -155,7 +167,6 @@ export function PcOverview() {
           delta={delta(left, prevLeft)} deltaGoodUp prevName={prevName} vsLabel={t('pco.vs')} bar={ratio(Math.max(0, left))} sub={avg(left)} />
       </div>
     ),
-    accounts: <AccountsWidget money={money} />,
     latest: <SimpleHome key={'l' + ek} embed={{ mode: yearly ? 'year' : 'month', ...em, part: 'latest', range }} />,
     cats: <SimpleOverview key={'c' + ek} yearly={multiMonth} embed={{ ...em, part: 'cats', range: ranged ? range : undefined }} />,
     cal: <SimpleOverview key={'k' + ek} yearly={multiMonth} embed={{ ...em, part: 'cal' }} />,
@@ -176,10 +187,13 @@ export function PcOverview() {
       <header className="pco-head">
         <div className="pco-title">
           <PeriodFilter value={per} onChange={setPer} />
-          <button type="button" className={'pf-chip' + (editing ? ' on' : '')} onClick={() => setEditing(!editing)}>{editing ? t('pco.done') : t('pco.customize')}</button>
-          {editing && <button type="button" className="pf-chip" onClick={reset}>{t('pco.reset')}</button>}
         </div>
-        <AccountBar />
+        <div className="pco-right">
+          {editing && <button type="button" className="pf-chip" onClick={reset}>{t('pco.reset')}</button>}
+          <button type="button" className={'pf-chip' + (editing ? ' on' : '')} onClick={() => setEditing(!editing)}>{editing ? t('pco.done') : t('pco.customize')}</button>
+          <AccountsChip money={money} />
+          <AccountBar />
+        </div>
       </header>
       {editing && <p className="pco-hint">{t('pco.dragHint')}</p>}
 
