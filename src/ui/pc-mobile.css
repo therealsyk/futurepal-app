@@ -1046,3 +1046,6 @@ button.sp-row { cursor: pointer; } button.sp-row:hover { background: color-mix(i
 .sp-bill-actions { flex-direction: column; align-items: stretch; gap: 6px; }
 .sp-bill-actions .fx-btn.primary { width: 100% !important; height: 44px !important; font-size: 15px !important; }
 .sp-bill-actions .fx-link { align-self: center; border: 0 !important; background: none !important; color: var(--muted) !important; }
+/* "Afinal não paguei": botão visível (contorno), em largura total */
+.sp-bill-actions .fx-link { align-self: stretch !important; width: 100% !important; height: 44px !important; border: 1px solid var(--border) !important; background: var(--card-2) !important; color: var(--text) !important; font-size: 14.5px !important; font-weight: 700 !important; }
+.sp-bill-actions .fx-link:hover { border-color: color-mix(in srgb, var(--mv, var(--accent)) 50%, transparent) !important; }
