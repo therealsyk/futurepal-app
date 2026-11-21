@@ -181,7 +181,7 @@ export function AdminPage() {
       {shown === 'versions' && (<>
       <div className="fx-card ad-card">
         <h3>{t('admin.versions')}</h3>
-        {versions.map((r) => <p key={r.platform} className="ad-kv"><span>{r.platform}</span><b>{r.latest_version}</b><small>{date(r.published_at)}</small></p>)}
+        <div className="ad-vers">{versions.map((r) => <div key={r.platform} className="ad-ver"><small>{r.platform}</small><b>{r.latest_version}</b><em>{date(r.published_at)}</em></div>)}</div>
         <div className="fx-two">
           <Field label={t('admin.platform')}><PickMenu label={t('admin.platform')} value={v.platform} options={['windows', 'android', 'ios', 'web'].map((p) => ({ value: p, label: p }))} onChange={(x) => setV({ ...v, platform: String(x) })} /></Field>
           <Field label={t('admin.version')}><input className="fx-input" value={v.version} placeholder="0.2.0" onChange={(e) => setV({ ...v, version: e.target.value })} /></Field>

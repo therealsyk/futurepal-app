@@ -171,8 +171,20 @@ type M = { users: number; mau: number; signups_today: number; expenses_total: nu
   subs: Record<string, number>; subs_canceled_30d: number };
 const PAGE_NAME: Record<string, string> = { '/': 'Resumo', '/transacoes': 'Transações', '/contas': 'Contas', '/calendario': 'Calendário', '/orcamentos': 'Limites', '/metas': 'Metas', '/salarios': 'Salários', '/categorias': 'Categorias', '/assistente': 'Assistente IA', '/definicoes': 'Definições', '/grupos': 'Grupos', '/plus': 'Planos', '/visao-mensal': 'Resumo do mês', '/resumo-ano': 'Resumo do ano', '/dividir': 'Dividir contas', '/familia': 'Família' };
 const FEAT_NAME: Record<string, string> = { goals: 'Metas', budgets: 'Limites', salaries: 'Salários', recurring: 'Recorrentes', groups: 'Grupos', custom_categories: 'Categorias personalizadas', multi_accounts: 'Várias contas', exports: 'Exportar / backup' };
-function Stat({ label, value, hint }: { label: string; value: React.ReactNode; hint?: string }) {
-  return <div className="dsh-stat"><small>{label}</small><b>{value}</b>{hint && <em>{hint}</em>}</div>;
+const SIC: Record<string, string> = {
+  list: 'M9 6h11M9 12h11M9 18h11M5 6h.01M5 12h.01M5 18h.01', target: 'M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8z',
+  user: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0', clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2',
+  cal: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4', chart: 'M4 19V9M10 19V5M16 19v-7M22 19H2', plus: 'M12 5v14M5 12h14',
+  db: 'M12 8c4.4 0 8-1.3 8-3s-3.6-3-8-3-8 1.3-8 3 3.6 3 8 3zM4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5', key: 'M15 7a4 4 0 1 1-3.9 5H8v3H5v-3H3v-3h8.1A4 4 0 0 1 15 7z',
+  disk: 'M4 4h16v16H4zM8 4v6h8V4', bug: 'M8 9h8v8a4 4 0 0 1-8 0zM12 9V5M4 13h4M16 13h4M5 7l3 2M19 7l-3 2', bell: 'M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8',
+};
+function Stat({ label, value, hint, ic = 'chart' }: { label: string; value: React.ReactNode; hint?: string; ic?: string }) {
+  return (
+    <div className="dsh-stat">
+      <div className="dsh-stat-h"><span className="pco-mic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={SIC[ic] ?? SIC.chart} /></svg></span><small>{label}</small></div>
+      <b>{value}</b>{hint ? <em>{hint}</em> : <em>&nbsp;</em>}
+    </div>
+  );
 }
 export function AdminMoreMetrics({ section }: { section: 'engagement' | 'health' | 'safety' | 'money' }) {
   const [m, setM] = useState<M | null>(null);
@@ -205,13 +217,13 @@ export function AdminMoreMetrics({ section }: { section: 'engagement' | 'health'
     <div className="dsh">
       {section === 'engagement' && <>
       <div className="dsh-stats">
-        <Stat label={L('Despesas registadas')} value={nf(m.expenses_total)} hint={`${nf(m.expenses_30d)} ${L('em 30 dias')}`} />
-        <Stat label={L('Metas criadas')} value={nf(m.goals_total)} hint={`${pct(m.pct_with_goal)} ${L('das contas têm metas')}`} />
-        <Stat label={L('Despesas por utilizador ativo')} value={m.mau ? (m.expenses_30d / m.mau).toFixed(1) : '—'} hint={L('últimos 30 dias')} />
-        <Stat label={L('Tempo médio por dia')} value={m.avg_session_min === null ? '—' : `${m.avg_session_min} min`} hint={L('por pessoa, quando abre a app')} />
-        <Stat label={L('Frequência')} value={m.days_per_user_30 === null ? '—' : `${m.days_per_user_30} ${L('dias')}`} hint={L('dias ativos por pessoa em 30')} />
-        <Stat label={L('Usam relatórios')} value={pct(m.pct_reports)} hint={L('Resumo, calendário ou resumos do mês/ano')} />
-        <Stat label={L('Registos hoje')} value={nf(m.signups_today)} />
+        <Stat ic="list" label={L('Despesas registadas')} value={nf(m.expenses_total)} hint={`${nf(m.expenses_30d)} ${L('em 30 dias')}`} />
+        <Stat ic="target" label={L('Metas criadas')} value={nf(m.goals_total)} hint={`${pct(m.pct_with_goal)} ${L('das contas têm metas')}`} />
+        <Stat ic="user" label={L('Despesas por utilizador ativo')} value={m.mau ? (m.expenses_30d / m.mau).toFixed(1) : '—'} hint={L('últimos 30 dias')} />
+        <Stat ic="clock" label={L('Tempo médio por dia')} value={m.avg_session_min === null ? '—' : `${m.avg_session_min} min`} hint={L('por pessoa, quando abre a app')} />
+        <Stat ic="cal" label={L('Frequência')} value={m.days_per_user_30 === null ? '—' : `${m.days_per_user_30} ${L('dias')}`} hint={L('dias ativos por pessoa em 30')} />
+        <Stat ic="chart" label={L('Usam relatórios')} value={pct(m.pct_reports)} hint={L('Resumo, calendário ou resumos do mês/ano')} />
+        <Stat ic="plus" label={L('Registos hoje')} value={nf(m.signups_today)} />
       </div>
 
       <div className="dsh-row2">
@@ -222,11 +234,11 @@ export function AdminMoreMetrics({ section }: { section: 'engagement' | 'health'
       </>}
       {section === 'health' && <>
       <div className="dsh-stats">
-        <Stat label={L('Base de dados')} value={<span className="dsh-ok">● {L('Online')}</span>} hint={ping.db === null ? '…' : ping.db < 0 ? L('Sem resposta') : `${ping.db} ms ${L('de resposta')}`} />
-        <Stat label={L('Autenticação')} value={ping.auth === null ? '…' : <span className={ping.auth ? 'dsh-ok' : 'dsh-bad'}>● {ping.auth ? L('Online') : L('Com problemas')}</span>} />
-        <Stat label={L('Tamanho da base de dados')} value={mb(m.db_size)} hint={`${nf(m.rows.transactions)} ${L('movimentos')}`} />
-        <Stat label={L('Erros da app (7 dias)')} value={nf(m.errors_7d)} />
-        <Stat label={L('Notificações push')} value="—" hint={L('A app ainda não envia notificações push')} />
+        <Stat ic="db" label={L('Base de dados')} value={<span className="dsh-ok">● {L('Online')}</span>} hint={ping.db === null ? '…' : ping.db < 0 ? L('Sem resposta') : `${ping.db} ms ${L('de resposta')}`} />
+        <Stat ic="key" label={L('Autenticação')} value={ping.auth === null ? '…' : <span className={ping.auth ? 'dsh-ok' : 'dsh-bad'}>● {ping.auth ? L('Online') : L('Com problemas')}</span>} />
+        <Stat ic="disk" label={L('Tamanho da base de dados')} value={mb(m.db_size)} hint={`${nf(m.rows.transactions)} ${L('movimentos')}`} />
+        <Stat ic="bug" label={L('Erros da app (7 dias)')} value={nf(m.errors_7d)} />
+        <Stat ic="bell" label={L('Notificações push')} value="—" hint={L('A app ainda não envia notificações push')} />
       </div>
       <div className="dsh-row2">
         <section className="dsh-card"><header><h3>{L('Erros por versão')}</h3><small>{L('Últimos 7 dias')}</small></header><HBars data={m.errors_by_version} /></section>

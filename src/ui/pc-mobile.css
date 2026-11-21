@@ -833,3 +833,17 @@ button.ad-lbox-body { cursor: pointer; }
 /* títulos de secção dentro das páginas */
 .adm .dsh-h2 { margin: 14px 0 2px; font-size: 16px; font-weight: 700; color: var(--text); }
 .adm .dsh-note { font-size: 12.5px; }
+
+/* Admin: caixas com ícone (como no Resumo) e versões em caixas */
+.adm .dsh-stat { gap: 8px; }
+.dsh-stat-h { display: flex; align-items: center; gap: 10px; }
+.dsh-stat-h .pco-mic { width: 32px; height: 32px; color: var(--mv, var(--accent)); background: color-mix(in srgb, var(--mv, var(--accent)) 14%, var(--card-2)); }
+.adm .dsh-stat-h small { font-size: 13.5px; font-weight: 650; color: var(--text); }
+.adm .dsh-stat em { color: var(--muted); font-size: 12.5px; }
+.ad-vers { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-bottom: 8px; }
+.ad-ver { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border-radius: 14px; background: var(--bg); border: 1px solid var(--border); }
+.ad-ver small { color: var(--muted); font-size: 12.5px; text-transform: capitalize; } .ad-ver b { font-size: 22px; font-weight: 800; } .ad-ver em { font-style: normal; color: var(--muted); font-size: 12px; }
+/* cartões das páginas Segurança/Equipa/Auditoria/Versões: título com linha por baixo */
+.adm .ad-card > h3 { padding-bottom: 12px; margin-bottom: 14px !important; border-bottom: 1px solid var(--border); }
+.adm .dsh-card > header { padding-bottom: 10px; border-bottom: 1px solid var(--border); margin-bottom: 6px; }
+.adm .ad-table th:first-child, .adm .ad-table td:first-child { padding-left: 18px; }
