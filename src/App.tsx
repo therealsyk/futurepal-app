@@ -16,6 +16,7 @@ import { SimpleHome } from './pages/SimpleHome';
 import { SIMPLE_UI, PC_MOBILE } from './core/uiMode';
 import { PcOverview } from './pages/PcOverview';
 import { AdminLogin, ADMIN_LOGIN_EVENT } from './pages/AdminPhase1';
+import { SplitInvitePopup } from './ui/SplitInvitePopup';
 import { Groups } from './pages/Groups';
 import { SimpleAccounts, SimpleGoals, SimpleLimits, SimpleOverview } from './pages/SimplePages';
 import { AdminPage } from './pages/Admin';
@@ -236,6 +237,7 @@ export default function App() {
       <MobileNav />
       <MobileTutorial enabled={isMobile && !PC_MOBILE} />
       {!IS_DEMO && <UpdateNotice />}
+      {!IS_DEMO && <SplitInvitePopup />}
       {adminLogin && <AdminLogin onDone={() => { setAdminLogin(false); window.location.hash = '#/admin'; }} onCancel={() => setAdminLogin(false)} />}
       {ann && <div className={'ann-bar ' + ann.level} role="status"><span>{ann.message}</span><button type="button" onClick={ann.close} aria-label={L('Fechar')}>✕</button></div>}
       {IS_DEMO && <DemoGate />}

@@ -220,15 +220,16 @@ export function SplitPage() {
           <div className="sp-tabs">
             {groups.length > 1
               ? <select className="fx-input sp-group-select" value={sel} onChange={(e) => setSel(e.target.value)}>{groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}</select>
-              : <h2 className="pm-h2">{[L('Tu'), ...members.filter((m) => m.userId !== me).map((m) => m.displayName), ...outInv.map((i) => i.email ?? '+' + i.phone)].join(' · ')}</h2>}
+              : <h2 className="pm-h2">{[...members.filter((m) => m.userId !== me).map((m) => m.displayName), ...outInv.map((i) => i.email ?? '+' + i.phone)].join(' · ')}</h2>}
           </div>
           {group && (
             <>
-              <div className={'sp-hero ' + (sum.iOweCents > 0 ? 'owe' : sum.owedToMeCents > 0 ? 'owed' : 'ok')}>
+              <button type="button" className="sp-leave-corner" onClick={leave}>{t('split.leave')}</button>
+              {(sum.iOweCents > 0 || sum.owedToMeCents > 0) && <div className={'sp-hero ' + (sum.iOweCents > 0 ? 'owe' : 'owed')}>
                 {sum.iOweCents > 0 ? <><small>{L('Tens de pagar')}</small><b>{money(sum.iOweCents)}</b></>
                   : sum.owedToMeCents > 0 ? <><small>{L('Têm de te pagar')}</small><b>{money(sum.owedToMeCents)}</b></>
-                  : <><small>{L('Está tudo pago')}</small><b>✓</b></>}
-              </div>
+                  : null}
+              </div>}
 
               <div className="sp-main">
                 <div>
@@ -247,17 +248,15 @@ export function SplitPage() {
                         return (
                           <div key={b.id} className={'fx-card sp-bill' + (pr.done ? ' done' : '')}>
                             {/* título e total numa caixa própria; data e valor por pessoa em etiquetas por baixo */}
+                            {b.createdBy === me && <button type="button" className="sp-x" onClick={() => removeBill(b)} aria-label={t('common.delete')} title={t('common.delete')}>✕</button>}
                             <div className="sp-bill-head">
-                              <b className="sp-bill-title">{b.description}</b>
+                              <span className="sp-bill-tt"><b className="sp-bill-title">{b.description}</b><small>{new Date(b.date + 'T00:00:00').toLocaleDateString(s.language, { day: 'numeric', month: 'long', year: 'numeric' })}</small></span>
                               <span className="sp-bill-total"><small>{t('split.total')}</small><b>{money(pr.totalCents)}</b></span>
                             </div>
                             <div className="sp-bill-tags">
-                              <span className="sp-tag">📅 {b.date.split('-').reverse().join('/')}</span>
                               <span className="sp-tag">👥 {money(each ?? pr.eachCents)} {L('por pessoa')}</span>
                               <span className={'sp-tag ' + (pr.done ? 'ok' : 'warn')}>{pr.done ? (outInv.length ? L('À espera que aceitem o convite') : t('split.allPaid')) : t('split.missing', { amount: money(pr.remainingCents) })}</span>
                             </div>
-                            <div className="sp-progress" role="progressbar" aria-valuenow={pr.pct} aria-valuemin={0} aria-valuemax={100}><i style={{ width: pr.pct + '%' }} /></div>
-                            <div className="sp-progress-foot fx-muted">{t('split.paidOf', { paid: money(pr.paidCents), total: money(pr.totalCents) })} · {pr.pct}%</div>
                             {/* Pessoas: foto e nome, estado do convite à frente; por baixo quanto paga e se já pagou */}
                             <div className="sp-list">
                               {b.shares.map((x) => {
@@ -268,7 +267,7 @@ export function SplitPage() {
                                   <Row key={x.userId} {...(can ? { type: 'button' as const, onClick: () => setPaid(b, x.userId, !x.paidAt), title: x.paidAt ? t('split.markUnpaid') : t('split.markPaid') } : {})} className={'sp-row' + (x.paidAt ? ' paid' : '')}>
                                     <Face m={m} />
                                     <span className="sp-row-main">
-                                      <span className="sp-row-top"><b>{x.userId === me ? L('Tu') : m.displayName}</b>{x.userId !== me && <span className="sp-badge ok">✓ {L('Aceitou')}</span>}</span>
+                                      <span className="sp-row-top"><b>{x.userId === me ? myName : m.displayName}</b>{x.userId !== me && <span className="sp-badge ok">✓ {L('Aceitou')}</span>}</span>
                                       <small>{L('Paga')} <b>{money(each ?? x.shareCents)}</b> · {x.paidAt ? <span className="fx-pos">✓ {L('Já pagou')}</span> : <span className="sp-due">{L('Ainda não pagou')}</span>}</small>
                                     </span>
                                   </Row>
@@ -287,7 +286,7 @@ export function SplitPage() {
                             <div className="sp-bill-actions">
                               {mine && !mine.paidAt && mine.shareCents > 0 && <button type="button" className="fx-btn primary" onClick={() => setPaid(b, me, true)}>{t('split.iPaid', { amount: money(each ?? mine.shareCents) })}</button>}
                               {mine && mine.paidAt && <button type="button" className="fx-link" onClick={() => setPaid(b, me, false)}>{t('split.undoPaid')}</button>}
-                              {b.createdBy === me && <button type="button" className="fx-link" onClick={() => removeBill(b)}>{t('common.delete')}</button>}
+
                             </div>
                           </div>
                         );
@@ -295,7 +294,6 @@ export function SplitPage() {
                     </div>
                   )}
                 </div>
-                <button type="button" className="fx-link sp-leave" onClick={leave}>{t('split.leave')}</button>
               </div>
             </>
           )}

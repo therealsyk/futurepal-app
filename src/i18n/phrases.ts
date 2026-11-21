@@ -525,6 +525,10 @@ export const PHRASES: Record<string, Tr> = {
   'Vai pagar': ['Will pay', 'Pagará', 'Paiera'],
   'quando aceitar': ['once they accept', 'cuando acepte', 'après avoir accepté'],
   'por pessoa': ['per person', 'por persona', 'par personne'],
+  'convidou-te para dividir as despesas de': ['invited you to split the expenses of', 'te invitó a dividir los gastos de', 'vous a invité à partager les dépenses de'],
+  'Rejeitar': ['Decline', 'Rechazar', 'Refuser'],
+  'Aceitar': ['Accept', 'Aceptar', 'Accepter'],
+  'Decidir mais tarde': ['Decide later', 'Decidir más tarde', 'Décider plus tard'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */

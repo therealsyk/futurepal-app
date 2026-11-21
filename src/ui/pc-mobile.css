@@ -969,3 +969,22 @@ button.sp-row { cursor: pointer; } button.sp-row:hover { background: color-mix(i
 .sp-tag.warn { color: #f5b85a; border-color: color-mix(in srgb, #f5b85a 35%, transparent); }
 .sp-tag.ok { color: var(--pos); border-color: color-mix(in srgb, var(--pos) 35%, transparent); }
 .sp-bill-top { display: none; }
+
+/* Dividir contas: X para apagar no canto, data por baixo do título, sair do grupo no canto */
+.sp-bill { position: relative; }
+.sp-x { position: absolute; top: -8px; right: -8px; z-index: 2; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border); background: var(--card); color: var(--muted); font-size: 13px; cursor: pointer; display: grid; place-items: center; }
+.sp-x:hover { color: var(--red); border-color: color-mix(in srgb, var(--red) 50%, transparent); }
+.sp-bill-tt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sp-bill-tt small { color: var(--muted); font-size: 12.5px; }
+.sp-leave-corner { float: right; margin-top: -48px; height: 34px; padding: 0 14px; border-radius: 99px; border: 1px solid color-mix(in srgb, var(--red) 40%, transparent); background: none; color: var(--red); font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; }
+/* Convite: janela redonda no meio do ecrã */
+.spi-back { position: fixed; inset: 0; z-index: 130; display: grid; place-items: center; padding: 16px; background: rgba(5,6,9,.5); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); animation: bs-fade .2s ease both; }
+.spi-card { width: min(380px, 100%); display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 26px 22px 18px; border-radius: 28px; background: var(--card); border: 1px solid var(--border); text-align: center; box-shadow: 0 30px 80px -20px rgba(0,0,0,.8); animation: fx-pop .25s ease both; }
+.spi-face { width: 72px; height: 72px; border-radius: 50%; display: grid; place-items: center; font-size: 30px; font-weight: 800; color: var(--mv-ink, #032a2d); background: var(--mv, var(--accent)); box-shadow: 0 0 0 4px color-mix(in srgb, var(--mv, var(--accent)) 25%, transparent); }
+.spi-text { margin: 0; font-size: 16px; line-height: 1.45; }
+.spi-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+.spi-btn { height: 48px; border-radius: 99px; border: 0; font: inherit; font-size: 15px; font-weight: 750; cursor: pointer; }
+.spi-btn.yes { background: var(--mv, var(--accent)); color: var(--mv-ink, #032a2d); }
+.spi-btn.no { background: var(--card-2); color: var(--text); border: 1px solid var(--border); }
+.spi-later { border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; }
+.sp-bill-actions:empty { display: none; }
