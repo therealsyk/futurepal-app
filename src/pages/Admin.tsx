@@ -1,5 +1,6 @@
 import { AdminLive } from './AdminLive';
-import { AdminActivity, AdminMfaGate, AdminPhase1, AdminShell, useAdminMfa, type AdminTab } from './AdminPhase1';
+import { AdminDashboard } from './AdminDash';
+import { AdminMfaGate, AdminPhase1, AdminShell, useAdminMfa, type AdminTab } from './AdminPhase1';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getSupabase } from '../auth/supabase';
@@ -134,34 +135,13 @@ export function AdminPage() {
     [t('admin.txTotal'), stats.tx_total], [t('admin.tx30d'), stats.tx_30d], [t('admin.accounts'), stats.accounts_total], [t('admin.goals'), stats.goals_total],
   ] : [];
   const maxDay = Math.max(1, ...(stats?.signups_by_day ?? []).map((d) => d.n));
+  void kpis; void maxDay; void interest; // o Dashboard (AdminDash) carrega os seus próprios dados
 
   if (mfa.needCode) return <div className="fx-page ad-page"><PageHead title={t('admin.title')} sub={t('admin.sub')} /><AdminMfaGate verify={mfa.verify} /></div>;
   return (
     <AdminShell tab={tab} onTab={setTab} onRefresh={() => load()}>
       {error && <p className="fx-error">{error}</p>}
-      {tab === 'overview' && (<>
-      <div className="pm-wrapped">{kpis.map(([l, n]) => <div key={l} className="pm-wcard"><small>{l}</small><strong>{n ?? '—'}</strong></div>)}</div>
-      <AdminActivity />
-
-      <div className="fx-card ad-card">
-        <h3>{t('admin.signups30')}</h3>
-        <div className="ad-bars">{(stats?.signups_by_day ?? []).map((d) => <i key={d.day} title={`${d.day}: ${d.n}`} style={{ height: `${(d.n / maxDay) * 100}%` }} />)}</div>
-      </div>
-
-      <div className="fx-two">
-        <div className="fx-card ad-card"><h3>{t('admin.providers')}</h3>{Object.entries(stats?.providers ?? {}).map(([k, n]) => <p key={k} className="ad-kv"><span>{k}</span><b>{n}</b></p>)}</div>
-        <div className="fx-card ad-card"><h3>{t('admin.languages')}</h3>{Object.entries(stats?.languages ?? {}).map(([k, n]) => <p key={k} className="ad-kv"><span>{k}</span><b>{n}</b></p>)}</div>
-      </div>
-
-      <div className="fx-card ad-card">
-        <h3>{t('admin.interest')}</h3>
-        {interest.length === 0 ? <p className="fx-muted">{t('admin.noInterest')}</p> : interest.map((r) => (
-          <p key={r.plan + r.period} className="ad-kv"><span>{t('plus.plan_' + r.plan)} · {t(r.period === 'year' ? 'plus.yearly' : 'plus.monthly')}</span><b>{r.n}</b></p>
-        ))}
-        <p className="ad-kv"><span>{t('admin.interestTotal')}</span><b>{interest.reduce((a, r) => a + Number(r.n), 0)}</b></p>
-      </div>
-
-      </>)}
+      {tab === 'overview' && <AdminDashboard />}
       {tab === 'live' && <AdminLive />}
       {tab === 'plans' && (<>
       <div className="fx-card ad-card">

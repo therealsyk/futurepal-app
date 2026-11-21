@@ -639,3 +639,70 @@ html:has(.win-titlebar) .adm { top: 34px; }
 .ad-plan small { color: var(--pos); font-size: 11px; font-weight: 600; }
 .ad-plan.cur { border-color: color-mix(in srgb, var(--pos) 55%, transparent); }
 .ad-plan.on { border-color: var(--mv, var(--accent)); box-shadow: 0 0 0 2px color-mix(in srgb, var(--mv, var(--accent)) 35%, transparent); }
+
+/* ================= Dashboard do admin (cartões com gráficos) ================= */
+.dsh { display: flex; flex-direction: column; gap: 16px; }
+.dsh-row6 { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px; }
+.dsh-row2 { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; }
+.dsh-row3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.dsh-row4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.dsh-card { display: flex; flex-direction: column; gap: 12px; padding: 18px; border-radius: 14px; background: var(--card); border: 1px solid var(--border); min-width: 0; }
+.dsh-card header h3 { margin: 0; font-size: 15px; font-weight: 650; }
+.dsh-card header small { color: var(--muted); font-size: 12.5px; }
+.dsh-kv { display: flex; align-items: center; gap: 8px; margin-top: auto; }
+.dsh-kv b { font-size: 24px; font-weight: 750; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.dsh-kv.big b { font-size: 34px; }
+.dsh-muted { color: var(--muted); }
+.dsh-note { margin: 0; color: var(--muted); font-size: 12.5px; }
+.dsh-delta { font-size: 12px; font-weight: 700; padding: 2px 7px; border-radius: 6px; }
+.dsh-delta.up { color: #4ade80; background: color-mix(in srgb, #4ade80 14%, transparent); }
+.dsh-delta.down { color: #f87171; background: color-mix(in srgb, #f87171 14%, transparent); }
+.dsh-mini { display: flex; align-items: flex-end; gap: 4px; height: 70px; }
+.dsh-mini i { flex: 1; border-radius: 4px; min-height: 4px; }
+.dsh-spark { width: 100%; display: block; }
+.dsh-empty { display: grid; place-items: center; min-height: 70px; color: var(--muted); font-size: 12.5px; border: 1px dashed var(--border); border-radius: 10px; }
+.dsh-live { width: 10px; height: 10px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 0 0 rgba(74,222,128,.6); animation: ad-pulse 1.8s infinite; }
+.dsh-sub2 { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 12.5px; }
+.dsh-sub2 b { color: var(--text); margin-left: 4px; }
+/* gráfico grande + relatório */
+.dsh-split { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 18px; flex: 1; }
+.dsh-bars { display: flex; align-items: flex-end; gap: 10px; height: 240px; padding-top: 18px; }
+.dsh-bars > div { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 6px; min-width: 0; }
+.dsh-bars > div i { width: 100%; max-width: 38px; border-radius: 8px; background: color-mix(in srgb, #2dd4bf 30%, var(--card-2)); }
+.dsh-bars > div.peak i { background: #2dd4bf; }
+.dsh-bars > div b { font-size: 12.5px; }
+.dsh-bars > div small { color: var(--muted); font-size: 11px; }
+.dsh-report { display: flex; flex-direction: column; gap: 14px; padding-left: 18px; border-left: 1px solid var(--border); }
+.dsh-report h4 { margin: 0; font-size: 14px; }
+.dsh-rep2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.dsh-rep2 > div { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 8px; border-radius: 12px; background: var(--card-2); text-align: center; }
+.dsh-rep2 small { color: var(--muted); font-size: 12px; } .dsh-rep2 b { font-size: 18px; }
+.dsh-ic { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-weight: 800; }
+.dsh-ic.up { color: #4ade80; background: color-mix(in srgb, #4ade80 16%, transparent); }
+.dsh-ic.down { color: #f87171; background: color-mix(in srgb, #f87171 16%, transparent); }
+.dsh-rep-foot { margin-top: auto; display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid var(--border); }
+.dsh-rep-foot small { color: var(--muted); } .dsh-rep-foot b { font-size: 18px; }
+/* anéis, donut, barras horizontais */
+.dsh-rings { display: flex; justify-content: space-around; gap: 8px; flex-wrap: wrap; }
+.dsh-ring { position: relative; width: 104px; height: 104px; }
+.dsh-ring svg { width: 100%; height: 100%; }
+.dsh-ring span { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.dsh-ring b { font-size: 18px; } .dsh-ring small { color: var(--muted); font-size: 11px; max-width: 70px; line-height: 1.15; }
+.dsh-donut-wrap { display: flex; align-items: center; gap: 16px; }
+.dsh-donut { position: relative; width: 120px; height: 120px; flex: none; border-radius: 50%; }
+.dsh-donut::after { content: ''; position: absolute; inset: 18px; border-radius: 50%; background: var(--card); }
+.dsh-donut span { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.dsh-donut b { font-size: 18px; } .dsh-donut small { color: var(--muted); font-size: 11px; }
+.dsh-legend { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.dsh-legend p { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.dsh-legend i { width: 9px; height: 9px; border-radius: 3px; flex: none; }
+.dsh-legend b { margin-left: auto; }
+.dsh-hbars { display: flex; flex-direction: column; gap: 10px; }
+.dsh-hbars > div { display: grid; grid-template-columns: 70px 1fr 40px; align-items: center; gap: 10px; font-size: 13px; }
+.dsh-hbars span { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dsh-hbars i { display: block; height: 8px; border-radius: 6px; background: var(--card-2); overflow: hidden; }
+.dsh-hbars em { display: block; height: 100%; border-radius: 6px; }
+.dsh-hbars b { text-align: right; }
+@media (max-width: 1500px) { .dsh-row6 { grid-template-columns: repeat(3, minmax(0, 1fr)); } .dsh-row4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 1100px) { .dsh-row2, .dsh-row3 { grid-template-columns: 1fr; } .dsh-split { grid-template-columns: 1fr; } .dsh-report { padding-left: 0; border-left: 0; } }
+@media (max-width: 700px) { .dsh-row6, .dsh-row4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dsh-bars { height: 180px; gap: 5px; } }
