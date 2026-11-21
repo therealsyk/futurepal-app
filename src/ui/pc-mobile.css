@@ -758,3 +758,20 @@ html:has(.win-titlebar) .adm { top: 34px; }
 .adm .fx-pick > .fx-btn { min-width: 170px; justify-content: space-between; gap: 10px; height: 38px; border-radius: 10px; background: var(--card); }
 .adm .fx-pick.compact > .fx-btn { min-width: 130px; height: 34px; }
 .adm .fx-pick-menu { border-radius: 14px; padding: 6px; min-width: 200px; }
+
+/* Tempo real: caixas (as de lista abrem para baixo) */
+.ad-lboxes { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin: 4px 0 14px; align-items: start; }
+.ad-lbox { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border-radius: 12px; background: var(--bg); border: 1px solid var(--border); }
+.ad-lbox small { color: var(--muted); font-size: 12.5px; } .ad-lbox b { font-size: 24px; font-weight: 750; }
+.ad-lbox.click { padding: 0; }
+.ad-lbox.click > button { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; width: 100%; padding: 14px 16px; border: 0; border-radius: 12px; background: none; color: var(--text); font: inherit; cursor: pointer; text-align: left; }
+.ad-lbox.click > button:hover { background: color-mix(in srgb, var(--card-2) 60%, transparent); }
+.ad-lbox.click > button em { font-style: normal; color: var(--muted); font-size: 12px; }
+.ad-lbox.click > button svg { position: absolute; top: 16px; right: 14px; color: var(--muted); transition: transform .2s; }
+.ad-lbox.open > button svg { transform: rotate(180deg); }
+.ad-lbox-list { display: flex; flex-direction: column; gap: 8px; padding: 4px 16px 14px; border-top: 1px solid var(--border); animation: ab-down .16s ease both; }
+.ad-lbox-list p { display: grid; grid-template-columns: minmax(0, 1fr) 70px 28px; align-items: center; gap: 8px; margin: 8px 0 0; font-size: 13px; }
+.ad-lbox-list span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ad-lbox-list i { height: 6px; border-radius: 6px; background: var(--card-2); overflow: hidden; } .ad-lbox-list i em { display: block; height: 100%; background: var(--mv, var(--accent)); border-radius: 6px; }
+.ad-lbox-list b { font-size: 13px; text-align: right; }
+@media (max-width: 1100px) { .ad-lboxes { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

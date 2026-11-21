@@ -50,12 +50,12 @@ export function AdminLive() {
       <div className="fx-card ad-card ad-live">
         <h3><i className="ad-dot" />{L('Online agora')} <span className="ad-fb-count">{online.length}</span></h3>
         {err ? <p className="fx-muted">{err}</p> : (<>
-          {ps && <div className="ad-live-kpis">
-            <p className="ad-kv"><span>{L('Agora')}</span><b>{ps.now}</b></p>
-            <p className="ad-kv"><span>{L('Hoje')}</span><b>{ps.today}</b></p>
-            <p className="ad-kv"><span>{L('Últimos 7 dias')}</span><b>{ps.week}</b></p>
-            <p className="ad-kv"><span>{L('Plataformas')}</span><b>{Object.entries(ps.platforms).map(([k, n]) => `${k} ${n}`).join(' · ') || '—'}</b></p>
-            <p className="ad-kv"><span>{L('Versões')}</span><b>{Object.entries(ps.versions).map(([k, n]) => `${k} ${n}`).join(' · ') || '—'}</b></p>
+          {ps && <div className="ad-lboxes">
+            <LiveBox label={L('Agora')} value={ps.now} />
+            <LiveBox label={L('Hoje')} value={ps.today} />
+            <LiveBox label={L('Últimos 7 dias')} value={ps.week} />
+            <LiveBox label={L('Plataformas')} list={ps.platforms} />
+            <LiveBox label={L('Versões')} list={ps.versions} />
           </div>}
           {online.length === 0 ? <p className="fx-muted">{L('Ninguém online neste momento.')}</p> : (
             <div className="ad-table-wrap"><table className="ad-table">
@@ -89,5 +89,26 @@ export function AdminLive() {
         </div>
       </div>
     </>
+  );
+}
+
+/** Caixa de número; com lista, mostra o total e abre para baixo com cada item e a quantidade. */
+function LiveBox({ label, value, list }: { label: string; value?: number; list?: Record<string, number> }) {
+  const [open, setOpen] = useState(false);
+  const entries = Object.entries(list ?? {}).sort((a, b) => b[1] - a[1]);
+  const total = list ? entries.reduce((a, [, n]) => a + n, 0) : value ?? 0;
+  const max = Math.max(1, ...entries.map(([, n]) => n));
+  if (!list) return <div className="ad-lbox"><small>{label}</small><b>{total}</b></div>;
+  return (
+    <div className={'ad-lbox click' + (open ? ' open' : '')}>
+      <button type="button" onClick={() => setOpen(!open)} aria-expanded={open}>
+        <small>{label}</small><b>{entries.length}</b>
+        <em>{entries[0] ? `${entries[0][0]} · ${Math.round((entries[0][1] / Math.max(1, total)) * 100)}%` : '—'}</em>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M6 9l6 6 6-6" /></svg>
+      </button>
+      {open && <div className="ad-lbox-list">{entries.length === 0 ? <p className="fx-muted fx-small">—</p> : entries.map(([k, n]) => (
+        <p key={k}><span>{k}</span><i><em style={{ width: `${(n / max) * 100}%` }} /></i><b>{n}</b></p>
+      ))}</div>}
+    </div>
   );
 }
