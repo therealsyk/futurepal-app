@@ -7,7 +7,7 @@ import { loadSettings } from '../core/settings';
 import { Sheet, PickMenu } from '../ui/fx';
 import { L } from '../i18n/phrases';
 
-export type AdminTab = 'overview' | 'engagement' | 'health' | 'safety' | 'money' | 'live' | 'users' | 'plans' | 'tickets' | 'versions' | 'audit' | 'security' | 'team';
+export type AdminTab = 'ci_overview' | 'ci_categories' | 'ci_trends' | 'ci_savings' | 'ci_quality' | 'ci_reports' | 'overview' | 'engagement' | 'health' | 'safety' | 'money' | 'live' | 'users' | 'plans' | 'tickets' | 'versions' | 'audit' | 'security' | 'team';
 const PLAN_NAME: Record<string, string> = { free: 'Free', plus: 'Plus', family: 'Family', pro: 'Pro' };
 const sb = () => getSupabase()!;
 const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleString(loadSettings().language, { dateStyle: 'short', timeStyle: 'short' }) : '—');
@@ -391,6 +391,14 @@ const NAV: Array<{ group: string; items: Array<{ id: AdminTab; label: string; de
     { id: 'safety', label: 'Suporte e segurança', desc: 'Tickets, tipos de problema e sinais de abuso (só números agregados).', icon: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z' },
     { id: 'money', label: 'Monetização', desc: 'Subscritores, conversão, MRR, ARR, churn e LTV (estimativas).', icon: 'M12 3v18M17 7.5C16 6.5 14.5 6 12 6c-2.5 0-4 1.1-4 2.8 0 4 8.5 1.8 8.5 6 0 1.7-1.7 3.2-4.5 3.2-2 0-3.7-.7-4.8-1.8' },
   ] },
+  { group: 'Consumer Intelligence', items: [
+    { id: 'ci_overview', label: 'Visão geral', desc: 'Indicadores agregados e anonimizados da atividade financeira (mínimo de 10 pessoas por valor).', icon: 'M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z' },
+    { id: 'ci_categories', label: 'Categorias', desc: 'Média, mediana, peso e tendência de cada categoria de despesa.', icon: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z' },
+    { id: 'ci_trends', label: 'Tendências', desc: 'Evolução mensal e trimestral e comparação entre períodos.', icon: 'M3 17l6-6 4 4 8-8M14 7h7v7' },
+    { id: 'ci_savings', label: 'Poupança', desc: 'Comportamentos de poupança e metas (só quem regista rendimentos).', icon: 'M19 7a3 3 0 0 0-3-2H9a6 6 0 0 0-6 6c0 2 1 3.5 2 4.5V19h3v-2h5v2h3v-3a6 6 0 0 0 2-3h2V9h-2z' },
+    { id: 'ci_quality', label: 'Qualidade dos dados', desc: 'Representatividade e qualidade dos registos usados nos indicadores.', icon: 'M9 12l2 2 4-4M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z' },
+    { id: 'ci_reports', label: 'Relatórios', desc: 'Relatórios mensais e trimestrais com exportação de agregados (CSV/PDF).', icon: 'M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h7' },
+  ] },
   { group: 'Gestão', items: [
     { id: 'users', label: 'Utilizadores', desc: 'Contas e planos: pesquisa, filtros, mudar plano e ações com motivo.', icon: 'M16 19a4 4 0 0 0-8 0M12 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM20 19a3 3 0 0 0-3-3M17 10a2.5 2.5 0 1 0 0-5' },
     { id: 'tickets', label: 'Tickets', desc: 'Pedidos de suporte e sugestões vindos da app.', icon: 'M4 5h16v11H9l-5 4zM8 9h8M8 12h5' },
@@ -405,11 +413,11 @@ const NAV: Array<{ group: string; items: Array<{ id: AdminTab; label: string; de
 
 // O que cada cargo vê no menu
 const ROLE_TABS: Record<string, AdminTab[]> = {
-  super: ['overview', 'engagement', 'health', 'safety', 'money', 'live', 'users', 'tickets', 'versions', 'audit', 'team', 'security'],
-  admin: ['overview', 'engagement', 'health', 'safety', 'money', 'live', 'users', 'tickets', 'versions', 'audit', 'security'],
+  super: ['ci_overview', 'ci_categories', 'ci_trends', 'ci_savings', 'ci_quality', 'ci_reports', 'overview', 'engagement', 'health', 'safety', 'money', 'live', 'users', 'tickets', 'versions', 'audit', 'team', 'security'],
+  admin: ['ci_overview', 'ci_categories', 'ci_trends', 'ci_savings', 'ci_quality', 'ci_reports', 'overview', 'engagement', 'health', 'safety', 'money', 'live', 'users', 'tickets', 'versions', 'audit', 'security'],
   moderator: ['overview', 'safety', 'tickets', 'security'],
   support: ['overview', 'safety', 'users', 'tickets', 'security'],
-  finance: ['overview', 'money', 'users', 'security'],
+  finance: ['ci_overview', 'ci_categories', 'ci_trends', 'ci_savings', 'ci_quality', 'ci_reports', 'overview', 'money', 'users', 'security'],
   readonly: ['overview', 'engagement', 'security'],
 };
 export const allowedTab = (role: string, tab: AdminTab) => (ROLE_TABS[role] ?? ['overview']).includes(tab);

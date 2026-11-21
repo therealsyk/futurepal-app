@@ -13,15 +13,15 @@ const COLS = ['#2dd4bf', '#8b7cf6', '#f5b85a', '#60a5fa', '#f472b6', '#4ade80', 
 const nf = (n: number | null | undefined) => (n === null || n === undefined ? '—' : n >= 1000 ? (n / 1000).toFixed(1).replace('.0', '') + 'K' : String(n));
 const growth = (n: number, p: number) => (p > 0 ? Math.round(((n - p) / p) * 100) : null);
 
-function Delta({ v }: { v: number | null }) {
+export function Delta({ v }: { v: number | null }) {
   if (v === null) return null;
   return <span className={'dsh-delta ' + (v >= 0 ? 'up' : 'down')}>{v >= 0 ? '+' : ''}{v}%</span>;
 }
-function MiniBars({ data, color }: { data: number[]; color: string }) {
+export function MiniBars({ data, color }: { data: number[]; color: string }) {
   const max = Math.max(1, ...data);
   return <div className="dsh-mini">{data.map((v, i) => <i key={i} style={{ height: `${Math.max(6, (v / max) * 100)}%`, background: color, opacity: 0.35 + 0.65 * (v / max) }} />)}</div>;
 }
-function Spark({ data, color, h = 70, fill = false }: { data: number[]; color: string; h?: number; fill?: boolean }) {
+export function Spark({ data, color, h = 70, fill = false }: { data: number[]; color: string; h?: number; fill?: boolean }) {
   if (data.length < 2) return <div className="dsh-empty" style={{ height: h }}>{L('Ainda sem dados')}</div>;
   const max = Math.max(1, ...data), w = 100;
   const pts = data.map((v, i) => `${(i / (data.length - 1)) * w},${h - 4 - (v / max) * (h - 10)}`).join(' ');
@@ -32,7 +32,7 @@ function Spark({ data, color, h = 70, fill = false }: { data: number[]; color: s
     </svg>
   );
 }
-function Ring({ pct, color, label }: { pct: number | null; color: string; label: string }) {
+export function Ring({ pct, color, label }: { pct: number | null; color: string; label: string }) {
   const p = Math.max(0, Math.min(100, pct ?? 0)), r = 34, c = 2 * Math.PI * r;
   return (
     <div className="dsh-ring">
@@ -42,7 +42,7 @@ function Ring({ pct, color, label }: { pct: number | null; color: string; label:
     </div>
   );
 }
-function Donut({ data }: { data: Record<string, number> }) {
+export function Donut({ data }: { data: Record<string, number> }) {
   const entries = Object.entries(data).sort((a, b) => b[1] - a[1]);
   const total = entries.reduce((s, [, n]) => s + n, 0);
   if (!total) return <div className="dsh-empty">{L('Ainda sem dados')}</div>;
@@ -55,7 +55,7 @@ function Donut({ data }: { data: Record<string, number> }) {
     </div>
   );
 }
-function HBars({ data, suffix = '' }: { data: Record<string, number>; suffix?: string }) {
+export function HBars({ data, suffix = '' }: { data: Record<string, number>; suffix?: string }) {
   const entries = Object.entries(data).sort((a, b) => b[1] - a[1]).slice(0, 6);
   const max = suffix === '%' ? 100 : Math.max(1, ...entries.map(([, n]) => n));
   if (!entries.length) return <div className="dsh-empty">{L('Ainda sem dados')}</div>;
@@ -178,7 +178,7 @@ const SIC: Record<string, string> = {
   db: 'M12 8c4.4 0 8-1.3 8-3s-3.6-3-8-3-8 1.3-8 3 3.6 3 8 3zM4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5', key: 'M15 7a4 4 0 1 1-3.9 5H8v3H5v-3H3v-3h8.1A4 4 0 0 1 15 7z',
   disk: 'M4 4h16v16H4zM8 4v6h8V4', bug: 'M8 9h8v8a4 4 0 0 1-8 0zM12 9V5M4 13h4M16 13h4M5 7l3 2M19 7l-3 2', bell: 'M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8',
 };
-function Stat({ label, value, hint, ic = 'chart' }: { label: string; value: React.ReactNode; hint?: string; ic?: string }) {
+export function Stat({ label, value, hint, ic = 'chart' }: { label: string; value: React.ReactNode; hint?: string; ic?: string }) {
   return (
     <div className="dsh-stat">
       <div className="dsh-stat-h"><span className="pco-mic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={SIC[ic] ?? SIC.chart} /></svg></span><small>{label}</small></div>

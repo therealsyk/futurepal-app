@@ -1,4 +1,5 @@
-import { useRef, useState, type ChangeEvent, type ReactNode } from 'react';
+import { useRef, useState, type ChangeEvent, type ReactNode, useEffect } from 'react';
+import { L } from '../i18n/phrases';
 import { trackEvent } from '../core/presence';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
@@ -248,6 +249,7 @@ export function Settings() {
         </Row>
       </div>
 
+      <CiOptRow />
       <h2 className="st-section">{t('ai.section')}</h2>
       <div className="st-group">
         <Row icon={I.spark} title={t('ai.rowTitle')} sub={aiOn ? `${getPreset(ai.provider)?.label ?? ai.provider} · ${ai.model}` : t('ai.rowSub')} onClick={() => setAiOpen(true)} testId="ai-row" />
@@ -294,6 +296,31 @@ export function Settings() {
       <Sheet open={aiOpen} onClose={() => { setAiOpen(false); if (params.get('ai')) setParams({}, { replace: true }); }} title={t('ai.rowTitle')} wide>
         <AiSettings onSaved={(c) => { setAi(c); }} />
       </Sheet>
+    </div>
+  );
+}
+
+/** Privacidade: a pessoa escolhe se os seus dados entram (agregados e anónimos) nas estatísticas do FuturePal. */
+function CiOptRow() {
+  const auth = useAuth();
+  const [on, setOn] = useState<boolean | null>(null);
+  useEffect(() => {
+    const sb = getSupabase();
+    if (!sb || !auth.user) { setOn(null); return; }
+    sb.from('ci_optout').select('user_id').eq('user_id', auth.user.id).maybeSingle().then(({ data, error }) => setOn(error ? null : !data), () => setOn(null));
+  }, [auth.user]);
+  if (on === null) return null;
+  const toggle = async () => {
+    const sb = getSupabase(); if (!sb || !auth.user) return;
+    if (on) await sb.from('ci_optout').insert({ user_id: auth.user.id }); else await sb.from('ci_optout').delete().eq('user_id', auth.user.id);
+    setOn(!on);
+  };
+  return (
+    <div className="st-group">
+      <div className="st-row">
+        <span className="st-row-text"><b>{L('Contribuir para estatísticas anónimas')}</b><small>{L('Os teus dados entram só em totais de 10 ou mais pessoas, nunca de forma individual.')}</small></span>
+        <button type="button" role="switch" aria-checked={on} className={'ob-toggle' + (on ? ' on' : '')} onClick={toggle} aria-label={L('Contribuir para estatísticas anónimas')}><i /></button>
+      </div>
     </div>
   );
 }

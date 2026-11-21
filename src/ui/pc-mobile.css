@@ -1083,3 +1083,9 @@ button.sp-row { cursor: pointer; } button.sp-row:hover { background: color-mix(i
 .st-row .fx-pick > .fx-btn, .fx-field .fx-pick > .fx-btn { min-width: 200px; height: 42px; justify-content: space-between; gap: 10px; border-radius: 99px; background: var(--bg); border: 1px solid var(--border); font-weight: 600; }
 .fx-field .fx-pick { width: 100%; } .fx-field .fx-pick > .fx-btn { width: 100%; border-radius: 12px; }
 .fx-pick-menu { max-height: 340px; overflow-y: auto; scrollbar-width: thin; }
+
+/* Consumer Intelligence */
+.ci-filters { align-items: center; }
+.ci-k { margin-left: auto; color: var(--muted); font-size: 12.5px; }
+.ci-xlabels { display: flex; justify-content: space-between; gap: 4px; color: var(--muted); font-size: 11px; margin-top: 4px; overflow: hidden; }
+@media print { .adm-side, .adm-top, .ci-filters, .ad-filters { display: none !important; } .adm { position: static; } .adm-content { overflow: visible; } }
