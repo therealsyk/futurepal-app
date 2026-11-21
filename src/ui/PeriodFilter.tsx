@@ -117,7 +117,7 @@ export function PeriodFilter({ value, onChange }: { value: Period; onChange: (p:
   }, [menu]);
   const ranged = p.mode === 'range';
   const shift = (d: number) => onChange(p.mode === 'year' ? { ...p, y: p.y + d } : { ...p, y: p.y + Math.floor((p.m + d) / 12), m: ((p.m + d) % 12 + 12) % 12 });
-  const label = p.mode === 'year' ? String(p.y) : new Date(p.y, p.m, 1).toLocaleDateString(lang, { month: 'long', year: 'numeric' });
+  const label = p.mode === 'year' ? String(p.y) : `${new Date(p.y, p.m, 1).toLocaleDateString(lang, { month: 'long' })} ${p.y}`; // "Novembro 2026" (curto, cabe no telemóvel)
   const choose = (pr: Exclude<Preset, 'custom'>) => { onChange({ ...p, mode: 'range', preset: pr, ...presetRange(pr) }); setMenu(false); };
   const rangeLabel = p.preset === 'custom' ? `${formatDateShort(p.from)} – ${formatDateShort(p.to)}` : t('period.' + p.preset);
   return (
