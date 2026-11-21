@@ -511,6 +511,13 @@ export const PHRASES: Record<string, Tr> = {
   'Apagar este limite?': ['Delete this limit?', '¿Eliminar este límite?', 'Supprimer cette limite ?'],
   'Apagar limite': ['Delete limit', 'Eliminar límite', 'Supprimer la limite'],
   'Toca outra vez para apagar': ['Tap again to delete', 'Toca otra vez para eliminar', 'Touchez à nouveau pour supprimer'],
+  'Tu': ['You', 'Tú', 'Vous'],
+  'Tens de pagar': ['You have to pay', 'Tienes que pagar', 'Vous devez payer'],
+  'Têm de te pagar': ['Others owe you', 'Te tienen que pagar', 'On vous doit'],
+  'Está tudo pago': ['Everything is paid', 'Todo está pagado', 'Tout est payé'],
+  'Aceitou': ['Accepted', 'Aceptó', 'A accepté'],
+  'Rejeitou': ['Declined', 'Rechazó', 'A refusé'],
+  'Pendente': ['Pending', 'Pendiente', 'En attente'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */

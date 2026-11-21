@@ -23,7 +23,7 @@ import { L } from '../i18n/phrases';
 interface Group { id: string; name: string; owner_id: string; currency: string }
 interface Member { userId: string; displayName: string; avatarUrl: string | null }
 interface Invite { id: string; group_id: string; group_name: string; invited_by_name: string }
-interface PendingOut { id: string; email: string | null; phone: string | null }
+interface PendingOut { id: string; email: string | null; phone: string | null; status?: string }
 type AddPersonal = { description: string; cents: number; date: string; categoryId: string };
 
 const today = () => new Date().toLocaleDateString('sv-SE');
@@ -43,6 +43,7 @@ export function SplitPage() {
   const [bills, setBills] = useState<SplitBill[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [outInv, setOutInv] = useState<PendingOut[]>([]);
+  const [allInv, setAllInv] = useState<PendingOut[]>([]);
   const [cats, setCats] = useState<Category[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -73,7 +74,7 @@ export function SplitPage() {
     const [m, b, i] = await Promise.all([
       sb.from('split_members').select('*').eq('group_id', gid).order('joined_at'),
       sb.from('split_bills').select('*').eq('group_id', gid).is('deleted_at', null).order('date', { ascending: false }).limit(300),
-      sb.from('split_invites').select('id, email, phone').eq('group_id', gid).eq('status', 'pending'),
+      sb.from('split_invites').select('id, email, phone, status').eq('group_id', gid).in('status', ['pending', 'declined']),
     ]);
     const ids = (b.data ?? []).map((x: { id: string }) => x.id);
     const sh = ids.length ? await sb.from('split_shares').select('*').in('bill_id', ids) : { data: [], error: null };
@@ -81,7 +82,8 @@ export function SplitPage() {
     if (err) setError(errText(err));
     setMembers((m.data ?? []).map((r: any) => ({ userId: r.user_id, displayName: r.display_name, avatarUrl: r.avatar_url ?? null })));
     setBills(toBills(b.data ?? [], sh.data ?? []));
-    setOutInv((i.data ?? []) as PendingOut[]);
+    const invs = (i.data ?? []) as PendingOut[];
+    setAllInv(invs); setOutInv(invs.filter((x) => x.status !== 'declined'));
   }, []);
 
   useEffect(() => { loadList().catch((e) => setError(errText(e))); activeCategories(db).then(setCats).catch(() => {}); }, [loadList]);
@@ -218,31 +220,14 @@ export function SplitPage() {
           <div className="sp-tabs">
             {groups.length > 1
               ? <select className="fx-input sp-group-select" value={sel} onChange={(e) => setSel(e.target.value)}>{groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}</select>
-              : <h2 className="pm-h2">{group?.name}</h2>}
+              : <h2 className="pm-h2">{[L('Tu'), ...members.filter((m) => m.userId !== me).map((m) => m.displayName), ...outInv.map((i) => i.email ?? '+' + i.phone)].join(' · ')}</h2>}
           </div>
           {group && (
             <>
-              <div className="fx-kpis sp-kpis">
-                <div className="fx-card fx-kpi">
-                  <div className="fx-kpi-label">{t('split.kpiOwe')}</div>
-                  <div className={'fx-kpi-value' + (sum.iOweCents > 0 ? ' fx-neg' : '')}>{money(sum.iOweCents)}</div>
-                  <div className="fx-kpi-sub">{sum.iOweCents > 0 ? t('split.kpiOweSub') : t('split.youOweNothing')}</div>
-                </div>
-                <div className="fx-card fx-kpi">
-                  <div className="fx-kpi-label">{t('split.kpiOwed')}</div>
-                  <div className={'fx-kpi-value' + (sum.owedToMeCents > 0 ? ' fx-pos' : '')}>{money(sum.owedToMeCents)}</div>
-                  <div className="fx-kpi-sub">{t('split.kpiOwedSub')}</div>
-                </div>
-                <div className="fx-card fx-kpi">
-                  <div className="fx-kpi-label">{t('split.kpiOpen')}</div>
-                  <div className="fx-kpi-value">{sum.openBills}</div>
-                  <div className="fx-kpi-sub">{t('split.kpiSettled', { n: sum.settledBills })}</div>
-                </div>
-                <div className="fx-card fx-kpi">
-                  <div className="fx-kpi-label">{t('family.people')}</div>
-                  <div className="sp-faces">{members.slice(0, 5).map((m) => <Face key={m.userId} m={m} />)}{members.length > 5 && <span className="sp-more">+{members.length - 5}</span>}</div>
-                  <div className="fx-kpi-sub">{t('split.kpiMembers', { n: members.length })}</div>
-                </div>
+              <div className={'sp-hero ' + (sum.iOweCents > 0 ? 'owe' : sum.owedToMeCents > 0 ? 'owed' : 'ok')}>
+                {sum.iOweCents > 0 ? <><small>{L('Tens de pagar')}</small><b>{money(sum.iOweCents)}</b></>
+                  : sum.owedToMeCents > 0 ? <><small>{L('Têm de te pagar')}</small><b>{money(sum.owedToMeCents)}</b></>
+                  : <><small>{L('Está tudo pago')}</small><b>✓</b></>}
               </div>
 
               <div className="sp-main">
@@ -276,9 +261,17 @@ export function SplitPage() {
                                     <Face m={m} small />
                                     <span>{nameOf(x.userId)}</span>
                                     <span className="sp-person-st">{x.paidAt ? '✓ ' + t('split.paid') : t('split.owes', { amount: money(x.shareCents) })}</span>
+                                    {x.userId !== me && <span className="sp-badge ok">{L('Aceitou')}</span>}
                                   </button>
                                 );
                               })}
+                              {allInv.map((i) => (
+                                <span key={i.id} className={'sp-person inv ' + (i.status === 'declined' ? 'no' : 'wait')}>
+                                  <span className="sp-inv-ic">{i.status === 'declined' ? '✕' : '⏳'}</span>
+                                  <span>{i.email ?? '+' + i.phone}</span>
+                                  <span className={'sp-badge ' + (i.status === 'declined' ? 'no' : 'wait')}>{i.status === 'declined' ? L('Rejeitou') : L('Pendente')}</span>
+                                </span>
+                              ))}
                             </div>
                             <div className="sp-bill-actions">
                               {mine && !mine.paidAt && mine.shareCents > 0 && <button type="button" className="fx-btn primary" onClick={() => setPaid(b, me, true)}>{t('split.iPaid', { amount: money(mine.shareCents) })}</button>}
@@ -291,7 +284,6 @@ export function SplitPage() {
                     </div>
                   )}
                 </div>
-                {outInv.length > 0 && <p className="fx-muted fx-small">{t('split.waiting')}: {outInv.map((i) => i.email ?? '+' + i.phone).join(', ')}</p>}
                 <button type="button" className="fx-link sp-leave" onClick={leave}>{t('split.leave')}</button>
               </div>
             </>

@@ -929,3 +929,16 @@ button.sh-limit:hover { filter: brightness(1.08); } button.sh-limit:active { tra
 /* boas-vindas: idioma e país com o menu da app */
 .ob-row .fx-pick > .fx-btn { min-width: 190px; height: 44px; justify-content: space-between; gap: 10px; border-radius: 99px; background: var(--bg); border: 1px solid var(--border); font-weight: 600; }
 .ob-row .fx-pick-menu { max-height: 320px; overflow-y: auto; right: 0; left: auto; min-width: 220px; }
+
+/* Dividir contas: uma frase simples em cima e o estado de cada convidado */
+.sp-hero { display: flex; flex-direction: column; gap: 4px; padding: 18px 22px; border-radius: 22px; margin: 4px 0 16px; max-width: 720px; background: var(--card); border: 1px solid var(--border); }
+.sp-hero small { font-size: 15px; font-weight: 650; color: var(--muted); }
+.sp-hero b { font-size: 32px; font-weight: 800; }
+.sp-hero.owe b { color: var(--red); } .sp-hero.owed b, .sp-hero.ok b { color: var(--pos); }
+.sp-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; }
+.sp-badge.ok { color: var(--pos); background: color-mix(in srgb, var(--pos) 14%, transparent); }
+.sp-badge.wait { color: #f5b85a; background: color-mix(in srgb, #f5b85a 14%, transparent); }
+.sp-badge.no { color: var(--red); background: color-mix(in srgb, var(--red) 14%, transparent); }
+.sp-person.inv { cursor: default; padding-left: 10px; }
+.sp-person.inv.no { opacity: .75; }
+.sp-inv-ic { font-size: 13px; }
