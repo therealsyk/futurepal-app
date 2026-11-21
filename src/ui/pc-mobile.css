@@ -1078,3 +1078,8 @@ button.sp-row { cursor: pointer; } button.sp-row:hover { background: color-mix(i
 .tx-row.miss > span:first-child { color: var(--red); }
 .tx-amt.miss { color: var(--red) !important; }
 .tx-amt.miss::placeholder { color: color-mix(in srgb, var(--red) 70%, transparent); }
+
+/* Definições: menus iguais aos da app */
+.st-row .fx-pick > .fx-btn, .fx-field .fx-pick > .fx-btn { min-width: 200px; height: 42px; justify-content: space-between; gap: 10px; border-radius: 99px; background: var(--bg); border: 1px solid var(--border); font-weight: 600; }
+.fx-field .fx-pick { width: 100%; } .fx-field .fx-pick > .fx-btn { width: 100%; border-radius: 12px; }
+.fx-pick-menu { max-height: 340px; overflow-y: auto; scrollbar-width: thin; }

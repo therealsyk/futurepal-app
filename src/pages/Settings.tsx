@@ -2,7 +2,7 @@ import { useRef, useState, type ChangeEvent, type ReactNode } from 'react';
 import { trackEvent } from '../core/presence';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
-import { Seg, Sheet, Ic, ICON } from '../ui/fx';
+import { Seg, Sheet, Ic, ICON, PickMenu } from '../ui/fx';
 import { COUNTRIES, countryName } from '../core/locale';
 import { loadSettings, saveSettings, setTheme, type AppSettings } from '../core/settings';
 import { CURRENCY_CODES, currencyName } from '../core/currencies';
@@ -234,19 +234,13 @@ export function Settings() {
       <h2 className="st-section">{t('settings2.preferences')}</h2>
       <div className="st-group">
         <Row icon={I.coins} title={t('settings.currency')} sub={t('settings2.currencySub')}>
-          <select className="st-pill" value={settings.currency} onChange={(e) => update({ ...settings, currency: e.target.value })} aria-label={t('settings.currency')} id="settings-currency">
-            {currencies.map((c) => <option key={c} value={c}>{c} · {currencyName(c, settings.language)}</option>)}
-          </select>
+          <PickMenu label={t('settings.currency')} testId="settings-currency" value={settings.currency} options={currencies.map((c) => ({ value: c, label: `${c} · ${currencyName(c, settings.language)}` }))} onChange={(v) => update({ ...settings, currency: String(v) })} />
         </Row>
         <Row icon={I.globe} title={t('settings.language')} sub={t('settings2.languageSub')}>
-          <select className="st-pill" value={settings.language} onChange={(e) => changeLanguage(e.target.value)} aria-label={t('settings.language')} id="settings-language">
-            {LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
-          </select>
+          <PickMenu label={t('settings.language')} testId="settings-language" value={settings.language} options={LANGUAGES.map((l) => ({ value: l.code, label: l.label }))} onChange={(v) => changeLanguage(String(v))} />
         </Row>
         <Row icon={I.flag} title={t('settings.country')} sub={t('settings2.countrySub')}>
-          <select className="st-pill" value={settings.country} onChange={(e) => changeCountry(e.target.value)} aria-label={t('settings.country')} id="settings-country">
-            {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{countryName(c.code, settings.language)}</option>)}
-          </select>
+          <PickMenu label={t('settings.country')} testId="settings-country" value={settings.country} options={COUNTRIES.map((c) => ({ value: c.code, label: countryName(c.code, settings.language) }))} onChange={(v) => changeCountry(String(v))} />
         </Row>
         <Row icon={I.moon} title={t('settings.theme')}>
           <Seg<'dark' | 'gray' | 'light'> value={settings.theme} onChange={changeTheme} label={t('settings.theme')}

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AI_PRESETS, getPreset, loadAiConfig, saveAiConfig, clearAiConfig, listModels, testConnection, maskKey, DEFAULT_AI, type AiConfig } from '../core/ai';
-import { Toggle } from '../ui/fx';
+import { Toggle, PickMenu } from '../ui/fx';
 
 // Painel "Modelos de IA": a pessoa escolhe o fornecedor, cola a SUA chave e escolhe o modelo.
 export function AiSettings({ onSaved }: { onSaved?: (cfg: AiConfig) => void }) {
@@ -72,9 +72,7 @@ export function AiSettings({ onSaved }: { onSaved?: (cfg: AiConfig) => void }) {
         label={t('ai.enable')} hint={t('ai.enableHint')} />
 
       <label className="fx-field"><span>{t('ai.provider')}</span>
-        <select className="fx-input" value={cfg.provider} onChange={(e) => pickProvider(e.target.value)} data-testid="ai-provider">
-          {AI_PRESETS.map((p) => <option key={p.id} value={p.id}>{p.id === 'custom' ? t('ai.custom') : p.label}</option>)}
-        </select>
+        <PickMenu label={t('ai.provider')} testId="ai-provider" value={cfg.provider} options={AI_PRESETS.map((p) => ({ value: p.id, label: p.id === 'custom' ? t('ai.custom') : p.label }))} onChange={(v) => pickProvider(String(v))} />
       </label>
 
       {(cfg.provider === 'custom' || cfg.provider === 'ollama' || cfg.provider === 'lmstudio') && (
