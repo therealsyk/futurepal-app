@@ -250,27 +250,30 @@ export function SplitPage() {
                             </div>
                             <div className="sp-progress" role="progressbar" aria-valuenow={pr.pct} aria-valuemin={0} aria-valuemax={100}><i style={{ width: pr.pct + '%' }} /></div>
                             <div className="sp-progress-foot fx-muted">{t('split.paidOf', { paid: money(pr.paidCents), total: money(pr.totalCents) })} · {pr.pct}%</div>
-                            <div className="sp-people">
+                            {/* Pessoas: foto e nome, estado do convite à frente; por baixo quanto paga e se já pagou */}
+                            <div className="sp-list">
                               {b.shares.map((x) => {
                                 const can = b.createdBy === me && x.userId !== me;
                                 const m = members.find((mm) => mm.userId === x.userId) ?? { userId: x.userId, displayName: nameOf(x.userId), avatarUrl: null };
+                                const Row = can ? 'button' : 'div';
                                 return (
-                                  <button key={x.userId} type="button" disabled={!can} className={'sp-person' + (x.paidAt ? ' paid' : '')}
-                                    title={can ? (x.paidAt ? t('split.markUnpaid') : t('split.markPaid')) : ''}
-                                    onClick={() => setPaid(b, x.userId, !x.paidAt)}>
-                                    <Face m={m} small />
-                                    <span>{nameOf(x.userId)}</span>
-                                    <span className="sp-person-st">{x.paidAt ? '✓ ' + t('split.paid') : t('split.owes', { amount: money(x.shareCents) })}</span>
-                                    {x.userId !== me && <span className="sp-badge ok">{L('Aceitou')}</span>}
-                                  </button>
+                                  <Row key={x.userId} {...(can ? { type: 'button' as const, onClick: () => setPaid(b, x.userId, !x.paidAt), title: x.paidAt ? t('split.markUnpaid') : t('split.markPaid') } : {})} className={'sp-row' + (x.paidAt ? ' paid' : '')}>
+                                    <Face m={m} />
+                                    <span className="sp-row-main">
+                                      <span className="sp-row-top"><b>{x.userId === me ? L('Tu') : m.displayName}</b>{x.userId !== me && <span className="sp-badge ok">✓ {L('Aceitou')}</span>}</span>
+                                      <small>{L('Paga')} <b>{money(x.shareCents)}</b> · {x.paidAt ? <span className="fx-pos">✓ {L('Já pagou')}</span> : <span className="sp-due">{L('Ainda não pagou')}</span>}</small>
+                                    </span>
+                                  </Row>
                                 );
                               })}
                               {allInv.map((i) => (
-                                <span key={i.id} className={'sp-person inv ' + (i.status === 'declined' ? 'no' : 'wait')}>
-                                  <span className="sp-inv-ic">{i.status === 'declined' ? '✕' : '⏳'}</span>
-                                  <span>{i.email ?? '+' + i.phone}</span>
-                                  <span className={'sp-badge ' + (i.status === 'declined' ? 'no' : 'wait')}>{i.status === 'declined' ? L('Rejeitou') : L('Pendente')}</span>
-                                </span>
+                                <div key={i.id} className={'sp-row inv' + (i.status === 'declined' ? ' no' : '')}>
+                                  <span className="sp-face-ph">{i.status === 'declined' ? '✕' : '⏳'}</span>
+                                  <span className="sp-row-main">
+                                    <span className="sp-row-top"><b>{i.email ?? '+' + i.phone}</b><span className={'sp-badge ' + (i.status === 'declined' ? 'no' : 'wait')}>{i.status === 'declined' ? L('Rejeitou') : L('Pendente')}</span></span>
+                                    <small>{i.status === 'declined' ? L('Não vai pagar esta conta') : <>{L('Vai pagar')} <b>{money(pr.eachCents)}</b> {L('quando aceitar')}</>}</small>
+                                  </span>
+                                </div>
                               ))}
                             </div>
                             <div className="sp-bill-actions">

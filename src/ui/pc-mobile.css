@@ -942,3 +942,19 @@ button.sh-limit:hover { filter: brightness(1.08); } button.sh-limit:active { tra
 .sp-person.inv { cursor: default; padding-left: 10px; }
 .sp-person.inv.no { opacity: .75; }
 .sp-inv-ic { font-size: 13px; }
+
+/* Dividir contas: lista de pessoas compacta (foto, nome e estado; por baixo quanto paga e se pagou) */
+.sp-list { display: flex; flex-direction: column; border-radius: 16px; background: var(--card-2); overflow: hidden; }
+.sp-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 14px; border: 0; border-bottom: 1px solid var(--border); background: none; color: var(--text); font: inherit; text-align: left; }
+.sp-row:last-child { border-bottom: 0; }
+button.sp-row { cursor: pointer; } button.sp-row:hover { background: color-mix(in srgb, var(--mv, var(--accent)) 6%, transparent); }
+.sp-row .sp-face, .sp-row img { width: 38px; height: 38px; flex: none; }
+.sp-face-ph { width: 38px; height: 38px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--card); border: 1px dashed var(--border); font-size: 15px; }
+.sp-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.sp-row-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sp-row-top b { font-size: 14.5px; }
+.sp-row-main small { color: var(--muted); font-size: 12.5px; }
+.sp-row-main small b { color: var(--text); }
+.sp-due { color: #f5b85a; }
+.sp-row.inv.no { opacity: .7; }
+.sp-people { display: none; }

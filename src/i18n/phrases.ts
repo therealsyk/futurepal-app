@@ -518,6 +518,12 @@ export const PHRASES: Record<string, Tr> = {
   'Aceitou': ['Accepted', 'Aceptó', 'A accepté'],
   'Rejeitou': ['Declined', 'Rechazó', 'A refusé'],
   'Pendente': ['Pending', 'Pendiente', 'En attente'],
+  'Paga': ['Pays', 'Paga', 'Paie'],
+  'Já pagou': ['Paid', 'Ya pagó', 'A payé'],
+  'Ainda não pagou': ['Not paid yet', 'Aún no pagó', 'Pas encore payé'],
+  'Não vai pagar esta conta': ['Won’t pay this bill', 'No pagará esta cuenta', 'Ne paiera pas cette dépense'],
+  'Vai pagar': ['Will pay', 'Pagará', 'Paiera'],
+  'quando aceitar': ['once they accept', 'cuando acepte', 'après avoir accepté'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */
