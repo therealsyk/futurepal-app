@@ -83,7 +83,8 @@ export function withinFreeLimit(kind: keyof typeof FREE_LIMITS, currentCount: nu
  * Em modo de desenvolvimento não mexe, para o seletor de planos de teste continuar a funcionar.
  */
 export function applyServerPlan(row: { plan: string; status: string; current_period_end: string } | null, now = new Date()): void {
-  if (import.meta.env?.DEV) return;
+  // em desenvolvimento não desce o plano (para testes), mas aplica um plano pago vindo do servidor
+  if (import.meta.env?.DEV && !(row && ['active', 'trialing'].includes(row.status))) return;
   const s = loadPlan();
   const active = !!row && ['active', 'trialing'].includes(row.status) && new Date(row.current_period_end) > now
     && ['plus', 'family', 'pro'].includes(row.plan);
