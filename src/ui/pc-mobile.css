@@ -920,3 +920,9 @@ button.sh-limit:hover { filter: brightness(1.08); } button.sh-limit:active { tra
 .sp-bill-actions .fx-btn.primary { background: var(--mv, var(--accent)); color: var(--mv-ink, #032a2d); border-color: transparent; }
 .sp-bill-actions .fx-link:last-child { color: var(--red); border-color: color-mix(in srgb, var(--red) 40%, transparent); }
 .fx-link.sp-leave { margin-top: 12px; color: var(--red); border-color: color-mix(in srgb, var(--red) 40%, transparent); }
+
+/* Criar conta / Entrar: botões sociais um por baixo do outro, largura toda, e o "ou com email" numa linha própria */
+.ob-social { display: flex !important; flex-direction: column !important; flex-wrap: nowrap !important; gap: 10px !important; width: 100%; }
+.ob-social-btn { width: 100% !important; flex: none !important; height: 50px; min-height: 50px !important; padding: 0 18px !important; border-radius: 99px !important;
+  display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 15px !important; font-weight: 650; white-space: nowrap; }
+.ob-or { width: 100%; flex: none !important; margin: 6px 0 12px !important; }
