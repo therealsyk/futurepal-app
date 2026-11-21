@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import type { Session, User } from '@supabase/supabase-js';
 import { getSupabase, hasSupabaseConfig } from './supabase';
 import { listenForOAuthCallbacks } from './oauth';
-import { rememberSession } from './savedAccounts';
+import { rememberSession, savedAccounts, switchToAccount } from './savedAccounts';
 
 interface AuthState {
   configured: boolean; // há URL + chave do Supabase no .env
@@ -23,9 +23,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const sb = getSupabase();
     if (!sb) return;
     let alive = true;
-    sb.auth.getSession().then(({ data }) => {
-      if (alive) setState({ configured, ready: true, session: data.session, user: data.session?.user ?? null });
-      rememberSession(data.session);
+    sb.auth.getSession().then(async ({ data }) => {
+      let session = data.session;
+      // After an app update the WebView localStorage can be wiped, losing the Supabase
+      // session even though account tokens were saved in wallet.savedAccounts. Try to
+      // restore the most recently used account before falling back to guest mode.
+      if (!session) {
+        const last = savedAccounts()[0];
+        if (last && await switchToAccount(sb, last.id)) {
+          session = (await sb.auth.getSession()).data.session;
+        }
+      }
+      if (alive) setState({ configured, ready: true, session, user: session?.user ?? null });
+      rememberSession(session);
     });
     const { data: sub } = sb.auth.onAuthStateChange((_event, session) => {
       setState({ configured, ready: true, session, user: session?.user ?? null });
