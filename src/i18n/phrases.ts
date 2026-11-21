@@ -488,6 +488,9 @@ export const PHRASES: Record<string, Tr> = {
   'de quem esteve ativo': ['of active users', 'de quienes estuvieron activos', 'des utilisateurs actifs'],
   'contas novas': ['new accounts', 'cuentas nuevas', 'nouveaux comptes'],
   'Ativos (30 dias)': ['Active (30 days)', 'Activos (30 días)', 'Actifs (30 jours)'],
+  'Planeado gastar': ['Planned spending', 'Previsto gastar', 'Dépenses prévues'],
+  'soma dos teus limites': ['sum of your limits', 'suma de tus límites', 'somme de vos limites'],
+  'recebido menos gasto': ['received minus spent', 'recibido menos gastado', 'reçu moins dépensé'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */

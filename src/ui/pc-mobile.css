@@ -860,3 +860,10 @@ button.ad-lbox-body { cursor: pointer; }
 /* caixas de números em colunas fixas (sem espaços vazios): 4 por linha no PC, 2 no telemóvel */
 .adm .dsh-stats { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
 @media (max-width: 1100px) { .adm .dsh-stats { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } }
+
+/* Limites: "Planeado gastar" e "Sobra do mês" em duas caixas separadas, com explicação */
+.lim-sum { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+.lim-sum > div { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 16px; background: color-mix(in srgb, var(--bg) 45%, transparent); border: 1px solid color-mix(in srgb, var(--text) 10%, transparent); }
+.lim-sum small { font-size: 13px; font-weight: 650; opacity: .85; }
+.lim-sum b { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.lim-sum em { font-style: normal; font-size: 12px; opacity: .65; }

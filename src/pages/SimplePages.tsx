@@ -170,8 +170,10 @@ export function SimpleLimits() {
           <span><small>{L('Recebido')}</small><b className="fx-pos">{money(received)}</b></span>
           <span><small>{L('Gasto')}</small><b className="fx-neg">{money(spent)}</b></span>
         </div>
-        <div className="sh-row"><b>{L('Total orçamentado')}</b><b>{money(limits.reduce((a2, b) => a2 + b.limitCents, 0))}</b></div>
-        <div className="sh-row"><b>{L('Sobra do mês')}</b><b className={received - spent < 0 ? 'fx-neg' : 'fx-pos'}>{money(received - spent)}</b></div>
+        <div className="lim-sum">
+          <div><small>{L('Planeado gastar')}</small><b>{money(limits.reduce((a2, b) => a2 + b.limitCents, 0))}</b><em>{L('soma dos teus limites')}</em></div>
+          <div><small>{L('Sobra do mês')}</small><b className={received - spent < 0 ? 'fx-neg' : 'fx-pos'}>{money(received - spent)}</b><em>{L('recebido menos gasto')}</em></div>
+        </div>
       </section>
 
       <section className="mv-card">
