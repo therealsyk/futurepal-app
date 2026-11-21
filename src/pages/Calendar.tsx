@@ -131,7 +131,6 @@ export default function Calendar() {
         </div>
         <div className="fx-col">
           <Metric icon={IC_SPENT} tone="exp" title={ranged ? L('Gasto no período') : t('calendar.monthTotal')} value={money(ranged ? rangeTotal : monthTotal)} valueClass="fx-neg" delta={ranged ? dl(rangeTotal, prevRangeTotal) : dl(monthTotal, prevMonthTotal)} deltaGoodUp={false} prevName={ranged ? t('pco.prev_' + per.preset) : prevMonthName} vsLabel={vs} bar={1} />
-          <Metric icon={IC_CAL} tone="sav" title={t('calendar.yearTotal')} value={money(yearTotal)} delta={dl(yearTotal, prevYearTotal)} deltaGoodUp={false} prevName={String(calYear - 1)} vsLabel={vs} bar={yearTotal > 0 ? Math.min(1, (ranged ? rangeTotal : monthTotal) / yearTotal) : 0} />
           <Metric icon={IC_TOP} tone="inc" title={t('calendar.topDay')} value={best ? money(best[1]) : '—'} delta={null} deltaGoodUp={false} prevName="" vsLabel="" sub={best ? new Date(best[0] + 'T00:00:00').toLocaleDateString(settings.language, { day: 'numeric', month: 'long' }) : t('calendar.dayPanelHint')} bar={best && monthTotal > 0 ? best[1] / monthTotal : 0} />
         </div>
       </div>

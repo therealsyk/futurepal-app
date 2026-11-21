@@ -180,7 +180,7 @@ export function PcOverview() {
           delta={delta(left, prevLeft)} deltaGoodUp prevName={prevName} vsLabel={t('pco.vs')} bar={ratio(Math.max(0, left))} />
       </div>
     ),
-    latest: <SimpleHome key={'l' + ek} embed={{ mode: yearly ? 'year' : 'month', ...em, part: 'latest', range }} />,
+    latest: <SimpleHome key={'l' + ek} embed={{ mode: yearly ? 'year' : 'month', ...em, part: 'latest', range, seeAll: ranged ? `/transacoes?de=${range.from}&ate=${range.to}&p=${per.preset}` : yearly ? `/transacoes?ano=${per.y}` : `/transacoes?mes=${key(per.y, per.m)}` }} />,
     cats: <SimpleOverview key={'c' + ek} yearly={multiMonth} embed={{ ...em, part: 'cats', range: ranged ? range : undefined }} />,
     cal: <SimpleOverview key={'k' + ek} yearly={multiMonth} embed={{ ...em, part: 'cal' }} />,
     goals: <SimpleHome key="g" embed={{ mode: 'month', y: now.getFullYear(), m: now.getMonth(), part: 'goals' }} />,

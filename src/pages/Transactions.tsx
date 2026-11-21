@@ -30,7 +30,7 @@ export function Transactions() {
   const qde = q.get('de'), qate = q.get('ate'); // vindo do Resumo com um intervalo: ?de=2026-08-01&ate=2026-11-21
   const [per, setPer] = useState<Period>(() => {
     const b = initialPeriod(now);
-    if (qde && qate) return { ...b, mode: 'range', preset: 'custom', from: qde, to: qate };
+    if (qde && qate) return { ...b, mode: 'range', preset: (['m1', 'q', 's'].includes(q.get('p') ?? '') ? q.get('p') : 'custom') as Period['preset'], from: qde, to: qate };
     return { ...b, mode: qy && !qm ? 'year' : 'month', y: qm ? +qm[1] : qy || now.getFullYear(), m: qm ? +qm[2] - 1 : now.getMonth() };
   });
   const year = per.y, month = per.m + 1, period = per.mode; // ver um mês, o ano inteiro ou um intervalo

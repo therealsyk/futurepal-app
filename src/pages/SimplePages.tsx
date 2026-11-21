@@ -14,6 +14,7 @@ import { forecastGoal, type GoalForecast } from '../core/goalForecast';
 import { Ic, ICON, CatIcon, catLabel, CategorySelect } from '../ui/fx';
 import { EmptyState } from '../ui/EmptyState';
 import { L } from '../i18n/phrases';
+import { DatePicker } from '../ui/DatePicker';
 
 // Folha que sobe do fundo do ecrã (resto desfocado). Voltar, tocar fora ou Esc fecham.
 function BottomSheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
@@ -194,7 +195,7 @@ export function SimpleLimits() {
             <label>{L('Categoria')}<CategorySelect cats={expenseCats} kind="expense" value={cat} onChange={setCat} ariaLabel={L('Categoria')} emptyLabel={L('Escolher…')} className="fx-input tx-val" /></label>
             <label className="bs-amount"><small>{L('Máximo por mês')}</small><input className="tx-amt" inputMode="decimal" value={amt} onChange={(e) => setAmt(e.target.value.replace(/[^\d.,]/g, ''))} placeholder="0" /><span className="tx-cur">{loadSettings().currency}</span></label>
             <label className="sh-toggle"><span><b>{L('Tem data limite?')}</b><small>{L('Se não ativares, fica só para este mês')}</small></span><input type="checkbox" checked={hasEnd} onChange={(e) => setHasEnd(e.target.checked)} /></label>
-            {hasEnd && <label>{L('Até ao mês')}<input type="month" value={endM} min={`${cur.y}-${String(cur.m + 1).padStart(2, '0')}`} onChange={(e) => setEndM(e.target.value)} /></label>}
+            {hasEnd && <label>{L('Até ao mês')}<DatePicker value={endM ? endM + '-01' : ''} onChange={(v) => setEndM(v.slice(0, 7))} className="fx-input tx-val" /></label>}
             <button type="button" className="sh-btn in sm" disabled={!cat || !amt} onClick={create}>{L('Guardar limite')}</button>
           </div>
         
@@ -308,7 +309,7 @@ export function SimpleGoals() {
             <span><small>{L('Já tens')}</small><b className={cur < 0 ? 'fx-neg' : 'fx-pos'}>{money(cur)}</b></span>
             <span><small>{L('Falta')}</small><b>{money(left)}</b></span>
           </div>
-          <div className="sh-row"><small className="sh-pct">Objetivo: {money(g.targetCents)}</small><b>{Math.round(r * 100)}%</b></div>
+          <div className="sh-row"><small className="sh-pct">{L('Objetivo')}: {money(g.targetCents)}</small><b>{Math.round(r * 100)}%</b></div>
           <div className="sh-bar"><i style={{ width: `${r * 100}%` }} /></div>
         </section>
         <section className="mv-card">
@@ -323,7 +324,7 @@ export function SimpleGoals() {
             <button type="button" className="sh-btn in sm" disabled={!add} onClick={async () => { const c = parseMoneyToCents(add); if (c) { await contributeToGoal(db, g.id, Math.abs(c)); setAdd(''); reload(); } }}>{L('Juntar')}</button>
           </section>
         )}
-        <button type="button" className="sh-danger" onClick={async () => { if (window.confirm(`Apagar a meta "${g.name}"?`)) { const t2 = new Date().toISOString(); await db.goals.update(g.id, { deletedAt: t2, updatedAt: t2 }); setOpen(null); reload(); } }}>{L('Apagar meta')}</button>
+        <button type="button" className="sh-danger" onClick={async () => { if (window.confirm(`${L('Apagar meta')} "${g.name}"?`)) { const t2 = new Date().toISOString(); await db.goals.update(g.id, { deletedAt: t2, updatedAt: t2 }); setOpen(null); reload(); } }}>{L('Apagar meta')}</button>
       </div>
     );
   }
@@ -352,7 +353,7 @@ export function SimpleGoals() {
           <label className="bs-amount"><small>{L('Quanto queres juntar')}</small><input className="tx-amt" inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value.replace(/[^\d.,]/g, ''))} placeholder="0" /><span className="tx-cur">{loadSettings().currency}</span></label>
           <label className="sh-toggle"><span><b>{L('Tem data limite?')}</b><small>{L('Ex.: quero ter o dinheiro até ao verão')}</small></span>
             <input type="checkbox" checked={hasDeadline} onChange={(e) => setHasDeadline(e.target.checked)} /></label>
-          {hasDeadline && <label>{L('Até quando')}<input type="date" value={deadline} min={now.toISOString().slice(0, 10)} onChange={(e) => setDeadline(e.target.value)} /></label>}
+          {hasDeadline && <label>{L('Até quando')}<DatePicker value={deadline} onChange={(v) => setDeadline(v)} className="fx-input tx-val" /></label>}
           <label>{L('Notas (opcional)')}<input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={L('Ex.: para o verão de 2027')} /></label>
           <div className="sh-accpick"><small>{L('Como queres juntar?')}</small>
             <div className="sh-seg small">

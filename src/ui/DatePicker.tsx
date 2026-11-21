@@ -54,7 +54,7 @@ export function DatePicker({ value, onChange, ariaLabel, allowEmpty, className =
   const money = (c: number) => formatMoney(c, settings.currency, lang);
   // No telemóvel os dias são estreitos: o gasto do dia aparece arredondado ao euro (ex.: 1235 €)
   const narrow = typeof window !== 'undefined' && window.innerWidth < 768;
-  const dayMoney = (c: number) => (narrow
+  const dayMoney = (c: number) => (narrow || c >= 10000
     ? new Intl.NumberFormat(lang, { style: 'currency', currency: settings.currency, maximumFractionDigits: 0 }).format(Math.round(c / 100))
     : money(c));
 

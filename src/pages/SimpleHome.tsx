@@ -18,7 +18,7 @@ const GEAR = 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.
 
 export type HomePart = 'hero' | 'latest' | 'groups' | 'goals';
 /** embed: mostra só um bloco, com o período escolhido fora (Painel do PC). */
-export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: number; m: number; part: HomePart; range?: { from: string; to: string } } } = {}) {
+export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: number; m: number; part: HomePart; range?: { from: string; to: string }; seeAll?: string } } = {}) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const auth = useAuth();
@@ -109,7 +109,7 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
   const latestEl = (<>
       {/* 4. Últimos movimentos, em linguagem simples */}
       <section className="mv-card">
-        <div className="mv-card-head"><h2>{t('blk.latest')}{rng && <small className="sh-count">{t('blk.txCount', { count: inRange.length })}</small>}</h2><Link to={rng ? `/transacoes?de=${rng.from}&ate=${rng.to}` : '/transacoes'} className="mv-link">{t('blk.seeAll')}</Link></div>
+        <div className="mv-card-head"><h2>{t('blk.latest')}{rng && <small className="sh-count">{t('blk.txCount', { count: inRange.length })}</small>}</h2><Link to={embed?.seeAll ?? (rng ? `/transacoes?de=${rng.from}&ate=${rng.to}` : '/transacoes')} className="mv-link">{t('blk.seeAll')}</Link></div>
         {latest.length === 0 ? <p className="fx-muted">{t('blk.noTx')}</p> : latest.map((x) => {
           const c = catOf(x.categoryId);
           return (

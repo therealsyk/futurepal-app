@@ -57,7 +57,7 @@ function RangeModal({ from, to, onApply, onClose }: { from: string; to: string; 
   const title = new Date(cur.y, cur.m, 1).toLocaleDateString(lang, { month: 'long', year: 'numeric' });
   const move = (n: number) => setCur((c) => { const d = new Date(c.y, c.m + n, 1); return { y: d.getFullYear(), m: d.getMonth() }; });
   const narrow = window.innerWidth < 768;
-  const dayMoney = (c: number) => new Intl.NumberFormat(lang, { style: 'currency', currency: s.currency, maximumFractionDigits: narrow ? 0 : 2 }).format(narrow ? Math.round(c / 100) : c / 100);
+  const dayMoney = (c: number) => new Intl.NumberFormat(lang, { style: 'currency', currency: s.currency, maximumFractionDigits: narrow || c >= 10000 ? 0 : 2 }).format(narrow || c >= 10000 ? Math.round(c / 100) : c / 100);
   const pick = (d: string) => {
     if (edit === 'from') { setA(d); if (d > b) setB(d); setEdit('to'); }
     else if (d < a) { setA(d); setEdit('to'); }

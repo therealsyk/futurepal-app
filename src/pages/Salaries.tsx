@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
-import { salaryGrid, salaryYearSummary, setSalary, addTransaction, softDelete } from '../core/finance';
+import { salaryGrid, salaryYearSummary, setSalary, addTransaction, softDelete, addRecurring, materializeDueRecurrings, RECURRING_FREQUENCIES, activeCategories } from '../core/finance';
 import { stampNew } from '../db/database';
-import type { Account, Category, Transaction } from '../db/database';
+import type { Account, Category, Transaction, RecurringFrequency } from '../db/database';
 import { parseMoneyToCents, formatMoney } from '../core/money';
 import { loadSettings } from '../core/settings';
-import { PageHead, Sheet, MonthNav, EmptyState, Ic, ICON } from '../ui/fx';
+import { PageHead, Sheet, MonthNav, EmptyState, Ic, ICON, CategorySelect } from '../ui/fx';
 import { DatePicker } from '../ui/DatePicker';
 import { todayISO } from '../core/dates';
 import { isSalaryTx, syncSalaryTransactions } from '../core/salaryTx';
@@ -39,6 +39,11 @@ export const Salaries = () => {
   const [eDate, setEDate] = useState(todayISO());
   const [eAmount, setEAmount] = useState('');
   const [eAcc, setEAcc] = useState('');
+  const [eCat, setECat] = useState('');
+  const [cats, setCats] = useState<Category[]>([]);
+  const [eRec, setERec] = useState(false);
+  const [eFreq, setEFreq] = useState<RecurringFrequency>('monthly');
+  const [eEnd, setEEnd] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const fmt = (c: number) => formatMoney(c, s.currency, s.language);
@@ -83,8 +88,17 @@ export const Salaries = () => {
     await load();
   };
 
-  const openExtra = () => {
-    setError(null); setEName(''); setEAmount(''); setEDate(todayISO());
+  const extrasCat = async (): Promise<string> => {
+    const found = await db.categories.filter((c) => c.deletedAt === null && c.name === 'extras').toArray();
+    if (found[0]) return found[0].id;
+    const row = stampNew<Category>({ name: 'extras', color: '#34D399', icon: '', order: 99, nameKey: 'salaries.extras' });
+    await db.categories.add(row);
+    return row.id;
+  };
+  const openExtra = async () => {
+    setError(null); setEName(''); setEAmount(''); setEDate(todayISO()); setERec(false); setEEnd(''); setEFreq('monthly');
+    const id = await extrasCat();
+    setCats(await activeCategories(db)); setECat(id);
     setEAcc(defaultAccountId(accounts) ?? accounts[0]?.id ?? '');
     setOpen(true);
   };
@@ -96,15 +110,15 @@ export const Salaries = () => {
     const day = (d: string) => new Date(d + 'T00:00:00').getTime() / 864e5;
     const all = (await db.transactions.toArray()).filter((x) => x.deletedAt === null && x.type === 'income');
     if (all.some((x) => x.amountCents === cents && Math.abs(day(x.date) - day(eDate)) <= 3)) { setError(L('Já existe um rendimento com este valor nesta data.')); return; }
-    let cats = await db.categories.filter((c) => c.deletedAt === null && c.name === 'extras').toArray();
-    let id = cats[0]?.id;
-    if (!id) {
-      const row = stampNew<Category>({ name: 'extras', color: '#34D399', icon: '', order: 99, nameKey: 'salaries.extras' });
-      await db.categories.add(row);
-      id = row.id;
-      cats = [row];
+    const id = eCat || await extrasCat();
+    const description = eName.trim() || t('salaries.addExtra');
+    if (eRec) {
+      if (eEnd && eEnd < eDate) { setError(t('transactions.endBeforeStart')); return; }
+      await addRecurring(db, { type: 'income', categoryId: id, description, amountCents: cents, currency: s.currency, frequency: eFreq, nextDate: eDate, endDate: eEnd || null, accountId: eAcc || undefined });
+      await materializeDueRecurrings(db, todayISO());
+    } else {
+      await addTransaction(db, { date: eDate, description, amountCents: cents, type: 'income', categoryId: id, currency: s.currency, accountId: eAcc || undefined });
     }
-    await addTransaction(db, { date: eDate, description: eName.trim() || t('salaries.addExtra'), amountCents: cents, type: 'income', categoryId: id, currency: s.currency, accountId: eAcc || undefined });
     setOpen(false);
     await load();
   };
@@ -127,7 +141,7 @@ export const Salaries = () => {
           sub={avg(expense)} bar={income > 0 ? expense / income : 0} />
         <Metric icon={IC.saved} tone="sav" title={t('salaries.annualSavings')} value={fmt(saved)} valueClass={saved < 0 ? 'fx-neg' : 'fx-pos'} delta={null} deltaGoodUp prevName="" vsLabel=""
           sub={avg(saved)} bar={income > 0 ? Math.max(0, saved) / income : 0} />
-        <Metric icon={IC.pct} tone="sav" title={t('salaries.savingsPercent')} value={income > 0 ? `${Math.round((saved / income) * 100)}%` : '—'} delta={null} deltaGoodUp prevName="" vsLabel=""
+        <Metric icon={IC.pct} tone="sav" title={L('Taxa de poupança')} value={income > 0 ? `${Math.round((saved / income) * 100)}%` : '—'} delta={null} deltaGoodUp prevName="" vsLabel=""
           bar={income > 0 ? Math.max(0, saved) / income : 0} />
       </div>
 
@@ -165,7 +179,7 @@ export const Salaries = () => {
           </div>
         )}
       </div>
-      <button type="button" className="sal-add floating" onClick={openExtra}><Ic d={ICON.plus} size={16} />{t('salaries.addExtra')}</button>
+      <button type="button" className="sal-add floating" onClick={() => { openExtra().catch(() => {}); }}><Ic d={ICON.plus} size={16} />{t('salaries.addExtra')}</button>
 
       {/* Adicionar extra: mesmo formulário das transações (valor grande e linhas com ícone) */}
       <Sheet open={open} onClose={() => setOpen(false)} title={t('salaries.addExtra')}
@@ -174,12 +188,24 @@ export const Salaries = () => {
         <input className="tx-amt inc" autoFocus inputMode="decimal" value={eAmount} placeholder="0" onChange={(e) => setEAmount(e.target.value)} aria-label={t('transactions.amount')} />
         <span className="tx-cur">{s.currency}</span>
         <div className="tx-rows">
+          <div className="tx-row"><span><Ic d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" size={18} />{t('transactions.category')}</span>
+            <CategorySelect cats={cats} kind="income" value={eCat} onChange={setECat} ariaLabel={t('transactions.category')} className="fx-input tx-val" /></div>
           <label className="tx-row"><span><Ic d="M4 20h4L19 9l-4-4L4 16z" size={18} />{t('salaries.extraName')}</span>
             <input className="tx-val" value={eName} placeholder={L('Ex.: Prémio, horas extra, venda')} onChange={(e) => setEName(e.target.value)} /></label>
           {accounts.length > 0 && <label className="tx-row"><span><Ic d={ICON.wallet} size={18} />{t('accounts.account')}</span>
             <select className="tx-val" value={eAcc} onChange={(e) => setEAcc(e.target.value)}>{accounts.filter((a) => a.type !== 'debt').map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label>}
           <div className="tx-row"><span><Ic d="M5 5h14v15H5zM5 10h14M9 3v4M15 3v4" size={18} />{t('transactions.date')}</span>
             <DatePicker value={eDate} onChange={(v) => setEDate(v)} className="fx-input tx-val" /></div>
+          <div className="tx-row"><span><Ic d="M4 12a8 8 0 0 1 14-5l2-2v6h-6l2-2a5 5 0 1 0 1 6" size={18} />{L('Recorrente')}</span>
+            <button type="button" role="switch" aria-checked={eRec} className={'ob-toggle' + (eRec ? ' on' : '')} onClick={() => setERec(!eRec)} aria-label={L('Recorrente')}><i /></button></div>
+          {eRec && (<>
+            <label className="tx-row tx-sub"><span>{t('goals.frequency')}</span>
+              <select className="tx-val" value={eFreq} onChange={(e) => setEFreq(e.target.value as RecurringFrequency)}>
+                {RECURRING_FREQUENCIES.map((f) => <option key={f} value={f}>{t('goals.' + f)}</option>)}
+              </select></label>
+            <div className="tx-row tx-sub"><span>{L('Termina em')}</span>
+              <DatePicker value={eEnd} onChange={setEEnd} allowEmpty className="fx-input tx-val" /></div>
+          </>)}
         </div>
       </Sheet>
     </div>
