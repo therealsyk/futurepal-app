@@ -110,7 +110,7 @@ export default function Calendar() {
           </div>
           <div className="fx-col">
             <Metric icon={IC_SPENT} tone="exp" title={t('calendar.yearTotal')} value={money(yearTotal)} valueClass={yearTotal > 0 ? 'fx-neg' : ''} delta={dl(yearTotal, prevYearTotal)} deltaGoodUp={false} prevName={String(calYear - 1)} vsLabel={vs} bar={1} />
-            <Metric icon={IC_CAL} tone="sav" title={t('calendar.monthAverage')} value={monthsWithSpend ? money(Math.round(yearTotal / monthsWithSpend)) : '—'} delta={monthsWithSpend && prevAvg ? dl(yearTotal / monthsWithSpend, prevAvg) : null} deltaGoodUp={false} prevName={prevYearName} vsLabel={vs} bar={yearMax > 0 && monthsWithSpend ? Math.min(1, (yearTotal / monthsWithSpend) / Math.max(1, topMonth?.total ?? 1)) : 0} />
+            <Metric icon={IC_CAL} tone="sav" title={t('calendar.monthAverage')} value={monthsWithSpend ? money(Math.round(yearTotal / monthsWithSpend)) : '—'} delta={monthsWithSpend && prevAvg ? dl(yearTotal / monthsWithSpend, prevAvg) : null} deltaGoodUp={false} prevName={String(calYear - 1)} vsLabel={vs} bar={yearMax > 0 && monthsWithSpend ? Math.min(1, (yearTotal / monthsWithSpend) / Math.max(1, topMonth?.total ?? 1)) : 0} />
             <Metric icon={IC_TOP} tone="inc" title={t('calendar.topMonth')} value={topMonth && topMonth.total > 0 ? money(topMonth.total) : '—'} delta={null} deltaGoodUp={false} prevName="" vsLabel="" sub={topMonth && topMonth.total > 0 ? monthNames[topMonth.i] : t('calendar.yearHint')} bar={topMonth && yearTotal > 0 ? topMonth.total / yearTotal : 0} />
           </div>
         </div>
