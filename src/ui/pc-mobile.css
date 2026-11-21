@@ -632,3 +632,10 @@ html:has(.win-titlebar) .adm { top: 34px; }
   .adm .fx-grid2 { grid-template-columns: 1fr; }
   .adm-tbtn span { display: none; }
 }
+
+/* Admin: escolha do plano no detalhe do utilizador */
+.ad-plans { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 8px; }
+.ad-plan { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 6px; border-radius: 10px; border: 1px solid var(--border); background: var(--card-2); color: var(--text); font: inherit; font-weight: 650; cursor: pointer; }
+.ad-plan small { color: var(--pos); font-size: 11px; font-weight: 600; }
+.ad-plan.cur { border-color: color-mix(in srgb, var(--pos) 55%, transparent); }
+.ad-plan.on { border-color: var(--mv, var(--accent)); box-shadow: 0 0 0 2px color-mix(in srgb, var(--mv, var(--accent)) 35%, transparent); }

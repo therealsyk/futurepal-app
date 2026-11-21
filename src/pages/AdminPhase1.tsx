@@ -155,8 +155,15 @@ function UserDetail({ row, onClose, onChanged }: { row: URow; onClose: () => voi
           <p className="ad-kv"><span>{L('Plataforma')}</span><b>{d.presence ? `${d.presence.platform} ${d.presence.version} · ${ago(d.presence.last_seen).text}` : '—'}</b></p>
           <p className="ad-kv"><span>{L('Utilização (só contagens)')}</span><b>{d.counts.transactions} {L('movimentos')} · {d.counts.goals} {L('metas')} · {d.counts.active_days_30} {L('dias ativos (30d)')}</b></p>
         </div>
+        <h4 className="ad-h4">{L('Mudar plano')}</h4>
+        <div className="ad-plans">
+          {['free', 'plus', 'family', 'pro'].map((p) => {
+            const curPlan = d.plan && ['active', 'trialing'].includes(d.plan.status) && new Date(d.plan.until) > new Date() ? d.plan.plan : 'free';
+            return <button key={p} type="button" className={'ad-plan' + (curPlan === p ? ' cur' : '') + (action === 'plan' && plan === p ? ' on' : '')}
+              onClick={() => { setPlan(p); setAction('plan'); setMsg(null); }}>{p === 'free' ? 'Free' : p.charAt(0).toUpperCase() + p.slice(1)}{curPlan === p && <small>{L('atual')}</small>}</button>;
+          })}
+        </div>
         <div className="ad-actions">
-          <button type="button" className="fx-btn" onClick={() => setAction('plan')}>{L('Mudar plano')}</button>
           <button type="button" className="fx-btn" onClick={() => setAction('logout')}>{L('Forçar logout')}</button>
           {suspended ? <button type="button" className="fx-btn" onClick={() => setAction('reactivate')}>{L('Reativar')}</button>
             : <button type="button" className="fx-btn" onClick={() => setAction('suspend')}>{L('Suspender')}</button>}
@@ -164,9 +171,9 @@ function UserDetail({ row, onClose, onChanged }: { row: URow; onClose: () => voi
         </div>
         {action && (
           <div className="ad-confirm">
-            {action === 'plan' && <div className="fx-inline" style={{ gap: 8 }}>
-              <select className="fx-input" value={plan} onChange={(e) => setPlan(e.target.value)}>{['free', 'plus', 'family', 'pro'].map((p) => <option key={p} value={p}>{p}</option>)}</select>
-              {plan !== 'free' && <input className="fx-input" type="date" value={until} onChange={(e) => setUntil(e.target.value)} aria-label={L('até')} />}
+            {action === 'plan' && <div className="fx-inline" style={{ gap: 8, alignItems: 'center' }}>
+              <b>{L('Novo plano')}: {plan}</b>
+              {plan !== 'free' && <><span className="fx-muted fx-small">{L('até')}</span><input className="fx-input" type="date" value={until} onChange={(e) => setUntil(e.target.value)} aria-label={L('até')} /><span className="fx-muted fx-small">{L('(vazio = 1 ano)')}</span></>}
             </div>}
             <textarea className="fx-input" rows={2} maxLength={500} value={reason} placeholder={L('Motivo (obrigatório, fica na auditoria)')} onChange={(e) => setReason(e.target.value)} />
             {action === 'delete' && <input className="fx-input" value={confirmText} placeholder={L('Escreve o email da conta para confirmar')} onChange={(e) => setConfirmText(e.target.value)} />}
@@ -180,7 +187,7 @@ function UserDetail({ row, onClose, onChanged }: { row: URow; onClose: () => voi
         <h4 className="ad-h4">{L('Histórico de planos')}</h4>
         {d.plan_history.length === 0 ? <p className="fx-muted fx-small">—</p> : d.plan_history.map((h, i) => <p key={i} className="ad-kv"><span>{fmtDate(h.at)} · {h.by ?? '—'}</span><b>{h.from} → {h.to}{h.reason ? ` · ${h.reason}` : ''}</b></p>)}
         <h4 className="ad-h4">{L('Ações de administração')}</h4>
-        {d.audit.length === 0 ? <p className="fx-muted fx-small">—</p> : d.audit.map((a, i) => <p key={i} className="ad-kv"><span>{fmtDate(a.at)} · {a.by ?? '—'}</span><b>{a.action}{a.reason ? ` · ${a.reason}` : ''}</b></p>)}
+        {d.audit.filter((a) => a.action !== 'view_user').length === 0 ? <p className="fx-muted fx-small">—</p> : d.audit.filter((a) => a.action !== 'view_user').map((a, i) => <p key={i} className="ad-kv"><span>{fmtDate(a.at)} · {a.by ?? '—'}</span><b>{a.action}{a.reason ? ` · ${a.reason}` : ''}</b></p>)}
       </>)}
     </Sheet>
   );
@@ -380,8 +387,7 @@ const NAV: Array<{ group: string; items: Array<{ id: AdminTab; label: string; de
     { id: 'live', label: 'Tempo real', desc: 'Quem está a usar a app agora, avisos para todos e gestão rápida.', icon: 'M3 12h4l3-8 4 16 3-8h4' },
   ] },
   { group: 'Gestão', items: [
-    { id: 'users', label: 'Utilizadores', desc: 'Contas com ID pseudónimo, filtros e ações com motivo.', icon: 'M16 19a4 4 0 0 0-8 0M12 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM20 19a3 3 0 0 0-3-3M17 10a2.5 2.5 0 1 0 0-5' },
-    { id: 'plans', label: 'Planos', desc: 'Subscrições e alteração manual de planos.', icon: 'M3 7h18v10H3zM3 11h18M7 15h3' },
+    { id: 'users', label: 'Utilizadores', desc: 'Contas e planos: pesquisa, filtros, mudar plano e ações com motivo.', icon: 'M16 19a4 4 0 0 0-8 0M12 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM20 19a3 3 0 0 0-3-3M17 10a2.5 2.5 0 1 0 0-5' },
     { id: 'tickets', label: 'Tickets', desc: 'Pedidos de suporte e sugestões vindos da app.', icon: 'M4 5h16v11H9l-5 4zM8 9h8M8 12h5' },
   ] },
   { group: 'Sistema', items: [

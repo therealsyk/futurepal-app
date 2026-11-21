@@ -216,7 +216,7 @@ export function AdminPage() {
       </div>
       </>)}
       {(['users', 'tickets', 'audit', 'security'] as AdminTab[]).includes(tab) && <AdminPhase1 tab={tab} />}
-      <p className="fx-muted fx-small">{t('admin.privacy')}</p>
+      {tab === 'overview' && <p className="fx-muted fx-small">{t('admin.privacy')}</p>}
     </AdminShell>
   );
 }

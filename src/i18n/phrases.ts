@@ -305,6 +305,10 @@ export const PHRASES: Record<string, Tr> = {
   'Publicar versões e definir a versão mínima.': ['Publish versions and set the minimum version.', 'Publicar versiones y definir la versión mínima.', 'Publier des versions et définir la version minimale.'],
   'Todas as ações de administração: quem, quando e porquê.': ['Every admin action: who, when and why.', 'Todas las acciones de administración: quién, cuándo y por qué.', 'Toutes les actions d’administration : qui, quand et pourquoi.'],
   'O teu papel e a verificação em dois passos (2FA).': ['Your role and two-step verification (2FA).', 'Tu rol y la verificación en dos pasos (2FA).', 'Votre rôle et la validation en deux étapes (2FA).'],
+  'Contas e planos: pesquisa, filtros, mudar plano e ações com motivo.': ['Accounts and plans: search, filters, change plan and actions with a reason.', 'Cuentas y planes: búsqueda, filtros, cambiar plan y acciones con motivo.', 'Comptes et forfaits : recherche, filtres, changement de forfait et actions motivées.'],
+  'atual': ['current', 'actual', 'actuel'],
+  'Novo plano': ['New plan', 'Nuevo plan', 'Nouveau forfait'],
+  '(vazio = 1 ano)': ['(empty = 1 year)', '(vacío = 1 año)', '(vide = 1 an)'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */
