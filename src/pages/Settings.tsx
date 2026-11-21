@@ -1,4 +1,5 @@
 import { useRef, useState, type ChangeEvent, type ReactNode } from 'react';
+import { trackEvent } from '../core/presence';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { Seg, Sheet, Ic, ICON } from '../ui/fx';
@@ -139,6 +140,7 @@ export function Settings() {
   async function onExportBackup() {
     try {
       const data = await exportBackup(db);
+      trackEvent('backup');
       const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');

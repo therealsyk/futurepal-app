@@ -1,4 +1,5 @@
 import { LockedPreview } from '../ui/LockedPreview';
+import { trackEvent } from '../core/presence';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -409,6 +410,7 @@ export function FreelancePage() {
   const yearTx = txs.filter((x) => x.date.startsWith(String(year))).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 200);
   const catName = (id: string) => { const c = cats.find((x) => x.id === id); return c ? catLabel(t, c) : ''; };
   const exportCsv = () => {
+    trackEvent('export');
     const blob = new Blob(['﻿' + businessCsv(txs, biz, catName, year)], { type: 'text/csv;charset=utf-8' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `futurepal-profissional-${year}.csv`; a.click(); URL.revokeObjectURL(a.href);
   };

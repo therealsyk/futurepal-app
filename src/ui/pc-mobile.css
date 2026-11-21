@@ -743,3 +743,13 @@ html:has(.win-titlebar) .adm { top: 34px; }
 .adm-avatar img, .adm-avatar .ab-initials { width: 64px !important; height: 64px !important; border-radius: 50%; border: 3px solid var(--card); font-size: 24px; }
 
 .ad-rowbtns { display: flex; gap: 6px; justify-content: flex-end; }
+
+/* Dashboard: métricas extra */
+.dsh-h2 { margin: 10px 0 0; font-size: 17px; font-weight: 700; }
+.dsh-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+.dsh-stat { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border-radius: 14px; background: var(--card); border: 1px solid var(--border); }
+.dsh-stat small { color: var(--muted); font-size: 12.5px; } .dsh-stat b { font-size: 22px; font-weight: 750; } .dsh-stat em { font-style: normal; color: var(--muted); font-size: 12px; }
+.dsh-ok { color: #4ade80; font-size: 16px; } .dsh-bad { color: #f87171; font-size: 16px; }
+.dsh-kvs p { display: flex; justify-content: space-between; margin: 0; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13.5px; }
+.dsh-kvs p:last-child { border-bottom: 0; } .dsh-kvs span { color: var(--muted); }
+.dsh-hbars > div { grid-template-columns: minmax(90px, 140px) 1fr 52px; }

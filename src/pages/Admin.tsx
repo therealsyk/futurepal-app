@@ -1,5 +1,5 @@
 import { AdminLive } from './AdminLive';
-import { AdminDashboard } from './AdminDash';
+import { AdminDashboard, AdminMoreMetrics } from './AdminDash';
 import { PcOverview } from './PcOverview';
 import { AdminLogin, AdminPhase1, AdminShell, allowedTab, isUnlocked, useAdminRole, type AdminTab } from './AdminPhase1';
 import { useEffect, useState } from 'react';
@@ -138,7 +138,7 @@ export function AdminPage() {
   return (
     <AdminShell tab={shown} onTab={setTab} onRefresh={() => load()} role={role}>
       {error && <p className="fx-error">{error}</p>}
-      {shown === 'overview' && <AdminDashboard />}
+      {shown === 'overview' && <><AdminDashboard /><AdminMoreMetrics /></>}
       {shown === 'live' && <AdminLive />}
       {tab === 'plans' && (<>
       <div className="fx-card ad-card">
