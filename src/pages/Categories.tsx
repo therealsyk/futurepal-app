@@ -4,7 +4,7 @@ import { db } from '../db/app-db';
 import type { Category } from '../db/database';
 import { activeCategories, addCategory, softDelete } from '../core/finance';
 import { CAT_ICONS, CATEGORY_GROUPS, GROUP_ORDER, groupOf } from '../core/categoryCatalog';
-import { catLabel, PageHead, Sheet, Field, Ic, ICON, CatIcon } from '../ui/fx';
+import { catLabel, PageHead, Sheet, Ic, ICON, CatIcon } from '../ui/fx';
 
 const COLORS = ['#16a34a', '#0ea5e9', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#c2410c', '#6b7280', '#ec4899', '#ef4444', '#14b8a6', '#eab308'];
 const groupColor = (g: string) => CATEGORY_GROUPS.find((x) => x.id === g)?.color ?? COLORS[0];
@@ -73,7 +73,7 @@ export function Categories() {
   };
 
   return (
-    <div className="fx-page">
+    <div className="fx-page ct-page">
       <PageHead title={t('panel.categoriesTitle')} sub={t('categories.subtitle', { count: cats.length })}>
         <button type="button" className="fx-btn primary" onClick={() => startNew('custom')}><Ic d={ICON.plus} size={16} />{t('panel.newCategory')}</button>
       </PageHead>
@@ -93,12 +93,6 @@ export function Categories() {
                 <span>{label(c)}</span>
               </button>
             ))}
-            {!q && (
-              <button type="button" className="ct-tile add" onClick={() => startNew(g)}>
-                <span className="ct-add"><Ic d={ICON.plus} size={26} /></span>
-                <span>{t('categories.add')}</span>
-              </button>
-            )}
           </div>
         </section>
       ))}
@@ -121,11 +115,12 @@ export function Categories() {
               <CatIcon cat={{ icon: draft.icon, color: draft.color, image: draft.image }} size={56} />
               <input className="fx-input big" autoFocus value={draft.name} placeholder={t('panel.categoryName')} onChange={(e) => setDraft({ ...draft, name: e.target.value })} aria-label={t('panel.categoryName')} />
             </div>
-            <Field label={t('categories.group')}>
-              <select className="fx-input" value={draft.group} onChange={(e) => setDraft({ ...draft, group: e.target.value })}>
-                {GROUP_ORDER.map((g) => <option key={g} value={g}>{t('categoryGroups.' + g)}</option>)}
-              </select>
-            </Field>
+            <div className="fx-label" style={{ margin: '12px 0 6px' }}>{t('categories.group')}</div>
+            <div className="ct-groups" role="radiogroup" aria-label={t('categories.group')}>
+              {GROUP_ORDER.map((g) => (
+                <button type="button" key={g} role="radio" aria-checked={draft.group === g} className={'ct-group' + (draft.group === g ? ' on' : '')} onClick={() => setDraft({ ...draft, group: g })}>{t('categoryGroups.' + g)}</button>
+              ))}
+            </div>
             <div className="fx-label" style={{ margin: '12px 0 6px' }}>{t('categories.icon')}</div>
             <div className="ct-icons" role="radiogroup" aria-label={t('categories.icon')}>
               {Object.entries(CAT_ICONS).map(([k, d]) => (

@@ -191,7 +191,7 @@ export function SimpleLimits() {
 <button type="button" className="sh-btn out sm" onClick={() => setForm(true)}><Ic d={ICON.plus} size={18} />{L('Novo limite')}</button>
       {form && <BottomSheet title={L('Novo limite')} onClose={() => setForm(false)}>
           <div className="sh-form">
-            <label>{L('Categoria')}<CategorySelect cats={expenseCats} kind="expense" value={cat} onChange={setCat} ariaLabel="Categoria" emptyLabel="Escolher…" className="fx-input tx-val" /></label>
+            <label>{L('Categoria')}<CategorySelect cats={expenseCats} kind="expense" value={cat} onChange={setCat} ariaLabel={L('Categoria')} emptyLabel={L('Escolher…')} className="fx-input tx-val" /></label>
             <label className="bs-amount"><small>{L('Máximo por mês')}</small><input className="tx-amt" inputMode="decimal" value={amt} onChange={(e) => setAmt(e.target.value.replace(/[^\d.,]/g, ''))} placeholder="0" /><span className="tx-cur">{loadSettings().currency}</span></label>
             <label className="sh-toggle"><span><b>{L('Tem data limite?')}</b><small>{L('Se não ativares, fica só para este mês')}</small></span><input type="checkbox" checked={hasEnd} onChange={(e) => setHasEnd(e.target.checked)} /></label>
             {hasEnd && <label>{L('Até ao mês')}<input type="month" value={endM} min={`${cur.y}-${String(cur.m + 1).padStart(2, '0')}`} onChange={(e) => setEndM(e.target.value)} /></label>}

@@ -30,6 +30,7 @@ import { Sheet } from './ui/fx';
 import { ensureDefaultCategories, addMissingCatalogCategories } from './core/finance';
 import { loadSettings, setTheme, type AppSettings } from './core/settings';
 import { useAuth } from './auth/AuthContext';
+import { usePresence, useAnnouncement } from './core/presence';
 import { getSupabase } from './auth/supabase';
 import { applyServerPlan, setPlanOwner } from './core/plan';
 import { applyPendingAvatar } from './core/avatar';
@@ -47,6 +48,8 @@ export default function App() {
   const [settings, setSettings] = useState<AppSettings>(loadSettings());
   const [toast, setToast] = useState(false);
   const isMobile = useIsMobile();
+  usePresence(IS_DEMO ? undefined : auth.user?.id);
+  const ann = useAnnouncement();
 
   // Uma base de dados local por conta: ao entrar/sair de uma conta, a app muda para a base dessa conta
   // (ou para a base sem conta). Depois disso garante as categorias e só então mostra as páginas.
@@ -230,6 +233,7 @@ export default function App() {
       <MobileNav />
       <MobileTutorial enabled={isMobile && !PC_MOBILE} />
       {!IS_DEMO && <UpdateNotice />}
+      {ann && <div className={'ann-bar ' + ann.level} role="status"><span>{ann.message}</span><button type="button" onClick={ann.close} aria-label={L('Fechar')}>✕</button></div>}
       {IS_DEMO && <DemoGate />}
       <Sheet open={mergeCount > 0} onClose={() => { if (!merging) decideMerge(false); }} title={t('accountData.title')}>
         <p>{t('accountData.text', { count: mergeCount, email: auth.user?.email ?? '' })}</p>

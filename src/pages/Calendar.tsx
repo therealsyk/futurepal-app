@@ -87,10 +87,10 @@ export default function Calendar() {
             ))}
           </div>
           <div className="fx-col">
-            <div className="fx-card"><div className="fx-label">{t('calendar.yearTotal')}</div><div className="fx-big" style={{ marginTop: 6 }}>{money(yearTotal)}</div></div>
-            <div className="fx-card"><div className="fx-label">{t('calendar.monthAverage')}</div><div className="fx-big" style={{ marginTop: 6 }}>{monthsWithSpend ? money(Math.round(yearTotal / monthsWithSpend)) : '—'}</div></div>
-            <div className="fx-card"><div className="fx-label">{t('calendar.topMonth')}</div>
-              <div className="fx-big" style={{ marginTop: 6 }}>{topMonth && topMonth.total > 0 ? money(topMonth.total) : '—'}</div>
+            <div className="fx-card mv-card pco-metric sav cal-metric"><div className="fx-label">{t('calendar.yearTotal')}</div><div className="fx-big pco-value">{money(yearTotal)}</div></div>
+            <div className="fx-card mv-card pco-metric sav cal-metric"><div className="fx-label">{t('calendar.monthAverage')}</div><div className="fx-big pco-value">{monthsWithSpend ? money(Math.round(yearTotal / monthsWithSpend)) : '—'}</div></div>
+            <div className="fx-card mv-card pco-metric sav cal-metric"><div className="fx-label">{t('calendar.topMonth')}</div>
+              <div className="fx-big pco-value">{topMonth && topMonth.total > 0 ? money(topMonth.total) : '—'}</div>
               <p className="fx-muted fx-small">{topMonth && topMonth.total > 0 ? monthNames[topMonth.i] : t('calendar.yearHint')}</p></div>
           </div>
         </div>
@@ -113,10 +113,10 @@ export default function Calendar() {
           </div>
         </div>
         <div className="fx-col">
-          <div className="fx-card"><div className="fx-label">{t('calendar.monthTotal')}</div><div className="fx-big" style={{ marginTop: 6 }}>{money(monthTotal)}</div></div>
-          <div className="fx-card"><div className="fx-label">{t('calendar.yearTotal')}</div><div className="fx-big" style={{ marginTop: 6 }}>{money(yearTotal)}</div></div>
-          <div className="fx-card"><div className="fx-label">{t('calendar.topDay')}</div>
-            <div className="fx-big" style={{ marginTop: 6 }}>{best ? money(best[1]) : '—'}</div>
+          <div className="fx-card mv-card pco-metric sav cal-metric"><div className="fx-label">{t('calendar.monthTotal')}</div><div className="fx-big pco-value">{money(monthTotal)}</div></div>
+          <div className="fx-card mv-card pco-metric sav cal-metric"><div className="fx-label">{t('calendar.yearTotal')}</div><div className="fx-big pco-value">{money(yearTotal)}</div></div>
+          <div className="fx-card mv-card pco-metric sav cal-metric"><div className="fx-label">{t('calendar.topDay')}</div>
+            <div className="fx-big pco-value">{best ? money(best[1]) : '—'}</div>
             <p className="fx-muted fx-small">{best ? best[0] : t('calendar.dayPanelHint')}</p></div>
         </div>
       </div>

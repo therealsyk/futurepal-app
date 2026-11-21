@@ -1,3 +1,4 @@
+import { AdminLive } from './AdminLive';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getSupabase } from '../auth/supabase';
@@ -137,6 +138,7 @@ export function AdminPage() {
       </PageHead>
       {error && <p className="fx-error">{error}</p>}
       <div className="pm-wrapped">{kpis.map(([l, n]) => <div key={l} className="pm-wcard"><small>{l}</small><strong>{n ?? '—'}</strong></div>)}</div>
+      <AdminLive />
 
       <div className="fx-card ad-card">
         <h3>{t('admin.signups30')}</h3>

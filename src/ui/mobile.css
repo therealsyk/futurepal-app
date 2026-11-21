@@ -1393,3 +1393,12 @@ html.pcm .fx-page.sh > .es { flex: 1 1 100% !important; width: 100% !important; 
 .up-progress { display: grid; gap: 10px; min-width: min(360px, 86vw); text-align: center; }
 .up-track { height: 8px; border-radius: 8px; background: rgba(255,255,255,.08); overflow: hidden; }
 .up-track .up-bar { height: 100%; margin: 0; }
+/* Aviso do administrador para todos */
+.ann-bar { position: fixed; z-index: 66; top: calc(44px + var(--safe-t, 0px)); left: 50%; translate: -50% 0; width: min(640px, calc(100% - 24px)); display: flex; align-items: center; gap: 12px; padding: 12px 14px 12px 18px; border-radius: 18px; background: var(--card); border: 1px solid color-mix(in srgb, var(--mv, #17c3c9) 55%, transparent); box-shadow: 0 18px 40px -16px rgba(0,0,0,.7); animation: bs-up .3s ease both; }
+.ann-bar.warn { border-color: color-mix(in srgb, var(--red) 60%, transparent); }
+.ann-bar span { flex: 1; font-size: 14.5px; }
+.ann-bar button { border: 0; background: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 4px 6px; }
+.ad-live h3 { display: flex; align-items: center; gap: 8px; }
+.ad-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--pos, #4ade80); box-shadow: 0 0 0 0 color-mix(in srgb, var(--pos, #4ade80) 60%, transparent); animation: ad-pulse 1.8s infinite; }
+@keyframes ad-pulse { 70% { box-shadow: 0 0 0 8px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+.ad-live-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 4px 16px; margin-bottom: 10px; }

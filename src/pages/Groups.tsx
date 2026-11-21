@@ -74,7 +74,7 @@ export function Groups() {
       <div className="sh-groups-grid">
         {groups.map((g) => (
           <Link key={g.id} to={`/grupos/${g.id}`} className="sh-group" style={{ ['--g' as string]: g.color }}>
-            <b>{g.name}</b><span>{money(total(g.id))}</span><small>{of(g.id).length} movimentos</small>
+            <b>{g.name}</b><span>{money(total(g.id))}</span><small>{of(g.id).length} {L('movimentos')}</small>
           </Link>
         ))}
         {adding ? (

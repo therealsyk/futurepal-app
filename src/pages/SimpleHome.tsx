@@ -134,7 +134,7 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
         <div className="sh-groups-row">
           {(data?.groups ?? []).map((g) => {
             const gt = (data?.txs ?? []).filter((x) => x.groupId === g.id);
-            return <Link key={g.id} to={`/grupos/${g.id}`} className="sh-group" style={{ ['--g' as string]: g.color }}><b>{g.name}</b><span>{money(gt.reduce((a, x) => a + (x.type === 'expense' ? x.amountCents : -x.amountCents), 0))}</span><small>{gt.length} movimentos</small></Link>;
+            return <Link key={g.id} to={`/grupos/${g.id}`} className="sh-group" style={{ ['--g' as string]: g.color }}><b>{g.name}</b><span>{money(gt.reduce((a, x) => a + (x.type === 'expense' ? x.amountCents : -x.amountCents), 0))}</span><small>{gt.length} {L('movimentos')}</small></Link>;
           })}
           <Link to="/grupos" className="sh-group new"><Ic d={ICON.plus} size={20} /><b>{L('Novo grupo')}</b></Link>
         </div>
@@ -151,7 +151,7 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
             <div key={g.id} className="sh-goal">
               <div className="sh-row"><b>{g.name}</b><b>{Math.round(r * 100)}%</b></div>
               <div className="sh-bar"><i style={{ width: `${r * 100}%` }} /></div>
-              <div className="sh-row"><small>{money(g.currentCents)} guardados</small><small>faltam {money(Math.max(0, g.targetCents - g.currentCents))}</small></div>
+              <div className="sh-row"><small>{money(g.currentCents)} {L('guardados')}</small><small>faltam {money(Math.max(0, g.targetCents - g.currentCents))}</small></div>
             </div>
           );
         })}

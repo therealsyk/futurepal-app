@@ -227,3 +227,45 @@ html.pcm .fx-page.pco { height: 100vh; display: flex; flex-direction: column; ov
   .pco-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: none; }
   .pco-slot.s0, .pco-slot.s1, .pco-slot.s2, .pco-slot.s3, .pco-slot.s4, .pco-slot.s5 { grid-column: span 1; min-height: 380px; }
 }
+
+/* ---- Botões a flutuar (Nova transação, Criar conta, Novo limite, Criar meta, Adicionar extra, Nova categoria):
+   centrados com `translate` (não `transform`), para o efeito de clique não os fazer saltar para o lado. */
+html.pcm .fx-page.sh > .sh-btn.in, html.pcm .fx-page.sh > .sh-pill, html.pcm .fx-page.sh .mv-card > .sh-btn.out.sm,
+html.pcm .txs-new > .txs-add, html.pcm .fx-page:has(> .ct-section) > .fx-head .fx-btn.primary, html.pcm .sal-add.floating {
+  translate: -50% 0; transform: none !important;
+  transition: transform .22s cubic-bezier(.2,.8,.2,1), filter .2s, box-shadow .22s !important; will-change: transform;
+}
+html.pcm .fx-page.sh > .sh-btn.in:hover, html.pcm .fx-page.sh > .sh-pill:hover, html.pcm .fx-page.sh .mv-card > .sh-btn.out.sm:hover,
+html.pcm .txs-new > .txs-add:hover, html.pcm .fx-page:has(> .ct-section) > .fx-head .fx-btn.primary:hover, html.pcm .sal-add.floating:hover {
+  transform: translateY(-2px) !important; filter: brightness(1.08); box-shadow: 0 18px 38px -12px rgba(0,0,0,.75), 0 10px 26px -10px color-mix(in srgb, var(--mv) 80%, transparent);
+}
+html.pcm .fx-page.sh > .sh-btn.in:active, html.pcm .fx-page.sh > .sh-pill:active, html.pcm .fx-page.sh .mv-card > .sh-btn.out.sm:active,
+html.pcm .txs-new > .txs-add:active, html.pcm .fx-page:has(> .ct-section) > .fx-head .fx-btn.primary:active, html.pcm .sal-add.floating:active {
+  transform: scale(.94) !important; filter: brightness(.95); transition-duration: .08s !important;
+}
+
+/* ---- Todas as janelas (pop-ups) sobem do fundo, como "Nova conta", e têm o mesmo tamanho */
+html.pcm .fx-backdrop, html.pcm .stm-backdrop { display: flex; align-items: flex-end; justify-content: center; padding: 0 0 28px 88px; background: rgba(5,6,9,.45); backdrop-filter: blur(8px); animation: bs-fade .2s ease both; }
+html.pcm .fx-sheet, html.pcm .fx-sheet.wide, html.pcm .stm { width: min(560px, calc(100vw - 120px)); max-height: 88vh; border-radius: 28px; animation: bs-up .3s cubic-bezier(.2,.8,.2,1) both; }
+@media (prefers-reduced-motion: reduce) { html.pcm .fx-sheet, html.pcm .stm, html.pcm .fx-backdrop { animation: none; } }
+/* Caixas como no Resumo (Salários, Calendário) */
+.pco-metrics-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 16px; }
+.pco-metrics-row .pco-metric { min-height: 150px; }
+@media (max-width: 1100px) { .pco-metrics-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+html.pcm .sal-add.floating { position: fixed !important; bottom: 28px; left: calc(50% + 38px); z-index: 40; display: inline-flex; align-items: center; justify-content: center;
+  background: var(--mv); color: var(--mv-ink, #032a2d); border: 0; cursor: pointer; box-shadow: 0 14px 34px -12px rgba(0,0,0,.7); }
+html.pcm .sal-page { padding-bottom: 110px !important; }
+.cal-metric { border-radius: 24px !important; padding: 18px 22px !important; }
+.cal-metric .fx-label { font-size: 15px; font-weight: 700; color: var(--text); text-transform: none; letter-spacing: 0; }
+.cal-metric .pco-value { font-size: 30px; }
+.cal-metric::after { content: ''; display: block; height: 14px; margin-top: 10px; border-radius: 10px; background: repeating-linear-gradient(90deg, var(--track) 0 3px, transparent 3px 7px); }
+/* Categorias com o aspeto da app: cada grupo num cartão; escolher o grupo com botões em vez de lista */
+.ct-page .ct-section { background: var(--card); border: 1px solid var(--border); border-radius: 26px; padding: 4px 20px 18px; margin-top: 14px; }
+.ct-page .ct-section h2 { color: var(--text); font-size: 17px; margin: 16px 2px 12px; }
+.ct-page .ct-grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
+.ct-page .ct-tile:hover { background: var(--card-2); }
+.ct-groups { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.ct-group { height: 42px; padding: 0 12px; border-radius: 14px; border: 1px solid var(--border); background: var(--card-2); color: var(--muted); font: inherit; font-size: 13.5px; font-weight: 650; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: background .15s, color .15s, border-color .15s; }
+.ct-group:hover { color: var(--text); }
+.ct-group.on { background: color-mix(in srgb, var(--mv, var(--accent)) 20%, var(--card-2)); border-color: color-mix(in srgb, var(--mv, var(--accent)) 60%, transparent); color: var(--text); }
+@media (max-width: 520px) { .ct-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
