@@ -13,6 +13,7 @@ import { dayTransactions, matchCategory, normalizeIntent, normalizeReceipt, quic
 import { catFitsKind, catLabel, Field, Ic, PageHead, Sheet } from '../ui/fx';
 import { DatePicker } from '../ui/DatePicker';
 import { Locked } from './Premium';
+import { L } from '../i18n/phrases';
 
 // Assistente FuturePal: perguntas sobre despesas/poupança e fotos de faturas.
 // A IA (Edge Function "ai-ask") só interpreta a pergunta ou lê a foto; as contas são feitas aqui.
@@ -57,7 +58,7 @@ function AssistantInner() {
   const say = (m: Msg) => setMsgs((x) => [...x, m]);
 
   if (!getSupabase() || !auth.user) {
-    return <LockedPreview kind="chat" title={t('assistant.needLogin')} text="Pergunta em português sobre os teus gastos e recebe respostas e dicas para poupar." action={<Link to="/definicoes" className="fx-btn primary">{t('family.goLogin')}</Link>} />;
+    return <LockedPreview kind="chat" title={t('assistant.needLogin')} text={L('Pergunta em português sobre os teus gastos e recebe respostas e dicas para poupar.')} action={<Link to="/definicoes" className="fx-btn primary">{t('family.goLogin')}</Link>} />;
   }
 
   /** Chama a Edge Function e traduz os erros conhecidos. */

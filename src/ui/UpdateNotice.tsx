@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getSupabase } from '../auth/supabase';
-import { checkForUpdate, desktopUpdater, githubApk, dismiss, isDismissed, openExternal, type UpdateInfo } from '../core/updates';
+import { registerPlugin, Capacitor } from '@capacitor/core';
+import { checkForUpdate, GITHUB_REPO, desktopUpdater, githubApk, dismiss, isDismissed, openExternal, type UpdateInfo } from '../core/updates';
 import { compareVersions } from '../core/version';
 
 // Aviso de atualização (banner) ou bloqueio (versão abaixo da mínima). Verifica ao abrir e de 6 em 6 horas.
 const EVERY_MS = 6 * 60 * 60 * 1000;
 export const UPDATE_CHECK_EVENT = 'wallet:update-check'; // as Definições pedem uma verificação manual
+
+// Plugin nativo (android/.../ApkUpdaterPlugin.java): descarrega o APK dentro da app e abre o instalador.
+const ApkUpdater = registerPlugin<{ downloadAndInstall: (o: { url: string }) => Promise<void>; addListener: (e: 'progress', cb: (d: { percent: number }) => void) => Promise<{ remove: () => void }> }>('ApkUpdater');
 
 type Phase = 'idle' | 'downloading' | 'ready' | 'error';
 
@@ -55,6 +59,7 @@ export function UpdateNotice() {
 
   const du = desktopUpdater();
   const nativeWin = info.platform === 'windows' && du?.supported;
+  const nativeApk = info.platform === 'android' && Capacitor.isNativePlatform() && /\.apk(\?|$)/i.test(info.url || '');
 
   const update = async () => {
     if (nativeWin && du) {
@@ -64,6 +69,7 @@ export function UpdateNotice() {
       try {
         const ok = await du.download();
         setPhase(ok ? 'ready' : 'error');
+        if (!ok) await openExternal(`https://github.com/${GITHUB_REPO}/releases/latest`);
       } catch {
         setPhase('error');
       } finally {
@@ -71,12 +77,21 @@ export function UpdateNotice() {
       }
       return;
     }
-    await openExternal(info.url || '');
+    const apkUrl = info.url || '';
+    if (info.platform === 'android' && Capacitor.isNativePlatform() && /\.apk(\?|$)/i.test(apkUrl)) {
+      setPhase('downloading'); setPercent(0);
+      const h = await ApkUpdater.addListener('progress', (d) => setPercent(d.percent));
+      try { await ApkUpdater.downloadAndInstall({ url: apkUrl }); setPhase('idle'); }
+      catch { setPhase('error'); }
+      finally { h.remove(); }
+      return;
+    }
+    await openExternal(apkUrl);
   };
 
   const label = phase === 'downloading' ? t('updates.downloading', { percent })
     : phase === 'ready' ? t('updates.restart')
-    : nativeWin ? t('updates.downloadInstall')
+    : nativeWin || nativeApk ? t('updates.downloadInstall')
     // Android fora da Play Store (APK no GitHub): o link descarrega a versão nova, não abre a loja
     : (info.platform === 'android' || info.platform === 'ios') && !/github\.com|\.apk(\?|$)/i.test(info.url || '') ? t('updates.openStore')
     : t('updates.download');
@@ -100,6 +115,17 @@ export function UpdateNotice() {
     </>
   );
 
+  if (phase === 'downloading') {
+    return (
+      <div className="up-block" role="alertdialog" aria-modal="true" aria-label={t('updates.availableTitle', { version: info.latest })}>
+        <div className="up-card up-progress">
+          <b>{t('updates.availableTitle', { version: info.latest })}</b>
+          <span>{t('updates.downloading', { percent })}</span>
+          <div className="up-track"><i className="up-bar" style={{ width: `${percent}%` }} /></div>
+        </div>
+      </div>
+    );
+  }
   if (info.status === 'required') {
     return (
       <div className="up-block" role="alertdialog" aria-modal="true" aria-label={t('updates.requiredTitle')}>

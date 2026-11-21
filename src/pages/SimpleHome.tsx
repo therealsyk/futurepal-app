@@ -11,12 +11,13 @@ import { loadSettings } from '../core/settings';
 import { useAuth } from '../auth/AuthContext';
 import { UserAvatar } from '../ui/UserAvatar';
 import { Ic, ICON, CatIcon, catLabel } from '../ui/fx';
+import { L } from '../i18n/phrases';
 
 const GEAR = 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z';
 
 export type HomePart = 'hero' | 'latest' | 'groups' | 'goals';
 /** embed: mostra só um bloco, com o período escolhido fora (Painel do PC). */
-export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: number; m: number; part: HomePart } } = {}) {
+export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: number; m: number; part: HomePart; range?: { from: string; to: string } } } = {}) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const auth = useAuth();
@@ -52,7 +53,9 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
   const salaryToDate = (data?.salaries ?? []).filter((x) => x.year * 100 + x.month <= now.getFullYear() * 100 + now.getMonth() + 1).reduce((a, x) => a + x.amountCents, 0);
   // Só contas com dinheiro (as dívidas, ex.: empréstimo da casa, ficam de fora para não assustar)
   const saved = data ? data.accounts.filter((a) => a.type !== 'debt').reduce((sum, a) => sum + accountBalanceCents(a, data.txs, data.accounts, salaryToDate, data.transfers), 0) : 0;
-  const latest = [...(data?.txs ?? [])].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt)).slice(0, 5);
+  const rng = embed?.range;
+  const inRange = (data?.txs ?? []).filter((x) => !rng || (x.date >= rng.from && x.date <= rng.to));
+  const latest = [...inRange].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt)).slice(0, 5);
   const catOf = (id: string) => data?.cats.find((c) => c.id === id);
   const meta = (auth.user?.user_metadata ?? {}) as { name?: string; full_name?: string };
   const name = meta.full_name || meta.name || auth.user?.email?.split('@')[0] || '';
@@ -61,49 +64,49 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
   const heroEl = (<>
       <section className="mv-hero sh-hero">
         {!embed && <div className="mv-hero-top">
-          <button type="button" className="mv-chev" onClick={() => shift(-1)} aria-label={mode === 'month' ? 'Mês anterior' : 'Ano anterior'}><Ic d={ICON.left} size={18} /></button>
+          <button type="button" className="mv-chev" onClick={() => shift(-1)} aria-label={mode === 'month' ? L('Mês anterior') : L('Ano anterior')}><Ic d={ICON.left} size={18} /></button>
           <span className="mv-month">{periodLabel}</span>
-          <button type="button" className="mv-chev" onClick={() => shift(1)} aria-label={mode === 'month' ? 'Mês seguinte' : 'Ano seguinte'}><Ic d={ICON.right} size={18} /></button>
+          <button type="button" className="mv-chev" onClick={() => shift(1)} aria-label={mode === 'month' ? L('Mês seguinte') : L('Ano seguinte')}><Ic d={ICON.right} size={18} /></button>
         </div>}
         {(() => {
           const pct = received > 0 ? Math.round((spent / received) * 100) : null;
           // cor do quanto já se gastou do rendimento: sem cor até 50% (normal), amarelo até 80%, vermelho a partir daí
           const tone = (p: number) => (p >= 80 ? 'bad' : p >= 50 ? 'warn' : 'neutral');
           const dlt = prevSpent > 0 && spent > 0 ? Math.round(((spent - prevSpent) / prevSpent) * 100) : null;
-          const cmp = dlt === null ? null : <small className={'sh-cmp ' + (dlt > 0 ? 'fx-neg' : 'fx-pos')}>{dlt > 0 ? '↑' : '↓'} {Math.abs(dlt)}% vs {mode === 'month' ? 'mês anterior' : 'ano anterior'}</small>;
+          const cmp = dlt === null ? null : <small className={'sh-cmp ' + (dlt > 0 ? 'fx-neg' : 'fx-pos')}>{dlt > 0 ? '↑' : '↓'} {Math.abs(dlt)}% vs {mode === 'month' ? L('mês anterior') : L('ano anterior')}</small>;
           return mode === 'month' ? (
             <>
-              <small className="mv-hero-label">Ainda tens para gastar</small>
-              <div className="sh-valrow"><span className={'sh-big ' + (left < 0 ? 'fx-neg' : 'fx-pos')}>{money(left)}</span>{pct !== null && <span className={'fx-chip ' + tone(pct)} title="do rendimento já gasto">{pct}%</span>}</div>
+              <small className="mv-hero-label">{L('Ainda tens para gastar')}</small>
+              <div className="sh-valrow"><span className={'sh-big ' + (left < 0 ? 'fx-neg' : 'fx-pos')}>{money(left)}</span>{pct !== null && <span className={'fx-chip ' + tone(pct)} title={L('do rendimento já gasto')}>{pct}%</span>}</div>
               <div className="sh-bar" aria-hidden="true"><i style={{ width: `${ratio * 100}%` }} /></div>
               {cmp}
             </>
           ) : (
             <>
-              <small className="mv-hero-label">Recebeste este ano</small>
+              <small className="mv-hero-label">{L('Recebeste este ano')}</small>
               <div className="sh-valrow"><span className="sh-big fx-pos">{money(received)}</span></div>
               <div className="sh-bar" aria-hidden="true"><i style={{ width: `${ratio * 100}%` }} /></div>
               <div className="sh-kpis">
-                <div className="sh-kpi"><small>Gastos</small><div className="sh-valrow"><b className="fx-neg">{money(spent)}</b>{pct !== null && <span className={'fx-chip ' + tone(pct)}>{pct}%</span>}</div>{cmp}</div>
-                <div className="sh-kpi"><small>Poupança</small><div className="sh-valrow"><b className={left < 0 ? 'fx-neg' : 'fx-pos'}>{money(left)}</b>{received > 0 && <span className={'fx-chip ' + (left < 0 ? 'bad' : 'good')}>{Math.round((left / received) * 100)}%</span>}</div></div>
+                <div className="sh-kpi"><small>{L('Gastos')}</small><div className="sh-valrow"><b className="fx-neg">{money(spent)}</b>{pct !== null && <span className={'fx-chip ' + tone(pct)}>{pct}%</span>}</div>{cmp}</div>
+                <div className="sh-kpi"><small>{L('Poupança')}</small><div className="sh-valrow"><b className={left < 0 ? 'fx-neg' : 'fx-pos'}>{money(left)}</b>{received > 0 && <span className={'fx-chip ' + (left < 0 ? 'bad' : 'good')}>{Math.round((left / received) * 100)}%</span>}</div></div>
               </div>
             </>
           );
         })()}
       </section>
 
-      <Link to={mode === 'month' ? '/visao-mensal' : `/resumo-ano?ano=${cur.y}`} className="sh-link">{mode === 'month' ? 'Ver resumo do mês' : 'Ver resumo do ano'} <Ic d={ICON.right} size={14} /></Link>
+      <Link to={mode === 'month' ? '/visao-mensal' : `/resumo-ano?ano=${cur.y}`} className="sh-link">{mode === 'month' ? L('Ver resumo do mês') : L('Ver resumo do ano')} <Ic d={ICON.right} size={14} /></Link>
 
       {/* 2. As duas ações (só no mês; no ano o foco é o balanço) */}
       {mode === 'month' && !embed && <div className="sh-actions">
-        <Link to="/transacoes?nova=1" className="sh-btn out"><Ic d="M5 12h14" size={22} />Gastei</Link>
-        <Link to="/transacoes?nova=1&tipo=income" className="sh-btn in"><Ic d="M12 5v14M5 12h14" size={22} />Recebi</Link>
+        <Link to="/transacoes?nova=1" className="sh-btn out"><Ic d="M5 12h14" size={22} />{L('Gastei')}</Link>
+        <Link to="/transacoes?nova=1&tipo=income" className="sh-btn in"><Ic d="M12 5v14M5 12h14" size={22} />{L('Recebi')}</Link>
       </div>}
 
       {/* 3. Poupança: um número, sem gráficos */}
       {mode === 'year' && <Link to="/contas" className="mv-card sh-save">
         <span className="sh-save-ic"><Ic d="M19 7a3 3 0 0 0-3-2H9a6 6 0 0 0-6 6c0 2 1 3.5 2 4.5V19h3v-2h5v2h3v-3a6 6 0 0 0 2-3h2V9h-2zM15 10h.01" size={22} /></span>
-        <span className="sh-save-txt"><small>O teu dinheiro guardado</small><b>{money(saved)}</b></span>
+        <span className="sh-save-txt"><small>{L('O teu dinheiro guardado')}</small><b>{money(saved)}</b></span>
         <Ic d={ICON.right} size={18} />
       </Link>}
 
@@ -111,7 +114,7 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
   const latestEl = (<>
       {/* 4. Últimos movimentos, em linguagem simples */}
       <section className="mv-card">
-        <div className="mv-card-head"><h2>{t('blk.latest')}</h2><Link to="/transacoes" className="mv-link">{t('blk.seeAll')}</Link></div>
+        <div className="mv-card-head"><h2>{t('blk.latest')}{rng && <small className="sh-count">{t('blk.txCount', { count: inRange.length })}</small>}</h2><Link to={rng ? `/transacoes?de=${rng.from}&ate=${rng.to}` : '/transacoes'} className="mv-link">{t('blk.seeAll')}</Link></div>
         {latest.length === 0 ? <p className="fx-muted">{t('blk.noTx')}</p> : latest.map((x) => {
           const c = catOf(x.categoryId);
           return (
@@ -127,13 +130,13 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
   const groupsEl = (<>
       {/* 5. Grupos: juntar despesas de uma coisa só (férias, obras...) */}
       <section className="mv-card">
-        <div className="mv-card-head"><h2>Os teus grupos</h2><Link to="/grupos" className="mv-link">Ver todos</Link></div>
+        <div className="mv-card-head"><h2>{L('Os teus grupos')}</h2><Link to="/grupos" className="mv-link">{L('Ver todos')}</Link></div>
         <div className="sh-groups-row">
           {(data?.groups ?? []).map((g) => {
             const gt = (data?.txs ?? []).filter((x) => x.groupId === g.id);
             return <Link key={g.id} to={`/grupos/${g.id}`} className="sh-group" style={{ ['--g' as string]: g.color }}><b>{g.name}</b><span>{money(gt.reduce((a, x) => a + (x.type === 'expense' ? x.amountCents : -x.amountCents), 0))}</span><small>{gt.length} movimentos</small></Link>;
           })}
-          <Link to="/grupos" className="sh-group new"><Ic d={ICON.plus} size={20} /><b>Novo grupo</b></Link>
+          <Link to="/grupos" className="sh-group new"><Ic d={ICON.plus} size={20} /><b>{L('Novo grupo')}</b></Link>
         </div>
       </section>
 
@@ -141,7 +144,7 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
   const goalsEl = (<>
       {/* 6. Metas: só a principal, com a barra */}
       <section className="mv-card">
-        <div className="mv-card-head"><h2>Metas</h2><Link to="/metas" className="mv-link">{(data?.goals.length ?? 0) > 0 ? 'Ver todas' : 'Criar meta'}</Link></div>
+        <div className="mv-card-head"><h2>{L('Metas')}</h2><Link to="/metas" className="mv-link">{(data?.goals.length ?? 0) > 0 ? L('Ver todas') : L('Criar meta')}</Link></div>
         {(data?.goals ?? []).slice(0, 1).map((g) => {
           const r = g.targetCents > 0 ? Math.min(1, g.currentCents / g.targetCents) : 0;
           return (
@@ -152,7 +155,7 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
             </div>
           );
         })}
-        {(data?.goals.length ?? 0) === 0 && <p className="fx-muted" style={{ margin: 0 }}>Define um objetivo (ex.: 1000 € para férias) e acompanha quanto falta.</p>}
+        {(data?.goals.length ?? 0) === 0 && <p className="fx-muted" style={{ margin: 0 }}>{L('Define um objetivo (ex.: 1000 € para férias) e acompanha quanto falta.')}</p>}
       </section>
   </>);
   if (embed) return <div className="mv sh sh-embed">{{ hero: heroEl, latest: latestEl, groups: groupsEl, goals: goalsEl }[embed.part]}</div>;
@@ -162,16 +165,16 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
       <header className="mv-head">
         <div className="mv-hello">
           <UserAvatar user={auth.user} name={name || '?'} className="ab-initials mv-avatar" />
-          <div className="mv-hello-txt">{name && <small>Olá,</small>}<h1>{name ? name.split(' ')[0] + '!' : 'Olá!'}</h1></div>
+          <div className="mv-hello-txt">{name && <small>{L('Olá,')}</small>}<h1>{name ? name.split(' ')[0] + '!' : L('Olá!')}</h1></div>
         </div>
-        <button type="button" className="mv-sq" onClick={() => window.dispatchEvent(new Event('wallet:open-more'))} aria-label="Mais funções"><Ic d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" size={19} /></button>
+        <button type="button" className="mv-sq" onClick={() => window.dispatchEvent(new Event('wallet:open-more'))} aria-label={L('Mais funções')}><Ic d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" size={19} /></button>
         <button type="button" className="mv-sq" onClick={() => navigate('/definicoes')} aria-label={t('nav.settings')}><Ic d={GEAR} size={20} /></button>
       </header>
 
       {/* 1. A pergunta principal, com uma escolha clara: este mês ou o ano todo */}
-      <div className="sh-seg" role="tablist" aria-label="Período">
-        <button type="button" role="tab" aria-selected={mode === 'month'} className={mode === 'month' ? 'on' : ''} onClick={() => setMode('month')}>Este mês</button>
-        <button type="button" role="tab" aria-selected={mode === 'year'} className={mode === 'year' ? 'on' : ''} onClick={() => setMode('year')}>O ano todo</button>
+      <div className="sh-seg" role="tablist" aria-label={L('Período')}>
+        <button type="button" role="tab" aria-selected={mode === 'month'} className={mode === 'month' ? 'on' : ''} onClick={() => setMode('month')}>{L('Este mês')}</button>
+        <button type="button" role="tab" aria-selected={mode === 'year'} className={mode === 'year' ? 'on' : ''} onClick={() => setMode('year')}>{L('O ano todo')}</button>
       </div>
       {heroEl}
       {latestEl}

@@ -1390,3 +1390,6 @@ html.pcm .fx-page.sh > .es { flex: 1 1 100% !important; width: 100% !important; 
 .sal-add:hover { filter: brightness(1.08); transform: translate(-50%, -1px); }
 
 .txs-v { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; } .txs-v .fx-chip small { font-weight: 500; opacity: .8; }
+.up-progress { display: grid; gap: 10px; min-width: min(360px, 86vw); text-align: center; }
+.up-track { height: 8px; border-radius: 8px; background: rgba(255,255,255,.08); overflow: hidden; }
+.up-track .up-bar { height: 100%; margin: 0; }

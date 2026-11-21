@@ -14,6 +14,7 @@ import { LockedPreview } from '../ui/LockedPreview';
 import { catFitsKind, catLabel, EmptyState, Field, Ic, ICON, PageHead, Sheet } from '../ui/fx';
 import { DatePicker } from '../ui/DatePicker';
 import { usePlan } from './Premium';
+import { L } from '../i18n/phrases';
 
 // Divisão de contas: grupos com convite por email/telemóvel (a pessoa aceita), contas divididas em partes iguais
 // e quem já pagou / falta pagar. Criar grupos é do plano Família; quem é convidado participa em qualquer plano.
@@ -87,7 +88,7 @@ export function SplitPage() {
     return (
       <div className="fx-page">
         <PageHead title={t('split.title')} sub={t('split.sub')} />
-        <LockedPreview kind="split" title={t('split.needLogin')} text="Cria grupos, divide as despesas em partes iguais e vê logo quem deve a quem." action={<Link to="/definicoes" className="fx-btn primary">{t('family.goLogin')}</Link>} />
+        <LockedPreview kind="split" title={t('split.needLogin')} text={L('Cria grupos, divide as despesas em partes iguais e vê logo quem deve a quem.')} action={<Link to="/definicoes" className="fx-btn primary">{t('family.goLogin')}</Link>} />
       </div>
     );
   }

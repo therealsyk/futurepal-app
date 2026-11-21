@@ -754,7 +754,29 @@
     "leftMonth": "Ainda tenho",
     "avgMonth": "Em média {{v}} por mês",
     "avgDay": "Em média {{v}} por dia",
-    "vs": "vs"
+    "vs": "vs",
+    "accounts": "As minhas contas",
+    "totalAccounts": "Total nas contas",
+    "noAccounts": "Ainda não tens contas.",
+    "accType_spending": "Gastos",
+    "accType_savings": "Poupança",
+    "accType_debt": "Dívida",
+    "prevPeriod": "período anterior",
+    "inc_month": "Rendimento este mês",
+    "inc_year": "Ganhei este ano",
+    "inc_range": "Rendimento no período",
+    "spent_month": "Já gastei",
+    "spent_year": "Gastei este ano",
+    "spent_range": "Gastei no período",
+    "saved_month": "Poupei",
+    "saved_year": "Poupei este ano",
+    "saved_range": "Poupei no período",
+    "txCount_one": "{{count}} transação",
+    "txCount_other": "{{count}} transações",
+    "customize": "Personalizar",
+    "done": "Concluído",
+    "reset": "Repor",
+    "dragHint": "Arrasta os blocos para trocar de lugar."
   },
   "blk": {
     "latest": "Últimas movimentações",
@@ -766,6 +788,17 @@
     "spending": "Gastos",
     "income": "Receitas",
     "noData": "Sem dados neste período.",
-    "total": "Total"
+    "total": "Total",
+    "txCount_one": "{{count}} transação",
+    "txCount_other": "{{count}} transações"
+  },
+  "period": {
+    "range": "Período",
+    "m1": "Último mês",
+    "q": "Último trimestre",
+    "s": "Último semestre",
+    "custom": "Outro",
+    "from": "De",
+    "to": "Até"
   }
 }

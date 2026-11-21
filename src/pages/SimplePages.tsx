@@ -13,6 +13,7 @@ import { loadSettings } from '../core/settings';
 import { forecastGoal, type GoalForecast } from '../core/goalForecast';
 import { Ic, ICON, CatIcon, catLabel, CategorySelect } from '../ui/fx';
 import { EmptyState } from '../ui/EmptyState';
+import { L } from '../i18n/phrases';
 
 // Folha que sobe do fundo do ecrã (resto desfocado). Voltar, tocar fora ou Esc fecham.
 function BottomSheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
@@ -21,7 +22,7 @@ function BottomSheet({ title, onClose, children }: { title: string; onClose: () 
     <div className="bs-backdrop" onClick={onClose}>
       <div className="bs-sheet" role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
         <span className="bs-grab" aria-hidden="true" />
-        <header className="bs-head"><button type="button" className="bs-back" onClick={onClose}><Ic d={ICON.left} size={18} />Voltar</button><h2>{title}</h2><span /></header>
+        <header className="bs-head"><button type="button" className="bs-back" onClick={onClose}><Ic d={ICON.left} size={18} />{L('Voltar')}</button><h2>{title}</h2><span /></header>
         <div className="bs-body">{children}</div>
       </div>
     </div>,
@@ -40,7 +41,7 @@ async function loadAll(): Promise<Data> {
 const useMoney = () => { const s = loadSettings(); return (c: number) => formatMoney(c, s.currency, s.language); };
 
 // ── Contas: total no topo, separadores Gastos / Poupança / Dívidas, um cartão por conta
-const TYPES = [{ id: 'spending', label: 'Gastos' }, { id: 'savings', label: 'Poupança' }, { id: 'debt', label: 'Dívidas' }] as const;
+const TYPES = [{ id: 'spending', label: L('Gastos') }, { id: 'savings', label: L('Poupança') }, { id: 'debt', label: L('Dívidas') }] as const;
 const TYPE_IC: Record<string, string> = { spending: ICON.wallet, savings: 'M19 7a3 3 0 0 0-3-2H9a6 6 0 0 0-6 6c0 2 1 3.5 2 4.5V19h3v-2h5v2h3v-3a6 6 0 0 0 2-3h2V9h-2z', debt: 'M3 10l9-6 9 6M5 10v9h14v-9M9 19v-5h6v5' };
 
 export function SimpleAccounts() {
@@ -79,38 +80,38 @@ export function SimpleAccounts() {
 
   return (
     <div className="fx-page mv sh">
-      <header className="mv-head"><h1 className="sh-title">Contas</h1></header>
+      <header className="mv-head"><h1 className="sh-title">{L('Contas')}</h1></header>
       <div className="sh-kpis">
-        <div className="sh-kpi"><small>Dinheiro nas contas</small><b className={money_ < 0 ? 'fx-neg' : 'fx-pos'}>{money(money_)}</b></div>
-        <div className="sh-kpi"><small>Dívidas</small><b className={debts > 0 ? 'fx-neg' : ''}>{money(debts)}</b></div>
+        <div className="sh-kpi"><small>{L('Dinheiro nas contas')}</small><b className={money_ < 0 ? 'fx-neg' : 'fx-pos'}>{money(money_)}</b></div>
+        <div className="sh-kpi"><small>{L('Dívidas')}</small><b className={debts > 0 ? 'fx-neg' : ''}>{money(debts)}</b></div>
       </div>
       <div className="sh-seg" role="tablist">
         {TYPES.map((x) => <button key={x.id} type="button" role="tab" aria-selected={tab === x.id} className={tab === x.id ? 'on' : ''} onClick={() => { setTab(x.id); setForm(false); }}>{x.label}</button>)}
       </div>
-      {tab === 'debt' && <p className="sh-info">Para baixar uma dívida, faz uma transferência de uma conta de gastos ou de poupança para a conta da dívida.</p>}
-      {list.length === 0 && <EmptyState icon="M3 7a2 2 0 0 1 2-2h13v4M3 7v11a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1H5a2 2 0 0 1-2-2zM16 14.5h.01" title={tab === 'debt' ? 'Sem dívidas registadas' : tab === 'savings' ? 'Sem contas de poupança' : 'Sem contas de gastos'} text={tab === 'debt' ? 'Regista um empréstimo para acompanhares quanto ainda falta pagar.' : 'Cria uma conta para veres o teu saldo sempre atualizado.'} examples={tab === 'debt' ? ['🏠 Crédito habitação', '🚗 Crédito auto'] : tab === 'savings' ? ['🐷 Poupanças', '🛟 Fundo de emergência'] : ['🏦 Conta do banco', '💶 Dinheiro']} />}
+      {tab === 'debt' && <p className="sh-info">{L('Para baixar uma dívida, faz uma transferência de uma conta de gastos ou de poupança para a conta da dívida.')}</p>}
+      {list.length === 0 && <EmptyState icon="M3 7a2 2 0 0 1 2-2h13v4M3 7v11a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1H5a2 2 0 0 1-2-2zM16 14.5h.01" title={tab === 'debt' ? L('Sem dívidas registadas') : tab === 'savings' ? L('Sem contas de poupança') : L('Sem contas de gastos')} text={tab === 'debt' ? L('Regista um empréstimo para acompanhares quanto ainda falta pagar.') : L('Cria uma conta para veres o teu saldo sempre atualizado.')} examples={tab === 'debt' ? ['🏠 Crédito habitação', '🚗 Crédito auto'] : tab === 'savings' ? ['🐷 Poupanças', '🛟 Fundo de emergência'] : ['🏦 Conta do banco', '💶 Dinheiro']} />}
       {list.map((a) => (
         <div key={a.id} className="sh-accwrap">
           <button type="button" className={'acc-card sh-acc t-' + a.type} onClick={() => openEdit(a)} aria-expanded={edit === a.id}>
-            <div className="acc-card-top"><span className="acc-card-ic"><Ic d={TYPE_IC[a.type]} size={16} /></span><b>{a.name}</b>{a.isDefault && <small>Principal</small>}</div>
+            <div className="acc-card-top"><span className="acc-card-ic"><Ic d={TYPE_IC[a.type]} size={16} /></span><b>{a.name}</b>{a.isDefault && <small>{L('Principal')}</small>}</div>
             <div className={'acc-card-val' + (balOf(a) < 0 ? ' neg' : '')}>{money(balOf(a))}</div>
           </button>
           {edit === a.id && (
             <section className="mv-card sh-form">
-              <label>Nome<input value={eName} onChange={(e) => setEName(e.target.value)} /></label>
-              <label>{a.type === 'debt' ? 'Quanto deves agora' : 'Quanto tem agora'}<input inputMode="decimal" value={eBal} onChange={(e) => setEBal(e.target.value)} /></label>
-              <button type="button" className="sh-btn in sm" onClick={() => saveEdit(a)}>Guardar</button>
-              {!a.isDefault && <button type="button" className="sh-danger" onClick={() => delAcc(a)}>Apagar conta</button>}
+              <label>{L('Nome')}<input value={eName} onChange={(e) => setEName(e.target.value)} /></label>
+              <label>{a.type === 'debt' ? L('Quanto deves agora') : L('Quanto tem agora')}<input inputMode="decimal" value={eBal} onChange={(e) => setEBal(e.target.value)} /></label>
+              <button type="button" className="sh-btn in sm" onClick={() => saveEdit(a)}>{L('Guardar')}</button>
+              {!a.isDefault && <button type="button" className="sh-danger" onClick={() => delAcc(a)}>{L('Apagar conta')}</button>}
             </section>
           )}
         </div>
       ))}
-<button type="button" className="sh-btn in" onClick={() => setForm(true)}><Ic d={ICON.plus} size={20} />Criar conta</button>
-      {form && <BottomSheet title="Nova conta" onClose={() => setForm(false)}>
+<button type="button" className="sh-btn in" onClick={() => setForm(true)}><Ic d={ICON.plus} size={20} />{L('Criar conta')}</button>
+      {form && <BottomSheet title={L('Nova conta')} onClose={() => setForm(false)}>
         <section className="mv-card sh-form">
-          <label>Nome da conta<input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder={tab === 'debt' ? 'Ex.: Empréstimo da casa' : tab === 'savings' ? 'Ex.: Poupanças' : 'Ex.: Conta do banco'} /></label>
-          <label className="bs-amount"><small>{tab === 'debt' ? 'Quanto deves' : 'Quanto tem agora'}</small><input className="tx-amt" inputMode="decimal" value={bal} onChange={(e) => setBal(e.target.value.replace(/[^\d.,]/g, ''))} placeholder="0" /><span className="tx-cur">{loadSettings().currency}</span></label>
-          <button type="button" className="sh-btn in sm" disabled={!name.trim()} onClick={create}>Criar conta</button>
+          <label>{L('Nome da conta')}<input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder={tab === 'debt' ? L('Ex.: Empréstimo da casa') : tab === 'savings' ? L('Ex.: Poupanças') : L('Ex.: Conta do banco')} /></label>
+          <label className="bs-amount"><small>{tab === 'debt' ? L('Quanto deves') : L('Quanto tem agora')}</small><input className="tx-amt" inputMode="decimal" value={bal} onChange={(e) => setBal(e.target.value.replace(/[^\d.,]/g, ''))} placeholder="0" /><span className="tx-cur">{loadSettings().currency}</span></label>
+          <button type="button" className="sh-btn in sm" disabled={!name.trim()} onClick={create}>{L('Criar conta')}</button>
         </section>
       
       </BottomSheet>}
@@ -157,24 +158,24 @@ export function SimpleLimits() {
 
   return (
     <div className="fx-page mv sh">
-      <header className="mv-head"><h1 className="sh-title">Limites do mês</h1><Link to="/orcamentos-completo" className="mv-sq" aria-label="Mais opções"><Ic d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4" size={18} /></Link></header>
+      <header className="mv-head"><h1 className="sh-title">{L('Limites do mês')}</h1><Link to="/orcamentos-completo" className="mv-sq" aria-label={L('Mais opções')}><Ic d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4" size={18} /></Link></header>
       <section className="mv-hero sh-hero">
         <div className="mv-hero-top">
-          <button type="button" className="mv-chev" onClick={() => shift(-1)} aria-label="Mês anterior"><Ic d={ICON.left} size={18} /></button>
+          <button type="button" className="mv-chev" onClick={() => shift(-1)} aria-label={L('Mês anterior')}><Ic d={ICON.left} size={18} /></button>
           <span className="mv-month">{label}</span>
-          <button type="button" className="mv-chev" onClick={() => shift(1)} aria-label="Mês seguinte"><Ic d={ICON.right} size={18} /></button>
+          <button type="button" className="mv-chev" onClick={() => shift(1)} aria-label={L('Mês seguinte')}><Ic d={ICON.right} size={18} /></button>
         </div>
         <div className="sh-two">
-          <span><small>Recebido</small><b className="fx-pos">{money(received)}</b></span>
-          <span><small>Gasto</small><b className="fx-neg">{money(spent)}</b></span>
+          <span><small>{L('Recebido')}</small><b className="fx-pos">{money(received)}</b></span>
+          <span><small>{L('Gasto')}</small><b className="fx-neg">{money(spent)}</b></span>
         </div>
-        <div className="sh-row"><b>Total orçamentado</b><b>{money(limits.reduce((a2, b) => a2 + b.limitCents, 0))}</b></div>
-        <div className="sh-row"><b>Sobra do mês</b><b className={received - spent < 0 ? 'fx-neg' : 'fx-pos'}>{money(received - spent)}</b></div>
+        <div className="sh-row"><b>{L('Total orçamentado')}</b><b>{money(limits.reduce((a2, b) => a2 + b.limitCents, 0))}</b></div>
+        <div className="sh-row"><b>{L('Sobra do mês')}</b><b className={received - spent < 0 ? 'fx-neg' : 'fx-pos'}>{money(received - spent)}</b></div>
       </section>
 
       <section className="mv-card">
-        <div className="mv-card-head"><h2>Por categoria</h2></div>
-        {limits.length === 0 && <EmptyState icon="M12 3a9 9 0 1 0 9 9h-9zM15 3.5V9h5.5A9 9 0 0 0 15 3.5z" title="Sem limites este mês" text="Define quanto queres gastar no máximo numa categoria. A app avisa quando estiveres perto." examples={['🛒 Supermercado', '⛽ Combustível', '🍽️ Restaurantes']} />}
+        <div className="mv-card-head"><h2>{L('Por categoria')}</h2></div>
+        {limits.length === 0 && <EmptyState icon="M12 3a9 9 0 1 0 9 9h-9zM15 3.5V9h5.5A9 9 0 0 0 15 3.5z" title={L('Sem limites este mês')} text={L('Define quanto queres gastar no máximo numa categoria. A app avisa quando estiveres perto.')} examples={['🛒 Supermercado', '⛽ Combustível', '🍽️ Restaurantes']} />}
         <div className="sh-limits">
           {limits.map((b) => {
             const c = catOf(b.categoryId), used = spentIn(b.categoryId), r = b.limitCents > 0 ? used / b.limitCents : 0, left = b.limitCents - used;
@@ -187,14 +188,14 @@ export function SimpleLimits() {
             );
           })}
         </div>
-<button type="button" className="sh-btn out sm" onClick={() => setForm(true)}><Ic d={ICON.plus} size={18} />Novo limite</button>
-      {form && <BottomSheet title="Novo limite" onClose={() => setForm(false)}>
+<button type="button" className="sh-btn out sm" onClick={() => setForm(true)}><Ic d={ICON.plus} size={18} />{L('Novo limite')}</button>
+      {form && <BottomSheet title={L('Novo limite')} onClose={() => setForm(false)}>
           <div className="sh-form">
-            <label>Categoria<CategorySelect cats={expenseCats} kind="expense" value={cat} onChange={setCat} ariaLabel="Categoria" emptyLabel="Escolher…" className="fx-input tx-val" /></label>
-            <label className="bs-amount"><small>Máximo por mês</small><input className="tx-amt" inputMode="decimal" value={amt} onChange={(e) => setAmt(e.target.value.replace(/[^\d.,]/g, ''))} placeholder="0" /><span className="tx-cur">{loadSettings().currency}</span></label>
-            <label className="sh-toggle"><span><b>Tem data limite?</b><small>Se não ativares, fica só para este mês</small></span><input type="checkbox" checked={hasEnd} onChange={(e) => setHasEnd(e.target.checked)} /></label>
-            {hasEnd && <label>Até ao mês<input type="month" value={endM} min={`${cur.y}-${String(cur.m + 1).padStart(2, '0')}`} onChange={(e) => setEndM(e.target.value)} /></label>}
-            <button type="button" className="sh-btn in sm" disabled={!cat || !amt} onClick={create}>Guardar limite</button>
+            <label>{L('Categoria')}<CategorySelect cats={expenseCats} kind="expense" value={cat} onChange={setCat} ariaLabel="Categoria" emptyLabel="Escolher…" className="fx-input tx-val" /></label>
+            <label className="bs-amount"><small>{L('Máximo por mês')}</small><input className="tx-amt" inputMode="decimal" value={amt} onChange={(e) => setAmt(e.target.value.replace(/[^\d.,]/g, ''))} placeholder="0" /><span className="tx-cur">{loadSettings().currency}</span></label>
+            <label className="sh-toggle"><span><b>{L('Tem data limite?')}</b><small>{L('Se não ativares, fica só para este mês')}</small></span><input type="checkbox" checked={hasEnd} onChange={(e) => setHasEnd(e.target.checked)} /></label>
+            {hasEnd && <label>{L('Até ao mês')}<input type="month" value={endM} min={`${cur.y}-${String(cur.m + 1).padStart(2, '0')}`} onChange={(e) => setEndM(e.target.value)} /></label>}
+            <button type="button" className="sh-btn in sm" disabled={!cat || !amt} onClick={create}>{L('Guardar limite')}</button>
           </div>
         
       </BottomSheet>}
@@ -301,36 +302,36 @@ export function SimpleGoals() {
     const left = Math.max(0, g.targetCents - cur);
     return (
       <div className="fx-page mv sh">
-        <header className="mv-head"><button type="button" className="mv-sq" onClick={() => setOpen(null)} aria-label="Voltar"><Ic d={ICON.left} size={20} /></button><h1 className="sh-title">{g.name}</h1></header>
+        <header className="mv-head"><button type="button" className="mv-sq" onClick={() => setOpen(null)} aria-label={L('Voltar')}><Ic d={ICON.left} size={20} /></button><h1 className="sh-title">{g.name}</h1></header>
         <section className="mv-hero sh-hero">
           <div className="sh-two">
-            <span><small>Já tens</small><b className={cur < 0 ? 'fx-neg' : 'fx-pos'}>{money(cur)}</b></span>
-            <span><small>Falta</small><b>{money(left)}</b></span>
+            <span><small>{L('Já tens')}</small><b className={cur < 0 ? 'fx-neg' : 'fx-pos'}>{money(cur)}</b></span>
+            <span><small>{L('Falta')}</small><b>{money(left)}</b></span>
           </div>
           <div className="sh-row"><small className="sh-pct">Objetivo: {money(g.targetCents)}</small><b>{Math.round(r * 100)}%</b></div>
           <div className="sh-bar"><i style={{ width: `${r * 100}%` }} /></div>
         </section>
         <section className="mv-card">
-          <div className="mv-card-head"><h2>Previsão</h2></div>
+          <div className="mv-card-head"><h2>{L('Previsão')}</h2></div>
           <p className="fx-muted" style={{ margin: 0 }}>{forecastLong(g, cur)}</p>
           {(() => { const di = deadlineInfo(g, cur); return di ? <p className={'sh-alert' + (di.ok ? ' ok' : '')}>{di.long}</p> : null; })()}
         </section>
-        {g.notes && <section className="mv-card"><div className="mv-card-head"><h2>Notas</h2></div><p style={{ margin: 0 }}>{g.notes}</p></section>}
+        {g.notes && <section className="mv-card"><div className="mv-card-head"><h2>{L('Notas')}</h2></div><p style={{ margin: 0 }}>{g.notes}</p></section>}
         {!g.accountIds?.length && (
           <section className="mv-card sh-form">
-            <label className="bs-amount"><small>Juntar dinheiro a esta meta</small><input className="tx-amt" inputMode="decimal" value={add} onChange={(e) => setAdd(e.target.value.replace(/[^\d.,]/g, ''))} placeholder="0" /><span className="tx-cur">{loadSettings().currency}</span></label>
-            <button type="button" className="sh-btn in sm" disabled={!add} onClick={async () => { const c = parseMoneyToCents(add); if (c) { await contributeToGoal(db, g.id, Math.abs(c)); setAdd(''); reload(); } }}>Juntar</button>
+            <label className="bs-amount"><small>{L('Juntar dinheiro a esta meta')}</small><input className="tx-amt" inputMode="decimal" value={add} onChange={(e) => setAdd(e.target.value.replace(/[^\d.,]/g, ''))} placeholder="0" /><span className="tx-cur">{loadSettings().currency}</span></label>
+            <button type="button" className="sh-btn in sm" disabled={!add} onClick={async () => { const c = parseMoneyToCents(add); if (c) { await contributeToGoal(db, g.id, Math.abs(c)); setAdd(''); reload(); } }}>{L('Juntar')}</button>
           </section>
         )}
-        <button type="button" className="sh-danger" onClick={async () => { if (window.confirm(`Apagar a meta "${g.name}"?`)) { const t2 = new Date().toISOString(); await db.goals.update(g.id, { deletedAt: t2, updatedAt: t2 }); setOpen(null); reload(); } }}>Apagar meta</button>
+        <button type="button" className="sh-danger" onClick={async () => { if (window.confirm(`Apagar a meta "${g.name}"?`)) { const t2 = new Date().toISOString(); await db.goals.update(g.id, { deletedAt: t2, updatedAt: t2 }); setOpen(null); reload(); } }}>{L('Apagar meta')}</button>
       </div>
     );
   }
 
   return (
     <div className="fx-page mv sh">
-      <header className="mv-head"><h1 className="sh-title">Metas</h1></header>
-      {(d?.goals ?? []).length === 0 && <EmptyState icon="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zM12 12h.01" title="Ainda não tens metas" text="Uma meta é um objetivo para juntar dinheiro. A app mostra quanto falta e quando lá chegas." examples={['🏖️ Férias', '🚗 Carro', '🛟 Emergências', '🏠 Casa']} />}
+      <header className="mv-head"><h1 className="sh-title">{L('Metas')}</h1></header>
+      {(d?.goals ?? []).length === 0 && <EmptyState icon="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zM12 12h.01" title={L('Ainda não tens metas')} text={L('Uma meta é um objetivo para juntar dinheiro. A app mostra quanto falta e quando lá chegas.')} examples={['🏖️ Férias', '🚗 Carro', '🛟 Emergências', '🏠 Casa']} />}
       {(d?.goals ?? []).map((x) => {
         const cur = currentOf(x), r = x.targetCents > 0 ? Math.max(0, Math.min(1, cur / x.targetCents)) : 0;
         return (
@@ -344,31 +345,31 @@ export function SimpleGoals() {
           </button>
         );
       })}
-<button type="button" className="sh-pill" onClick={() => setForm(true)}><Ic d={ICON.plus} size={16} />Criar meta</button>
-      {form && <BottomSheet title="Nova meta" onClose={() => setForm(false)}>
+<button type="button" className="sh-pill" onClick={() => setForm(true)}><Ic d={ICON.plus} size={16} />{L('Criar meta')}</button>
+      {form && <BottomSheet title={L('Nova meta')} onClose={() => setForm(false)}>
         <section className="mv-card sh-form">
-          <label>O que queres juntar?<input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Férias, carro, emergências" /></label>
-          <label className="bs-amount"><small>Quanto queres juntar</small><input className="tx-amt" inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value.replace(/[^\d.,]/g, ''))} placeholder="0" /><span className="tx-cur">{loadSettings().currency}</span></label>
-          <label className="sh-toggle"><span><b>Tem data limite?</b><small>Ex.: quero ter o dinheiro até ao verão</small></span>
+          <label>{L('O que queres juntar?')}<input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder={L('Ex.: Férias, carro, emergências')} /></label>
+          <label className="bs-amount"><small>{L('Quanto queres juntar')}</small><input className="tx-amt" inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value.replace(/[^\d.,]/g, ''))} placeholder="0" /><span className="tx-cur">{loadSettings().currency}</span></label>
+          <label className="sh-toggle"><span><b>{L('Tem data limite?')}</b><small>{L('Ex.: quero ter o dinheiro até ao verão')}</small></span>
             <input type="checkbox" checked={hasDeadline} onChange={(e) => setHasDeadline(e.target.checked)} /></label>
-          {hasDeadline && <label>Até quando<input type="date" value={deadline} min={now.toISOString().slice(0, 10)} onChange={(e) => setDeadline(e.target.value)} /></label>}
-          <label>Notas (opcional)<input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Ex.: para o verão de 2027" /></label>
-          <div className="sh-accpick"><small>Como queres juntar?</small>
+          {hasDeadline && <label>{L('Até quando')}<input type="date" value={deadline} min={now.toISOString().slice(0, 10)} onChange={(e) => setDeadline(e.target.value)} /></label>}
+          <label>{L('Notas (opcional)')}<input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={L('Ex.: para o verão de 2027')} /></label>
+          <div className="sh-accpick"><small>{L('Como queres juntar?')}</small>
             <div className="sh-seg small">
-              <button type="button" className={how === 'hand' ? 'on' : ''} onClick={() => { setHow('hand'); setAccs([]); }}>Vou juntando à mão</button>
-              <button type="button" className={how === 'accounts' ? 'on' : ''} onClick={() => setHow('accounts')}>Usar o saldo de contas</button>
+              <button type="button" className={how === 'hand' ? 'on' : ''} onClick={() => { setHow('hand'); setAccs([]); }}>{L('Vou juntando à mão')}</button>
+              <button type="button" className={how === 'accounts' ? 'on' : ''} onClick={() => setHow('accounts')}>{L('Usar o saldo de contas')}</button>
             </div>
           </div>
           {how === 'accounts' && (d?.accounts ?? []).filter((a) => a.type !== 'debt').length > 0 && (
             <div className="sh-accpick">
-              <small>Quais contas contam para esta meta?</small>
+              <small>{L('Quais contas contam para esta meta?')}</small>
               {(d?.accounts ?? []).filter((a) => a.type !== 'debt').map((a) => (
                 <label key={a.id} className="sh-toggle"><span><b>{a.name}</b><small>{money(balOf(a))}</small></span>
                   <input type="checkbox" checked={accs.includes(a.id)} onChange={(e) => setAccs(e.target.checked ? [...accs, a.id] : accs.filter((x) => x !== a.id))} /></label>
               ))}
             </div>
           )}
-          <button type="button" className="sh-btn in sm" disabled={!name.trim() || !target} onClick={create}>Criar meta</button>
+          <button type="button" className="sh-btn in sm" disabled={!name.trim() || !target} onClick={create}>{L('Criar meta')}</button>
         </section>
       
       </BottomSheet>}
@@ -380,7 +381,7 @@ export function SimpleGoals() {
 //    barras dos últimos 6 meses → saldo do mês → Recebido / Gasto → movimentos agrupados por dia
 export type OverviewPart = 'chart' | 'totals' | 'lines' | 'cal' | 'cats';
 /** embed: mostra só um bloco, com o período escolhido fora (Painel do PC). */
-export function SimpleOverview({ yearly = false, embed }: { yearly?: boolean; embed?: { y: number; m: number; part: OverviewPart } }) {
+export function SimpleOverview({ yearly = false, embed }: { yearly?: boolean; embed?: { y: number; m: number; part: OverviewPart; range?: { from: string; to: string } } }) {
   const { t } = useTranslation();
   const money = useMoney();
   const s = loadSettings();
@@ -404,7 +405,8 @@ export function SimpleOverview({ yearly = false, embed }: { yearly?: boolean; em
     return { rows, income: inc.reduce((a, x) => a + x.amountCents, 0), salary: inc.filter((x) => x.id.startsWith('sal-')).reduce((a, x) => a + x.amountCents, 0), expense: exp.reduce((a, x) => a + x.amountCents, 0) };
   };
   const pref = yearly ? String(cur.y) : key(cur.y, cur.m);
-  const m = sumOf(pref);
+  const rng = embed?.range;
+  const m = rng ? (() => { const rows = (d?.txs ?? []).filter((x) => x.date >= rng.from && x.date <= rng.to); const inc = rows.filter((x) => x.type === 'income'), exp = rows.filter((x) => x.type === 'expense'); return { rows, income: inc.reduce((a, x) => a + x.amountCents, 0), salary: 0, expense: exp.reduce((a, x) => a + x.amountCents, 0) }; })() : sumOf(pref);
   const bal = m.income - m.expense;
   // comparação com o mês (ou ano) anterior, como no Início
   const pm = yearly ? sumOf(String(cur.y - 1)) : sumOf(key(cur.m === 0 ? cur.y - 1 : cur.y, (cur.m + 11) % 12));
@@ -420,7 +422,7 @@ export function SimpleOverview({ yearly = false, embed }: { yearly?: boolean; em
     const label = `Em comparação com ${prevName}`;
     return (
       <span className="sh-trend-box">
-        <button type="button" className={'sh-trend ' + tone} aria-label={`${pctv > 0 ? 'Mais' : pctv < 0 ? 'Menos' : 'Igual'} ${Math.abs(pctv)}%. ${label}`}
+        <button type="button" className={'sh-trend ' + tone} aria-label={`${pctv > 0 ? L('Mais') : pctv < 0 ? L('Menos') : L('Igual')} ${Math.abs(pctv)}%. ${label}`}
           onClick={(e) => { e.stopPropagation(); setTip(tip === id ? null : id); }}>
           {pctv > 0 ? '▲' : pctv < 0 ? '▼' : '●'} {Math.abs(pctv)}%
         </button>
@@ -508,7 +510,7 @@ export function SimpleOverview({ yearly = false, embed }: { yearly?: boolean; em
 
   const chartEl = (<>
           <section className="mv-card">
-            <div className="sh-bars" aria-label="Meses" ref={(el) => { const all = el ? [...el.querySelectorAll('.sh-barcol.has')] : []; const on = (el?.querySelector('.sh-barcol.on') ?? all[all.length - 1] ?? null) as HTMLElement | null; if (el && on) el.scrollTo({ left: on.offsetLeft - el.clientWidth / 2 + on.clientWidth / 2, behavior: 'smooth' }); }}>
+            <div className="sh-bars" aria-label={L('Meses')} ref={(el) => { const all = el ? [...el.querySelectorAll('.sh-barcol.has')] : []; const on = (el?.querySelector('.sh-barcol.on') ?? all[all.length - 1] ?? null) as HTMLElement | null; if (el && on) el.scrollTo({ left: on.offsetLeft - el.clientWidth / 2 + on.clientWidth / 2, behavior: 'smooth' }); }}>
               {bars.map((b) => (
                 <button key={b.y + '-' + b.mo} type="button" className={'sh-barcol' + (!yearly && b.y === cur.y && b.mo === cur.m ? ' on' : '') + (b.income || b.expense ? ' has' : '')} onClick={() => setCur({ y: b.y, m: b.mo })} aria-pressed={!yearly && b.y === cur.y && b.mo === cur.m}>
                   <span className="sh-barpair"><i className="inc" style={{ height: `${(b.income / max) * 100}%` }} /><i className="exp" style={{ height: `${(b.expense / max) * 100}%` }} /></span>
@@ -516,24 +518,24 @@ export function SimpleOverview({ yearly = false, embed }: { yearly?: boolean; em
                 </button>
               ))}
             </div>
-            <div className="sh-legend"><span><i className="sh-dot saved" />Rendimentos</span><span><i className="sh-dot spent" />Despesas</span></div>
+            <div className="sh-legend"><span><i className="sh-dot saved" />{L('Rendimentos')}</span><span><i className="sh-dot spent" />{L('Despesas')}</span></div>
           </section>
 
   </>);
   const totalsEl = (<>
           <div className="sh-kpis three">
-            <div className="sh-kpi"><small>Rendimentos</small><span className="sh-valline"><b className="fx-pos">{money(m.income)}</b>{cmp('inc', m.income, pm.income, true)}</span></div>
-            <div className="sh-kpi"><small>Despesas</small><span className="sh-valline"><b className="fx-neg">{money(m.expense)}</b>{cmp('exp', m.expense, pm.expense, false)}</span></div>
-            <div className="sh-kpi"><small>Saldo</small><span className="sh-valline"><b className={bal < 0 ? 'fx-neg' : 'fx-pos'}>{money(bal)}</b>{cmp('bal', bal, prevBal, true)}</span></div>
+            <div className="sh-kpi"><small>{L('Rendimentos')}</small><span className="sh-valline"><b className="fx-pos">{money(m.income)}</b>{cmp('inc', m.income, pm.income, true)}</span></div>
+            <div className="sh-kpi"><small>{L('Despesas')}</small><span className="sh-valline"><b className="fx-neg">{money(m.expense)}</b>{cmp('exp', m.expense, pm.expense, false)}</span></div>
+            <div className="sh-kpi"><small>{L('Saldo')}</small><span className="sh-valline"><b className={bal < 0 ? 'fx-neg' : 'fx-pos'}>{money(bal)}</b>{cmp('bal', bal, prevBal, true)}</span></div>
           </div>
   </>);
   const linesEl = (<>
           <section className="mv-card sh-lines">
-            {m.income > 0 && <div className="sh-line"><span>Salário</span><b>{money(m.salary)}</b></div>}
-            {m.income > 0 && <div className="sh-line"><span>Extras</span><b>{money(m.income - m.salary)}</b></div>}
-            <div className="sh-line"><span>{yearly ? 'Despesas por mês' : 'Despesas por dia'}</span><span className="sh-valline"><b>{money(yearly ? perMonth : perDay)}</b>{yearly ? cmp('pm', perMonth, prevPerMonth, false) : cmp('pd', perDay, prevPerDay, false)}</span></div>
-            {m.income > 0 && <div className="sh-line"><span>Poupaste</span><b className={bal < 0 ? 'fx-neg' : 'fx-pos'}>{Math.round((bal / m.income) * 100)}% dos rendimentos</b></div>}
-            <Link to={yearly ? `/transacoes?ano=${cur.y}` : `/transacoes?mes=${pref}`} className="sh-line sh-linkrow"><span>Movimentos</span><b>{m.rows.length} <Ic d={ICON.right} size={14} /></b></Link>
+            {m.income > 0 && <div className="sh-line"><span>{L('Salário')}</span><b>{money(m.salary)}</b></div>}
+            {m.income > 0 && <div className="sh-line"><span>{L('Extras')}</span><b>{money(m.income - m.salary)}</b></div>}
+            <div className="sh-line"><span>{yearly ? L('Despesas por mês') : L('Despesas por dia')}</span><span className="sh-valline"><b>{money(yearly ? perMonth : perDay)}</b>{yearly ? cmp('pm', perMonth, prevPerMonth, false) : cmp('pd', perDay, prevPerDay, false)}</span></div>
+            {m.income > 0 && <div className="sh-line"><span>{L('Poupaste')}</span><b className={bal < 0 ? 'fx-neg' : 'fx-pos'}>{Math.round((bal / m.income) * 100)}% dos rendimentos</b></div>}
+            <Link to={yearly ? `/transacoes?ano=${cur.y}` : `/transacoes?mes=${pref}`} className="sh-line sh-linkrow"><span>{L('Movimentos')}</span><b>{m.rows.length} <Ic d={ICON.right} size={14} /></b></Link>
           </section>
   </>);
   const catsEl = (<>
@@ -560,15 +562,15 @@ export function SimpleOverview({ yearly = false, embed }: { yearly?: boolean; em
 
   return (
     <div className="fx-page mv sh">
-      <header className="mv-head"><Link to="/" className="mv-sq" aria-label="Voltar"><Ic d={ICON.left} size={20} /></Link><h1 className="sh-title">{yearly ? 'Resumo do ano' : 'Resumo do mês'}</h1></header>
+      <header className="mv-head"><Link to="/" className="mv-sq" aria-label={L('Voltar')}><Ic d={ICON.left} size={20} /></Link><h1 className="sh-title">{yearly ? L('Resumo do ano') : L('Resumo do mês')}</h1></header>
       <div className="sh-monthnav">
-        <button type="button" className="mv-chev" onClick={() => shift(-1)} aria-label={yearly ? 'Ano anterior' : 'Mês anterior'}><Ic d={ICON.left} size={18} /></button>
+        <button type="button" className="mv-chev" onClick={() => shift(-1)} aria-label={yearly ? L('Ano anterior') : L('Mês anterior')}><Ic d={ICON.left} size={18} /></button>
         <span className="mv-month">{label}</span>
-        <button type="button" className="mv-chev" onClick={() => shift(1)} aria-label={yearly ? 'Ano seguinte' : 'Mês seguinte'}><Ic d={ICON.right} size={18} /></button>
+        <button type="button" className="mv-chev" onClick={() => shift(1)} aria-label={yearly ? L('Ano seguinte') : L('Mês seguinte')}><Ic d={ICON.right} size={18} /></button>
       </div>
       <div className="sh-seg" role="tablist">
-        <button type="button" role="tab" aria-selected={tab === 'sum'} className={tab === 'sum' ? 'on' : ''} onClick={() => setTab('sum')}>Resumo</button>
-        <button type="button" role="tab" aria-selected={tab === 'cat'} className={tab === 'cat' ? 'on' : ''} onClick={() => setTab('cat')}>Categorias</button>
+        <button type="button" role="tab" aria-selected={tab === 'sum'} className={tab === 'sum' ? 'on' : ''} onClick={() => setTab('sum')}>{L('Resumo')}</button>
+        <button type="button" role="tab" aria-selected={tab === 'cat'} className={tab === 'cat' ? 'on' : ''} onClick={() => setTab('cat')}>{L('Categorias')}</button>
       </div>
 
       {tab === 'sum' ? (

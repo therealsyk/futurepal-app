@@ -8,6 +8,7 @@ import { formatMoney } from '../core/money';
 import { loadSettings } from '../core/settings';
 import { Ic, ICON } from '../ui/fx';
 import { EmptyState } from '../ui/EmptyState';
+import { L } from '../i18n/phrases';
 
 const COLORS = ['#17c3c9', '#8b5cf6', '#f59e0b', '#ef4444', '#22c55e', '#3b82f6', '#ec4899'];
 
@@ -47,29 +48,29 @@ export function Groups() {
     const list = of(open.id).sort((a, b) => b.date.localeCompare(a.date));
     return (
       <div className="fx-page mv sh">
-        <header className="mv-head"><Link to="/grupos" className="mv-sq" aria-label="Voltar"><Ic d={ICON.left} size={20} /></Link><h1 className="sh-title">{open.name}</h1></header>
+        <header className="mv-head"><Link to="/grupos" className="mv-sq" aria-label={L('Voltar')}><Ic d={ICON.left} size={20} /></Link><h1 className="sh-title">{open.name}</h1></header>
         <section className="mv-hero sh-hero">
-          <small className="mv-hero-label">Total gasto neste grupo</small>
+          <small className="mv-hero-label">{L('Total gasto neste grupo')}</small>
           <div className="sh-big">{money(total(open.id))}</div>
           <small className="sh-pct">{list.length} {list.length === 1 ? 'movimento' : 'movimentos'}</small>
         </section>
-        <Link to={`/transacoes?nova=1&grupo=${open.id}`} className="sh-btn in">+ Adicionar despesa a este grupo</Link>
+        <Link to={`/transacoes?nova=1&grupo=${open.id}`} className="sh-btn in">{L('+ Adicionar despesa a este grupo')}</Link>
         <section className="mv-card">
-          <div className="mv-card-head"><h2>Movimentos</h2></div>
-          {list.length === 0 ? <p className="fx-muted">Ainda não há despesas neste grupo.</p> : list.map((x) => (
+          <div className="mv-card-head"><h2>{L('Movimentos')}</h2></div>
+          {list.length === 0 ? <p className="fx-muted">{L('Ainda não há despesas neste grupo.')}</p> : list.map((x) => (
             <div key={x.id} className="sh-tx"><span className="sh-tx-main"><b>{x.description || '—'}</b><small>{x.date.split('-').reverse().join('/')}</small></span><b>{money(x.amountCents)}</b></div>
           ))}
         </section>
-        <button type="button" className="sh-danger" onClick={() => remove(open)}>Apagar grupo</button>
+        <button type="button" className="sh-danger" onClick={() => remove(open)}>{L('Apagar grupo')}</button>
       </div>
     );
   }
 
   return (
     <div className="fx-page mv sh">
-      <header className="mv-head"><h1 className="sh-title">Grupos</h1></header>
-      <p className="fx-muted" style={{ margin: 0 }}>Junta despesas de uma coisa só (ex.: férias, obras, Natal) e vê quanto custou no total.</p>
-      {groups.length === 0 && !adding && <EmptyState icon="M4 6h16M4 12h16M4 18h10" title="Ainda não tens grupos" text="Junta despesas de uma coisa só e vê quanto custou no total." examples={['✈️ Viagem', '🔨 Obras', '🎄 Natal']} />}
+      <header className="mv-head"><h1 className="sh-title">{L('Grupos')}</h1></header>
+      <p className="fx-muted" style={{ margin: 0 }}>{L('Junta despesas de uma coisa só (ex.: férias, obras, Natal) e vê quanto custou no total.')}</p>
+      {groups.length === 0 && !adding && <EmptyState icon="M4 6h16M4 12h16M4 18h10" title={L('Ainda não tens grupos')} text={L('Junta despesas de uma coisa só e vê quanto custou no total.')} examples={['✈️ Viagem', '🔨 Obras', '🎄 Natal']} />}
       <div className="sh-groups-grid">
         {groups.map((g) => (
           <Link key={g.id} to={`/grupos/${g.id}`} className="sh-group" style={{ ['--g' as string]: g.color }}>
@@ -78,11 +79,11 @@ export function Groups() {
         ))}
         {adding ? (
           <div className="sh-group new">
-            <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Férias de verão" onKeyDown={(e) => e.key === 'Enter' && create()} />
-            <button type="button" className="sh-btn in sm" onClick={create} disabled={!name.trim()}>Criar</button>
+            <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder={L('Ex.: Férias de verão')} onKeyDown={(e) => e.key === 'Enter' && create()} />
+            <button type="button" className="sh-btn in sm" onClick={create} disabled={!name.trim()}>{L('Criar')}</button>
           </div>
         ) : (
-          <button type="button" className="sh-group new" onClick={() => setAdding(true)}><Ic d={ICON.plus} size={22} /><b>Novo grupo</b></button>
+          <button type="button" className="sh-group new" onClick={() => setAdding(true)}><Ic d={ICON.plus} size={22} /><b>{L('Novo grupo')}</b></button>
         )}
       </div>
     </div>

@@ -39,6 +39,7 @@ import { SETTINGS_EVENT } from './core/settings';
 import { syncSalaryTransactions } from './core/salaryTx';
 import { IS_DEMO, seedDemo } from './demo/demo';
 import { DemoGate } from './demo/DemoGate';
+import { L } from './i18n/phrases';
 
 export default function App() {
   const { t } = useTranslation();
@@ -217,14 +218,14 @@ export default function App() {
         {/* PC: Definições numa janela a flutuar por cima da página aberta */}
         {PC_MOBILE && settingsOpen && (
           <div className="stm-backdrop" onClick={() => setSettingsOpen(false)}>
-            <div className="stm" role="dialog" aria-modal="true" aria-label="Definições" onClick={(e) => e.stopPropagation()}>
-              <button type="button" className="stm-close" onClick={() => setSettingsOpen(false)} aria-label="Fechar">✕</button>
+            <div className="stm" role="dialog" aria-modal="true" aria-label={L('Definições')} onClick={(e) => e.stopPropagation()}>
+              <button type="button" className="stm-close" onClick={() => setSettingsOpen(false)} aria-label={L('Fechar')}>✕</button>
               <Settings />
             </div>
           </div>
         )}
         {/* Painel do PC: botão sempre visível para adicionar transações */}
-        {PC_MOBILE && pathname === '/' && <Link to="/transacoes?nova=1" className="pc-fab" aria-label="Nova transação"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>Nova transação</Link>}
+        {PC_MOBILE && pathname === '/' && <Link to="/transacoes?nova=1" className="pc-fab" aria-label={L('Nova transação')}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>{L('Nova transação')}</Link>}
       </main>
       <MobileNav />
       <MobileTutorial enabled={isMobile && !PC_MOBILE} />

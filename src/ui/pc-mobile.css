@@ -171,3 +171,59 @@ html.pcm .fx-page:has(> .ct-section) { padding-bottom: 130px !important; }
 html.pcm .fx-page.sh > .sh-btn.in, html.pcm .fx-page.sh > .sh-pill, html.pcm .txs-new > .txs-add, html.pcm .fx-page.sh .mv-card > .sh-btn.out.sm,
 html.pcm .fx-page:has(> .ct-section) > .fx-head .fx-btn.primary, html.pcm .sal-add {
   height: 48px !important; min-height: 48px !important; min-width: 220px !important; padding: 0 26px !important; font-size: 15.5px !important; font-weight: 750 !important; border-radius: 99px !important; gap: 8px; }
+/* Filtro de período */
+.pf { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.pf-seg { width: 420px; margin: 0 !important; }
+.pf-nav { margin: 0 !important; min-width: 280px; }
+.pf-range { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pf-chip { height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--border, rgba(255,255,255,.08)); background: var(--card); color: var(--muted); font-weight: 650; cursor: pointer; transition: background .2s, color .2s, border-color .2s; }
+.pf-chip.on { background: color-mix(in srgb, var(--accent) 18%, var(--card)); color: var(--text); border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+.pf-dates { display: inline-flex; align-items: center; gap: 8px; }
+.pf-dates .fx-input { height: 40px; min-width: 150px; }
+.sh-count { margin-left: 10px; font-size: 13px; font-weight: 600; color: var(--muted); }
+@media (max-width: 768px) { .pf-seg, .pf-nav { width: 100%; min-width: 0; } }
+
+/* ---- Resumo v2: 6 lugares (2 linhas) que cabem no ecrã; os blocos trocam de lugar em Personalizar */
+html.pcm .fx-page.pco { height: 100vh; display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box; }
+.pco-grid { flex: 1; min-height: 0; grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1.05fr) minmax(0, 1fr); grid-template-areas: none; }
+.pco-slot { position: relative; min-height: 0; min-width: 0; display: flex; flex-direction: column; }
+.pco-slot > * { flex: 1; min-height: 0; }
+.pco-slot.s0 { grid-column: span 6; } .pco-slot.s1 { grid-column: span 3; } .pco-slot.s2 { grid-column: span 3; }
+.pco-slot.s3, .pco-slot.s4, .pco-slot.s5 { grid-column: span 4; }
+.pco-slot .sh-embed { height: 100%; display: flex; flex-direction: column; }
+.pco-slot .sh-embed > .mv-card, .pco-slot > .mv-card { flex: 1; min-height: 0; overflow: hidden; padding: 20px 22px; border-radius: 24px; margin: 0; }
+.pco-slot .sh-embed > .mv-card { overflow-y: auto; scrollbar-width: thin; }
+.pco-chart .fx-chart { min-height: 0 !important; }
+.pco-metrics { height: 100%; min-height: 0; }
+.pco-metric { min-height: 0; justify-content: space-between; padding: 14px 18px !important; gap: 2px; }
+.pco-metric .pco-value { font-size: clamp(22px, 1.6vw, 30px); margin-top: 2px; }
+.pco-metric .pco-bar { height: 14px; margin-top: 6px; }
+.pco-metric .pco-delta small { display: none; }
+.pco-metric .pco-mhead h3 { font-size: 15px; }
+.pco-grid.editing .pco-slot { outline: 2px dashed color-mix(in srgb, var(--accent) 55%, transparent); outline-offset: 3px; border-radius: 26px; cursor: grab; }
+.pco-grid.editing .pco-slot > :not(.pco-grip) { pointer-events: none; }
+.pco-slot.dragging { opacity: .45; }
+.pco-grip { position: absolute; top: 10px; right: 12px; z-index: 2; color: var(--accent); flex: none !important; }
+.pco-hint { margin: 8px 0 0; color: var(--muted); font-size: 13.5px; }
+/* Contas */
+.pco-accts { display: flex; flex-direction: column; gap: 12px; }
+.pco-acc-total { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 16px; background: color-mix(in srgb, var(--mv, var(--accent)) 14%, var(--card-2)); }
+.pco-acc-total small { color: var(--muted); font-size: 12.5px; }
+.pco-acc-total strong { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.pco-acc-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; min-height: 0; scrollbar-width: thin; }
+.pco-acc { position: relative; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 10px 12px 14px; border-radius: 14px; background: var(--card-2); overflow: hidden; }
+.pco-acc-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--mv, var(--accent)); }
+.pco-acc.savings .pco-acc-dot, .pco-acc.savings .pco-acc-bar { background: var(--pos); }
+.pco-acc.debt .pco-acc-dot, .pco-acc.debt .pco-acc-bar { background: var(--red); }
+.pco-acc-main { display: flex; flex-direction: column; min-width: 0; }
+.pco-acc-main b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px; }
+.pco-acc-main small { color: var(--muted); font-size: 12px; }
+.pco-acc > b { font-variant-numeric: tabular-nums; font-size: 14px; }
+.pco-acc-bar { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--mv, var(--accent)); border-radius: 0 3px 3px 0; opacity: .8; }
+.pco-slot .sh-cal { gap: 4px; }
+.pco-slot .sh-calday { min-height: 0 !important; height: auto; aspect-ratio: auto; padding: 2px; }
+@media (max-width: 1400px) {
+  html.pcm .fx-page.pco { height: auto; overflow: visible; }
+  .pco-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: none; }
+  .pco-slot.s0, .pco-slot.s1, .pco-slot.s2, .pco-slot.s3, .pco-slot.s4, .pco-slot.s5 { grid-column: span 1; min-height: 380px; }
+}
