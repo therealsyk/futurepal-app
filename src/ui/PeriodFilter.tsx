@@ -140,8 +140,9 @@ export function PeriodFilter({ value, onChange }: { value: Period; onChange: (p:
         </div>
       )}
       <div className="pf-filter" ref={ref}>
-        <button type="button" className={'pf-fbtn' + (ranged ? ' on' : '')} aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu(!menu)}>
-          <Ic d={FILTER} size={17} />{t('period.filter')}<Ic d={ICON.down} size={14} />
+        <button type="button" className={'pf-fbtn' + (ranged ? ' on' : '')} aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu(!menu)}
+          aria-label={t('period.filter')} title={t('period.filter')}>
+          <Ic d={FILTER} size={20} />{ranged && <i className="pf-dot" />}
         </button>
         {menu && (
           <div className="pf-menu" role="menu">

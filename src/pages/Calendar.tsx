@@ -8,6 +8,8 @@ import { loadSettings } from '../core/settings';
 import { PageHead } from '../ui/fx';
 import { PeriodFilter, initialPeriod, periodRange, type Period } from '../ui/PeriodFilter';
 import { L } from '../i18n/phrases';
+import { Metric } from './PcOverview';
+import { previousRange } from '../ui/PeriodFilter';
 import { useIsMobile } from '../ui/useIsMobile';
 import { Sponsored } from '../ui/Sponsored';
 
@@ -31,7 +33,7 @@ export default function Calendar() {
   useEffect(() => {
     (async () => {
       const out: Record<string, number> = {};
-      for (let y = fromYear; y <= calYear; y++) Object.assign(out, await dailyTotals(db, y));
+      for (let y = fromYear - 1; y <= calYear; y++) Object.assign(out, await dailyTotals(db, y));
       setTotals(out);
     })().catch(() => setTotals({}));
   }, [calYear, fromYear]);
@@ -51,6 +53,18 @@ export default function Calendar() {
   const monthTotal = monthValues.reduce((s, [, v]) => s + v, 0);
   const yearTotal = Object.entries(totals).filter(([d]) => d.startsWith(String(calYear))).reduce((a, [, v]) => a + v, 0);
   const rangeTotal = Object.entries(totals).filter(([d]) => d >= range.from && d <= range.to).reduce((a, [, v]) => a + v, 0);
+  // comparações (como no Resumo): mês vs mês anterior, ano vs ano anterior, período vs período anterior
+  const sumBetween = (f: string, to: string) => Object.entries(totals).filter(([d]) => d >= f && d <= to).reduce((a, [, v]) => a + v, 0);
+  const pm = new Date(calYear, calMonth - 2, 1);
+  const pmKey = `${pm.getFullYear()}-${String(pm.getMonth() + 1).padStart(2, '0')}`;
+  const prevMonthTotal = sumBetween(pmKey + '-01', pmKey + '-31');
+  const prevYearTotal = sumBetween(`${calYear - 1}-01-01`, `${calYear - 1}-12-31`);
+  const pr = previousRange(per);
+  const prevRangeTotal = sumBetween(pr.from, pr.to);
+  const dl = (n: number, b: number) => (b === 0 ? null : (n - b) / b);
+  const vs = t('pco.vs');
+  const prevMonthName = pm.toLocaleDateString(settings.language, { month: 'long' });
+  const IC_SPENT = 'M12 5v14M5 12l7 7 7-7', IC_CAL = 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4', IC_TOP = 'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z';
   const outOfRange = (d: string) => ranged && (d < range.from || d > range.to);
   const best = monthValues.sort((a, b) => b[1] - a[1])[0];
   const max = Math.max(1, ...monthValues.map(([, v]) => v));
@@ -92,11 +106,9 @@ export default function Calendar() {
             ))}
           </div>
           <div className="fx-col">
-            <div className="fx-card mv-card pco-metric sav cal-metric"><div className="fx-label">{t('calendar.yearTotal')}</div><div className="fx-big pco-value">{money(yearTotal)}</div></div>
-            <div className="fx-card mv-card pco-metric sav cal-metric"><div className="fx-label">{t('calendar.monthAverage')}</div><div className="fx-big pco-value">{monthsWithSpend ? money(Math.round(yearTotal / monthsWithSpend)) : '—'}</div></div>
-            <div className="fx-card mv-card pco-metric sav cal-metric"><div className="fx-label">{t('calendar.topMonth')}</div>
-              <div className="fx-big pco-value">{topMonth && topMonth.total > 0 ? money(topMonth.total) : '—'}</div>
-              <p className="fx-muted fx-small">{topMonth && topMonth.total > 0 ? monthNames[topMonth.i] : t('calendar.yearHint')}</p></div>
+            <Metric icon={IC_SPENT} tone="exp" title={t('calendar.yearTotal')} value={money(yearTotal)} valueClass={yearTotal > 0 ? 'fx-neg' : ''} delta={dl(yearTotal, prevYearTotal)} deltaGoodUp={false} prevName={String(calYear - 1)} vsLabel={vs} bar={1} />
+            <Metric icon={IC_CAL} tone="sav" title={t('calendar.monthAverage')} value={monthsWithSpend ? money(Math.round(yearTotal / monthsWithSpend)) : '—'} delta={null} deltaGoodUp={false} prevName="" vsLabel="" bar={yearMax > 0 && monthsWithSpend ? Math.min(1, (yearTotal / monthsWithSpend) / Math.max(1, topMonth?.total ?? 1)) : 0} />
+            <Metric icon={IC_TOP} tone="inc" title={t('calendar.topMonth')} value={topMonth && topMonth.total > 0 ? money(topMonth.total) : '—'} delta={null} deltaGoodUp={false} prevName="" vsLabel="" sub={topMonth && topMonth.total > 0 ? monthNames[topMonth.i] : t('calendar.yearHint')} bar={topMonth && yearTotal > 0 ? topMonth.total / yearTotal : 0} />
           </div>
         </div>
       ) : (
@@ -118,11 +130,9 @@ export default function Calendar() {
           </div>
         </div>
         <div className="fx-col">
-          <div className="fx-card mv-card pco-metric sav cal-metric"><div className="fx-label">{ranged ? L('Gasto no período') : t('calendar.monthTotal')}</div><div className="fx-big pco-value">{money(ranged ? rangeTotal : monthTotal)}</div></div>
-          <div className="fx-card mv-card pco-metric sav cal-metric"><div className="fx-label">{t('calendar.yearTotal')}</div><div className="fx-big pco-value">{money(yearTotal)}</div></div>
-          <div className="fx-card mv-card pco-metric sav cal-metric"><div className="fx-label">{t('calendar.topDay')}</div>
-            <div className="fx-big pco-value">{best ? money(best[1]) : '—'}</div>
-            <p className="fx-muted fx-small">{best ? best[0] : t('calendar.dayPanelHint')}</p></div>
+          <Metric icon={IC_SPENT} tone="exp" title={ranged ? L('Gasto no período') : t('calendar.monthTotal')} value={money(ranged ? rangeTotal : monthTotal)} valueClass="fx-neg" delta={ranged ? dl(rangeTotal, prevRangeTotal) : dl(monthTotal, prevMonthTotal)} deltaGoodUp={false} prevName={ranged ? t('pco.prev_' + per.preset) : prevMonthName} vsLabel={vs} bar={1} />
+          <Metric icon={IC_CAL} tone="sav" title={t('calendar.yearTotal')} value={money(yearTotal)} delta={dl(yearTotal, prevYearTotal)} deltaGoodUp={false} prevName={String(calYear - 1)} vsLabel={vs} bar={yearTotal > 0 ? Math.min(1, (ranged ? rangeTotal : monthTotal) / yearTotal) : 0} />
+          <Metric icon={IC_TOP} tone="inc" title={t('calendar.topDay')} value={best ? money(best[1]) : '—'} delta={null} deltaGoodUp={false} prevName="" vsLabel="" sub={best ? new Date(best[0] + 'T00:00:00').toLocaleDateString(settings.language, { day: 'numeric', month: 'long' }) : t('calendar.dayPanelHint')} bar={best && monthTotal > 0 ? best[1] / monthTotal : 0} />
         </div>
       </div>
       )}

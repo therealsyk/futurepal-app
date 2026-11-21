@@ -470,3 +470,20 @@ html.pcm .sal-page { padding-bottom: 110px !important; }
   .pf-fbtn { height: 52px; border-radius: 16px; }
 }
 @media (max-width: 768px) { .fx-page.sh .mv-card > .sh-btn.out.sm { align-self: center; display: inline-flex; width: auto; min-height: 0; height: 40px; padding: 0 18px; margin: 10px auto 0; border: 0; border-radius: 99px; background: var(--mv); color: var(--mv-ink, #032a2d); font-size: 14.5px; font-weight: 700; box-shadow: 0 8px 20px -10px color-mix(in srgb, var(--mv) 70%, transparent); } }
+
+/* ---- Filtrar: só um ícone (funil), quadrado e discreto; ponto quando há um filtro ligado */
+.pf-fbtn { position: relative; width: 48px; height: 48px !important; min-height: 0 !important; padding: 0 !important; justify-content: center; border-radius: 16px; color: var(--muted); }
+.pf-fbtn:hover, .pf-fbtn[aria-expanded="true"] { color: var(--text); }
+.pf-fbtn.on { color: var(--accent); }
+.pf-dot { position: absolute; top: 9px; right: 9px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.pf { flex-wrap: nowrap; }
+.pf-menu { left: auto; right: 0; }
+/* Transações (PC): Mensal/Anual, mês e filtro sempre juntos na mesma linha */
+html.pcm .txs-new > .pf { flex: 0 0 auto !important; width: auto !important; max-width: none !important; display: flex !important; }
+html.pcm .txs-new > .pf .pf-nav { min-width: 260px; }
+@media (max-width: 768px) {
+  .pf { grid-template-columns: minmax(0, 1fr) 52px; }
+  .pf-fbtn { width: 52px; height: 52px !important; }
+}
+html.pcm .txs-new > .pf .pf-seg { width: 240px !important; min-width: 240px; flex: none !important; }
+html.pcm .txs-new > .pf .pf-seg button { flex: 1; }
