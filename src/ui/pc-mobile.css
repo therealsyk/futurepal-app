@@ -1004,3 +1004,15 @@ button.sp-row { cursor: pointer; } button.sp-row:hover { background: color-mix(i
 .sp-leave-in:hover { color: var(--red); }
 .sp-bill-actions:has(> .sp-leave-in:only-child) { border-top: 0; padding-top: 0; justify-content: flex-end; }
 .sp-leave-corner { display: none; }
+
+/* Dividir contas v4: total + falta pagar à direita, data e por pessoa em duas caixas, sair do grupo visível */
+.sp-bill-head { align-items: center; }
+.sp-bill-total { align-items: flex-end; }
+.sp-bill-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sp-bill-facts > span { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; border-radius: 14px; background: var(--card-2); border: 1px solid var(--border); }
+.sp-bill-facts small { color: var(--muted); font-size: 12px; } .sp-bill-facts b { font-size: 15.5px; font-weight: 750; }
+.sp-leave-in { color: var(--red) !important; border: 1px solid color-mix(in srgb, var(--red) 50%, transparent) !important; background: color-mix(in srgb, var(--red) 8%, transparent) !important; height: 34px; padding: 0 16px; font-weight: 700; }
+.sp-leave-in:hover { background: color-mix(in srgb, var(--red) 16%, transparent) !important; }
+.spi-face.warn { background: color-mix(in srgb, var(--red) 85%, #000); color: #fff; }
+.spi-warn { margin: -4px 0 0; padding: 8px 14px; border-radius: 12px; color: #f5b85a; background: color-mix(in srgb, #f5b85a 12%, transparent); font-size: 14px; font-weight: 650; }
+.spi-btn.danger { background: var(--red); color: #fff; }

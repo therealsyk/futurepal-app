@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -176,8 +177,8 @@ export function SplitPage() {
     const share = b.shares.find((x) => x.userId === userId);
     if (paid && userId === me && share) askPersonal(`${b.description} (${group?.name ?? ''})`, share.shareCents, today());
   };
+  const [closing, setClosing] = useState<SplitBill | null>(null);
   const removeBill = async (b: SplitBill) => {
-    if (!window.confirm(t('split.deleteConfirm'))) return;
     const { error: e } = await getSupabase()!.from('split_bills').update({ deleted_at: new Date().toISOString() }).eq('id', b.id);
     if (e) setError(errText(e)); else await loadGroup(sel);
   };
@@ -248,19 +249,17 @@ export function SplitPage() {
                         return (
                           <div key={b.id} className={'fx-card sp-bill' + (pr.done ? ' done' : '')}>
                             {/* título e total numa caixa própria; data e valor por pessoa em etiquetas por baixo */}
-                            {b.createdBy === me && <button type="button" className="sp-x" onClick={() => removeBill(b)} aria-label={t('common.delete')} title={t('common.delete')}>✕</button>}
+                            {b.createdBy === me && <button type="button" className="sp-x" onClick={() => setClosing(b)} aria-label={L('Fechar conta')} title={L('Fechar conta')}>✕</button>}
                             <div className="sp-bill-head">
-                              <span className="sp-bill-tt">
-                                <b className="sp-bill-title">{b.description}</b>
-                                <span className="sp-bill-tags">
-                                  <span className="sp-tag">📅 {b.date.split('-').reverse().join('/')}</span>
-                                  <span className="sp-tag">👥 {money(each ?? pr.eachCents)} {L('por pessoa')}</span>
-                                </span>
-                              </span>
+                              <b className="sp-bill-title">{b.description}</b>
                               <span className="sp-bill-total">
                                 <small>{t('split.total')}</small><b>{money(pr.totalCents)}</b>
                                 <span className={'sp-tag ' + (pr.done ? 'ok' : 'warn')}>{pr.done ? (outInv.length ? L('À espera que aceitem o convite') : t('split.allPaid')) : t('split.missing', { amount: money(pr.remainingCents) })}</span>
                               </span>
+                            </div>
+                            <div className="sp-bill-facts">
+                              <span><small>{L('Data')}</small><b>{b.date.split('-').reverse().join('/')}</b></span>
+                              <span><small>{L('Cada pessoa paga')}</small><b>{money(each ?? pr.eachCents)}</b></span>
                             </div>
                             {/* Pessoas: foto e nome, estado do convite à frente; por baixo quanto paga e se já pagou */}
                             <div className="sp-list">
@@ -361,6 +360,21 @@ export function SplitPage() {
           </div>
         </>}
       </Sheet>
+      {closing && (() => {
+        const unpaid = closing.shares.filter((x) => !x.paidAt && x.shareCents > 0).length + outInv.length;
+        return createPortal(
+          <div className="spi-back" onMouseDown={(e) => { if (e.target === e.currentTarget) setClosing(null); }}>
+            <div className="spi-card" role="alertdialog" aria-modal="true">
+              <span className="spi-face warn">!</span>
+              <p className="spi-text">{L('Tens a certeza que queres fechar esta conta?')} <b>{closing.description}</b></p>
+              {unpaid > 0 && <p className="spi-warn">{unpaid === 1 ? L('Ainda falta 1 pessoa pagar.') : L('Ainda faltam') + ' ' + unpaid + ' ' + L('pessoas pagar.')}</p>}
+              <div className="spi-btns">
+                <button type="button" className="spi-btn no" onClick={() => setClosing(null)}>{L('Cancelar')}</button>
+                <button type="button" className="spi-btn danger" onClick={async () => { const b2 = closing; setClosing(null); await removeBill(b2); }}>{L('Fechar conta')}</button>
+              </div>
+            </div>
+          </div>, document.body);
+      })()}
     </div>
   );
 }
