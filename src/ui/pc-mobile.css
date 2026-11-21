@@ -775,3 +775,23 @@ html:has(.win-titlebar) .adm { top: 34px; }
 .ad-lbox-list i { height: 6px; border-radius: 6px; background: var(--card-2); overflow: hidden; } .ad-lbox-list i em { display: block; height: 100%; background: var(--mv, var(--accent)); border-radius: 6px; }
 .ad-lbox-list b { font-size: 13px; text-align: right; }
 @media (max-width: 1100px) { .ad-lboxes { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Tempo real v2: caixas todas do mesmo tamanho (estilo do Resumo); a lista abre por cima */
+.ad-lboxes { align-items: stretch; }
+.ad-lbox, .ad-lbox.click { position: relative; padding: 0; height: 132px; border-radius: 16px; background: var(--bg); border: 1px solid var(--border); transition: border-color .15s; }
+.ad-lbox.click:hover, .ad-lbox.open { border-color: color-mix(in srgb, var(--mv, var(--accent)) 50%, transparent); }
+.ad-lbox-body { display: flex; flex-direction: column; justify-content: space-between; width: 100%; height: 100%; padding: 14px 16px; border: 0; border-radius: 16px; background: none; color: var(--text); font: inherit; text-align: left; }
+button.ad-lbox-body { cursor: pointer; }
+.ad-lbox-head { display: flex; align-items: center; gap: 10px; }
+.ad-lbox-head .pco-mic { width: 32px; height: 32px; }
+.ad-lbox-title { flex: 1; font-size: 14px; font-weight: 650; }
+.ad-chev { color: var(--muted); transition: transform .2s; }
+.ad-lbox.open .ad-chev { transform: rotate(180deg); }
+.ad-lbox-value { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
+.ad-lbox-sub { color: var(--muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ad-lbox-pop { position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; right: 0; display: flex; flex-direction: column; padding: 8px 14px 12px; border-radius: 14px; background: var(--card); border: 1px solid var(--border); box-shadow: 0 22px 50px -18px rgba(0,0,0,.75); animation: ab-down .16s ease both; }
+.ad-lbox-pop p { display: grid; grid-template-columns: minmax(0, 1fr) 70px 28px; align-items: center; gap: 8px; margin: 6px 0 0; font-size: 13px; }
+.ad-lbox-pop span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ad-lbox-pop i { height: 6px; border-radius: 6px; background: var(--card-2); overflow: hidden; } .ad-lbox-pop i em { display: block; height: 100%; background: var(--mv, var(--accent)); border-radius: 6px; }
+.ad-lbox-pop b { text-align: right; }
+.ad-lbox-list { display: none; }

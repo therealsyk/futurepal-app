@@ -1,6 +1,6 @@
 // Administração (extra): quem está a usar a app agora, aviso para todos e apagar contas.
 // Precisa de supabase/admin_extra.sql.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getAdminSupabase as getSupabase } from '../auth/supabase';
 import { loadSettings } from '../core/settings';
 import { L } from '../i18n/phrases';
@@ -51,11 +51,11 @@ export function AdminLive() {
         <h3><i className="ad-dot" />{L('Online agora')} <span className="ad-fb-count">{online.length}</span></h3>
         {err ? <p className="fx-muted">{err}</p> : (<>
           {ps && <div className="ad-lboxes">
-            <LiveBox label={L('Agora')} value={ps.now} />
-            <LiveBox label={L('Hoje')} value={ps.today} />
-            <LiveBox label={L('Últimos 7 dias')} value={ps.week} />
-            <LiveBox label={L('Plataformas')} list={ps.platforms} />
-            <LiveBox label={L('Versões')} list={ps.versions} />
+            <LiveBox icon="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2" label={L('Agora')} value={ps.now} sub={L('pessoas com a app aberta')} live />
+            <LiveBox icon="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4" label={L('Hoje')} value={ps.today} sub={L('pessoas que abriram hoje')} />
+            <LiveBox icon="M4 19V9M10 19V5M16 19v-7M22 19H2" label={L('Últimos 7 dias')} value={ps.week} sub={L('pessoas diferentes')} />
+            <LiveBox icon="M5 3h14v14H5zM9 21h6M12 17v4" label={L('Plataformas')} list={ps.platforms} />
+            <LiveBox icon="M12 3v12M7 10l5 5 5-5M4 19h16" label={L('Versões')} list={ps.versions} />
           </div>}
           {online.length === 0 ? <p className="fx-muted">{L('Ninguém online neste momento.')}</p> : (
             <div className="ad-table-wrap"><table className="ad-table">
@@ -92,21 +92,34 @@ export function AdminLive() {
   );
 }
 
-/** Caixa de número; com lista, mostra o total e abre para baixo com cada item e a quantidade. */
-function LiveBox({ label, value, list }: { label: string; value?: number; list?: Record<string, number> }) {
+/** Caixa igual às do Resumo da app (ícone, título, número grande e linha de baixo).
+ *  Com lista, abre por cima do conteúdo (sem mudar o tamanho da caixa) com cada item e a quantidade. */
+function LiveBox({ icon, label, value, sub, list, live }: { icon: string; label: string; value?: number; sub?: string; list?: Record<string, number>; live?: boolean }) {
   const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, [open]);
   const entries = Object.entries(list ?? {}).sort((a, b) => b[1] - a[1]);
-  const total = list ? entries.reduce((a, [, n]) => a + n, 0) : value ?? 0;
+  const total = entries.reduce((a, [, n]) => a + n, 0);
   const max = Math.max(1, ...entries.map(([, n]) => n));
-  if (!list) return <div className="ad-lbox"><small>{label}</small><b>{total}</b></div>;
+  const Tag = list ? 'button' : 'div';
   return (
-    <div className={'ad-lbox click' + (open ? ' open' : '')}>
-      <button type="button" onClick={() => setOpen(!open)} aria-expanded={open}>
-        <small>{label}</small><b>{entries.length}</b>
-        <em>{entries[0] ? `${entries[0][0]} · ${Math.round((entries[0][1] / Math.max(1, total)) * 100)}%` : '—'}</em>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M6 9l6 6 6-6" /></svg>
-      </button>
-      {open && <div className="ad-lbox-list">{entries.length === 0 ? <p className="fx-muted fx-small">—</p> : entries.map(([k, n]) => (
+    <div className={'ad-lbox' + (list ? ' click' : '') + (open ? ' open' : '')} ref={ref}>
+      <Tag {...(list ? { type: 'button' as const, onClick: () => setOpen(!open), 'aria-expanded': open } : {})} className="ad-lbox-body">
+        <span className="ad-lbox-head">
+          <span className="pco-mic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={icon} /></svg></span>
+          <span className="ad-lbox-title">{label}</span>
+          {live && <i className="ad-dot" />}
+          {list && <svg className="ad-chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M6 9l6 6 6-6" /></svg>}
+        </span>
+        <b className="ad-lbox-value">{list ? entries.length : value ?? 0}</b>
+        <small className="ad-lbox-sub">{list ? (entries[0] ? `${L('Mais usada')}: ${entries[0][0]} · ${Math.round((entries[0][1] / Math.max(1, total)) * 100)}%` : '—') : sub}</small>
+      </Tag>
+      {open && <div className="ad-lbox-pop">{entries.length === 0 ? <p className="fx-muted fx-small">—</p> : entries.map(([k, n]) => (
         <p key={k}><span>{k}</span><i><em style={{ width: `${(n / max) * 100}%` }} /></i><b>{n}</b></p>
       ))}</div>}
     </div>

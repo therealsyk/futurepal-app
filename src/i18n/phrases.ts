@@ -462,6 +462,10 @@ export const PHRASES: Record<string, Tr> = {
   'Subscritores, conversão, MRR, ARR, churn e LTV (estimativas).': ['Subscribers, conversion, MRR, ARR, churn and LTV (estimates).', 'Suscriptores, conversión, MRR, ARR, churn y LTV (estimaciones).', 'Abonnés, conversion, MRR, ARR, churn et LTV (estimations).'],
   'Prioridade': ['Priority', 'Prioridad', 'Priorité'],
   'Tipo': ['Type', 'Tipo', 'Type'],
+  'pessoas com a app aberta': ['people with the app open', 'personas con la app abierta', 'personnes avec l’app ouverte'],
+  'pessoas que abriram hoje': ['people who opened it today', 'personas que la abrieron hoy', 'personnes l’ayant ouverte aujourd’hui'],
+  'pessoas diferentes': ['different people', 'personas distintas', 'personnes différentes'],
+  'Mais usada': ['Most used', 'Más usada', 'La plus utilisée'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */
