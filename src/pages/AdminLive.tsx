@@ -48,7 +48,7 @@ export function AdminLive() {
   return (
     <>
       <div className="fx-card ad-card ad-live">
-        <h3><i className="ad-dot" />{L('Online agora')} <span className="ad-fb-count">{online.length}</span></h3>
+        <h3><span className="pco-mic ad-h3ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4" /></svg></span>{L('Online agora')} <i className="ad-dot" /> <span className="ad-fb-count">{online.length}</span></h3>
         {err ? <p className="fx-muted">{err}</p> : (<>
           {ps && <div className="ad-lboxes">
             <LiveBox icon="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2" label={L('Agora')} value={ps.now} sub={L('pessoas com a app aberta')} live />
@@ -68,7 +68,7 @@ export function AdminLive() {
 
       <div className="fx-grid2" style={{ marginTop: 16 }}>
         <div className="fx-card ad-card">
-          <h3>{L('Aviso para todos')}</h3>
+          <h3><span className="pco-mic ad-h3ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1zM16 8a5 5 0 0 1 0 8M19 5a9 9 0 0 1 0 14" /></svg></span>{L('Aviso para todos')}</h3>
           <textarea className="fx-input" rows={3} maxLength={500} value={ann.message} placeholder={L('Ex.: Nova versão disponível com muitas melhorias!')} onChange={(e) => setAnn({ ...ann, message: e.target.value })} />
           <div className="fx-inline" style={{ marginTop: 10, gap: 10 }}>
             <PickMenu label={L('Tipo')} value={ann.level} options={[{ value: 'info', label: L('Informação') }, { value: 'warn', label: L('Importante') }]} onChange={(v) => setAnn({ ...ann, level: String(v) })} />
@@ -79,7 +79,7 @@ export function AdminLive() {
           {annMsg && <p className="fx-muted fx-small">{annMsg}</p>}
         </div>
         <div className="fx-card ad-card">
-          <h3>{L('Apagar conta')}</h3>
+          <h3><span className="pco-mic ad-h3ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 7h14M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg></span>{L('Apagar conta')}</h3>
           <p className="fx-muted fx-small">{L('Apaga a conta e todos os dados dela no servidor. Os administradores não podem ser apagados.')}</p>
           <div className="fx-inline" style={{ gap: 10 }}>
             <input className="fx-input" type="email" value={del} placeholder="email" onChange={(e) => setDel(e.target.value)} />

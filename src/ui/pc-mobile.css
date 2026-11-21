@@ -847,3 +847,12 @@ button.ad-lbox-body { cursor: pointer; }
 .adm .ad-card > h3 { padding-bottom: 12px; margin-bottom: 14px !important; border-bottom: 1px solid var(--border); }
 .adm .dsh-card > header { padding-bottom: 10px; border-bottom: 1px solid var(--border); margin-bottom: 6px; }
 .adm .ad-table th:first-child, .adm .ad-table td:first-child { padding-left: 18px; }
+
+/* Tempo real: corrigir o botão de expandir (as regras antigas mexiam em todos os ícones do botão) */
+.ad-lbox.click > button svg, .ad-lbox.open > button svg { position: static; transform: none; top: auto; right: auto; }
+.ad-lbox.click > button { padding: 14px 16px; }
+.ad-lbox.click > button:hover { background: none; }
+.ad-lbox .ad-lbox-head .pco-mic, .ad-h3ic { width: 32px; height: 32px; flex: none; display: grid; place-items: center; border-radius: 50%; color: var(--mv, var(--accent)); background: color-mix(in srgb, var(--mv, var(--accent)) 14%, var(--card-2)); }
+.ad-lbox .ad-chev { margin-left: auto; transition: transform .2s !important; }
+.ad-lbox.open .ad-chev { transform: rotate(180deg) !important; }
+.adm .ad-card > h3 { display: flex; align-items: center; gap: 10px; }
