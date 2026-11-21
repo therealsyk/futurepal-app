@@ -288,6 +288,23 @@ export const PHRASES: Record<string, Tr> = {
   'Alta': ['High', 'Alta', 'Haute'],
   'Urgente': ['Urgent', 'Urgente', 'Urgente'],
   'Corre o ficheiro supabase/admin_phase1.sql no Supabase.': ['Run supabase/admin_phase1.sql in Supabase.', 'Ejecuta supabase/admin_phase1.sql en Supabase.', 'Exécutez supabase/admin_phase1.sql dans Supabase.'],
+  'Painel de administração': ['Admin panel', 'Panel de administración', 'Panneau d’administration'],
+  'Geral': ['General', 'General', 'Général'],
+  'Gestão': ['Management', 'Gestión', 'Gestion'],
+  'Sistema': ['System', 'Sistema', 'Système'],
+  'Dashboard': ['Dashboard', 'Panel', 'Tableau de bord'],
+  'Tempo real': ['Real time', 'Tiempo real', 'Temps réel'],
+  'Planos': ['Plans', 'Planes', 'Forfaits'],
+  'Voltar à app': ['Back to app', 'Volver a la app', 'Retour à l’app'],
+  'Atualizar': ['Refresh', 'Actualizar', 'Actualiser'],
+  'Saúde do produto num relance: utilizadores, atividade e retenção.': ['Product health at a glance: users, activity and retention.', 'Salud del producto de un vistazo: usuarios, actividad y retención.', 'Santé du produit en un coup d’œil : utilisateurs, activité et rétention.'],
+  'Quem está a usar a app agora, avisos para todos e gestão rápida.': ['Who is using the app now, announcements and quick actions.', 'Quién usa la app ahora, avisos para todos y gestión rápida.', 'Qui utilise l’app maintenant, annonces et actions rapides.'],
+  'Contas com ID pseudónimo, filtros e ações com motivo.': ['Accounts with pseudonymous IDs, filters and actions with a reason.', 'Cuentas con ID seudónimo, filtros y acciones con motivo.', 'Comptes avec ID pseudonyme, filtres et actions motivées.'],
+  'Subscrições e alteração manual de planos.': ['Subscriptions and manual plan changes.', 'Suscripciones y cambios manuales de plan.', 'Abonnements et changements manuels de forfait.'],
+  'Pedidos de suporte e sugestões vindos da app.': ['Support requests and suggestions from the app.', 'Solicitudes de soporte y sugerencias desde la app.', 'Demandes de support et suggestions venant de l’app.'],
+  'Publicar versões e definir a versão mínima.': ['Publish versions and set the minimum version.', 'Publicar versiones y definir la versión mínima.', 'Publier des versions et définir la version minimale.'],
+  'Todas as ações de administração: quem, quando e porquê.': ['Every admin action: who, when and why.', 'Todas las acciones de administración: quién, cuándo y por qué.', 'Toutes les actions d’administration : qui, quand et pourquoi.'],
+  'O teu papel e a verificação em dois passos (2FA).': ['Your role and two-step verification (2FA).', 'Tu rol y la verificación en dos pasos (2FA).', 'Votre rôle et la validation en deux étapes (2FA).'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */

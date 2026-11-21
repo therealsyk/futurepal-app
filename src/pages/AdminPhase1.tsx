@@ -6,7 +6,7 @@ import { loadSettings } from '../core/settings';
 import { Sheet } from '../ui/fx';
 import { L } from '../i18n/phrases';
 
-export type AdminTab = 'overview' | 'users' | 'tickets' | 'audit' | 'security';
+export type AdminTab = 'overview' | 'live' | 'users' | 'plans' | 'tickets' | 'versions' | 'audit' | 'security';
 const sb = () => getSupabase()!;
 const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleString(loadSettings().language, { dateStyle: 'short', timeStyle: 'short' }) : '—');
 const ago = (d?: string | null) => {
@@ -367,6 +367,64 @@ export function AdminMfaGate({ verify }: { verify: (code: string) => Promise<boo
         <button type="button" className="fx-btn primary" disabled={code.length !== 6} onClick={async () => setBad(!(await verify(code)))}>{L('Entrar')}</button>
       </div>
       {bad && <p className="fx-error">{L('Código errado. Tenta outra vez.')}</p>}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------------------------------------
+ * Layout do painel (ao estilo shadcn-admin): barra lateral própria com grupos, barra de topo e conteúdo.
+ * ---------------------------------------------------------------------------------------------- */
+const NAV: Array<{ group: string; items: Array<{ id: AdminTab; label: string; desc: string; icon: string }> }> = [
+  { group: 'Geral', items: [
+    { id: 'overview', label: 'Dashboard', desc: 'Saúde do produto num relance: utilizadores, atividade e retenção.', icon: 'M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z' },
+    { id: 'live', label: 'Tempo real', desc: 'Quem está a usar a app agora, avisos para todos e gestão rápida.', icon: 'M3 12h4l3-8 4 16 3-8h4' },
+  ] },
+  { group: 'Gestão', items: [
+    { id: 'users', label: 'Utilizadores', desc: 'Contas com ID pseudónimo, filtros e ações com motivo.', icon: 'M16 19a4 4 0 0 0-8 0M12 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM20 19a3 3 0 0 0-3-3M17 10a2.5 2.5 0 1 0 0-5' },
+    { id: 'plans', label: 'Planos', desc: 'Subscrições e alteração manual de planos.', icon: 'M3 7h18v10H3zM3 11h18M7 15h3' },
+    { id: 'tickets', label: 'Tickets', desc: 'Pedidos de suporte e sugestões vindos da app.', icon: 'M4 5h16v11H9l-5 4zM8 9h8M8 12h5' },
+  ] },
+  { group: 'Sistema', items: [
+    { id: 'versions', label: 'Versões', desc: 'Publicar versões e definir a versão mínima.', icon: 'M12 3v12M7 10l5 5 5-5M4 19h16' },
+    { id: 'audit', label: 'Auditoria', desc: 'Todas as ações de administração: quem, quando e porquê.', icon: 'M9 5h10M9 12h10M9 19h10M5 5h.01M5 12h.01M5 19h.01' },
+    { id: 'security', label: 'Segurança', desc: 'O teu papel e a verificação em dois passos (2FA).', icon: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4' },
+  ] },
+];
+
+export function AdminShell({ tab, onTab, onRefresh, children }: { tab: AdminTab; onTab: (t: AdminTab) => void; onRefresh: () => void; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const cur = NAV.flatMap((g) => g.items).find((i) => i.id === tab) ?? NAV[0].items[0];
+  return (
+    <div className="adm">
+      <aside className={'adm-side' + (open ? ' open' : '')}>
+        <div className="adm-brand"><span className="adm-logo">F</span><div><b>FuturePal</b><small>{L('Painel de administração')}</small></div></div>
+        <nav className="adm-nav">
+          {NAV.map((g) => (
+            <div key={g.group} className="adm-group">
+              <p>{L(g.group)}</p>
+              {g.items.map((i) => (
+                <button key={i.id} type="button" className={tab === i.id ? 'on' : ''} onClick={() => { onTab(i.id); setOpen(false); }}>
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={i.icon} /></svg>{L(i.label)}
+                </button>
+              ))}
+            </div>
+          ))}
+        </nav>
+        <a className="adm-back" href="#/">← {L('Voltar à app')}</a>
+      </aside>
+      {open && <div className="adm-scrim" onClick={() => setOpen(false)} />}
+      <div className="adm-main">
+        <header className="adm-top">
+          <button type="button" className="adm-burger" onClick={() => setOpen(true)} aria-label="Menu">☰</button>
+          <span className="adm-crumb">Admin <i>/</i> <b>{L(cur.label)}</b></span>
+          <span style={{ flex: 1 }} />
+          <button type="button" className="adm-tbtn" onClick={onRefresh} title={L('Atualizar')}>↻ <span>{L('Atualizar')}</span></button>
+        </header>
+        <div className="adm-content">
+          <div className="adm-title"><h1>{L(cur.label)}</h1><p>{L(cur.desc)}</p></div>
+          {children}
+        </div>
+      </div>
     </div>
   );
 }

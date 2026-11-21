@@ -1,5 +1,5 @@
 import { AdminLive } from './AdminLive';
-import { AdminActivity, AdminMfaGate, AdminPhase1, AdminTabs, useAdminMfa, type AdminTab } from './AdminPhase1';
+import { AdminActivity, AdminMfaGate, AdminPhase1, AdminShell, useAdminMfa, type AdminTab } from './AdminPhase1';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getSupabase } from '../auth/supabase';
@@ -66,7 +66,8 @@ export function AdminPage() {
     if (!sb) return;
     await sb.from('feedback').update({ status }).eq('id', id);
     await loadFb();
-  };
+  };  void users; void fb; void setFbAll; void fbErr; void markFb; // lista antiga de contas/feedback: agora nos separadores Utilizadores e Tickets
+
 
   const load = async () => {
     const sb = getSupabase();
@@ -135,24 +136,12 @@ export function AdminPage() {
   const maxDay = Math.max(1, ...(stats?.signups_by_day ?? []).map((d) => d.n));
 
   if (mfa.needCode) return <div className="fx-page ad-page"><PageHead title={t('admin.title')} sub={t('admin.sub')} /><AdminMfaGate verify={mfa.verify} /></div>;
-  if (tab !== 'overview') return (
-    <div className="fx-page ad-page">
-      <PageHead title={t('admin.title')} sub={t('admin.sub')} />
-      <AdminTabs tab={tab} onTab={setTab} />
-      <AdminPhase1 tab={tab} />
-      <p className="fx-muted fx-small">{t('admin.privacy')}</p>
-    </div>
-  );
   return (
-    <div className="fx-page ad-page">
-      <PageHead title={t('admin.title')} sub={t('admin.sub')}>
-        <button type="button" className="fx-btn" onClick={() => load()}>{t('admin.refresh')}</button>
-      </PageHead>
+    <AdminShell tab={tab} onTab={setTab} onRefresh={() => load()}>
       {error && <p className="fx-error">{error}</p>}
-      <AdminTabs tab={tab} onTab={setTab} />
+      {tab === 'overview' && (<>
       <div className="pm-wrapped">{kpis.map(([l, n]) => <div key={l} className="pm-wcard"><small>{l}</small><strong>{n ?? '—'}</strong></div>)}</div>
       <AdminActivity />
-      <AdminLive />
 
       <div className="fx-card ad-card">
         <h3>{t('admin.signups30')}</h3>
@@ -172,16 +161,9 @@ export function AdminPage() {
         <p className="ad-kv"><span>{t('admin.interestTotal')}</span><b>{interest.reduce((a, r) => a + Number(r.n), 0)}</b></p>
       </div>
 
-      <div className="fx-card ad-card">
-        <h3>{t('admin.latestUsers')}</h3>
-        <div className="ad-table-wrap">
-          <table className="ad-table">
-            <thead><tr><th>{t('admin.email')}</th><th>{t('admin.created')}</th><th>{t('admin.lastSeen')}</th><th>{t('admin.provider')}</th><th>{t('admin.tx')}</th></tr></thead>
-            <tbody>{users.map((u) => <tr key={u.email + u.created_at}><td>{u.email}{!u.confirmed && <small> · {t('admin.notConfirmed')}</small>}</td><td>{date(u.created_at)}</td><td>{date(u.last_sign_in_at)}</td><td>{u.provider}</td><td>{u.tx_count}</td></tr>)}</tbody>
-          </table>
-        </div>
-      </div>
-
+      </>)}
+      {tab === 'live' && <AdminLive />}
+      {tab === 'plans' && (<>
       <div className="fx-card ad-card">
         <h3>{t('admin.subsTitle')}</h3>
         <p className="fx-muted fx-small">{t('admin.subsHint')}</p>
@@ -216,27 +198,8 @@ export function AdminPage() {
         </div>
       </div>
 
-      <div className="fx-card ad-card">
-        <div className="ad-fb-head">
-          <h3>{t('admin.fbTitle')} {fb.length > 0 && <span className="ad-fb-count">{fb.length}</span>}</h3>
-          <label className="ad-fb-all"><input type="checkbox" checked={fbAll} onChange={(e) => setFbAll(e.target.checked)} /> {t('admin.fbShowAll')}</label>
-        </div>
-        {fbErr && <p className="fx-muted fx-small">{t('admin.fbSetup')}</p>}
-        {!fbErr && fb.length === 0 && <p className="fx-muted">{t('admin.fbEmpty')}</p>}
-        <div className="ad-fb-list">
-          {fb.map((r) => (
-            <div key={r.id} className={'ad-fb' + (r.status === 'done' ? ' done' : '')}>
-              <div className="ad-fb-meta">
-                <span className={'ad-fb-kind ' + r.kind}>{t('feedback.' + r.kind)}</span>
-                <small>{date(r.created_at)} · {r.platform ?? '?'} · v{r.app_version ?? '?'}{r.email ? ' · ' + r.email : ''}</small>
-              </div>
-              <p>{r.message}</p>
-              <button type="button" className="fx-link" onClick={() => markFb(r.id, r.status === 'done' ? 'new' : 'done')}>{r.status === 'done' ? t('admin.fbReopen') : t('admin.fbDone')}</button>
-            </div>
-          ))}
-        </div>
-      </div>
-
+      </>)}
+      {tab === 'versions' && (<>
       <div className="fx-card ad-card">
         <h3>{t('admin.versions')}</h3>
         {versions.map((r) => <p key={r.platform} className="ad-kv"><span>{r.platform}</span><b>{r.latest_version}</b><small>{date(r.published_at)}</small></p>)}
@@ -251,7 +214,9 @@ export function AdminPage() {
         <Field label={t('admin.notes')}><input className="fx-input" value={v.notes} onChange={(e) => setV({ ...v, notes: e.target.value })} /></Field>
         <button type="button" className="fx-btn primary" onClick={publish}>{saved ? t('admin.published') : t('admin.publish')}</button>
       </div>
+      </>)}
+      {(['users', 'tickets', 'audit', 'security'] as AdminTab[]).includes(tab) && <AdminPhase1 tab={tab} />}
       <p className="fx-muted fx-small">{t('admin.privacy')}</p>
-    </div>
+    </AdminShell>
   );
 }
