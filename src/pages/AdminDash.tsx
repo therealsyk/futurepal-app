@@ -217,13 +217,14 @@ export function AdminMoreMetrics({ section }: { section: 'engagement' | 'health'
     <div className="dsh">
       {section === 'engagement' && <>
       <div className="dsh-stats">
-        <Stat ic="list" label={L('Despesas')} value={nf(m.expenses_total)} hint={`+${nf(m.expenses_30d)} · 30d`} />
-        <Stat ic="target" label={L('Metas')} value={nf(m.goals_total)} hint={`${pct(m.pct_with_goal)} ${L('das contas')}`} />
-        <Stat ic="user" label={L('Por utilizador')} value={m.mau ? (m.expenses_30d / m.mau).toFixed(1) : '—'} hint={L('despesas · 30d')} />
-        <Stat ic="clock" label={L('Tempo / dia')} value={m.avg_session_min === null ? '—' : `${m.avg_session_min} min`} />
-        <Stat ic="cal" label={L('Dias ativos')} value={m.days_per_user_30 === null ? '—' : m.days_per_user_30} hint={L('em 30')} />
-        <Stat ic="chart" label={L('Relatórios')} value={pct(m.pct_reports)} hint={L('dos ativos')} />
-        <Stat ic="plus" label={L('Novos hoje')} value={nf(m.signups_today)} />
+        <Stat ic="list" label={L('Despesas registadas')} value={nf(m.expenses_total)} hint={`+${nf(m.expenses_30d)} ${L('nos últimos 30 dias')}`} />
+        <Stat ic="target" label={L('Metas criadas')} value={nf(m.goals_total)} hint={`${pct(m.pct_with_goal)} ${L('das contas têm metas')}`} />
+        <Stat ic="user" label={L('Despesas por pessoa')} value={m.mau ? (m.expenses_30d / m.mau).toFixed(1) : '—'} hint={L('média em 30 dias')} />
+        <Stat ic="clock" label={L('Tempo na app')} value={m.avg_session_min === null ? '—' : `${m.avg_session_min} min`} hint={L('por pessoa, por dia')} />
+        <Stat ic="cal" label={L('Dias de uso')} value={m.days_per_user_30 === null ? '—' : m.days_per_user_30} hint={L('por pessoa, em 30 dias')} />
+        <Stat ic="chart" label={L('Usam relatórios')} value={pct(m.pct_reports)} hint={L('de quem esteve ativo')} />
+        <Stat ic="plus" label={L('Registos hoje')} value={nf(m.signups_today)} hint={L('contas novas')} />
+        <Stat ic="user" label={L('Ativos (30 dias)')} value={nf(m.mau)} hint={L('pessoas diferentes')} />
       </div>
 
       <div className="dsh-row2">

@@ -478,6 +478,16 @@ export const PHRASES: Record<string, Tr> = {
   'Offline': ['Offline', 'Sin conexión', 'Hors ligne'],
   'Tamanho': ['Size', 'Tamaño', 'Taille'],
   'Erros': ['Errors', 'Errores', 'Erreurs'],
+  'nos últimos 30 dias': ['in the last 30 days', 'en los últimos 30 días', 'sur les 30 derniers jours'],
+  'Despesas por pessoa': ['Expenses per person', 'Gastos por persona', 'Dépenses par personne'],
+  'média em 30 dias': ['30-day average', 'media en 30 días', 'moyenne sur 30 jours'],
+  'Tempo na app': ['Time in app', 'Tiempo en la app', 'Temps dans l’app'],
+  'por pessoa, por dia': ['per person, per day', 'por persona, por día', 'par personne, par jour'],
+  'Dias de uso': ['Days of use', 'Días de uso', 'Jours d’utilisation'],
+  'por pessoa, em 30 dias': ['per person, in 30 days', 'por persona, en 30 días', 'par personne, sur 30 jours'],
+  'de quem esteve ativo': ['of active users', 'de quienes estuvieron activos', 'des utilisateurs actifs'],
+  'contas novas': ['new accounts', 'cuentas nuevas', 'nouveaux comptes'],
+  'Ativos (30 dias)': ['Active (30 days)', 'Activos (30 días)', 'Actifs (30 jours)'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */
