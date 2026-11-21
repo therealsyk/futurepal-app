@@ -370,6 +370,12 @@ export const PHRASES: Record<string, Tr> = {
   'Utilizadores e planos': ['Users and plans', 'Usuarios y planes', 'Utilisateurs et forfaits'],
   'Só ver o dashboard': ['View the dashboard only', 'Solo ver el panel', 'Voir le tableau de bord uniquement'],
   'Quase tudo, menos a equipa': ['Almost everything except the team', 'Casi todo, menos el equipo', 'Presque tout, sauf l’équipe'],
+  'A palavra-passe tem de ter pelo menos 10 caracteres.': ['The password must have at least 10 characters.', 'La contraseña debe tener al menos 10 caracteres.', 'Le mot de passe doit contenir au moins 10 caractères.'],
+  'As palavras-passe não são iguais.': ['The passwords do not match.', 'Las contraseñas no coinciden.', 'Les mots de passe ne correspondent pas.'],
+  'A tua conta entra com o Google e ainda não tem palavra-passe. Cria uma só para o painel (pelo menos 10 caracteres).': ['Your account signs in with Google and has no password yet. Create one for the panel (at least 10 characters).', 'Tu cuenta entra con Google y aún no tiene contraseña. Crea una para el panel (al menos 10 caracteres).', 'Votre compte se connecte avec Google et n’a pas encore de mot de passe. Créez-en un pour le panneau (au moins 10 caractères).'],
+  'Nova palavra-passe': ['New password', 'Nueva contraseña', 'Nouveau mot de passe'],
+  'Repetir palavra-passe': ['Repeat password', 'Repetir contraseña', 'Répéter le mot de passe'],
+  'Criar e continuar': ['Create and continue', 'Crear y continuar', 'Créer et continuer'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */

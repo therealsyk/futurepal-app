@@ -308,6 +308,23 @@ function SecurityPanel() {
     if (error) { setMsg(error.message); return; }
     setEnroll({ id: data.id, qr: data.totp.qr_code, secret: data.totp.secret });
   };
+  /** Cria a palavra-passe (conta que entrava só com Google) e segue para o 2FA. */
+  const create = async () => {
+    setErr(null);
+    if (pass.length < 10) { setErr(L('A palavra-passe tem de ter pelo menos 10 caracteres.')); return; }
+    if (pass !== pass2) { setErr(L('As palavras-passe não são iguais.')); return; }
+    setBusy(true);
+    const { error } = await sb().auth.updateUser({ password: pass });
+    setBusy(false); setPass(''); setPass2('');
+    if (error) { setErr(error.message); return; }
+    const role = (await sb().rpc('admin_role')).data;
+    if (!role) { setErr(L('Esta conta não tem acesso ao painel.')); return; }
+    const f = (await sb().auth.mfa.listFactors()).data?.totp.find((x) => x.status === 'verified');
+    if (f) { setFactor(f.id); setStep('code'); return; }
+    const { data, error: e2 } = await sb().auth.mfa.enroll({ factorType: 'totp', friendlyName: 'FuturePal Admin ' + Date.now() });
+    if (e2 || !data) { setErr(e2?.message ?? 'Erro'); return; }
+    setFactor(data.id); setQr({ qr: data.totp.qr_code, secret: data.totp.secret }); setStep('enroll');
+  };
   const verify = async () => {
     if (!enroll) return;
     const { error } = await sb().auth.mfa.challengeAndVerify({ factorId: enroll.id, code: code.trim() });
@@ -479,7 +496,10 @@ export function isUnlocked(): boolean {
 /** Login do painel: email e palavra-passe da conta e, a seguir, o código da app autenticadora (obrigatório). */
 export function AdminLogin({ onDone, onCancel }: { onDone: () => void; onCancel?: () => void }) {
   const auth = useAuth();
-  const [step, setStep] = useState<'pass' | 'code' | 'enroll'>('pass');
+  const providers = ((auth.user?.app_metadata as { providers?: string[] } | undefined)?.providers ?? []);
+  const noPassword = !!auth.user && !providers.includes('email');
+  const [step, setStep] = useState<'pass' | 'create' | 'code' | 'enroll'>(noPassword ? 'create' : 'pass');
+  const [pass2, setPass2] = useState('');
   const [email, setEmail] = useState(auth.user?.email ?? '');
   const [pass, setPass] = useState('');
   const [code, setCode] = useState('');
@@ -514,14 +534,20 @@ export function AdminLogin({ onDone, onCancel }: { onDone: () => void; onCancel?
   };
   return (
     <div className="adm-login" onMouseDown={(e) => { if (e.target === e.currentTarget && onCancel) onCancel(); }}>
-      <form className="adm-login-card" onSubmit={(e) => { e.preventDefault(); if (step === 'pass') signIn(); else verify(); }}>
+      <form className="adm-login-card" onSubmit={(e) => { e.preventDefault(); if (step === 'pass') signIn(); else if (step === 'create') create(); else verify(); }}>
         {/* foto da conta quando o email escrito é o da conta com sessão iniciada (não revela fotos de outras contas) */}
         {auth.user?.email && email.trim().toLowerCase() === auth.user.email.toLowerCase()
           ? <span className="adm-avatar"><UserAvatar user={auth.user} name={(auth.user.user_metadata?.full_name as string) || auth.user.email} size={64} /></span>
           : <span className="adm-logo big">F</span>}
         <h1>{L('Painel de administração')}</h1>
-        <div className="adm-steps"><i className={step === 'pass' ? 'on' : 'done'}>1</i><span /><i className={step !== 'pass' ? 'on' : ''}>2</i></div>
-        {step === 'pass' ? (<>
+        <div className="adm-steps"><i className={step === 'pass' || step === 'create' ? 'on' : 'done'}>1</i><span /><i className={step === 'code' || step === 'enroll' ? 'on' : ''}>2</i></div>
+        {step === 'create' ? (<>
+          <p>{L('A tua conta entra com o Google e ainda não tem palavra-passe. Cria uma só para o painel (pelo menos 10 caracteres).')}</p>
+          <label><span>Email</span><input className="fx-input" type="email" value={auth.user?.email ?? ''} readOnly /></label>
+          <label><span>{L('Nova palavra-passe')}</span><input className="fx-input" type="password" autoComplete="new-password" value={pass} onChange={(e) => setPass(e.target.value)} required /></label>
+          <label><span>{L('Repetir palavra-passe')}</span><input className="fx-input" type="password" autoComplete="new-password" value={pass2} onChange={(e) => setPass2(e.target.value)} required /></label>
+          <button type="submit" className="fx-btn primary" disabled={busy}>{busy ? '…' : L('Criar e continuar')}</button>
+        </>) : step === 'pass' ? (<>
           <p>{L('Entra com o email e a palavra-passe da tua conta.')}</p>
           <label><span>Email</span><input className="fx-input" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
           <label><span>{L('Palavra-passe')}</span><input className="fx-input" type="password" autoComplete="current-password" value={pass} onChange={(e) => setPass(e.target.value)} required /></label>
