@@ -16,6 +16,7 @@ import { DatePicker } from '../ui/DatePicker';
 import { todayISO } from '../core/dates';
 import { syncSalaryTransactions } from '../core/salaryTx';
 import { Sponsored } from '../ui/Sponsored';
+import { cmpText, refText } from '../core/compare';
 import { PeriodFilter, initialPeriod, periodRange, previousRange, type Period } from '../ui/PeriodFilter';
 import { L } from '../i18n/phrases';
 
@@ -211,7 +212,7 @@ export function Transactions() {
             const top = visible.filter((x) => x.type === 'expense').sort((a2, b2) => b2.amountCents - a2.amountCents)[0];
             const topCat = top ? cats.find((k) => k.id === top.categoryId) : undefined;
             const pctCmp = prevCount ? Math.round(((n - prevCount) / prevCount) * 100) : null;
-            const cmp = pctCmp === null ? null : <span className={'fx-chip ' + (pctCmp > 0 ? 'warn' : pctCmp < 0 ? 'good' : 'neutral')} title={t('txs.vs_' + period)}>{pctCmp > 0 ? '+' : ''}{pctCmp}% <small>{t('txs.vsShort_' + period)}</small></span>;
+            const cmp = pctCmp === null ? null : <span className={'fx-chip ' + (pctCmp > 0 ? 'warn' : pctCmp < 0 ? 'good' : 'neutral')}>{cmpText(t, pctCmp, refText(t, settings.language, period === 'range' ? { kind: 'preset', preset: per.preset } : period === 'year' ? { kind: 'year', year: year - 1 } : { kind: 'month', date: new Date(year, month - 2, 1) }))}</span>;
             return (
               <div className="txs-stats">
                 <div><small>{t('txs.count_' + period)}</small><span className="txs-v"><b>{n}</b>{cmp}</span></div>

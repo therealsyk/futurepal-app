@@ -812,5 +812,23 @@
     "clear": "Remover filtro",
     "month": "Mensal",
     "year": "Anual"
+  },
+  "cmp": {
+    "more": "{{pct}}% mais que {{ref}}",
+    "less": "{{pct}}% menos que {{ref}}",
+    "same": "O mesmo que {{ref}}",
+    "moreShort": "{{pct}}% mais",
+    "lessShort": "{{pct}}% menos",
+    "sameShort": "Igual",
+    "none": "Sem dados para comparar",
+    "refMonth": "em {{name}}",
+    "refYear": "em {{year}}",
+    "refPrevMonth": "no mês anterior",
+    "refPrevYear": "no ano anterior",
+    "ref_m1": "no mês anterior",
+    "ref_q": "nos 3 meses anteriores",
+    "ref_s": "nos 6 meses anteriores",
+    "ref_custom": "no período anterior",
+    "tip": "Em comparação com {{ref}}"
   }
 }

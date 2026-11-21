@@ -14,6 +14,7 @@ import { forecastGoal, type GoalForecast } from '../core/goalForecast';
 import { Ic, ICON, CatIcon, catLabel, CategorySelect } from '../ui/fx';
 import { EmptyState } from '../ui/EmptyState';
 import { L } from '../i18n/phrases';
+import { cmpShort, cmpText, refText } from '../core/compare';
 
 // Folha que sobe do fundo do ecrã (resto desfocado). Voltar, tocar fora ou Esc fecham.
 function BottomSheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
@@ -412,19 +413,18 @@ export function SimpleOverview({ yearly = false, embed }: { yearly?: boolean; em
   const pm = yearly ? sumOf(String(cur.y - 1)) : sumOf(key(cur.m === 0 ? cur.y - 1 : cur.y, (cur.m + 11) % 12));
   const prevBal = pm.income - pm.expense;
   // nome do período anterior, em palavras ("outubro", "2025")
-  const prevName = yearly ? String(cur.y - 1)
-    : new Intl.DateTimeFormat(loadSettings().language, { month: 'long' }).format(new Date(cur.m === 0 ? cur.y - 1 : cur.y, (cur.m + 11) % 12, 1));
-  // etiqueta com a % ao lado do valor; ao tocar mostra "Em comparação com outubro"
+  const prevRef = refText(t, loadSettings().language, yearly ? { kind: 'year', year: cur.y - 1 } : { kind: 'month', date: new Date(cur.m === 0 ? cur.y - 1 : cur.y, (cur.m + 11) % 12, 1) });
+  // etiqueta "57% menos" ao lado do valor; ao tocar mostra a frase completa "57% menos que em outubro"
   const cmp = (id: string, now_: number, before: number, upIsGood: boolean) => {
     if (before === 0) return null;
     const pctv = Math.round(((now_ - before) / Math.abs(before)) * 100);
     const tone = pctv === 0 ? 'same' : (pctv > 0) === upIsGood ? 'good' : 'bad';
-    const label = `Em comparação com ${prevName}`;
+    const label = cmpText(t, pctv, prevRef);
     return (
       <span className="sh-trend-box">
-        <button type="button" className={'sh-trend ' + tone} aria-label={`${pctv > 0 ? L('Mais') : pctv < 0 ? L('Menos') : L('Igual')} ${Math.abs(pctv)}%. ${label}`}
+        <button type="button" className={'sh-trend ' + tone} aria-label={label}
           onClick={(e) => { e.stopPropagation(); setTip(tip === id ? null : id); }}>
-          {pctv > 0 ? '▲' : pctv < 0 ? '▼' : '●'} {Math.abs(pctv)}%
+          {cmpShort(t, pctv)}
         </button>
         {tip === id && <span className="sh-tip" role="status">{label}</span>}
       </span>

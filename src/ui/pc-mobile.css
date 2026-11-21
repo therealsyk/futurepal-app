@@ -525,3 +525,5 @@ html.pcm .txs-new > .sh-seg.three { order: 2; flex: 0 1 420px !important; }
 html.pcm .txs-new > .txs-search { order: 3; flex: 1 1 240px !important; }
 html.pcm .txs-new > .txs-stats { order: 4; flex: 1 1 100% !important; }
 html.pcm .txs-new > section { order: 5; flex: 1 1 100% !important; }
+/* comparação em palavras ("57% menos que em outubro"): pode partir em duas linhas sem empurrar o título */
+.pco-delta { white-space: normal; text-align: right; max-width: 58%; font-size: 12.5px; line-height: 1.25; }

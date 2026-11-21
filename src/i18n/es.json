@@ -641,5 +641,23 @@
     "empty_month": "Sin movimientos este mes",
     "empty_year": "Sin movimientos este año",
     "empty_range": "Sin movimientos en este periodo"
+  },
+  "cmp": {
+    "more": "{{pct}}% más que {{ref}}",
+    "less": "{{pct}}% menos que {{ref}}",
+    "same": "Igual que {{ref}}",
+    "moreShort": "{{pct}}% más",
+    "lessShort": "{{pct}}% menos",
+    "sameShort": "Igual",
+    "none": "Sin datos para comparar",
+    "refMonth": "en {{name}}",
+    "refYear": "en {{year}}",
+    "refPrevMonth": "el mes anterior",
+    "refPrevYear": "el año anterior",
+    "ref_m1": "el mes anterior",
+    "ref_q": "los 3 meses anteriores",
+    "ref_s": "los 6 meses anteriores",
+    "ref_custom": "el periodo anterior",
+    "tip": "En comparación con {{ref}}"
   }
 }
