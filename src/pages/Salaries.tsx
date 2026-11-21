@@ -31,6 +31,7 @@ export const Salaries = () => {
   const [grid, setGrid] = useState<Array<{ month: number; amountCents: number }>>([]);
   const [summary, setSummary] = useState<{ salaryCents: number; expenseCents: number; savingsCents: number; pctSavings: number } | null>(null);
   const [extras, setExtras] = useState<Transaction[]>([]);
+  const [prev, setPrev] = useState({ salary: 0, expense: 0, income: 0 });
   const [salaryCats, setSalaryCats] = useState<Set<string>>(new Set());
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [drafts, setDrafts] = useState<Record<number, string>>({});
@@ -53,6 +54,12 @@ export const Salaries = () => {
     await syncSalaryTransactions(db).catch(() => {}); // salários escritos à mão nas Transações entram na grelha
     setGrid(await salaryGrid(db, year));
     setSummary(await salaryYearSummary(db, year));
+    // ano anterior, para as comparações (salário, despesas, poupança e taxa)
+    const ps = await salaryYearSummary(db, year - 1);
+    const pAll = (await db.transactions.toArray()).filter((tx) => tx.deletedAt === null && tx.type === 'income' && !isSalaryTx(tx) && tx.date.startsWith(String(year - 1)));
+    const salCats = new Set((await db.categories.toArray()).filter((c) => c.nameKey === 'catSalary' || c.nameKey === 'catPension').map((c) => c.id));
+    const pExtras = pAll.filter((tx) => !salCats.has(tx.categoryId)).reduce((a, x) => a + x.amountCents, 0);
+    setPrev({ salary: ps.salaryCents, expense: ps.expenseCents, income: ps.salaryCents + pExtras });
     const cats = (await db.categories.toArray()).filter((c) => c.deletedAt === null);
     const sal = new Set(cats.filter((c) => c.nameKey === 'catSalary' || c.nameKey === 'catPension').map((c) => c.id));
     setSalaryCats(sal);
@@ -71,6 +78,10 @@ export const Salaries = () => {
   const income = salaryTotal + extrasTotal;
   const expense = summary?.expenseCents ?? 0;
   const saved = income - expense;
+  const prevSaved = prev.income - prev.expense;
+  const rate = income > 0 ? saved / income : 0, prevRate = prev.income > 0 ? prevSaved / prev.income : 0;
+  const dl = (n: number, b: number) => (b === 0 ? null : (n - b) / Math.abs(b));
+  const cmp = { prevName: String(year - 1), vsLabel: t('pco.vs') };
 
   const commit = async (month: number, raw: string) => {
     const cents = raw.trim() === '' ? 0 : parseMoneyToCents(raw);
@@ -135,13 +146,13 @@ export const Salaries = () => {
       </PageHead>
 
       <div className="pco-metrics-row">
-        <Metric icon={IC.income} tone="inc" title={t('salaries.annualSalaries')} value={fmt(salaryTotal)} valueClass="fx-pos" delta={null} deltaGoodUp prevName="" vsLabel=""
+        <Metric icon={IC.income} tone="inc" title={t('salaries.annualSalaries')} value={fmt(salaryTotal)} valueClass="fx-pos" delta={dl(salaryTotal, prev.salary)} deltaGoodUp {...cmp}
           sub={t('salaries.plusExtras', { value: fmt(extrasTotal) })} bar={income > 0 ? salaryTotal / income : 0} />
-        <Metric icon={IC.spent} tone="exp" title={t('salaries.annualExpenses')} value={fmt(expense)} valueClass={expense > 0 ? 'fx-neg' : ''} delta={null} deltaGoodUp={false} prevName="" vsLabel=""
+        <Metric icon={IC.spent} tone="exp" title={t('salaries.annualExpenses')} value={fmt(expense)} valueClass={expense > 0 ? 'fx-neg' : ''} delta={dl(expense, prev.expense)} deltaGoodUp={false} {...cmp}
           sub={avg(expense)} bar={income > 0 ? expense / income : 0} />
-        <Metric icon={IC.saved} tone="sav" title={t('salaries.annualSavings')} value={fmt(saved)} valueClass={saved < 0 ? 'fx-neg' : 'fx-pos'} delta={null} deltaGoodUp prevName="" vsLabel=""
+        <Metric icon={IC.saved} tone="sav" title={t('salaries.annualSavings')} value={fmt(saved)} valueClass={saved < 0 ? 'fx-neg' : 'fx-pos'} delta={dl(saved, prevSaved)} deltaGoodUp {...cmp}
           sub={avg(saved)} bar={income > 0 ? Math.max(0, saved) / income : 0} />
-        <Metric icon={IC.pct} tone="sav" title={L('Taxa de poupança')} value={income > 0 ? `${Math.round((saved / income) * 100)}%` : '—'} delta={null} deltaGoodUp prevName="" vsLabel=""
+        <Metric icon={IC.pct} tone="sav" title={L('Taxa de poupança')} value={income > 0 ? `${Math.round((saved / income) * 100)}%` : '—'} delta={prev.income > 0 && income > 0 ? dl(rate, prevRate) : null} deltaGoodUp {...cmp}
           bar={income > 0 ? Math.max(0, saved) / income : 0} />
       </div>
 
