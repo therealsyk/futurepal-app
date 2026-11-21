@@ -14,7 +14,7 @@ import { getSupabase, hasSupabaseConfig } from '../auth/supabase';
 import { runSync } from '../sync/runSync';
 import { LoginForm } from './Login';
 import { useAuth } from '../auth/AuthContext';
-import { Ic, ICON, Sheet, Seg, catLabel, CategorySelect } from '../ui/fx';
+import { Ic, ICON, Sheet, Seg, catLabel, CategorySelect, PickMenu } from '../ui/fx';
 import { todayISO } from '../core/dates';
 import { currencyFlagUrl } from '../ui/currencyFlag';
 
@@ -189,18 +189,14 @@ function Welcome({ language, country, onLanguage, onCountry, onStart, onLogin }:
       <p className="ob-sub">{t('onboard.welcomeSub')}</p>
 
       <div className="ob-card ob-rows">
-        <label className="ob-row">
+        <div className="ob-row">
           <span className="ob-row-text"><b>{t('settings.language')}</b><small>{t('onboard.languageHint')}</small></span>
-          <select className="ob-pill" value={language} onChange={(e) => onLanguage(e.target.value)} data-testid="ob-language">
-            {LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
-          </select>
-        </label>
-        <label className="ob-row">
+          <PickMenu label={t('settings.language')} value={language} testId="ob-language" options={LANGUAGES.map((l) => ({ value: l.code, label: l.label }))} onChange={(v) => onLanguage(String(v))} />
+        </div>
+        <div className="ob-row">
           <span className="ob-row-text"><b>{t('settings.country')}</b><small>{t('onboard.countryHint')}</small></span>
-          <select className="ob-pill" value={country} onChange={(e) => onCountry(e.target.value)} data-testid="ob-country">
-            {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{countryName(c.code, language)}</option>)}
-          </select>
-        </label>
+          <PickMenu label={t('settings.country')} value={country} testId="ob-country" options={COUNTRIES.map((c) => ({ value: c.code, label: countryName(c.code, language) }))} onChange={(v) => onCountry(String(v))} />
+        </div>
       </div>
 
       <div className="ob-actions">

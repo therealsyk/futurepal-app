@@ -926,3 +926,6 @@ button.sh-limit:hover { filter: brightness(1.08); } button.sh-limit:active { tra
 .ob-social-btn { width: 100% !important; flex: none !important; height: 50px; min-height: 50px !important; padding: 0 18px !important; border-radius: 99px !important;
   display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 15px !important; font-weight: 650; white-space: nowrap; }
 .ob-or { width: 100%; flex: none !important; margin: 6px 0 12px !important; }
+/* boas-vindas: idioma e país com o menu da app */
+.ob-row .fx-pick > .fx-btn { min-width: 190px; height: 44px; justify-content: space-between; gap: 10px; border-radius: 99px; background: var(--bg); border: 1px solid var(--border); font-weight: 600; }
+.ob-row .fx-pick-menu { max-height: 320px; overflow-y: auto; right: 0; left: auto; min-width: 220px; }
