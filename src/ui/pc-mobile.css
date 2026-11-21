@@ -498,3 +498,10 @@ html.pcm .txs-new > .pf .pf-seg button { flex: 1; }
 .pco-right .ab-chip img, .pco-right .ab-initials { width: 40px; height: 40px; box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px color-mix(in srgb, var(--mv, var(--accent)) 70%, transparent); }
 .pco-right .ab-bell { width: 42px; height: 42px; border: 0; background: transparent; color: var(--muted); }
 .pco-right .ab-bell:hover { background: var(--card); color: var(--text); }
+/* utilizador: cartão próprio com um tom da cor da app (diferente das caixas neutras ao lado), sem linha a separar */
+.pco-right .ab { border-left: 0; padding-left: 0; margin-left: 14px; height: auto; gap: 0; padding: 4px 6px 4px 4px; border-radius: 99px;
+  background: color-mix(in srgb, var(--mv, var(--accent)) 12%, var(--card)); border: 1px solid color-mix(in srgb, var(--mv, var(--accent)) 30%, transparent); }
+.pco-right .ab-chip { height: 42px; padding: 0 10px 0 2px; }
+.pco-right .ab-chip:hover, .pco-right .ab-bell:hover { background: color-mix(in srgb, var(--mv, var(--accent)) 18%, var(--card)); }
+.pco-right .ab-chip img, .pco-right .ab-initials { width: 36px; height: 36px; box-shadow: none; }
+.pco-right .ab-bell { width: 38px; height: 38px; }
