@@ -874,3 +874,18 @@ button.ad-lbox-body { cursor: pointer; }
 .lim-empty { margin: 10px 0 4px; font-size: 15px; opacity: .85; }
 .sh-bar.warn i { background: #f5b85a; } .sh-bar.over i { background: var(--red); }
 .sh-limit .lim-of { font-style: normal; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* Telemóvel: nada fica cortado com "…" — os textos passam para a linha de baixo e os valores encolhem um pouco */
+@media (max-width: 768px) {
+  .sh-tx-main, .sh-tx-main b, .fx-item-main b, .mv-tx-main b, .sh-limit b, .sh-group b, .acc-card-top b, .fx-selectbtn > span, .fx-switch-name,
+  .fx-acc-name b, .sh-bestcard b, .txs-stats small, .fx-kpi-sub, .fx-kpi-label, .fx-card-head h2, .fx-monthnav > span, .pm-sub-main,
+  .mv-cat-row b:first-child, .im-desc, .sw-item b, .sw-item small, .mv-hello h1, .fx-tr-names, .ab-head b, .ab-head small, .fx-bar-sub,
+  .pf-nav .mv-month, .ad-lbox-sub, .dsh-stat em, .txs-stats > .wide b, .pco-acc-main b {
+    white-space: normal !important; overflow: visible !important; text-overflow: clip !important; overflow-wrap: anywhere; -webkit-line-clamp: unset !important; display: revert;
+  }
+  .txs-stats > .wide b { display: block !important; }
+  /* valores: sem "…", ficam inteiros com um tamanho que cabe */
+  .acc-card-val, .sh-kpi .sh-valrow b, .sh-kpis.three .sh-kpi b, .mv-stats b, .fx-kpi-value > span:first-child, .fx-cal-m b {
+    overflow: visible !important; text-overflow: clip !important; white-space: nowrap; font-size: clamp(13px, 4.2vw, 20px) !important;
+  }
+}
