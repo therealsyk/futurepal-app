@@ -364,7 +364,7 @@ export function SplitPage() {
           <div className="spi-back" onMouseDown={(e) => { if (e.target === e.currentTarget) setClosing(null); }}>
             <div className="spi-card" role="alertdialog" aria-modal="true">
               <span className="spi-face warn">!</span>
-              <p className="spi-text">{L('Tens a certeza que queres fechar esta conta?')} <b>{closing.description}</b></p>
+              <p className="spi-text">{L('Tens a certeza que queres fechar a conta')} <b>{closing.description}</b>?</p>
               {unpaid > 0 && <p className="spi-warn">{unpaid === 1 ? L('Ainda falta 1 pessoa pagar.') : L('Ainda faltam') + ' ' + unpaid + ' ' + L('pessoas pagar.')}</p>}
               <div className="spi-btns">
                 <button type="button" className="spi-btn no" onClick={() => setClosing(null)}>{L('Cancelar')}</button>
