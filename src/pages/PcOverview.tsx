@@ -16,7 +16,7 @@ import { SimpleHome } from './SimpleHome';
 import { SimpleOverview } from './SimplePages';
 import { AccountsWidget, AssistantWidget, LimitsWidget } from './PcWidgets';
 import { L } from '../i18n/phrases';
-import { cmpText, refText } from '../core/compare';
+import { cmpText } from '../core/compare';
 
 const IC = {
   income: 'M12 19V5M5 12l7-7 7 7',
@@ -27,9 +27,9 @@ const IC = {
   grip: 'M9 5h.01M15 5h.01M9 12h.01M15 12h.01M9 19h.01M15 19h.01',
 };
 
-export function Metric({ icon, tone, title, value, valueClass, delta, deltaGoodUp, prevName, sub, bar }: {
+export function Metric({ icon, tone, title, value, valueClass, delta, deltaGoodUp, prevName, vsLabel, sub, bar }: {
   icon: string; tone: 'inc' | 'exp' | 'sav'; title: string; value: string; valueClass?: string;
-  delta: number | null; deltaGoodUp: boolean; prevName: string; vsLabel?: string; sub?: string; bar: number;
+  delta: number | null; deltaGoodUp: boolean; prevName: string; vsLabel: string; sub?: string; bar: number;
 }) {
   const { t } = useTranslation();
   const pct = delta === null ? null : Math.round(delta * 100);
@@ -39,8 +39,8 @@ export function Metric({ icon, tone, title, value, valueClass, delta, deltaGoodU
       <div className="pco-mhead">
         <span className="pco-mic"><Ic d={icon} size={18} /></span>
         <h3>{title}</h3>
-        {pct !== null ? <span className={'pco-delta ' + (good === null ? 'same' : good ? 'good' : 'bad')}>{cmpText(t, pct, prevName)}</span>
-          : prevName ? <span className="pco-delta same">{t('cmp.none')}</span> : null}
+        {pct !== null ? <span className={'pco-delta ' + (good === null ? 'same' : good ? 'good' : 'bad')}>{deltaGoodUp ? <>{pct > 0 ? '+' : ''}{pct}% <small>{vsLabel} {prevName}</small></> : cmpText(t, pct, prevName)}</span>
+          : prevName ? <span className="pco-delta same" title={vsLabel + ' ' + prevName}>— <small>{vsLabel} {prevName}</small></span> : null}
       </div>
       <strong className={'pco-value ' + (valueClass ?? '')}>{value}</strong>
       {sub && <small className="pco-sub">{sub}</small>}
@@ -142,7 +142,7 @@ export function PcOverview() {
   const spanEnd = range.to > todayIso ? todayIso : range.to;
   const days = Math.max(1, Math.round((new Date(spanEnd + 'T00:00:00').getTime() - new Date(range.from + 'T00:00:00').getTime()) / 864e5) + 1);
   const months = yearly ? (per.y === now.getFullYear() ? now.getMonth() + 1 : 12) : Math.max(1, Math.round(days / 30.4));
-  const prevName = refText(t, s.language, yearly ? { kind: 'year', year: per.y - 1 } : ranged ? { kind: 'preset', preset: per.preset } : { kind: 'month', date: new Date(per.y, per.m - 1, 1) });
+  const prevName = yearly ? String(per.y - 1) : ranged ? t('pco.prev_' + per.preset) : new Date(per.y, per.m - 1, 1).toLocaleDateString(s.language, { month: 'long' });
 
   // gráfico: os 12 meses do ano do período
   const endY = Number(range.to.slice(0, 4)), endM = Number(range.to.slice(5, 7)) - 1;
