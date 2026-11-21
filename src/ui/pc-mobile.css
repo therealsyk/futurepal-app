@@ -889,3 +889,7 @@ button.ad-lbox-body { cursor: pointer; }
     overflow: visible !important; text-overflow: clip !important; white-space: nowrap; font-size: clamp(13px, 4.2vw, 20px) !important;
   }
 }
+
+/* Janelas que sobem do fundo: só a altura do conteúdo (sem espaço vazio em baixo); largura igual em todas */
+.bs-sheet, .fx-sheet, .fx-sheet.wide, html.pcm .fx-sheet, html.pcm .fx-sheet:has(.tx-rows), html.pcm .stm { min-height: 0 !important; }
+@media (max-width: 768px) { .bs-sheet, .fx-sheet, .fx-sheet.wide { min-height: 0 !important; } }
