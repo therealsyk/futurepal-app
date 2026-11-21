@@ -138,7 +138,9 @@ export function AdminPage() {
   return (
     <AdminShell tab={shown} onTab={setTab} onRefresh={() => load()} role={role}>
       {error && <p className="fx-error">{error}</p>}
-      {shown === 'overview' && <><AdminDashboard /><AdminMoreMetrics /></>}
+      {shown === 'overview' && <AdminDashboard />}
+      {shown === 'engagement' && <><AdminMoreMetrics section="engagement" /><AdminDashboard part="audience" /></>}
+      {(shown === 'health' || shown === 'safety' || shown === 'money') && <AdminMoreMetrics section={shown} />}
       {shown === 'live' && <AdminLive />}
       {tab === 'plans' && (<>
       <div className="fx-card ad-card">

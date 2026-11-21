@@ -65,7 +65,7 @@ function Card({ title, sub, children, className = '' }: { title: string; sub?: s
   return <section className={'dsh-card ' + className}><header><h3>{title}</h3>{sub && <small>{sub}</small>}</header>{children}</section>;
 }
 
-export function AdminDashboard() {
+export function AdminDashboard({ part = 'main' }: { part?: 'main' | 'audience' }) {
   const [s, setS] = useState<Stats | null>(null);
   const [a, setA] = useState<Act | null>(null);
   const [p, setP] = useState<Pres | null>(null);
@@ -98,6 +98,7 @@ export function AdminDashboard() {
 
   return (
     <div className="dsh">
+      {part === 'main' && <>
       {/* Linha 1: cartões pequenos com mini-gráficos */}
       <div className="dsh-row6">
         <Card title={L('Utilizadores')} sub={L('Total de contas')}><div className="dsh-kv"><b>{nf(s?.users_total)}</b><Delta v={s ? growth(s.users_7d, Math.max(0, s.users_30d - s.users_7d) / 3) : null} /></div><MiniBars data={last14} color="#2dd4bf" /></Card>
@@ -143,6 +144,9 @@ export function AdminDashboard() {
         <Card title={L('Versões em uso')} sub={L('Para decidir a versão mínima')}><HBars data={p?.versions ?? {}} /></Card>
       </div>
 
+      </>}
+      {part === 'audience' && <h2 className="dsh-h2">{L('Público')}</h2>}
+      {part === 'audience' && <>
       {/* Linha 4: idiomas, login, conta, interesse */}
       <div className="dsh-row4">
         <Card title={L('Idiomas')}><HBars data={s?.languages ?? {}} /></Card>
@@ -153,6 +157,7 @@ export function AdminDashboard() {
         </Card>
         <Card title={L('Interesse nos planos')} sub={`${interestTotal} ${L('pessoas')}`}><Donut data={interestBy as Record<string, number>} /></Card>
       </div>
+      </>}
     </div>
   );
 }
@@ -169,7 +174,7 @@ const FEAT_NAME: Record<string, string> = { goals: 'Metas', budgets: 'Limites', 
 function Stat({ label, value, hint }: { label: string; value: React.ReactNode; hint?: string }) {
   return <div className="dsh-stat"><small>{label}</small><b>{value}</b>{hint && <em>{hint}</em>}</div>;
 }
-export function AdminMoreMetrics() {
+export function AdminMoreMetrics({ section }: { section: 'engagement' | 'health' | 'safety' | 'money' }) {
   const [m, setM] = useState<M | null>(null);
   const [err, setErr] = useState(false);
   const [ping, setPing] = useState<{ db: number | null; auth: boolean | null }>({ db: null, auth: null });
@@ -198,7 +203,7 @@ export function AdminMoreMetrics() {
   const mb = (b: number) => (b / 1048576).toFixed(1) + ' MB';
   return (
     <div className="dsh">
-      <h2 className="dsh-h2">{L('Engajamento e utilização')}</h2>
+      {section === 'engagement' && <>
       <div className="dsh-stats">
         <Stat label={L('Despesas registadas')} value={nf(m.expenses_total)} hint={`${nf(m.expenses_30d)} ${L('em 30 dias')}`} />
         <Stat label={L('Metas criadas')} value={nf(m.goals_total)} hint={`${pct(m.pct_with_goal)} ${L('das contas têm metas')}`} />
@@ -214,7 +219,8 @@ export function AdminMoreMetrics() {
         <section className="dsh-card"><header><h3>{L('Ecrãs mais usados')}</h3><small>{L('Minutos nos últimos 30 dias')}</small></header><HBars data={pages} /></section>
       </div>
 
-      <h2 className="dsh-h2">{L('Saúde técnica')}</h2>
+      </>}
+      {section === 'health' && <>
       <div className="dsh-stats">
         <Stat label={L('Base de dados')} value={<span className="dsh-ok">● {L('Online')}</span>} hint={ping.db === null ? '…' : ping.db < 0 ? L('Sem resposta') : `${ping.db} ms ${L('de resposta')}`} />
         <Stat label={L('Autenticação')} value={ping.auth === null ? '…' : <span className={ping.auth ? 'dsh-ok' : 'dsh-bad'}>● {ping.auth ? L('Online') : L('Com problemas')}</span>} />
@@ -227,13 +233,14 @@ export function AdminMoreMetrics() {
         <section className="dsh-card"><header><h3>{L('Erros mais frequentes')}</h3><small>{L('Últimos 7 dias')}</small></header><HBars data={m.errors_top} /></section>
       </div>
 
-      <div className="dsh-row3">
-        <section className="dsh-card"><header><h3>{L('Suporte')}</h3><small>{L('Tickets vindos da app')}</small></header>
+      </>}
+      {section !== 'engagement' && section !== 'health' && <div className="dsh-row2">
+        {section === 'safety' && <section className="dsh-card"><header><h3>{L('Suporte')}</h3><small>{L('Tickets vindos da app')}</small></header>
           <div className="dsh-sub2"><span>{L('Abertos')} <b>{nf(m.tickets_open)}</b></span><span>{L('Resolvidos (30d)')} <b>{nf(m.tickets_done_30d)}</b></span></div>
           <Donut data={m.tickets_by_kind} />
           <p className="dsh-note">{L('Avaliações nas lojas e desinstalações: só ficam disponíveis quando a app estiver na Play Store / App Store.')}</p>
-        </section>
-        <section className="dsh-card"><header><h3>{L('Segurança')}</h3><small>{L('Só números agregados')}</small></header>
+        </section>}
+        {section === 'safety' && <section className="dsh-card"><header><h3>{L('Segurança')}</h3><small>{L('Só números agregados')}</small></header>
           <div className="dsh-kvs">
             <p><span>{L('Contas suspensas')}</span><b>{nf(m.suspended)}</b></p>
             <p><span>{L('Contas eliminadas (30d)')}</span><b>{nf(m.deleted_30d)}</b></p>
@@ -241,8 +248,8 @@ export function AdminMoreMetrics() {
             <p><span>{L('Máx. registos numa hora (24h)')}</span><b className={m.max_signups_hour_24h > 20 ? 'fx-neg' : ''}>{nf(m.max_signups_hour_24h)}</b></p>
           </div>
           {m.max_signups_hour_24h > 20 && <p className="fx-error">{L('Pico anormal de registos: verifica se não são contas falsas.')}</p>}
-        </section>
-        <section className="dsh-card"><header><h3>{L('Monetização')}</h3><small>{L('Estimativa com os preços mensais')}</small></header>
+        </section>}
+        {section === 'money' && <section className="dsh-card"><header><h3>{L('Monetização')}</h3><small>{L('Estimativa com os preços mensais')}</small></header>
           <div className="dsh-kvs">
             <p><span>{L('Subscritores')}</span><b>{nf(paid)}</b></p>
             <p><span>{L('Conversão grátis → pago')}</span><b>{m.users ? `${((paid / m.users) * 100).toFixed(1)}%` : '—'}</b></p>
@@ -251,8 +258,8 @@ export function AdminMoreMetrics() {
             <p><span>{L('Churn de subscritores (30d)')}</span><b>{churnSubs === null ? '—' : `${churnSubs}%`}</b></p>
             <p><span>{L('LTV estimado')}</span><b>{ltv === null ? '—' : eur(ltv)}</b></p>
           </div>
-        </section>
-      </div>
+        </section>}
+      </div>}
     </div>
   );
 }

@@ -452,6 +452,14 @@ export const PHRASES: Record<string, Tr> = {
   'Categorias personalizadas': ['Custom categories', 'Categorías personalizadas', 'Catégories personnalisées'],
   'Várias contas': ['Multiple accounts', 'Varias cuentas', 'Plusieurs comptes'],
   'Exportar / backup': ['Export / backup', 'Exportar / copia', 'Export / sauvegarde'],
+  'Público': ['Audience', 'Público', 'Public'],
+  'Análise': ['Analytics', 'Análisis', 'Analyse'],
+  'Utilização': ['Usage', 'Uso', 'Utilisation'],
+  'Como as pessoas usam a app: engajamento, funcionalidades, ecrãs e público.': ['How people use the app: engagement, features, screens and audience.', 'Cómo usan la app: compromiso, funciones, pantallas y público.', 'Comment l’app est utilisée : engagement, fonctionnalités, écrans et public.'],
+  'Estado dos serviços, tempo de resposta, base de dados e erros da app.': ['Service status, response time, database and app errors.', 'Estado de los servicios, tiempo de respuesta, base de datos y errores.', 'État des services, temps de réponse, base de données et erreurs.'],
+  'Suporte e segurança': ['Support and security', 'Soporte y seguridad', 'Support et sécurité'],
+  'Tickets, tipos de problema e sinais de abuso (só números agregados).': ['Tickets, problem types and abuse signals (aggregated numbers only).', 'Tickets, tipos de problema y señales de abuso (solo números agregados).', 'Tickets, types de problèmes et signes d’abus (chiffres agrégés).'],
+  'Subscritores, conversão, MRR, ARR, churn e LTV (estimativas).': ['Subscribers, conversion, MRR, ARR, churn and LTV (estimates).', 'Suscriptores, conversión, MRR, ARR, churn y LTV (estimaciones).', 'Abonnés, conversion, MRR, ARR, churn et LTV (estimations).'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */
