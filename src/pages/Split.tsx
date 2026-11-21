@@ -8,7 +8,7 @@ import type { Category } from '../db/database';
 import { activeCategories, addTransaction } from '../core/finance';
 import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
-import { hasFeature } from '../core/plan';
+
 import { billStatus, myPending, parseContact, toBills, type SplitBill } from '../core/split';
 import { LockedPreview } from '../ui/LockedPreview';
 import { catFitsKind, catLabel, EmptyState, Field, Ic, ICON, PageHead, Sheet } from '../ui/fx';
@@ -29,6 +29,8 @@ const today = () => new Date().toLocaleDateString('sv-SE');
 const errText = (e: unknown) => (e as { message?: string })?.message ?? String(e);
 
 export function SplitPage() {
+  const { has } = usePlan();
+  const canSplit = has('split');
   const { t } = useTranslation();
   const auth = useAuth();
   usePlan(); // re-render quando o plano muda
@@ -155,7 +157,7 @@ export function SplitPage() {
     setPersonal(null);
   };
 
-  const canCreate = hasFeature('split'); // criar grupos: Plus ou Pro (aceitar convites: qualquer plano)
+  const canCreate = canSplit; // criar grupos: Plus ou Pro (aceitar convites: qualquer plano)
   const pend = myPending(bills, me);
 
   return (

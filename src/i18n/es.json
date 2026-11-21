@@ -659,5 +659,8 @@
     "ref_s": "los 6 meses anteriores",
     "ref_custom": "el periodo anterior",
     "tip": "En comparación con {{ref}}"
+  },
+  "split": {
+    "createNeedsFamily": "Crear grupos (Plus o Pro)"
   }
 }
