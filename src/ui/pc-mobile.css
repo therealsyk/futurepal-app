@@ -795,3 +795,41 @@ button.ad-lbox-body { cursor: pointer; }
 .ad-lbox-pop i { height: 6px; border-radius: 6px; background: var(--card-2); overflow: hidden; } .ad-lbox-pop i em { display: block; height: 100%; background: var(--mv, var(--accent)); border-radius: 6px; }
 .ad-lbox-pop b { text-align: right; }
 .ad-lbox-list { display: none; }
+
+/* ================= Admin: acabamento igual em todas as páginas ================= */
+/* cartões grandes */
+.adm .fx-card, .adm .ad-card, .adm .dsh-card { border-radius: 16px !important; padding: 18px 20px !important; background: var(--card); border: 1px solid var(--border); }
+.adm .ad-card h3, .adm .dsh-card header h3 { font-size: 15px; font-weight: 650; margin: 0 0 4px; }
+.adm .dsh-card header { margin-bottom: 4px; }
+/* caixas pequenas de números: todas do mesmo tamanho, como as do Resumo */
+.adm .dsh-stats { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; align-items: stretch; }
+.adm .dsh-stat { min-height: 118px; justify-content: space-between; padding: 16px 18px; border-radius: 16px; background: var(--card); transition: border-color .15s; }
+.adm .dsh-stat:hover { border-color: color-mix(in srgb, var(--mv, var(--accent)) 35%, var(--border)); }
+.adm .dsh-stat small { font-size: 13px; font-weight: 600; color: var(--muted); }
+.adm .dsh-stat b { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; }
+.adm .dsh-stat em { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.adm .dsh-row6 .dsh-card, .adm .pm-wcard { min-height: 150px; }
+/* grelhas: cartões da mesma linha com a mesma altura */
+.adm .dsh-row2, .adm .dsh-row3, .adm .dsh-row4, .adm .fx-grid2 { align-items: stretch; }
+/* listas de valores (segurança, monetização, detalhes) */
+.adm .dsh-kvs p, .adm .ad-kv { padding: 11px 0; }
+.adm .dsh-kvs b, .adm .ad-kv b { font-variant-numeric: tabular-nums; }
+/* barras de filtros e pesquisa */
+.adm .ad-filters { gap: 10px; padding: 4px 0 14px; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
+.adm .ad-search .fx-input { height: 38px; }
+/* tickets */
+.adm .ad-fb-list { display: flex; flex-direction: column; gap: 12px; }
+.adm .ad-ticket { padding: 14px 16px; border-radius: 14px; background: var(--bg); gap: 10px; }
+.adm .ad-ticket-msg { font-size: 14px; line-height: 1.5; }
+.adm .ad-fb-meta { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 12.5px; color: var(--muted); }
+.adm .ad-fb-meta b { color: var(--text); padding: 2px 8px; border-radius: 6px; background: var(--card-2); }
+/* tabelas: linhas mais arejadas e cantos iguais aos cartões */
+.adm .ad-table-wrap { border-radius: 12px; }
+.adm .ad-table td { height: 48px; }
+/* páginas Segurança, Equipa e Versões: blocos com o mesmo espaçamento */
+.adm .fx-grid2 { gap: 16px; }
+.adm .fx-field, .adm label.fx-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; font-size: 13px; font-weight: 600; }
+.adm .fx-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+/* títulos de secção dentro das páginas */
+.adm .dsh-h2 { margin: 14px 0 2px; font-size: 16px; font-weight: 700; color: var(--text); }
+.adm .dsh-note { font-size: 12.5px; }
