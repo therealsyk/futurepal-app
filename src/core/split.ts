@@ -27,6 +27,47 @@ export function myPending(bills: SplitBill[], me: string): { cents: number; coun
   return { cents, count };
 }
 
+/** Progresso de uma conta para o ecrã: total, já pago, quanto falta (desce à medida que pagam), % e quem pagou / falta. */
+export function billProgress(bill: SplitBill) {
+  const st = billStatus(bill);
+  const people = bill.shares.filter((s) => s.shareCents > 0).length || bill.shares.length;
+  const totalCents = bill.amountCents;
+  const remainingCents = Math.max(0, Math.min(totalCents, st.unpaidCents));
+  const paidCents = totalCents - remainingCents;
+  const pct = totalCents > 0 ? Math.round((paidCents / totalCents) * 100) : 100;
+  return {
+    totalCents,
+    paidCents,
+    remainingCents,
+    pct,
+    people,
+    eachCents: people > 0 ? Math.round(totalCents / people) : 0,
+    paid: st.paid,
+    unpaid: st.unpaid,
+    done: st.done,
+  };
+}
+
+/**
+ * Resumo do grupo para mim: quanto eu ainda devo (as minhas partes por pagar nas contas dos outros)
+ * e quanto me devem (partes por pagar dos outros nas contas que eu criei).
+ */
+export function groupSummary(bills: SplitBill[], me: string): { iOweCents: number; owedToMeCents: number; openBills: number; settledBills: number } {
+  let iOweCents = 0;
+  let owedToMeCents = 0;
+  let openBills = 0;
+  for (const b of bills) {
+    const st = billStatus(b);
+    if (!st.done) openBills++;
+    for (const s of b.shares) {
+      if (s.paidAt || s.shareCents <= 0) continue;
+      if (s.userId === me && b.createdBy !== me) iOweCents += s.shareCents;
+      else if (b.createdBy === me && s.userId !== me) owedToMeCents += s.shareCents;
+    }
+  }
+  return { iOweCents, owedToMeCents, openBills, settledBills: bills.length - openBills };
+}
+
 /** Lê um convite: devolve email (minúsculas) ou telemóvel (só dígitos, 9+), ou null se não for válido. */
 export function parseContact(raw: string): { email: string | null; phone: string | null } | null {
   const v = raw.trim();
