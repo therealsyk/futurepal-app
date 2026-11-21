@@ -308,23 +308,6 @@ function SecurityPanel() {
     if (error) { setMsg(error.message); return; }
     setEnroll({ id: data.id, qr: data.totp.qr_code, secret: data.totp.secret });
   };
-  /** Cria a palavra-passe (conta que entrava só com Google) e segue para o 2FA. */
-  const create = async () => {
-    setErr(null);
-    if (pass.length < 10) { setErr(L('A palavra-passe tem de ter pelo menos 10 caracteres.')); return; }
-    if (pass !== pass2) { setErr(L('As palavras-passe não são iguais.')); return; }
-    setBusy(true);
-    const { error } = await sb().auth.updateUser({ password: pass });
-    setBusy(false); setPass(''); setPass2('');
-    if (error) { setErr(error.message); return; }
-    const role = (await sb().rpc('admin_role')).data;
-    if (!role) { setErr(L('Esta conta não tem acesso ao painel.')); return; }
-    const f = (await sb().auth.mfa.listFactors()).data?.totp.find((x) => x.status === 'verified');
-    if (f) { setFactor(f.id); setStep('code'); return; }
-    const { data, error: e2 } = await sb().auth.mfa.enroll({ factorType: 'totp', friendlyName: 'FuturePal Admin ' + Date.now() });
-    if (e2 || !data) { setErr(e2?.message ?? 'Erro'); return; }
-    setFactor(data.id); setQr({ qr: data.totp.qr_code, secret: data.totp.secret }); setStep('enroll');
-  };
   const verify = async () => {
     if (!enroll) return;
     const { error } = await sb().auth.mfa.challengeAndVerify({ factorId: enroll.id, code: code.trim() });
@@ -519,6 +502,23 @@ export function AdminLogin({ onDone, onCancel }: { onDone: () => void; onCancel?
     const f = (await sb().auth.mfa.listFactors()).data?.totp.find((x) => x.status === 'verified');
     if (f) { setFactor(f.id); setStep('code'); return; }
     // 2FA ainda não configurado: obrigatório antes de entrar
+    const { data, error: e2 } = await sb().auth.mfa.enroll({ factorType: 'totp', friendlyName: 'FuturePal Admin ' + Date.now() });
+    if (e2 || !data) { setErr(e2?.message ?? 'Erro'); return; }
+    setFactor(data.id); setQr({ qr: data.totp.qr_code, secret: data.totp.secret }); setStep('enroll');
+  };
+  /** Cria a palavra-passe (conta que entrava só com Google) e segue para o 2FA. */
+  const create = async () => {
+    setErr(null);
+    if (pass.length < 10) { setErr(L('A palavra-passe tem de ter pelo menos 10 caracteres.')); return; }
+    if (pass !== pass2) { setErr(L('As palavras-passe não são iguais.')); return; }
+    setBusy(true);
+    const { error } = await sb().auth.updateUser({ password: pass });
+    setBusy(false); setPass(''); setPass2('');
+    if (error) { setErr(error.message); return; }
+    const role = (await sb().rpc('admin_role')).data;
+    if (!role) { setErr(L('Esta conta não tem acesso ao painel.')); return; }
+    const f = (await sb().auth.mfa.listFactors()).data?.totp.find((x) => x.status === 'verified');
+    if (f) { setFactor(f.id); setStep('code'); return; }
     const { data, error: e2 } = await sb().auth.mfa.enroll({ factorType: 'totp', friendlyName: 'FuturePal Admin ' + Date.now() });
     if (e2 || !data) { setErr(e2?.message ?? 'Erro'); return; }
     setFactor(data.id); setQr({ qr: data.totp.qr_code, secret: data.totp.secret }); setStep('enroll');
