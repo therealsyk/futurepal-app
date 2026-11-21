@@ -732,3 +732,12 @@ html:has(.win-titlebar) .adm { top: 34px; }
 .ad-planpick .fx-pick { min-width: 220px; }
 .ad-planpick .fx-btn { width: 100%; justify-content: space-between; }
 .adm .fx-pick-menu, .ad-planpick .fx-pick-menu { z-index: 80; }
+
+/* Login do painel: janela a flutuar ao centro, com a página de trás desfocada */
+.adm-login { position: fixed; inset: 0; z-index: 120; display: grid; place-items: center; padding: 16px; background: rgba(5,6,9,.45) !important; backdrop-filter: blur(10px) saturate(1.1); -webkit-backdrop-filter: blur(10px); animation: bs-fade .2s ease both; }
+.adm-login-card { animation: fx-pop .25s cubic-bezier(.2,.8,.2,1) both; border-radius: 22px !important; background: color-mix(in srgb, var(--card) 92%, transparent) !important; box-shadow: 0 40px 100px -30px rgba(0,0,0,.9), 0 0 0 1px color-mix(in srgb, var(--mv, var(--accent)) 18%, transparent) !important; }
+.adm-login-back { border: 0; background: none; font: inherit; cursor: pointer; }
+.adm-login-back:hover { color: var(--text); }
+
+.adm-avatar { align-self: center; display: grid; place-items: center; border-radius: 50%; padding: 3px; background: conic-gradient(var(--mv, var(--accent)), color-mix(in srgb, var(--mv, var(--accent)) 30%, transparent), var(--mv, var(--accent))); animation: fx-pop .25s ease both; }
+.adm-avatar img, .adm-avatar .ab-initials { width: 64px !important; height: 64px !important; border-radius: 50%; border: 3px solid var(--card); font-size: 24px; }

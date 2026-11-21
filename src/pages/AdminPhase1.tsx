@@ -5,6 +5,7 @@ import { getSupabase } from '../auth/supabase';
 import { loadSettings } from '../core/settings';
 import { Sheet, PickMenu } from '../ui/fx';
 import { useAuth } from '../auth/AuthContext';
+import { UserAvatar } from '../ui/UserAvatar';
 import { L } from '../i18n/phrases';
 
 export type AdminTab = 'overview' | 'live' | 'users' | 'plans' | 'tickets' | 'versions' | 'audit' | 'security' | 'team';
@@ -456,6 +457,7 @@ export function AdminShell({ tab, onTab, onRefresh, role, children }: { tab: Adm
  * ---------------------------------------------------------------------------------------------- */
 export const ROLE_NAME: Record<string, string> = { super: 'Administrador principal', admin: 'Administrador', moderator: 'Moderador', support: 'Suporte', finance: 'Financeiro', readonly: 'Só leitura' };
 const UNLOCK_KEY = 'wallet.adminUnlock';
+export const ADMIN_LOGIN_EVENT = 'wallet:admin-login';
 
 /** Cargo da pessoa no painel (null = sem acesso; undefined = a carregar). Não precisa de 2FA para saber o cargo. */
 export function useAdminRole(): string | null | undefined {
@@ -475,7 +477,7 @@ export function isUnlocked(): boolean {
 }
 
 /** Login do painel: email e palavra-passe da conta e, a seguir, o código da app autenticadora (obrigatório). */
-export function AdminLogin({ onDone }: { onDone: () => void }) {
+export function AdminLogin({ onDone, onCancel }: { onDone: () => void; onCancel?: () => void }) {
   const auth = useAuth();
   const [step, setStep] = useState<'pass' | 'code' | 'enroll'>('pass');
   const [email, setEmail] = useState(auth.user?.email ?? '');
@@ -511,9 +513,12 @@ export function AdminLogin({ onDone }: { onDone: () => void }) {
     onDone();
   };
   return (
-    <div className="adm-login">
+    <div className="adm-login" onMouseDown={(e) => { if (e.target === e.currentTarget && onCancel) onCancel(); }}>
       <form className="adm-login-card" onSubmit={(e) => { e.preventDefault(); if (step === 'pass') signIn(); else verify(); }}>
-        <span className="adm-logo big">F</span>
+        {/* foto da conta quando o email escrito é o da conta com sessão iniciada (não revela fotos de outras contas) */}
+        {auth.user?.email && email.trim().toLowerCase() === auth.user.email.toLowerCase()
+          ? <span className="adm-avatar"><UserAvatar user={auth.user} name={(auth.user.user_metadata?.full_name as string) || auth.user.email} size={64} /></span>
+          : <span className="adm-logo big">F</span>}
         <h1>{L('Painel de administração')}</h1>
         <div className="adm-steps"><i className={step === 'pass' ? 'on' : 'done'}>1</i><span /><i className={step !== 'pass' ? 'on' : ''}>2</i></div>
         {step === 'pass' ? (<>
@@ -531,7 +536,7 @@ export function AdminLogin({ onDone }: { onDone: () => void }) {
           <button type="submit" className="fx-btn primary" disabled={busy || code.length !== 6}>{busy ? '…' : L('Entrar no painel')}</button>
         </>)}
         {err && <p className="fx-error">{err}</p>}
-        <a className="adm-login-back" href="#/">← {L('Voltar à app')}</a>
+        <button type="button" className="adm-login-back" onClick={() => (onCancel ? onCancel() : (window.location.hash = '#/'))}>{L('Cancelar')}</button>
       </form>
     </div>
   );

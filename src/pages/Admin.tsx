@@ -1,5 +1,6 @@
 import { AdminLive } from './AdminLive';
 import { AdminDashboard } from './AdminDash';
+import { PcOverview } from './PcOverview';
 import { AdminLogin, AdminPhase1, AdminShell, allowedTab, isUnlocked, useAdminRole, type AdminTab } from './AdminPhase1';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -132,7 +133,7 @@ export function AdminPage() {
   void stats; void interest; // o Dashboard (AdminDash) carrega os seus próprios dados
   if (role === undefined) return <div className="fx-page ad-page" />;
   if (role === null) return <div className="fx-page ad-page"><PageHead title={t('admin.title')} sub={t('admin.noAccess')} /></div>;
-  if (!unlocked) return <AdminLogin onDone={() => setUnlocked(true)} />;
+  if (!unlocked) return <><PcOverview /><AdminLogin onDone={() => setUnlocked(true)} onCancel={() => { window.location.hash = '#/'; }} /></>;
   const shown: AdminTab = allowedTab(role, tab) ? tab : 'overview';
   return (
     <AdminShell tab={shown} onTab={setTab} onRefresh={() => load()} role={role}>
