@@ -505,3 +505,23 @@ html.pcm .txs-new > .pf .pf-seg button { flex: 1; }
 .pco-right .ab-chip:hover, .pco-right .ab-bell:hover { background: color-mix(in srgb, var(--mv, var(--accent)) 18%, var(--card)); }
 .pco-right .ab-chip img, .pco-right .ab-initials { width: 36px; height: 36px; box-shadow: none; }
 .pco-right .ab-bell { width: 38px; height: 38px; }
+/* janelas médias (portáteis): o topo do Resumo passa para duas linhas e as caixas das Transações ficam 2 a 2 */
+@media (max-width: 1400px) {
+  .pco-head { flex-wrap: wrap; row-gap: 10px; }
+  .pco-right { margin-left: auto; }
+}
+@media (max-width: 1200px) {
+  .txs-stats { grid-auto-flow: row !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .txs-stats > .wide:nth-child(3) { grid-column: 1 / -1 !important; }
+  html.pcm .txs-new > * { max-width: 100%; }
+}
+html.pcm .txs-new > .txs-stats { min-width: 0 !important; width: 100% !important; flex: 1 1 100% !important; }
+.txs-stats > div { overflow: hidden; }
+/* Transações (PC): linha flexível em vez de colunas fixas — cabe em qualquer largura de janela */
+html.pcm .tx-simple .txs-new { display: flex !important; flex-wrap: wrap; align-items: stretch; gap: 14px; }
+html.pcm .txs-new > .mv-head { flex: 1 1 100% !important; order: 0; }
+html.pcm .txs-new > .pf { order: 1; }
+html.pcm .txs-new > .sh-seg.three { order: 2; flex: 0 1 420px !important; }
+html.pcm .txs-new > .txs-search { order: 3; flex: 1 1 240px !important; }
+html.pcm .txs-new > .txs-stats { order: 4; flex: 1 1 100% !important; }
+html.pcm .txs-new > section { order: 5; flex: 1 1 100% !important; }
