@@ -988,3 +988,19 @@ button.sp-row { cursor: pointer; } button.sp-row:hover { background: color-mix(i
 .spi-btn.no { background: var(--card-2); color: var(--text); border: 1px solid var(--border); }
 .spi-later { border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; }
 .sp-bill-actions:empty { display: none; }
+
+/* Dividir contas v3 */
+.sp-bill-head { align-items: flex-start; }
+.sp-bill-tt { gap: 8px; }
+.sp-bill-tt .sp-bill-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.sp-bill-total { gap: 4px; }
+.sp-bill-total .sp-tag { margin-top: 4px; }
+.sp-bill > .sp-bill-tags { display: none; }
+.sp-facewrap { position: relative; flex: none; }
+.sp-paidmark { position: absolute; right: -3px; bottom: -3px; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: 11px; font-weight: 800; color: #04210f; background: var(--pos); border: 2px solid var(--card-2); }
+.sp-row.paid .sp-row-top b { color: var(--text); }
+.sp-bill-actions { align-items: center; }
+.sp-leave-in { order: 99; margin-left: auto; height: 32px; padding: 0 12px; border-radius: 99px; border: 0; background: none; color: var(--muted); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.sp-leave-in:hover { color: var(--red); }
+.sp-bill-actions:has(> .sp-leave-in:only-child) { border-top: 0; padding-top: 0; justify-content: flex-end; }
+.sp-leave-corner { display: none; }

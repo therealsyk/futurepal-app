@@ -529,6 +529,7 @@ export const PHRASES: Record<string, Tr> = {
   'Rejeitar': ['Decline', 'Rechazar', 'Refuser'],
   'Aceitar': ['Accept', 'Aceptar', 'Accepter'],
   'Decidir mais tarde': ['Decide later', 'Decidir más tarde', 'Décider plus tard'],
+  'Tem de pagar': ['Has to pay', 'Tiene que pagar', 'Doit payer'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */
