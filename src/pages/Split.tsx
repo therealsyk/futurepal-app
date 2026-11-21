@@ -14,7 +14,7 @@ import { loadSettings } from '../core/settings';
 import { billProgress, groupSummary, parseContact, toBills, type SplitBill } from '../core/split';
 import { avatarUrl } from '../core/avatar';
 import { LockedPreview } from '../ui/LockedPreview';
-import { catFitsKind, catLabel, CategorySelect, EmptyState, Ic, ICON, PageHead, Sheet } from '../ui/fx';
+import { catFitsKind, catLabel, CategorySelect, EmptyState, Ic, ICON, PageHead, Sheet, PickMenu } from '../ui/fx';
 import { DatePicker } from '../ui/DatePicker';
 import { usePlan } from './Premium';
 import { L } from '../i18n/phrases';
@@ -331,10 +331,8 @@ export function SplitPage() {
             <div className="tx-row"><span><Ic d="M5 5h14v15H5zM5 10h14M9 3v4M15 3v4" size={18} />{t('transactions.date')}</span>
               <DatePicker value={bill.date} onChange={(v) => setBill({ ...bill, date: v })} ariaLabel={t('transactions.date')} /></div>
             <label className="tx-row"><span><Ic d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M22 19v-1a4 4 0 0 0-3-3.9M16 4.1a3 3 0 0 1 0 5.8" size={18} />{L('Com quem?')}</span>
-              <select className="tx-val" value={bill.withGroup} onChange={(e) => { const g = e.target.value; if (g) setSel(g); setBill({ ...bill, withGroup: g, out: [] }); }}>
-                {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
-                {canCreate && <option value="">{L('Pessoas novas')}</option>}
-              </select></label>
+              <PickMenu compact label={L('Grupo')} value={bill.withGroup} options={[...groups.map((g) => ({ value: g.id, label: g.name })), ...(canCreate ? [{ value: '', label: L('Pessoas novas') }] : [])]}
+                onChange={(v) => { const g = String(v); if (g) setSel(g); setBill({ ...bill, withGroup: g, out: [] }); }} /></label>
             {bill.withGroup ? members.map((m) => (
               <div key={m.userId} className="tx-row tx-sub"><span className="sp-toggle-who"><Face m={m} small />{m.userId === me ? t('family.you') : m.displayName}</span>
                 <button type="button" role="switch" aria-checked={!bill.out.includes(m.userId)} className={'ob-toggle' + (!bill.out.includes(m.userId) ? ' on' : '')} onClick={() => setBill({ ...bill, out: bill.out.includes(m.userId) ? bill.out.filter((x) => x !== m.userId) : [...bill.out, m.userId] })} aria-label={m.displayName}><i /></button></div>
@@ -374,7 +372,7 @@ export function SplitPage() {
               <CategorySelect cats={expCats} kind="expense" value={personal.categoryId} onChange={(v) => setPersonal({ ...personal, categoryId: v })} ariaLabel={t('transactions.category')} emptyLabel={L('Escolher…')} className="fx-input tx-val" /></div>
             {accs.length > 0 && <div className="tx-row tx-acc"><span><Ic d={ICON.wallet} size={18} />{t('accounts.account')}</span>
               <span className="tx-accval"><span className="tx-accpick">
-                <select className="tx-val" value={personal.accountId || defaultAccountId(accs) || ''} onChange={(e) => setPersonal({ ...personal, accountId: e.target.value })} aria-label={t('accounts.account')}>{accs.map((a2) => <option key={a2.id} value={a2.id}>{a2.name}</option>)}</select>
+                <PickMenu compact label={t('accounts.account')} value={personal.accountId || defaultAccountId(accs) || ''} options={accs.map((a2) => ({ value: a2.id, label: a2.name, sub: bals[a2.id] !== undefined ? money(bals[a2.id]) : undefined }))} onChange={(v) => setPersonal({ ...personal, accountId: String(v) })} />
                 {bals[personal.accountId || defaultAccountId(accs) || ''] !== undefined && <small className={bals[personal.accountId || defaultAccountId(accs) || ''] < 0 ? 'fx-neg' : 'fx-pos'}>{money(bals[personal.accountId || defaultAccountId(accs) || ''])}</small>}
               </span></span></div>}
             <div className="tx-row"><span><Ic d="M5 5h14v15H5zM5 10h14M9 3v4M15 3v4" size={18} />{t('transactions.date')}</span>

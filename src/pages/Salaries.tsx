@@ -6,7 +6,7 @@ import { stampNew } from '../db/database';
 import type { Account, Category, Transaction, RecurringFrequency } from '../db/database';
 import { parseMoneyToCents, formatMoney } from '../core/money';
 import { loadSettings } from '../core/settings';
-import { PageHead, Sheet, MonthNav, EmptyState, Ic, ICON, CategorySelect } from '../ui/fx';
+import { PageHead, Sheet, MonthNav, EmptyState, Ic, ICON, CategorySelect, PickMenu } from '../ui/fx';
 import { DatePicker } from '../ui/DatePicker';
 import { todayISO } from '../core/dates';
 import { isSalaryTx, syncSalaryTransactions } from '../core/salaryTx';
@@ -204,16 +204,14 @@ export const Salaries = () => {
           <label className="tx-row"><span><Ic d="M4 20h4L19 9l-4-4L4 16z" size={18} />{t('salaries.extraName')}</span>
             <input className="tx-val" value={eName} placeholder={L('Ex.: Prémio, horas extra, venda')} onChange={(e) => setEName(e.target.value)} /></label>
           {accounts.length > 0 && <label className="tx-row"><span><Ic d={ICON.wallet} size={18} />{t('accounts.account')}</span>
-            <select className="tx-val" value={eAcc} onChange={(e) => setEAcc(e.target.value)}>{accounts.filter((a) => a.type !== 'debt').map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label>}
+            <PickMenu compact label={t('accounts.account')} value={eAcc} options={accounts.filter((a) => a.type !== 'debt').map((a) => ({ value: a.id, label: a.name }))} onChange={(v) => setEAcc(String(v))} /></label>}
           <div className="tx-row"><span><Ic d="M5 5h14v15H5zM5 10h14M9 3v4M15 3v4" size={18} />{t('transactions.date')}</span>
             <DatePicker value={eDate} onChange={(v) => setEDate(v)} className="fx-input tx-val" /></div>
           <div className="tx-row"><span><Ic d="M4 12a8 8 0 0 1 14-5l2-2v6h-6l2-2a5 5 0 1 0 1 6" size={18} />{L('Recorrente')}</span>
             <button type="button" role="switch" aria-checked={eRec} className={'ob-toggle' + (eRec ? ' on' : '')} onClick={() => setERec(!eRec)} aria-label={L('Recorrente')}><i /></button></div>
           {eRec && (<>
             <label className="tx-row tx-sub"><span>{t('goals.frequency')}</span>
-              <select className="tx-val" value={eFreq} onChange={(e) => setEFreq(e.target.value as RecurringFrequency)}>
-                {RECURRING_FREQUENCIES.map((f) => <option key={f} value={f}>{t('goals.' + f)}</option>)}
-              </select></label>
+              <PickMenu compact label={t('goals.frequency')} value={eFreq} options={RECURRING_FREQUENCIES.map((f) => ({ value: f, label: t('goals.' + f) }))} onChange={(v) => setEFreq(v as RecurringFrequency)} /></label>
             <div className="tx-row tx-sub"><span>{L('Termina em')}</span>
               <DatePicker value={eEnd} onChange={setEEnd} allowEmpty className="fx-input tx-val" /></div>
           </>)}

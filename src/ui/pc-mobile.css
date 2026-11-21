@@ -1061,3 +1061,9 @@ button.sp-row { cursor: pointer; } button.sp-row:hover { background: color-mix(i
 .sp-pbtn.no { border: 1px solid color-mix(in srgb, var(--red) 55%, transparent); background: color-mix(in srgb, var(--red) 10%, transparent); color: var(--red); }
 .sp-pbtn.yes { border: 0; background: var(--mv, var(--accent)); color: var(--mv-ink, #032a2d); box-shadow: 0 10px 24px -12px color-mix(in srgb, var(--mv, var(--accent)) 80%, transparent); }
 .sp-pbtn:disabled { opacity: .5; cursor: default; }
+
+/* Formulários (Nova transação, Adicionar extra, Registar despesa): menus iguais aos da app, alinhados à direita */
+.tx-row .fx-pick { margin-left: auto; }
+.tx-row .fx-pick > .fx-btn { height: 36px; min-width: 0; padding: 0 12px; border: 0; background: none; font-weight: 700; color: var(--text); gap: 6px; }
+.tx-row .fx-pick > .fx-btn:hover { background: var(--card-2); }
+.tx-row .fx-pick-menu { right: 0; left: auto; min-width: 220px; z-index: 90; }

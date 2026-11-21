@@ -12,7 +12,7 @@ import { addTransaction, addRecurring, materializeDueRecurrings, RECURRING_FREQU
 import { txsOfAccount, defaultAccountId, ALL_ACCOUNTS, loadTransfers, removeTransfer } from '../core/accounts';
 import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
-import { catLabel, PageHead, Seg, Sheet, Toggle, Field, MonthNav, EmptyState, AccountSwitch, Ic, ICON, useAccounts, CategorySelect, CatIcon } from '../ui/fx';
+import { catLabel, PageHead, Seg, Sheet, Toggle, Field, MonthNav, EmptyState, AccountSwitch, Ic, ICON, useAccounts, CategorySelect, CatIcon, PickMenu } from '../ui/fx';
 import { DatePicker } from '../ui/DatePicker';
 import { todayISO } from '../core/dates';
 import { syncSalaryTransactions } from '../core/salaryTx';
@@ -341,7 +341,7 @@ export function Transactions() {
             <div className="tx-row tx-acc"><span><Ic d={ICON.wallet} size={18} />{toAccount ? L('Da conta') : t('accounts.account')}</span>
               <span className="tx-accval">
                 <span className="tx-accpick">
-                  <select className="tx-val" value={accountId} onChange={(e) => { setAccountId(e.target.value); if (e.target.value === toAccount) setToAccount(''); }} aria-label={t('accounts.account')}>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
+                  <PickMenu compact label={t('accounts.account')} value={accountId} options={accounts.map((a) => ({ value: a.id, label: a.name, sub: bals[a.id] !== undefined ? money(bals[a.id]) : undefined }))} onChange={(v) => { setAccountId(String(v)); if (String(v) === toAccount) setToAccount(''); }} />
                   {bals[accountId] !== undefined && <small className={bals[accountId] < 0 ? 'fx-neg' : 'fx-pos'}>{money(bals[accountId])}</small>}
                   {!toAccount && <button type="button" className="tx-swapmini" onClick={() => (accounts.length > 1 ? setToAccount(accounts.find((a) => a.id !== accountId)?.id ?? '') : setError(L('Para transferir, cria primeiro outra conta (ex.: Poupanças) em Contas.')))}><Ic d="M4 7h13l-3-3M20 17H7l3 3" size={13} />{L('Transferir para outra conta')}</button>}
                 </span>
@@ -350,7 +350,7 @@ export function Transactions() {
               <div className="tx-row tx-acc"><span><Ic d="M4 7h13l-3-3M20 17H7l3 3" size={18} />{L('Para a conta')}</span>
                 <span className="tx-accval">
                   <span className="tx-accpick">
-                    <select className="tx-val" value={toAccount} onChange={(e) => setToAccount(e.target.value)} aria-label={L('Para a conta')}>{accounts.filter((a) => a.id !== accountId).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
+                    <PickMenu compact label={L('Para a conta')} value={toAccount} options={accounts.filter((a) => a.id !== accountId).map((a) => ({ value: a.id, label: a.name }))} onChange={(v) => setToAccount(String(v))} />
                     {bals[toAccount] !== undefined && <small className={bals[toAccount] < 0 ? 'fx-neg' : 'fx-pos'}>{money(bals[toAccount])}</small>}
                   </span>
                   <button type="button" className="tx-swap off" onClick={() => setToAccount('')} aria-label={L('Cancelar transferência')}><Ic d={ICON.close} size={16} /></button>
@@ -359,14 +359,12 @@ export function Transactions() {
             <div className="tx-row"><span><Ic d="M5 5h14v15H5zM5 10h14M9 3v4M15 3v4" size={18} />{t('transactions.date')}</span>
               <DatePicker value={date} onChange={setDate} ariaLabel={t('transactions.date')} testId="tx-date" /></div>
             {!toAccount && groups.length > 0 && <label className="tx-row"><span><Ic d="M4 6h16M4 12h16M4 18h10" size={18} />{L('Grupo')}</span>
-              <select className="tx-val" value={groupId} onChange={(e) => setGroupId(e.target.value)}><option value="">{L('Nenhum')}</option>{groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}</select></label>}
+              <PickMenu compact label={L('Grupo')} value={groupId} options={[{ value: '', label: L('Nenhum') }, ...groups.map((g) => ({ value: g.id, label: g.name }))]} onChange={(v) => setGroupId(String(v))} /></label>}
             {<div className="tx-row"><span><Ic d="M4 12a8 8 0 0 1 14-5l2-2v6h-6l2-2a5 5 0 1 0 1 6" size={18} />{toAccount ? L('Repetir todos os meses') : L('Recorrente')}</span>
               <button type="button" role="switch" aria-checked={recurring} className={'ob-toggle' + (recurring ? ' on' : '')} onClick={() => setRecurring(!recurring)} aria-label={t('transactions.recurring')}><i /></button></div>}
             {recurring && (<>
               <label className="tx-row tx-sub"><span>{t('goals.frequency')}</span>
-                <select className="tx-val" value={freq} onChange={(e) => setFreq(e.target.value as RecurringFrequency)}>
-                  {RECURRING_FREQUENCIES.map((f) => <option key={f} value={f}>{t('goals.' + f)}</option>)}
-                </select></label>
+                <PickMenu compact label={t('goals.frequency')} value={freq} options={RECURRING_FREQUENCIES.map((f) => ({ value: f, label: t('goals.' + f) }))} onChange={(v) => setFreq(v as RecurringFrequency)} /></label>
               <div className="tx-row tx-sub"><span>{L('Termina em')}</span>
                 <DatePicker value={endDate} onChange={setEndDate} allowEmpty ariaLabel={t('transactions.recurringEnd')} /></div>
             </>)}
