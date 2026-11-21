@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { getSupabase } from '../auth/supabase';
 import { useAuth } from '../auth/AuthContext';
 import { db } from '../db/app-db';
-import type { Category } from '../db/database';
+import type { Account, Category } from '../db/database';
 import { activeCategories, addTransaction } from '../core/finance';
 import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
@@ -13,10 +13,11 @@ import { loadSettings } from '../core/settings';
 import { billProgress, groupSummary, parseContact, toBills, type SplitBill } from '../core/split';
 import { avatarUrl } from '../core/avatar';
 import { LockedPreview } from '../ui/LockedPreview';
-import { catFitsKind, catLabel, CategorySelect, EmptyState, Field, Ic, ICON, PageHead, Sheet } from '../ui/fx';
+import { catFitsKind, catLabel, CategorySelect, EmptyState, Ic, ICON, PageHead, Sheet } from '../ui/fx';
 import { DatePicker } from '../ui/DatePicker';
 import { usePlan } from './Premium';
 import { L } from '../i18n/phrases';
+import { defaultAccountId } from '../core/accounts';
 
 // Divisão de contas: grupos com convite por email/telemóvel (a pessoa aceita), contas divididas em partes iguais
 // e quem já pagou / falta pagar. Criar grupos é do plano Família; quem é convidado participa em qualquer plano.
@@ -25,7 +26,7 @@ interface Group { id: string; name: string; owner_id: string; currency: string }
 interface Member { userId: string; displayName: string; avatarUrl: string | null }
 interface Invite { id: string; group_id: string; group_name: string; invited_by_name: string }
 interface PendingOut { id: string; email: string | null; phone: string | null; status?: string }
-type AddPersonal = { description: string; cents: number; date: string; categoryId: string };
+type AddPersonal = { description: string; cents: number; date: string; categoryId: string; accountId?: string };
 
 const today = () => new Date().toLocaleDateString('sv-SE');
 const errText = (e: unknown) => (e as { message?: string })?.message ?? String(e);
@@ -52,6 +53,8 @@ export function SplitPage() {
   const myName = meta.full_name || meta.name || (auth.user?.email ?? '').split('@')[0] || '—'; // nome da conta, automático
   const [bill, setBill] = useState<{ description: string; amount: string; date: string; out: string[]; iPaid: boolean; categoryId: string; addMine: boolean; withGroup: string; invites: string } | null>(null);
   const [personal, setPersonal] = useState<AddPersonal | null>(null);
+  const [accs, setAccs] = useState<Account[]>([]);
+  useEffect(() => { db.accounts.toArray().then((r) => setAccs(r.filter((a2) => a2.deletedAt === null && a2.type !== 'debt'))).catch(() => {}); }, []);
 
   const group = groups.find((g) => g.id === sel) ?? null;
   const money = (c: number) => formatMoney(c, group?.currency ?? s.currency, s.language);
@@ -188,7 +191,7 @@ export function SplitPage() {
   };
   const savePersonal = async () => {
     if (!personal?.categoryId) return;
-    await addTransaction(db, { date: personal.date, type: 'expense', categoryId: personal.categoryId, description: personal.description, amountCents: personal.cents, currency: group?.currency ?? s.currency });
+    await addTransaction(db, { date: personal.date, type: 'expense', categoryId: personal.categoryId, description: personal.description, amountCents: personal.cents, currency: group?.currency ?? s.currency, accountId: personal.accountId || defaultAccountId(accs) || undefined });
     setInfo(t('split.addedPersonal', { amount: money(personal.cents) }));
     setPersonal(null);
   };
@@ -343,19 +346,25 @@ export function SplitPage() {
         </>)}
       </Sheet>
 
-      <Sheet open={!!personal} onClose={() => setPersonal(null)} title={t('split.personalTitle')}
-        footer={<><span style={{ flex: 1 }} /><button type="button" className="fx-btn" onClick={() => setPersonal(null)}>{t('split.personalNo')}</button><button type="button" className="fx-btn primary" onClick={savePersonal}>{t('split.personalYes')}</button></>}>
+      {/* Registar a minha parte nas despesas: o mesmo formulário da "Nova transação" */}
+      <Sheet open={!!personal} onClose={() => setPersonal(null)} title={L('Registar nas tuas despesas')}
+        footer={<button type="button" className="tx-addbtn" disabled={!personal?.categoryId} onClick={savePersonal}>{L('Adicionar despesa')}</button>}>
         {personal && <>
-          <p>{t('split.personalText', { amount: money(personal.cents) })}</p>
-          <Field label={t('family.what')}><input className="fx-input" value={personal.description} onChange={(e) => setPersonal({ ...personal, description: e.target.value })} /></Field>
-          <div className="fx-two">
-            <Field label={t('family.date')}><DatePicker value={personal.date} onChange={(v) => setPersonal({ ...personal, date: v })} /></Field>
-            <Field label={t('assistant.category')}>
-              <select className="fx-input" value={personal.categoryId} onChange={(e) => setPersonal({ ...personal, categoryId: e.target.value })}>
-                {labeled.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
-              </select>
-            </Field>
+          <p className="fx-muted fx-small" style={{ textAlign: 'center', margin: '0 0 4px' }}>{L('Pagaste a tua parte. Regista-a também nas tuas despesas.')}</p>
+          <input className="tx-amt exp" inputMode="decimal" value={(personal.cents / 100).toFixed(2).replace('.', ',')}
+            onChange={(e) => { const c = parseMoneyToCents(e.target.value); if (c !== null) setPersonal({ ...personal, cents: c }); }} aria-label={t('transactions.amount')} />
+          <span className="tx-cur">{group?.currency ?? s.currency}</span>
+          <div className="tx-rows">
+            <label className="tx-row"><span><Ic d="M4 20h4L19 9l-4-4L4 16z" size={18} />{t('transactions.description')}</span>
+              <input className="tx-val" value={personal.description} onChange={(e) => setPersonal({ ...personal, description: e.target.value })} /></label>
+            <div className="tx-row"><span><Ic d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" size={18} />{t('transactions.category')}</span>
+              <CategorySelect cats={expCats} kind="expense" value={personal.categoryId} onChange={(v) => setPersonal({ ...personal, categoryId: v })} ariaLabel={t('transactions.category')} emptyLabel={L('Escolher…')} className="fx-input tx-val" /></div>
+            {accs.length > 0 && <label className="tx-row"><span><Ic d={ICON.wallet} size={18} />{t('accounts.account')}</span>
+              <select className="tx-val" value={personal.accountId ?? ''} onChange={(e) => setPersonal({ ...personal, accountId: e.target.value })}>{accs.map((a2) => <option key={a2.id} value={a2.id}>{a2.name}</option>)}</select></label>}
+            <div className="tx-row"><span><Ic d="M5 5h14v15H5zM5 10h14M9 3v4M15 3v4" size={18} />{t('transactions.date')}</span>
+              <DatePicker value={personal.date} onChange={(v) => setPersonal({ ...personal, date: v })} className="fx-input tx-val" /></div>
           </div>
+          <button type="button" className="fx-link sp-notnow" onClick={() => setPersonal(null)}>{t('split.personalNo')}</button>
         </>}
       </Sheet>
       {closing && (() => {

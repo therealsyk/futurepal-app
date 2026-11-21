@@ -537,6 +537,8 @@ export const PHRASES: Record<string, Tr> = {
   'Ainda faltam': ['Still', 'Aún faltan', 'Encore'],
   'pessoas pagar.': ['people have to pay.', 'personas por pagar.', 'personnes doivent payer.'],
   'Tens a certeza que queres fechar a conta': ['Are you sure you want to close the bill', '¿Seguro que quieres cerrar la cuenta', 'Voulez-vous vraiment clôturer la dépense'],
+  'Registar nas tuas despesas': ['Add to your expenses', 'Añadir a tus gastos', 'Ajouter à vos dépenses'],
+  'Pagaste a tua parte. Regista-a também nas tuas despesas.': ['You paid your share. Add it to your expenses too.', 'Pagaste tu parte. Regístrala también en tus gastos.', 'Vous avez payé votre part. Ajoutez-la aussi à vos dépenses.'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */
