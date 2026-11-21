@@ -1039,3 +1039,6 @@ button.sp-row { cursor: pointer; } button.sp-row:hover { background: color-mix(i
 .sp-bill-actions { border-top: 0 !important; padding-top: 0 !important; justify-content: space-between; }
 .sp-bill-actions .sp-leave-in { margin-left: auto; }
 .sp-x { top: -8px; right: -8px; }
+
+.sp-leave-row { flex: none; height: 30px; padding: 0 12px; border-radius: 99px; border: 1px solid color-mix(in srgb, var(--red) 50%, transparent); background: color-mix(in srgb, var(--red) 8%, transparent); color: var(--red); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.sp-leave-row:hover { background: color-mix(in srgb, var(--red) 16%, transparent); }

@@ -272,6 +272,7 @@ export function SplitPage() {
                                       <span className="sp-row-top"><b>{x.userId === me ? myName : m.displayName}</b>{x.userId !== me && <span className="sp-badge ok">✓ {L('Aceitou')}</span>}</span>
                                       <small>{x.paidAt ? <span className="fx-pos">{L('Já pagou')} <b>{money(each ?? x.shareCents)}</b></span> : <>{L('Tem de pagar')} <b>{money(each ?? x.shareCents)}</b></>}</small>
                                     </span>
+                                    {x.userId === me && <button type="button" className="sp-leave-row" onClick={(e) => { e.stopPropagation(); leave(); }}>{t('split.leave')}</button>}
                                   </Row>
                                 );
                               })}
@@ -286,7 +287,6 @@ export function SplitPage() {
                               ))}
                             </div>
                             <div className="sp-bill-actions">
-                              <button type="button" className="sp-leave-in" onClick={leave}>{t('split.leave')}</button>
                               {mine && !mine.paidAt && mine.shareCents > 0 && <button type="button" className="fx-btn primary" onClick={() => setPaid(b, me, true)}>{t('split.iPaid', { amount: money(each ?? mine.shareCents) })}</button>}
                               {mine && mine.paidAt && <button type="button" className="fx-link" onClick={() => setPaid(b, me, false)}>{t('split.undoPaid')}</button>}
 
