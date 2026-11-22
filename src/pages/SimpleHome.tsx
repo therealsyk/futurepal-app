@@ -9,7 +9,7 @@ import { WidgetEmpty, WidgetRow } from '../ui/WidgetRow';
 import { GroupPic } from './Groups';
 import { NotificationBell } from '../ui/AccountBar';
 import { goalValueCents, splitDesc } from '../core/debtPlan';
-import { cmpShort, cmpText, refText } from '../core/compare';
+import { Metric } from './PcOverview';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -66,7 +66,6 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
   const received = month.filter((x) => x.type === 'income').reduce((a, x) => a + x.amountCents, 0);
   const spent = month.filter((x) => x.type === 'expense').reduce((a, x) => a + x.amountCents, 0);
   const left = received - spent;
-  const ratio = received > 0 ? Math.min(1, spent / received) : spent > 0 ? 1 : 0;
   const salaryToDate = (data?.salaries ?? []).filter((x) => x.year * 100 + x.month <= now.getFullYear() * 100 + now.getMonth() + 1).reduce((a, x) => a + x.amountCents, 0);
   // Só contas com dinheiro (as dívidas, ex.: empréstimo da casa, ficam de fora para não assustar)
   const saved = data ? data.accounts.filter((a) => a.type !== 'debt').reduce((sum, a) => sum + accountBalanceCents(a, data.txs, data.accounts, salaryToDate, data.transfers), 0) : 0;
@@ -79,34 +78,23 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
   const name = meta.full_name || meta.name || auth.user?.email?.split('@')[0] || '';
 
   const heroEl = (<>
-      <section className="mv-hero sh-hero" data-tour={embed ? undefined : 'month'}>
+      {/* os mesmos três valores do Resumo do PC */}
+      <div className="pco-metrics-row hm-metrics" data-tour={embed ? undefined : 'month'}>
         {(() => {
-          const pct = received > 0 ? Math.round((spent / received) * 100) : null;
-          // cor do quanto já se gastou do rendimento: sem cor até 50% (normal), amarelo até 80%, vermelho a partir daí
-          const tone = (p: number) => (p >= 80 ? 'bad' : p >= 50 ? 'warn' : 'neutral');
-          const dlt = prevSpent > 0 && spent > 0 ? Math.round(((spent - prevSpent) / prevSpent) * 100) : null;
-          const ref = refText(t, s.language, ranged ? { kind: 'preset', preset: per.preset } : { kind: mode === 'month' ? 'prevMonth' : 'prevYear' });
-          const cmp = dlt === null ? null : <small className="sh-cmp hm-cmp">{dlt === 0 ? cmpText(t, dlt, ref) : <>{L('Gastaste')} <b className={dlt > 0 ? 'fx-neg' : 'fx-pos'}>{cmpShort(t, dlt)}</b>{cmpText(t, dlt, ref).startsWith(cmpShort(t, dlt)) ? cmpText(t, dlt, ref).slice(cmpShort(t, dlt).length) : ` ${ref}`}</>}</small>;
-          return mode === 'month' ? (
-            <>
-              <small className="mv-hero-label">{L('Ainda tens para gastar')}</small>
-              <div className="sh-valrow"><span className={'sh-big ' + (left < 0 ? 'fx-neg' : 'fx-pos')}>{money(left)}</span></div>{pct !== null && <small className="sh-cmp hm-cmp"><b className={'hm-' + tone(pct)}>{pct}%</b> {L('do rendimento do mês já foi gasto')}</small>}
-              <div className={"sh-bar" + (left < 0 ? " over" : "")} aria-hidden="true"><i style={{ width: `${ratio * 100}%` }} /></div>
-              {cmp}
-            </>
-          ) : (
-            <>
-              <small className="mv-hero-label">{ranged ? L('Recebeste neste período') : L('Recebeste este ano')}</small>
-              <div className="sh-valrow"><span className="sh-big fx-pos">{money(received)}</span></div>
-              <div className={"sh-bar" + (left < 0 ? " over" : "")} aria-hidden="true"><i style={{ width: `${ratio * 100}%` }} /></div>
-              <div className="sh-kpis">
-                <div className="sh-kpi"><small>{L('Gastos')}</small><div className="sh-valrow"><b className="fx-neg">{money(spent)}</b></div>{pct !== null && <small className="sh-cmp hm-cmp"><b className={'hm-' + tone(pct)}>{pct}%</b> {L('do que recebeste')}</small>}{cmp}</div>
-                <div className="sh-kpi"><small>{L('Poupança')}</small><div className="sh-valrow"><b className={left < 0 ? 'fx-neg' : 'fx-pos'}>{money(left)}</b></div>{received > 0 && <small className="sh-cmp hm-cmp">{left < 0 ? L('Gastaste mais do que recebeste') : <><b className="fx-pos">{Math.round((left / received) * 100)}%</b> {L('do que recebeste ficou guardado')}</>}</small>}</div>
-              </div>
-            </>
-          );
+          const vm = ranged ? 'range' : mode, inP = (x: Transaction) => (ppr ? x.date >= ppr.from && x.date <= ppr.to : x.date.startsWith(prevPrefix));
+          const pInc = (data?.txs ?? []).filter((x) => x.type === 'income' && inP(x)).reduce((a, x) => a + x.amountCents, 0), pLeft = pInc - prevSpent;
+          const dl = (n: number, b: number) => (b === 0 ? null : (n - b) / Math.abs(b)), bar = (v: number) => (received > 0 ? v / received : v > 0 ? 1 : 0);
+          const isCur = cur.y === now.getFullYear() && (mode === 'year' || cur.m === now.getMonth());
+          const days = mode === 'month' && !ranged ? (isCur ? now.getDate() : new Date(cur.y, cur.m + 1, 0).getDate()) : 0, months = isCur ? now.getMonth() + 1 : 12;
+          const sub = ranged ? undefined : mode === 'month' ? t('pco.avgDay', { v: money(Math.round(spent / days)) }) : t('pco.avgMonth', { v: money(Math.round(spent / months)) });
+          const c2 = { prevName: ranged ? t('pco.prev_' + per.preset) : mode === 'year' ? String(cur.y - 1) : new Date(cur.y, cur.m - 1, 1).toLocaleDateString(s.language, { month: 'long' }), vsLabel: t('pco.vs') };
+          return <>
+            <Metric icon="M12 19V5M5 12l7-7 7 7" tone="inc" title={t('pco.inc_' + vm)} value={money(received)} valueClass="fx-pos" delta={dl(received, pInc)} deltaGoodUp {...c2} bar={received > 0 ? 1 : 0} />
+            <Metric icon="M12 5v14M5 12l7 7 7-7" tone="exp" title={t('pco.spent_' + vm)} value={money(spent)} valueClass={spent > 0 ? 'fx-neg' : ''} delta={dl(spent, prevSpent)} deltaGoodUp={false} {...c2} sub={sub} bar={bar(spent)} />
+            <Metric icon="M19 7a3 3 0 0 0-3-2H9a6 6 0 0 0-6 6c0 2 1 3.5 2 4.5V19h3v-2h5v2h3v-3a6 6 0 0 0 2-3h2V9h-2zM15 10h.01" tone="sav" title={mode === 'month' && !ranged && isCur ? t('pco.leftMonth') : t('pco.saved_' + vm)} value={money(left)} valueClass={left < 0 ? 'fx-neg' : 'fx-pos'} delta={dl(left, pLeft)} deltaGoodUp {...c2} bar={bar(Math.max(0, left))} />
+          </>;
         })()}
-      </section>
+      </div>
 
       <Link to={ranged && pr ? `/transacoes?de=${pr.from}&ate=${pr.to}` : mode === 'month' ? '/visao-mensal' : `/resumo-ano?ano=${cur.y}`} className="sh-link">{ranged ? L('Ver movimentos do período') : mode === 'month' ? L('Ver resumo do mês') : L('Ver resumo do ano')} <Ic d={ICON.right} size={14} /></Link>
 
