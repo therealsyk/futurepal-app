@@ -86,7 +86,7 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
           const heat = (p: number) => { const v = Math.max(0, Math.min(100, p)), hue = Math.round(v <= 50 ? 145 - v * 2 : 45 - (v - 50) * 0.9); return { color: `hsl(${hue} 80% 64%)`, background: `hsl(${hue} 80% 55% / ${(0.1 + v * 0.0016).toFixed(2)})` }; }; // verde → amarelo (50%) → vermelho (100%)
           const dlt = prevSpent > 0 && spent > 0 ? Math.round(((spent - prevSpent) / prevSpent) * 100) : null;
           const ref = refText(t, s.language, ranged ? { kind: 'preset', preset: per.preset } : { kind: mode === 'month' ? 'prevMonth' : 'prevYear' });
-          const cmp = dlt === null ? null : <small className="sh-cmp hm-l">{dlt === 0 ? cmpText(t, dlt, ref) : <>{L('Gastaste')} <b className={dlt > 0 ? 'fx-neg' : 'fx-pos'}>{cmpShort(t, dlt)}</b>{cmpText(t, dlt, ref).startsWith(cmpShort(t, dlt)) ? cmpText(t, dlt, ref).slice(cmpShort(t, dlt).length) : ' ' + ref}</>}</small>;
+          const cmp = dlt === null ? null : <small className="sh-cmp hm-l">{dlt === 0 ? cmpText(t, dlt, ref) : <>{L('Gastaste')} <b className={dlt > 10 ? 'fx-neg' : dlt > 0 ? 'lm-warn' : 'fx-pos'}>{cmpShort(t, dlt)}</b>{cmpText(t, dlt, ref).startsWith(cmpShort(t, dlt)) ? cmpText(t, dlt, ref).slice(cmpShort(t, dlt).length) : ' ' + ref}</>}</small>;
           return mode === 'month' ? (
             <>
               <small className="mv-hero-label">{L('Ainda tens para gastar')}</small>
@@ -99,11 +99,12 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
               <small className="mv-hero-label">{ranged ? L('Recebeste neste período') : L('Recebeste este ano')}</small>
               <div className="sh-valrow"><span className="sh-big fx-pos">{money(received)}</span></div>
               <div className={"sh-bar" + (left < 0 ? " over" : "")} aria-hidden="true"><i style={{ width: `${ratio * 100}%` }} /></div>
-              <div className="sh-kpis">
-                <div className="sh-kpi"><small>{L('Gastos')}</small><div className="sh-valrow"><b className="fx-neg">{money(spent)}</b></div>{pct !== null && <small className="sh-cmp hm-l"><b style={{ color: heat(pct).color }}>{pct}%</b> {L('do que recebeste')}</small>}</div>
-                <div className="sh-kpi"><small>{L('Poupança')}</small><div className="sh-valrow"><b className={left < 0 ? 'fx-neg' : 'fx-pos'}>{money(left)}</b></div>{received > 0 && <small className="sh-cmp hm-l">{left < 0 ? L('Gastaste mais do que recebeste') : <><b className="fx-pos">{Math.round((left / received) * 100)}%</b> {L('do que recebeste')}</>}</small>}</div>
-              </div>
               {cmp}
+              <div className="sh-kpis">
+                <div className="sh-kpi"><small>{L('Gastos')}</small><div className="sh-valrow"><b className="fx-neg">{money(spent)}</b></div>{pct !== null && <span className="hm-pill" style={heat(pct)}><b>{pct}%</b> {L('do que recebeste')}</span>}</div>
+                <div className="sh-kpi"><small>{L('Poupança')}</small><div className="sh-valrow"><b className={left < 0 ? 'fx-neg' : 'fx-pos'}>{money(left)}</b></div>{received > 0 && <span className="hm-pill" style={heat(left < 0 ? 100 : 100 - (left / received) * 100)}>{left < 0 ? L('Gastaste mais do que recebeste') : <><b>{Math.round((left / received) * 100)}%</b> {L('do que recebeste')}</>}</span>}</div>
+              </div>
+
             </>
           );
         })()}
