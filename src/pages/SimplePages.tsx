@@ -393,15 +393,16 @@ export function SimpleGoals() {
   return (
     <div className="fx-page mv sh">
       <header className="mv-head"><h1 className="sh-title">{L('Metas')}</h1></header>
-      {ownGoals.length === 0 && <EmptyState icon="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zM12 12h.01" title={L('Ainda não tens metas')} text={L('Uma meta é um objetivo para juntar dinheiro. A app mostra quanto falta e quando lá chegas.')} examples={['🏖️ Férias', '🚗 Carro', '🛟 Emergências', '🏠 Casa']} />}
+      {d && ownGoals.length === 0 && accGoals.length === 0 && <EmptyState icon="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zM12 12h.01" title={L('Ainda não tens metas')} text={L('Uma meta é um objetivo para juntar dinheiro. A app mostra quanto falta e quando lá chegas.')} examples={['🏖️ Férias', '🚗 Carro', '🛟 Emergências', '🏠 Casa']} />}
       {(d?.goals.length ?? 0) > 1 && aim > 0 && <section className="mv-hero sh-hero gl-total">
         <small className="mv-hero-label">{L('Já juntaste nas tuas metas')}</small>
         <strong className={'mv-balance ' + (savedTotal < 0 ? 'fx-neg' : 'fx-pos')}>{money(savedTotal)}</strong>
         <span className="gl-total-sub">{L('de')} {money(aim)}{doneN > 0 && <em>✓ {doneN} {doneN === 1 ? L('concluída') : L('concluídas')}</em>}</span>
         <div className="sh-bar"><i style={{ width: `${Math.max(0, Math.min(1, savedTotal / aim)) * 100}%` }} /></div>
       </section>}
+      {ownGoals.length > 0 && accGoals.length > 0 && <div className="goal-sec gl-part"><h2><span className="pco-mic"><Ic d="M6 21V4h11l-2 4 2 4H6" size={18} /></span>{L('As tuas metas')}</h2></div>}
       {ownGoals.length > 0 && <div className="gl-grid">{ownGoals.map((x, i) => <GoalCard key={x.id} g={x} info={info(x)} money={money} i={i} onOpen={() => setOpen(x.id)} />)}</div>}
-      {accGoals.length > 0 && <div className="goal-sec"><h2>{L('Das tuas contas')}</h2><p>{L('Fazem parte das contas de poupança e de dívidas. Mudam sozinhas com o saldo e gerem-se na página Contas.')}</p></div>}
+      {accGoals.length > 0 && <div className={'goal-sec gl-part' + (ownGoals.length > 0 ? ' line' : '')}><h2><span className="pco-mic"><Ic d={ICON.wallet} size={18} /></span>{L('Das tuas contas')}</h2></div>}
       {accGoals.length > 0 && <div className="gl-grid">{accGoals.map(({ g: x, acc }, i) => <GoalCard key={x.id} g={x} acc={acc} icon={TYPE_IC[acc.type]} info={info(x)} money={money} i={i} onOpen={() => setOpen(x.id)} />)}</div>}
 <button type="button" className="sh-pill" onClick={() => setForm(true)}><Ic d={ICON.plus} size={16} />{L('Criar meta')}</button>
       {form && <NewGoal accounts={d?.accounts ?? []} balOf={balOf} money={money} onClose={() => setForm(false)} onDone={() => { setForm(false); reload(); }} />}
