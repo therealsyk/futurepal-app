@@ -5,6 +5,7 @@ import { db } from '../db/app-db';
 import { closeTip, did, growFrom, resetTips, tipSeen, tipsOn, TIPS_EVENT } from '../core/onboarding';
 import { L } from '../i18n/phrases';
 import { Ic, ICON } from './fx';
+import { guiding } from './Guide';
 import { openTxForm, useTxSaved } from './TxForm';
 
 interface Stats { n: number; exp: number; inc: number; months: number; goals: number; accounts: number; limits: number }
@@ -46,8 +47,8 @@ export function PageTip() {
   };
   useEffect(load, [pathname]);
   useTxSaved(load);
-  useEffect(() => { const on = () => { tick((n) => n + 1); load(); }; window.addEventListener(TIPS_EVENT, on); return () => window.removeEventListener(TIPS_EVENT, on); }, []);
-  const tip = tipsOn() && s ? tips((p) => navigate(p))[pathname]?.find((x) => !tipSeen(x.id) && (!x.when || x.when(s))) : undefined;
+  useEffect(() => { const on = () => { tick((n) => n + 1); load(); }; window.addEventListener(TIPS_EVENT, on); window.addEventListener('wallet:guide', on); return () => { window.removeEventListener(TIPS_EVENT, on); window.removeEventListener('wallet:guide', on); }; }, []);
+  const tip = tipsOn() && !guiding() && s ? tips((p) => navigate(p))[pathname]?.find((x) => !tipSeen(x.id) && (!x.when || x.when(s))) : undefined;
   if (!tip) return null;
   return (
     <aside key={tip.id} className="tipb" role="note">

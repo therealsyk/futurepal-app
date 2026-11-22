@@ -19,6 +19,7 @@ import { runSync } from '../sync/runSync';
 import { CountMoney } from '../ui/CountMoney';
 import { DatePicker } from '../ui/DatePicker';
 import { AmountField, FI, SwitchRow, TextRow } from '../ui/formFields';
+import { appConfirm } from '../ui/confirm';
 import { Ic, ICON } from '../ui/fx';
 import { fill } from '../ui/AccountPlan';
 import { GoalRing } from '../ui/GoalRing';
@@ -38,6 +39,8 @@ const IC = {
   expenses: 'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6', goal: 'M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8z',
   split: 'M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M22 19v-1a4 4 0 0 0-3-3.9M16 4.1a3 3 0 0 1 0 5.8', save: 'M19 7a3 3 0 0 0-3-2H9a6 6 0 0 0-6 6c0 2 1 3.5 2 4.5V19h3v-2h5v2h3v-3a6 6 0 0 0 2-3h2V9h-2zM15 10h.01',
 };
+// o que há na app, num relance
+const FEATS: Array<[string, string]> = [[IC.expenses, 'Despesas'], [ICON.wallet, 'Contas'], [IC.goal, 'Metas'], ['M12 3a9 9 0 1 0 9 9h-9zM15 3.5V9h5.5A9 9 0 0 0 15 3.5z', 'Limites'], [IC.split, 'Grupos'], ['M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3', 'Recorrentes'], ['M3 7h18v12H3zM3 11h18M7 15h3', 'Salários'], ['M5 5h14v15H5zM5 10h14M8 3v4M16 3v4', 'Calendário'], ['M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z', 'Assistente IA']];
 const GROUP_COLOR = '#17c3c9';
 
 export const ONBOARDED_FLAG = 'wallet.justOnboarded';
@@ -115,6 +118,7 @@ export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings
           <img className="on-brand" src={logoUrl} alt="FuturePal" />
           <h1>FuturePal</h1>
           <p>{L('Controla as tuas despesas e descobre para onde vai cada cêntimo, no poupar é que está o ganho.')}</p>
+          <div className="on-feats">{FEATS.map(([d, label], i) => <span key={label} style={{ '--i': i } as CSSProperties}><Ic d={d} size={17} />{L(label)}</span>)}</div>
           <button type="button" className="ob-cta" onClick={() => setStep('ask')} data-testid="ob-start">{L('Começar')}</button>
           {hasSupabaseConfig() && <button type="button" className="on-skip" onClick={() => { setAuthMode('signin'); setStep('auth'); }} data-testid="ob-login">{L('Já tenho conta')}</button>}
         </div>}
@@ -138,7 +142,7 @@ export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings
           <p>{L('A tua conta guarda despesas, grupos, metas e limites em todos os dispositivos.')}</p>
           <button type="button" className="ob-cta" onClick={() => { setAuthMode('signup'); setStep('signup'); }}>{L('Criar conta')}</button>
           <button type="button" className="ob-outline" onClick={() => { setAuthMode('signin'); setStep('signup'); }}>{L('Entrar')}</button>
-          <button type="button" className="on-skip" onClick={() => finish().catch(() => {})} data-testid="ob-continue">{L('Continuar sem conta')}</button>
+          <button type="button" className="on-skip" onClick={async () => { if (await appConfirm(L('Tens a certeza? Sem conta, os teus dados ficam só neste aparelho e podem perder-se.'), { ok: L('Continuar sem conta') })) finish().catch(() => {}); }} data-testid="ob-continue">{L('Continuar sem conta')}</button>
         </div>}
         {step === 'auth' && (syncNote ? <p className="ob-sub" role="status">{syncNote}</p> : <LoginForm key={authMode} initialMode={authMode} onDone={() => { afterLogin().catch(() => setStep('ask')); }} onSkip={() => setStep('ask')} />)}
         {/* Os dados ficam neste aparelho; ao entrar na conta, a app pergunta se os quer levar para lá. */}

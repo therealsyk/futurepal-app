@@ -17,7 +17,7 @@ export function chooseGoal(g: Goal1): void { set('wallet.ob.goal', g); track('go
 /** Ecrã mostrado: o último que aparece sem "done" é onde a pessoa desistiu. */
 export const screen = (s: string): void => track('screen_' + s);
 export function finishOnboarding(signedIn: boolean): void {
-  set('wallet.fresh', '1'); set('wallet.tips', 'on'); set('wallet.tutorialSeen', '1');
+  set('wallet.fresh', '1'); set('wallet.tips', 'on'); set('wallet.tutorialSeen', '1'); set('wallet.guide', 'acc'); // a seguir, o guia passo a passo
   track('done'); if (signedIn) track('account');
 }
 

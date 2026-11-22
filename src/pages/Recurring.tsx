@@ -21,6 +21,7 @@ import { CatIcon, catLabel, Ic, ICON, PickMenu } from '../ui/fx';
 import { GoalRing } from '../ui/GoalRing';
 import { useMissing } from '../ui/missing';
 import { initialPeriod, PeriodFilter, periodRange, type Period } from '../ui/PeriodFilter';
+import { guiding } from '../ui/Guide';
 import { openTxForm, useTxSaved } from '../ui/TxForm';
 import { L } from '../i18n/phrases';
 import { usePlan } from './Premium';
@@ -171,7 +172,7 @@ export function RecurringPopup() {
   const [ready, setReady] = useState(false);
   useEffect(() => { const id = setTimeout(() => setReady(true), 2500); return () => clearTimeout(id); }, []); // só depois de a app assentar
   const s = loadSettings(), p = found.find((x) => x.sure);
-  if (!SIMPLE_UI || !ready || later || !p || pathname === '/subscricoes' || document.querySelector('.nt-pop:not(.rc-pop)')) return null;
+  if (!SIMPLE_UI || !ready || later || guiding() || !p || pathname === '/subscricoes' || document.querySelector('.nt-pop:not(.rc-pop)')) return null;
   const c = d?.cats.find((x) => x.id === p.categoryId), name = p.name || (c ? catLabel(t, c) : '');
   return createPortal(
     <aside key={p.key} className="nt-pop rc-pop" role="dialog" aria-label={L('Pagamento que se repete')}>

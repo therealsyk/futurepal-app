@@ -19,6 +19,7 @@ import { AdminLogin, ADMIN_LOGIN_EVENT } from './pages/AdminPhase1';
 import { SplitInvitePopup } from './ui/SplitInvitePopup';
 import { TxFormHost } from './ui/TxForm';
 import { HelpPage, PageTip } from './ui/Tips';
+import { AccountNudge, Guide } from './ui/Guide';
 import { RecurringPage, RecurringPopup } from './pages/Recurring';
 import { DuplicateAccountsPopup } from './ui/DuplicateAccountsPopup';
 import { Groups } from './pages/Groups';
@@ -241,6 +242,8 @@ export default function App() {
       </main>
       <MobileNav />
       <TxFormHost key={'tx' + dbName} />
+      {!IS_DEMO && <Guide />}
+      {!IS_DEMO && <AccountNudge />}
       <MobileTutorial enabled={isMobile && !PC_MOBILE} />
       {!IS_DEMO && <UpdateNotice />}
       {!IS_DEMO && <SplitInvitePopup />}
