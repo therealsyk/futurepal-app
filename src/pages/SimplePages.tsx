@@ -606,6 +606,10 @@ export function SimpleOverview({ yearly = false, embed }: { yearly?: boolean; em
   return (
     <div className="fx-page mv sh">
       <header className="mv-head"><Link to="/" className="mv-sq" aria-label={L('Voltar')}><Ic d={ICON.left} size={20} /></Link><h1 className="sh-title">{yearly ? L('Resumo do ano') : L('Resumo do mês')}</h1></header>
+      <div className="sh-seg sh-sumseg" role="tablist">
+        <button type="button" role="tab" aria-selected={!yearly} className={yearly ? '' : 'on'} onClick={() => navigate('/visao-mensal', { replace: true })}>{t('period.month')}</button>
+        <button type="button" role="tab" aria-selected={yearly} className={yearly ? 'on' : ''} onClick={() => navigate('/resumo-ano', { replace: true })}>{t('period.year')}</button>
+      </div>
       <div className="sh-monthnav">
         <button type="button" className="mv-chev" onClick={() => shift(-1)} aria-label={yearly ? L('Ano anterior') : L('Mês anterior')}><Ic d={ICON.left} size={18} /></button>
         <span className="mv-month">{label}</span>

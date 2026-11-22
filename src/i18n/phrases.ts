@@ -36,7 +36,6 @@ export const PHRASES: Record<string, Tr> = {
   'Ver resumo do ano': ['See yearly summary', 'Ver resumen del año', 'Voir le résumé de l’année'],
   'Gastei': ['Spent', 'Gasté', 'Dépensé'],
   'Recebi': ['Received', 'Recibí', 'Reçu'],
-  'O teu dinheiro guardado': ['Your saved money', 'Tu dinero ahorrado', 'Votre argent épargné'],
   'Os teus grupos': ['Your groups', 'Tus grupos', 'Vos groupes'],
   'Ver todos': ['See all', 'Ver todos', 'Tout voir'],
   'Metas': ['Goals', 'Metas', 'Objectifs'],
@@ -635,6 +634,8 @@ export const PHRASES: Record<string, Tr> = {
   'a data limite': ['the end date', 'la fecha límite', 'la date limite'],
   'as contas': ['the accounts', 'las cuentas', 'les comptes'],
   'a mensagem': ['the message', 'el mensaje', 'le message'],
+  'As tuas contas': ['Your accounts', 'Tus cuentas', 'Vos comptes'],
+  'Dívida': ['Debt', 'Deuda', 'Dette'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */

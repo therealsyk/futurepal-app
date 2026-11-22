@@ -16,6 +16,7 @@ import { PeriodFilter, initialPeriod, periodRange, previousRange, type Period } 
 
 const GEAR = 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z';
 
+const ACC_IC: Record<string, string> = { spending: ICON.wallet, savings: 'M19 7a3 3 0 0 0-3-2H9a6 6 0 0 0-6 6c0 2 1 3.5 2 4.5V19h3v-2h5v2h3v-3a6 6 0 0 0 2-3h2V9h-2z', debt: 'M3 10l9-6 9 6M5 10v9h14v-9M9 19v-5h6v5' };
 export type HomePart = 'hero' | 'latest' | 'groups' | 'goals';
 /** embed: mostra só um bloco, com o período escolhido fora (Painel do PC). */
 export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: number; m: number; part: HomePart; range?: { from: string; to: string }; seeAll?: string } } = {}) {
@@ -54,6 +55,7 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
   const salaryToDate = (data?.salaries ?? []).filter((x) => x.year * 100 + x.month <= now.getFullYear() * 100 + now.getMonth() + 1).reduce((a, x) => a + x.amountCents, 0);
   // Só contas com dinheiro (as dívidas, ex.: empréstimo da casa, ficam de fora para não assustar)
   const saved = data ? data.accounts.filter((a) => a.type !== 'debt').reduce((sum, a) => sum + accountBalanceCents(a, data.txs, data.accounts, salaryToDate, data.transfers), 0) : 0;
+  const accRows = data ? [...data.accounts].sort((a, b) => Number(a.type === 'debt') - Number(b.type === 'debt') || a.order - b.order).map((a) => ({ a, bal: accountBalanceCents(a, data.txs, data.accounts, salaryToDate, data.transfers) })) : [];
   const rng = embed ? embed.range : ranged ? pr ?? undefined : undefined;
   const inRange = (data?.txs ?? []).filter((x) => !rng || (x.date >= rng.from && x.date <= rng.to));
   const latest = [...inRange].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt)).slice(0, embed ? 40 : 5); // no Resumo do PC o widget pode ser esticado: mostra o que couber
@@ -98,12 +100,18 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
         <Link to="/transacoes?nova=1&tipo=income" className="sh-btn in"><Ic d="M12 5v14M5 12h14" size={22} />{L('Recebi')}</Link>
       </div>}
 
-      {/* 3. Poupança: um número, sem gráficos */}
-      {mode === 'year' && <Link to="/contas" className="mv-card sh-save">
-        <span className="sh-save-ic"><Ic d="M19 7a3 3 0 0 0-3-2H9a6 6 0 0 0-6 6c0 2 1 3.5 2 4.5V19h3v-2h5v2h3v-3a6 6 0 0 0 2-3h2V9h-2zM15 10h.01" size={22} /></span>
-        <span className="sh-save-txt"><small>{L('O teu dinheiro guardado')}</small><b>{money(saved)}</b></span>
-        <Ic d={ICON.right} size={18} />
-      </Link>}
+      {/* 3. As contas da pessoa e quanto tem em cada uma */}
+      {!embed && accRows.length > 0 && <section className="mv-card sh-accs">
+        <div className="mv-card-head"><h2>{L('As tuas contas')}</h2><Link to="/contas" className="mv-link">{L('Ver todas')}</Link></div>
+        {accRows.map(({ a, bal }) => (
+          <Link key={a.id} to="/contas" className={'sh-accrow t-' + a.type}>
+            <span className="sh-accic"><Ic d={ACC_IC[a.type] ?? ICON.wallet} size={19} /></span>
+            <span className="sh-tx-main"><b>{a.name}</b><small>{a.type === 'debt' ? L('Dívida') : a.type === 'savings' ? L('Poupança') : L('Gastos')}</small></span>
+            <b className={a.type === 'debt' || bal < 0 ? 'fx-neg' : ''}>{money(bal)}</b>
+          </Link>
+        ))}
+        {accRows.filter((r) => r.a.type !== 'debt').length > 1 && <div className="sh-accrow sh-acctotal"><span className="sh-tx-main"><b>{L('Total')}</b></span><b className={saved < 0 ? 'fx-neg' : 'fx-pos'}>{money(saved)}</b></div>}
+      </section>}
 
   </>);
   const latestEl = (<>

@@ -1281,3 +1281,12 @@ html.is-electron.pcm .fx-page.pco { height: calc(100vh - 34px); }
 /* telemóvel (APK): nenhuma barra de scroll à vista; o desvanecer mostra que há mais */
 html:not(.pcm), html:not(.pcm) body, html:not(.pcm) * { scrollbar-width: none !important; }
 html:not(.pcm)::-webkit-scrollbar, html:not(.pcm) body::-webkit-scrollbar, html:not(.pcm) *::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+
+/* Início do telemóvel: as contas e o valor de cada uma */
+.sh-accrow { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-top: 1px solid var(--border); color: var(--text); text-decoration: none; }
+.mv-card-head + .sh-accrow { border-top: 0; }
+.sh-accrow > b { font-size: 16px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sh-accic { flex: none; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 14px; background: color-mix(in srgb, var(--mv, var(--accent)) 16%, var(--card-2)); color: var(--mv, var(--accent)); }
+.sh-accrow.t-savings .sh-accic { background: color-mix(in srgb, var(--pos) 16%, var(--card-2)); color: var(--pos); } .sh-accrow.t-debt .sh-accic { background: color-mix(in srgb, var(--red) 16%, var(--card-2)); color: var(--red); }
+.sh-acctotal { padding-bottom: 2px; }
+.sh-sumseg { margin-bottom: 12px; }

@@ -3,6 +3,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { SIMPLE_UI } from '../core/uiMode';
 import { Ic, ICON } from './fx';
+import { L } from '../i18n/phrases';
 
 // Navegação do telemóvel (só aparece em ecrãs estreitos, ver mobile.css):
 // barra flutuante em baixo com o botão "+" (nova transação) ao centro e folha "Mais" com o resto.
@@ -16,19 +17,19 @@ const TABS = [
 // Modo simples (pré-visualização): menos separadores e só o essencial no "Mais"
 const SIMPLE_TABS = [
   TABS[0],
-  TABS[1],
+  { path: '/transacoes', key: 'nav.transactions', d: 'M4 7h13l-3-3M20 17H7l3 3' },
   { path: '/orcamentos', key: 'simple.tabLimits', d: 'M12 3a9 9 0 1 0 9 9h-9zM15 3.5V9h5.5A9 9 0 0 0 15 3.5z' },
   { path: '/contas', key: 'nav.accounts', d: ICON.wallet },
 ];
-const SIMPLE_MORE = ['/transacoes', '/categorias'];
+const SIMPLE_MORE = ['/visao-mensal', '/categorias'];
 // já estão nos separadores, no Início ou no ⚙ — não se repetem em "Ver todas"
-const SIMPLE_HIDE = ['/metas', '/orcamentos', '/definicoes', '/visao-mensal', '/grupos'];
+const SIMPLE_HIDE = ['/transacoes', '/orcamentos', '/definicoes', '/grupos'];
 const MORE = [
   { path: '/grupos', key: 'simple.groups', d: 'M4 6h16M4 12h16M4 18h10' },
   { path: '/metas', key: 'nav.goals', d: 'M12 21a9 9 0 1 1 0-18M12 16a4 4 0 1 1 0-8M12 12l8-8M16 4h4v4' },
   { path: '/plus', key: 'nav.plus', d: 'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z' },
   { path: '/orcamentos', key: 'nav.budgets', d: 'M12 3a9 9 0 1 0 9 9h-9zM15 3.5V9h5.5A9 9 0 0 0 15 3.5z' },
-  { path: '/painel', key: 'mobile.fullPanel', d: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z' },
+  ...(SIMPLE_UI ? [] : [{ path: '/painel', key: 'mobile.fullPanel', d: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z' }]),
   { path: '/transacoes', key: 'nav.transactions', d: 'M4 7h13l-3-3M20 17H7l3 3' },
   { path: '/visao-mensal', key: 'nav.overview', d: 'M4 20V10M10 20V4M16 20v-7M22 20H2' },
   { path: '/calendario', key: 'nav.calendar', d: 'M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM4 10h16M8 3v4M16 3v4' },
@@ -79,9 +80,9 @@ export default function MobileNav() {
             <span className="mb-grabber" aria-hidden="true" />
             <div className="mb-grid">
               {moreItems.map((it) => (
-                <button key={it.path} type="button" className={'mb-tile' + (pathname.startsWith(it.path) ? ' active' : '')} onClick={() => go(it.path)}>
+                <button key={it.path} type="button" className={'mb-tile' + (pathname.startsWith(it.path) || (it.path === '/visao-mensal' && pathname === '/resumo-ano') ? ' active' : '')} onClick={() => go(it.path)}>
                   <span><Ic d={it.d} size={20} /></span>
-                  <b>{t(it.key)}</b>
+                  <b>{SIMPLE_UI && it.path === '/visao-mensal' ? L('Resumo') : t(it.key)}</b>
                 </button>
               ))}
             </div>
