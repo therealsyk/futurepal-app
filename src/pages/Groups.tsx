@@ -1,6 +1,6 @@
 // Grupos (ex.: "Férias Maldivas"): juntam transações, mostram o total e, se a pessoa quiser, dividem as despesas com outras pessoas.
 // Um grupo dividido tem o id "sp_<grupo da divisão>_<pessoa>": é assim que se liga ao sistema de divisão de contas.
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { appConfirm } from '../ui/confirm';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
@@ -21,8 +21,18 @@ import { usePlan } from './Premium';
 import { useMissing } from '../ui/missing';
 import { IS_DEMO } from '../demo/demo';
 import { BottomSheet } from './SimplePages';
-import { SplitGroup } from './Split';
+import { Face, SplitGroup, type Member } from './Split';
+import { useTxSaved } from '../ui/TxForm';
 import { L } from '../i18n/phrases';
+
+// Ícone do cartão: adivinhado pelo nome do grupo (senão, um ícone neutro)
+const KINDS: Array<[RegExp, string]> = [
+  [/f[eé]rias|viag|praia|maldivas|algarve|voo|hotel|trip|travel|holiday|vacac|voyage|vacance/i, 'M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z'],
+  [/jantar|almo[cç]o|natal|comida|restaurante|festa|anivers|dinner|lunch|food|party|christmas|cena|comida|navidad|d[iî]ner|repas|no[eë]l/i, 'M6 3v7a3 3 0 0 0 6 0V3M9 3v18M18 3c-2 1-3 4-3 7v3h3zM18 13v8'],
+  [/casa|renda|apartamento|obra|quarto|lisboa|porto|home|house|rent|flat|piso|alquiler|maison|loyer/i, 'M3 11l9-7 9 7M5 10v10h5v-6h4v6h5V10'],
+  [/carro|auto|gasolina|car\b|coche|voiture/i, 'M5 17H3v-5l2-5h14l2 5v5h-2M5 17a2 2 0 1 0 4 0 2 2 0 0 0-4 0M15 17a2 2 0 1 0 4 0 2 2 0 0 0-4 0M9 17h6M3 12h18'],
+];
+const iconOf = (name: string) => KINDS.find(([re]) => re.test(name))?.[1] ?? 'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5';
 
 const COLORS = ['#17c3c9', '#8b5cf6', '#f59e0b', '#ef4444', '#22c55e', '#3b82f6', '#ec4899'];
 
@@ -39,6 +49,7 @@ export function Groups() {
   const [txs, setTxs] = useState<Transaction[]>([]);
   const [cats, setCats] = useState<Category[]>([]);
   const [shared, setShared] = useState<Record<string, { cents: number; n: number }>>({}); // total e número de transações de cada grupo dividido
+  const [crew, setCrew] = useState<Record<string, { members: Member[]; pending: number; due: boolean }>>({}); // pessoas de cada grupo dividido
   const [name, setName] = useState('');
   const [adding, setAdding] = useState<'new' | Group | null>(null); // grupo novo, ou um que já existe e passa a ser dividido
   const [split, setSplit] = useState(false);
@@ -60,10 +71,21 @@ export function Groups() {
     // divisões em que já estou (ou que aceitei): cada uma aparece como um grupo, uma só vez
     const pull = async () => {
       const { data } = await sb.from('split_groups').select('id, name, created_at');
-      const bl = await sb.from('split_bills').select('group_id, amount_cents').is('deleted_at', null);
+      const bl = await sb.from('split_bills').select('id, group_id, amount_cents').is('deleted_at', null);
       const sum: Record<string, { cents: number; n: number }> = {};
       for (const b of (bl.data ?? []) as Array<{ group_id: string; amount_cents: number }>) { const k = (sum[b.group_id] ??= { cents: 0, n: 0 }); k.cents += Number(b.amount_cents); k.n++; }
       setShared(sum);
+      const [mb, iv, mine] = await Promise.all([
+        sb.from('split_members').select('*').order('joined_at'),
+        sb.from('split_invites').select('group_id').eq('status', 'pending'),
+        sb.from('split_shares').select('bill_id, paid_at').eq('user_id', me).is('paid_at', null),
+      ]);
+      const ppl: typeof crew = {};
+      for (const r of (mb.data ?? []) as Array<{ group_id: string; user_id: string; display_name: string; avatar_url?: string | null }>) (ppl[r.group_id] ??= { members: [], pending: 0, due: false }).members.push({ userId: r.user_id, displayName: r.display_name, avatarUrl: r.avatar_url ?? null });
+      for (const r of (iv.data ?? []) as Array<{ group_id: string }>) if (ppl[r.group_id]) ppl[r.group_id].pending++;
+      const billGroup = new Map(((bl.data ?? []) as Array<{ id: string; group_id: string }>).map((b) => [b.id, b.group_id]));
+      for (const r of (mine.data ?? []) as Array<{ bill_id: string }>) { const k = ppl[billGroup.get(r.bill_id) ?? '']; if (k) k.due = true; }
+      setCrew(ppl);
       const have = new Set((await db.groups.toArray()).map((g) => g.id)); // inclui os apagados: não voltam
       let n = have.size;
       for (const g of (data ?? []) as Array<{ id: string; name: string; created_at: string }>) {
@@ -78,6 +100,7 @@ export function Groups() {
     return () => window.removeEventListener(SPLIT_CHANGED, on);
   }, [me, id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useTxSaved(() => { load().catch(() => {}); });
   const of = (g: string) => txs.filter((x) => x.groupId === g);
   const total = (g: string) => of(g).reduce((a, x) => a + (x.type === 'expense' ? x.amountCents : -x.amountCents), 0);
   const sharedOf = (id2: string) => { const k = splitIdOf(id2); return k ? shared[k] : undefined; };
@@ -183,12 +206,27 @@ export function Groups() {
       <header className="mv-head"><h1 className="sh-title">{L('Grupos')}</h1></header>
       <p className="fx-muted" style={{ margin: 0 }}>{L('Junta as transações de uma coisa só (férias, obras, jantares), vê o total e divide com quem quiseres.')}</p>
       {groups.length === 0 && <EmptyState icon="M4 6h16M4 12h16M4 18h10" title={L('Ainda não tens grupos')} text={L('Junta despesas de uma coisa só e vê quanto custou no total.')} examples={['✈️ Viagem', '🔨 Obras', '🎄 Natal']} />}
-      <div className="sh-groups-grid">
-        {groups.map((g) => (
-          <Link key={g.id} to={`/grupos/${g.id}`} className="sh-group" style={{ ['--g' as string]: g.color }}>
-            <b>{g.name}</b><span>{money(sharedOf(g.id)?.cents ?? total(g.id))}</span><small>{count(sharedOf(g.id)?.n ?? of(g.id).length)}{splitIdOf(g.id) ? ` · ${L('Dividido')}` : ''}</small>
-          </Link>
-        ))}
+      <div className="gl-grid">
+        {groups.map((g, i) => {
+          const sid = splitIdOf(g.id), c = sid ? crew[sid] : undefined, others = (c?.members ?? []).filter((m) => m.userId !== me), n = (c?.members.length ?? 0) + (c?.pending ?? 0);
+          const names = others.length === 0 ? '' : others.length <= 2 ? others.map((m) => m.displayName.split(' ')[0]).join(` ${L('e')} `) : `${others[0].displayName.split(' ')[0]}, ${others[1].displayName.split(' ')[0]} +${others.length - 2}`;
+          return (
+            <Link key={g.id} to={`/grupos/${g.id}`} className="mv-card gl-card gg-card" style={{ '--g': g.color, '--i': i } as CSSProperties}>
+              <span className="gg-ic"><Ic d={iconOf(g.name)} size={30} /></span>
+              <span className="gl-main">
+                <b className="gl-name">{g.name}</b>
+                <span className="gl-money"><b>{money(sharedOf(g.id)?.cents ?? total(g.id))}</b> · {count(sharedOf(g.id)?.n ?? of(g.id).length)}</span>
+                {sid && c && <span className="gg-crew">
+                  <span className="gg-faces">{others.slice(0, 4).map((m) => <Face key={m.userId} m={m} />)}{others.length > 4 && <i>+{others.length - 4}</i>}{c.pending > 0 && <i className="wait" title={L('Pendente')}>⏳</i>}</span>
+                  <small>{names ? `${L('Com')} ${names}` : c.pending > 0 ? L('À espera de resposta') : L('Só tu, por agora')}</small>
+                </span>}
+                {sid && !c && <span className="gl-chips"><em className="dim">{L('Dividido')}</em></span>}
+                {sid && c && n > 1 && sharedOf(g.id) && <span className="gl-chips"><em className={c.due ? 'due' : 'ok'}>{c.due ? L('Por pagar') : L('Pago')}</em></span>}
+              </span>
+              <span className="gl-go"><Ic d={ICON.right} size={18} /></span>
+            </Link>
+          );
+        })}
       </div>
       <button type="button" className="sh-btn in" onClick={() => setAdding('new')}><Ic d={ICON.plus} size={20} />{L('Novo grupo')}</button>
       {sheet}

@@ -865,6 +865,10 @@ export const PHRASES: Record<string, Tr> = {
   'concluídas': ['completed', 'completadas', 'terminés'],
   'Alterar meta': ['Edit goal', 'Editar meta', 'Modifier l’objectif'],
   'Adicionar salário ou extra': ['Add salary or extra', 'Añadir salario o extra', 'Ajouter un salaire ou un extra'],
+  'Já existe um rendimento com este valor nesta data. Adicionar na mesma?': ['There’s already an income with this amount on this date. Add it anyway?', 'Ya existe un ingreso con este importe en esta fecha. ¿Añadirlo igualmente?', 'Un revenu de ce montant existe déjà à cette date. L’ajouter quand même ?'],
+  'Com': ['With', 'Con', 'Avec'],
+  'À espera de resposta': ['Waiting for a reply', 'Esperando respuesta', 'En attente de réponse'],
+  'Só tu, por agora': ['Just you, for now', 'Solo tú, por ahora', 'Juste vous, pour l’instant'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */

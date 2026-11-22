@@ -129,7 +129,7 @@ export function GoalView({ g, acc, info, accounts, valueOf, money, date, onBack,
       </section>
       {!acc && left > 0 && <section className="mv-card gl-sec">
         <h2>{L('Quando queres lá chegar?')}</h2>
-        <p className="fx-muted">{L('Carrega numa opção para juntares esse valor todos os meses.')}</p>
+        <p className="gl-sub">{L('Carrega numa opção para juntares esse valor todos os meses.')}</p>
         <div className="gl-plans">{plans.map((p) => <button key={p.n} type="button" className={monthly === p.m ? 'on' : ''} onClick={() => setPlan(p.m)}><small>{p.n === 12 ? L('Em 1 ano') : p.n === 24 ? L('Em 2 anos') : fill(L('Em {d} meses'), { d: String(p.n) })}</small><b>{money(p.m)}</b><em>{L('por mês')}</em></button>)}</div>
       </section>}
       {linked.length > 0 && <section className="mv-card gl-sec">

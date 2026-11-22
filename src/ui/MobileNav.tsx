@@ -25,8 +25,8 @@ const SIMPLE_MORE = ['/visao-mensal', '/categorias'];
 // já estão nos separadores, no Início ou no ⚙ — não se repetem em "Ver todas"
 const SIMPLE_HIDE = ['/transacoes', '/orcamentos', '/definicoes'];
 const MORE = [
-  { path: '/grupos', key: 'simple.groups', d: 'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5' },
   { path: '/metas', key: 'nav.goals', d: 'M12 21a9 9 0 1 1 0-18M12 16a4 4 0 1 1 0-8M12 12l8-8M16 4h4v4' },
+  { path: '/grupos', key: 'simple.groups', d: 'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5' },
   { path: '/plus', key: 'nav.plus', d: 'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z' },
   { path: '/orcamentos', key: 'nav.budgets', d: 'M12 3a9 9 0 1 0 9 9h-9zM15 3.5V9h5.5A9 9 0 0 0 15 3.5z' },
   ...(SIMPLE_UI ? [] : [{ path: '/painel', key: 'mobile.fullPanel', d: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z' }]),

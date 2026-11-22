@@ -23,7 +23,7 @@ import { useMissing } from '../ui/missing';
 import { L } from '../i18n/phrases';
 import { BottomSheet } from './SimplePages';
 
-interface Member { userId: string; displayName: string; avatarUrl: string | null }
+export interface Member { userId: string; displayName: string; avatarUrl: string | null }
 interface PendingOut { id: string; email: string | null; phone: string | null; status?: string }
 type Personal = { bill: SplitBill; cents: number; date: string; categoryId: string; accountId?: string };
 const today = () => new Date().toLocaleDateString('sv-SE');
@@ -271,7 +271,7 @@ export function SplitGroup({ splitId, groupId, createdAt, local, cats, onChanged
   );
 }
 
-function Face({ m, small }: { m: Member; small?: boolean }) {
+export function Face({ m, small }: { m: Member; small?: boolean }) {
   const hue = [...m.userId].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
   const cls = 'fx-avatar sp-face' + (small ? ' sm' : '');
   if (m.avatarUrl) return <img className={cls} src={m.avatarUrl} alt="" referrerPolicy="no-referrer" />;

@@ -24,10 +24,10 @@ const ITEMS = [
   { path: '/calendario', key: 'nav.calendar', d: 'M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM4 10h16M8 3v4M16 3v4' },
   { path: '/orcamentos', key: 'nav.budgets', d: 'M4 20V10M10 20V4M16 20v-7M22 20H2' },
   { path: '/metas', key: 'nav.goals', d: 'M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8z' },
+  { path: '/grupos', key: 'simple.groups', d: 'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5' },
   { path: '/salarios', key: 'nav.salaries', d: 'M3 7h18v12H3zM3 11h18M7 15h3' },
   { path: '/categorias', key: 'nav.categories', d: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM16.5 13.5a3 3 0 1 1 0 6 3 3 0 0 1 0-6z' },
   { path: '/assistente', key: 'plus.short_assistant', d: 'M4 5h16v11H9l-5 4zM9 10h.01M12 10h.01M15 10h.01' },
-  { path: '/grupos', key: 'simple.groups', d: 'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5' },
 ];
 
 const THEME_ORDER: AppSettings['theme'][] = ['dark', 'gray', 'light'];

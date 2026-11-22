@@ -17,6 +17,7 @@ import { SIMPLE_UI, PC_MOBILE } from './core/uiMode';
 import { PcOverview } from './pages/PcOverview';
 import { AdminLogin, ADMIN_LOGIN_EVENT } from './pages/AdminPhase1';
 import { SplitInvitePopup } from './ui/SplitInvitePopup';
+import { TxFormHost } from './ui/TxForm';
 import { DuplicateAccountsPopup } from './ui/DuplicateAccountsPopup';
 import { Groups } from './pages/Groups';
 import { SimpleAccounts, SimpleGoals, SimpleLimits, SimpleOverview } from './pages/SimplePages';
@@ -235,6 +236,7 @@ export default function App() {
         {PC_MOBILE && pathname === '/' && <Link to="/transacoes?nova=1" className="pc-fab" aria-label={L('Nova transação')}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>{L('Nova transação')}</Link>}
       </main>
       <MobileNav />
+      <TxFormHost key={'tx' + dbName} />
       <MobileTutorial enabled={isMobile && !PC_MOBILE} />
       {!IS_DEMO && <UpdateNotice />}
       {!IS_DEMO && <SplitInvitePopup />}

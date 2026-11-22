@@ -1501,5 +1501,14 @@ html:not(.pcm) .mv-menu { padding: 0 11px; } html:not(.pcm) .mv-menu svg { displ
 .gl-total .mv-balance { display: block; font-size: clamp(30px, 4vw, 40px); line-height: 1.2; }
 /* menus diretos numa linha (ex.: Grupo): alinhados à direita como os outros campos */
 .tx-row > .fx-pick > .fx-btn, .tx-row > .fx-pick.compact > .fx-btn { padding: 0; font-size: 15.5px; font-weight: 600; } .tx-row > .fx-pick > .fx-btn:hover { background: none; color: var(--mv); }
-html.keep-sheet :is(.fx-sheet, .fx-backdrop) { animation: none !important; }
 .sal-add { width: max-content; white-space: nowrap; padding-left: 20px; padding-right: 22px; }
+.gl-sec h2 { font-weight: 800 !important; } .gl-sec .gl-sub { color: var(--muted); font-size: 13px !important; } .gl-hero .gl-have small { color: var(--text) !important; font-size: 16px; font-weight: 650; }
+
+/* Grupos: cartões como os das metas, com ícone na cor do grupo e as caras de quem divide */
+.gg-card { text-decoration: none; background: linear-gradient(120deg, color-mix(in srgb, var(--g) 13%, var(--card)), var(--card) 62%); } .gg-card:hover { border-color: color-mix(in srgb, var(--g) 60%, var(--border)); } .gg-card:hover .gl-go { color: var(--g); }
+.gg-ic { display: grid; place-items: center; flex: none; width: 76px; height: 76px; border-radius: 24px; color: var(--g); background: color-mix(in srgb, var(--g) 17%, transparent); transition: transform .25s cubic-bezier(.3,1.6,.5,1); } .gg-card:hover .gg-ic { transform: scale(1.06) rotate(-4deg); }
+.gg-crew { display: flex; align-items: center; gap: 10px; min-width: 0; margin-top: 4px; animation: gl-in .35s ease backwards; } .gg-crew small { min-width: 0; color: var(--text); font-size: 13.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gg-faces { display: flex; flex: none; } .gg-faces > * { box-sizing: border-box; width: 34px !important; height: 34px !important; flex: none; border: 2px solid var(--card); border-radius: 50%; font-size: 13px; } .gg-faces > * + * { margin-left: -9px; } .gg-faces > i { display: grid; place-items: center; background: var(--card-2); color: var(--text); font-style: normal; font-weight: 700; } .gg-faces > i.wait { font-size: 14px; }
+.gl-chips em.due { color: var(--amber, #f5b942); background: color-mix(in srgb, var(--amber, #f5b942) 16%, transparent); }
+@media (max-width: 768px) { .gg-ic { width: 62px; height: 62px; border-radius: 20px; } }
+@media (prefers-reduced-motion: reduce) { .gg-crew { animation: none; } .gg-card:hover .gg-ic { transform: none; } }

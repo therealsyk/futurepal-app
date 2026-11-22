@@ -1,10 +1,8 @@
-import { Transactions, type TxDraft } from './Transactions';
-import { useNavigate } from 'react-router-dom';
+import { openTxForm, useTxSaved } from '../ui/TxForm';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
 import { salaryGrid, salaryYearSummary, setSalary, softDelete } from '../core/finance';
-import { stampNew } from '../db/database';
 import type { Category, Transaction } from '../db/database';
 import { parseMoneyToCents, formatMoney } from '../core/money';
 import { loadSettings } from '../core/settings';
@@ -34,9 +32,6 @@ export const Salaries = () => {
   const [salaryCats, setSalaryCats] = useState<Set<string>>(new Set());
   const [cats, setCats] = useState<Category[]>([]);
   const [drafts, setDrafts] = useState<Record<number, string>>({});
-  const [formN, setFormN] = useState(0);
-  const navigate = useNavigate();
-
   const fmt = (c: number) => formatMoney(c, s.currency, s.language);
   const monthNames = t('calendar.monthNames', { returnObjects: true }) as string[];
 
@@ -87,26 +82,7 @@ export const Salaries = () => {
     await load();
   };
 
-  const extrasCat = async (): Promise<string> => {
-    const found = await db.categories.filter((c) => c.deletedAt === null && c.name === 'extras').toArray();
-    if (found[0]) return found[0].id;
-    const row = stampNew<Category>({ name: 'extras', color: '#34D399', icon: '', order: 99, nameKey: 'salaries.extras' });
-    await db.categories.add(row);
-    return row.id;
-  };
-  const openNew = async () => { await extrasCat(); setFormN((n) => n + 1); };
-  // já existe? (mesmo valor a 3 dias ou menos, registado aqui ou nas Transações)
-  const checkDouble = async (cents: number, date: string) => {
-    const day = (d: string) => new Date(d + 'T00:00:00').getTime() / 864e5;
-    const all = (await db.transactions.toArray()).filter((x) => x.deletedAt === null && x.type === 'income');
-    return all.some((x) => x.amountCents === cents && Math.abs(day(x.date) - day(date)) <= 3) ? L('Já existe um rendimento com este valor nesta data.') : null;
-  };
-  const goExpense = (draft: TxDraft) => {
-    // a janela continua aberta na página Transações: não repete a animação de entrada
-    const root = document.documentElement.classList;
-    root.add('keep-sheet'); setTimeout(() => root.remove('keep-sheet'), 900);
-    navigate('/transacoes?nova=1', { state: { draft } });
-  };
+  useTxSaved(() => { load().catch(() => {}); });
 
   const today = new Date();
   const isCurrentYear = year === today.getFullYear();
@@ -164,8 +140,7 @@ export const Salaries = () => {
           </div>
         )}
       </div>
-      <button type="button" className="sal-add floating" onClick={() => { openNew().catch(() => {}); }}><Ic d={ICON.plus} size={16} />{L('Adicionar salário ou extra')}</button>
-      {formN > 0 && <Transactions embed={{ n: formN, check: checkDouble, onExpense: goExpense, onSaved: () => { load().catch(() => {}); } }} />}
+      <button type="button" className="sal-add floating" onClick={() => openTxForm({ type: 'income' })}><Ic d={ICON.plus} size={16} />{L('Adicionar salário ou extra')}</button>
     </div>
   );
 };
