@@ -9,7 +9,7 @@ import { WidgetEmpty, WidgetRow } from '../ui/WidgetRow';
 import { GroupPic } from './Groups';
 import { NotificationBell } from '../ui/AccountBar';
 import { goalValueCents, splitDesc } from '../core/debtPlan';
-import { cmpText, refText } from '../core/compare';
+import { cmpShort, cmpText, refText } from '../core/compare';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -86,11 +86,11 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
           const tone = (p: number) => (p >= 80 ? 'bad' : p >= 50 ? 'warn' : 'neutral');
           const dlt = prevSpent > 0 && spent > 0 ? Math.round(((spent - prevSpent) / prevSpent) * 100) : null;
           const ref = refText(t, s.language, ranged ? { kind: 'preset', preset: per.preset } : { kind: mode === 'month' ? 'prevMonth' : 'prevYear' });
-          const cmp = dlt === null ? null : <small className={'sh-cmp ' + (dlt > 0 ? 'fx-neg' : 'fx-pos')}>{dlt === 0 ? cmpText(t, dlt, ref) : `${L('Gastaste')} ${cmpText(t, dlt, ref)}`}</small>;
+          const cmp = dlt === null ? null : <small className="sh-cmp hm-cmp">{dlt === 0 ? cmpText(t, dlt, ref) : <>{L('Gastaste')} <b className={dlt > 0 ? 'fx-neg' : 'fx-pos'}>{cmpShort(t, dlt)}</b>{cmpText(t, dlt, ref).startsWith(cmpShort(t, dlt)) ? cmpText(t, dlt, ref).slice(cmpShort(t, dlt).length) : ` ${ref}`}</>}</small>;
           return mode === 'month' ? (
             <>
               <small className="mv-hero-label">{L('Ainda tens para gastar')}</small>
-              <div className="sh-valrow"><span className={'sh-big ' + (left < 0 ? 'fx-neg' : 'fx-pos')}>{money(left)}</span>{pct !== null && <span className={'fx-chip ' + tone(pct)} title={L('do rendimento já gasto')}>{pct}% {L('gasto')}</span>}</div>
+              <div className="sh-valrow"><span className={'sh-big ' + (left < 0 ? 'fx-neg' : 'fx-pos')}>{money(left)}</span></div>{pct !== null && <small className="sh-cmp hm-cmp"><b className={'hm-' + tone(pct)}>{pct}%</b> {L('do rendimento do mês já foi gasto')}</small>}
               <div className={"sh-bar" + (left < 0 ? " over" : "")} aria-hidden="true"><i style={{ width: `${ratio * 100}%` }} /></div>
               {cmp}
             </>
@@ -100,8 +100,8 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
               <div className="sh-valrow"><span className="sh-big fx-pos">{money(received)}</span></div>
               <div className={"sh-bar" + (left < 0 ? " over" : "")} aria-hidden="true"><i style={{ width: `${ratio * 100}%` }} /></div>
               <div className="sh-kpis">
-                <div className="sh-kpi"><small>{L('Gastos')}</small><div className="sh-valrow"><b className="fx-neg">{money(spent)}</b>{pct !== null && <span className={'fx-chip ' + tone(pct)}>{pct}%</span>}</div>{cmp}</div>
-                <div className="sh-kpi"><small>{L('Poupança')}</small><div className="sh-valrow"><b className={left < 0 ? 'fx-neg' : 'fx-pos'}>{money(left)}</b>{received > 0 && <span className={'fx-chip ' + (left < 0 ? 'bad' : 'good')}>{Math.round((left / received) * 100)}%</span>}</div></div>
+                <div className="sh-kpi"><small>{L('Gastos')}</small><div className="sh-valrow"><b className="fx-neg">{money(spent)}</b></div>{pct !== null && <small className="sh-cmp hm-cmp"><b className={'hm-' + tone(pct)}>{pct}%</b> {L('do que recebeste')}</small>}{cmp}</div>
+                <div className="sh-kpi"><small>{L('Poupança')}</small><div className="sh-valrow"><b className={left < 0 ? 'fx-neg' : 'fx-pos'}>{money(left)}</b></div>{received > 0 && <small className="sh-cmp hm-cmp">{left < 0 ? L('Gastaste mais do que recebeste') : <><b className="fx-pos">{Math.round((left / received) * 100)}%</b> {L('do que recebeste ficou guardado')}</>}</small>}</div>
               </div>
             </>
           );
