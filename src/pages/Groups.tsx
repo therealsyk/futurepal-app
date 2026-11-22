@@ -26,6 +26,7 @@ import { BottomSheet } from './SimplePages';
 import { CALENDAR, EMPTY_IC, Face, GTile, SplitGroup, type Member, type SplitEditInfo } from './Split';
 import { openTxForm, useTxSaved } from '../ui/TxForm';
 import { L } from '../i18n/phrases';
+import { openLogin } from '../ui/LoginWindow';
 
 // Ícone do cartão: adivinhado pelo nome do grupo (senão, um ícone neutro)
 const KINDS: Array<[RegExp, string]> = [
@@ -211,7 +212,7 @@ export function Groups() {
           {split && (me ? <InviteRow value={people} onChange={setPeople} cls={miss.cls('people')} /> : null)}
         </div>
         {split && adding !== 'new' && of(adding.id).length > 0 && <p className="grp-hint">{L('As despesas que já estão neste grupo passam a ser divididas por todos.')}</p>}
-        {split && !me && <div className="mv-card sp-start"><p>{L('Inicia sessão para convidares pessoas e dividires as despesas deste grupo.')}</p><Link to="/definicoes" className="sh-btn out sm">{L('Iniciar sessão')}</Link></div>}
+        {split && !me && <div className="mv-card sp-start"><p>{L('Inicia sessão para convidares pessoas e dividires as despesas deste grupo.')}</p><button type="button" className="sh-btn out sm" onClick={() => openLogin()}>{L('Iniciar sessão')}</button></div>}
         <button type="button" className="tx-addbtn" disabled={busy || (split && !me)} onClick={create}>{adding === 'new' ? L('Criar grupo') : L('Convidar')}</button>
       </div>
     </BottomSheet>

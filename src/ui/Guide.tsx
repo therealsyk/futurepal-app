@@ -9,10 +9,9 @@ import { track } from '../core/onboarding';
 import { needsFirstAccount } from '../core/accounts';
 import { db } from '../db/app-db';
 import { L } from '../i18n/phrases';
-import { LoginForm } from '../pages/Login';
-import { BottomSheet } from '../pages/SimplePages';
 import { boldTerms } from './boldTerms';
 import { Ic, ICON } from './fx';
+import { openLogin } from './LoginWindow';
 import { openTxForm } from './TxForm';
 
 type Stage = 'acc' | 'accnav' | 'acc1' | 'askExp' | 'expnav' | 'exp' | 'askMore' | 'more';
@@ -198,7 +197,7 @@ export function Guide() {
 const NK = 'wallet.nudge', DAY = 86_400_000, GAPS = [2, 4, 7, 14, 30];
 export function AccountNudge() {
   const auth = useAuth();
-  const [show, setShow] = useState(false), [login, setLogin] = useState(false);
+  const [show, setShow] = useState(false);
   useEffect(() => {
     if (auth.user || !hasSupabaseConfig()) return;
     const id = setTimeout(async () => {
@@ -212,10 +211,9 @@ export function AccountNudge() {
     }, 20_000);
     return () => clearTimeout(id);
   }, [auth.user]);
-  const later = () => { try { const n = (JSON.parse(localStorage.getItem(NK) || '{"n":0}') as { n: number }).n; localStorage.setItem(NK, JSON.stringify({ n: n + 1, next: Date.now() + GAPS[Math.min(n, GAPS.length - 1)] * DAY })); } catch { /* sem storage */ } setShow(false); setLogin(false); };
+  const later = () => { try { const n = (JSON.parse(localStorage.getItem(NK) || '{"n":0}') as { n: number }).n; localStorage.setItem(NK, JSON.stringify({ n: n + 1, next: Date.now() + GAPS[Math.min(n, GAPS.length - 1)] * DAY })); } catch { /* sem storage */ } setShow(false); };
   if (auth.user) return null;
-  if (login) return <BottomSheet title={L('Criar conta')} onClose={later}><LoginForm initialMode="signup" onDone={() => setLogin(false)} /></BottomSheet>;
   if (!show) return null;
   const why: Array<[string, string]> = [['M7 18a4 4 0 0 1-.5-8 6 6 0 0 1 11.6 1.5A3.5 3.5 0 0 1 17.5 18M12 12v8M9 15l3-3 3 3', L('As tuas despesas ficam guardadas na nuvem.')], ['M4 5h11v10H4zM2 19h14M18 9h4v11h-4z', L('Vês tudo no telemóvel e no computador.')], ['M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4', L('Se perderes o aparelho, não perdes nada.')]];
-  return createPortal(<aside className="nt-pop gd-nudge" role="dialog" aria-label={L('Protege o que já registaste')}><h3>{L('Protege o que já registaste')}</h3>{why.map(([d, x]) => <p key={x}><span className="pco-mic"><Ic d={d} size={18} /></span>{x}</p>)}<div className="rc-popbtns"><button type="button" className="no gd-no" onClick={later}>{L('Agora não')}</button><button type="button" className="yes" onClick={() => { setShow(false); setLogin(true); }}>{L('Criar conta')}</button></div></aside>, document.body);
+  return createPortal(<aside className="nt-pop gd-nudge" role="dialog" aria-label={L('Protege o que já registaste')}><h3>{L('Protege o que já registaste')}</h3>{why.map(([d, x]) => <p key={x}><span className="pco-mic"><Ic d={d} size={18} /></span>{x}</p>)}<div className="rc-popbtns"><button type="button" className="no gd-no" onClick={later}>{L('Agora não')}</button><button type="button" className="yes" onClick={() => { later(); openLogin('signup'); }}>{L('Criar conta')}</button></div></aside>, document.body);
 }

@@ -2,7 +2,6 @@ import { L } from '../i18n/phrases';
 import { useMissing } from '../ui/missing';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { appConfirm } from '../ui/confirm';
-import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getSupabase } from '../auth/supabase';
 import { useAuth } from '../auth/AuthContext';
@@ -12,6 +11,7 @@ import { balances, householdSpent, MAX_MEMBERS, settleUp, type HouseholdExpense,
 import { EmptyState, Field, Ic, ICON, PageHead, Sheet } from '../ui/fx';
 import { DatePicker } from '../ui/DatePicker';
 import { Locked } from './Premium';
+import { openLogin } from '../ui/LoginWindow';
 
 // Família: carteira da casa partilhada (online, no Supabase; ver supabase/family.sql).
 // Não mistura com os dados pessoais: aqui só ficam as despesas da casa e quem deve a quem.
@@ -83,7 +83,7 @@ function FamilyInner() {
   const month = new Date().toISOString().slice(0, 7);
 
   if (!getSupabase() || !auth.user) {
-    return <EmptyState icon={ICON.check} title={t('family.needLogin')} sub={t('family.needLoginSub')} action={<Link to="/definicoes" className="fx-btn primary">{t('family.goLogin')}</Link>} />;
+    return <EmptyState icon={ICON.check} title={t('family.needLogin')} sub={t('family.needLoginSub')} action={<button type="button" className="fx-btn primary" onClick={() => openLogin()}>{t('family.goLogin')}</button>} />;
   }
   if (loading) return <p className="fx-muted">…</p>;
 

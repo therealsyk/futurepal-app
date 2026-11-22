@@ -12,7 +12,6 @@ import { loadSettings, saveSettings, setTheme, type AppSettings } from '../core/
 import { CURRENCY_CODES, currencyName } from '../core/currencies';
 import { getSupabase, canSync, signOut } from '../auth/supabase';
 import { useAuth } from '../auth/AuthContext';
-import { LoginForm } from './Login';
 import { syncAll } from '../sync/syncHub';
 import { db } from '../db/app-db';
 import { exportBackup, importBackup, type BackupData } from '../core/backup';
@@ -27,6 +26,7 @@ import { UserAvatar } from '../ui/UserAvatar';
 import { removeAvatar, saveAvatar } from '../core/avatar';
 import { FeedbackSheet } from './Feedback';
 import { AccountSwitcher } from '../ui/AccountSwitcher';
+import { openLogin } from '../ui/LoginWindow';
 
 const LANGUAGES = [
   { code: 'pt-PT', label: 'Português (Portugal)' },
@@ -111,7 +111,6 @@ export function Settings() {
   const [syncMsg, setSyncMsg] = useState('');
   const [syncing, setSyncing] = useState(false);
   const [backupMsg, setBackupMsg] = useState('');
-  const [loginOpen, setLoginOpen] = useState(false);
   const [params, setParams] = useSearchParams();
   const [aiOpen, setAiOpen] = useState(params.get('ai') === '1');
   const [importOpen, setImportOpen] = useState(false);
@@ -231,7 +230,7 @@ export function Settings() {
             <Row icon={I.sync} title={t('settings.syncNow')} sub={syncMsg || t('settings.syncReady')} onClick={syncing ? undefined : onSync} testId="sync-btn" />
           </>
         ) : (
-          <Row icon={I.user} title={t('settings2.signInRow')} sub={t('settings2.signInRowSub')} onClick={() => setLoginOpen(true)} testId="st-login" />
+          <Row icon={I.user} title={t('settings2.signInRow')} sub={t('settings2.signInRowSub')} onClick={() => openLogin()} testId="st-login" />
         )}
       </div>
 
@@ -289,9 +288,6 @@ export function Settings() {
         </>
       )}
 
-      <Sheet open={loginOpen} onClose={() => setLoginOpen(false)} title={t('settings2.signInRow')}>
-        <LoginForm onDone={() => { setLoginOpen(false); update({ ...settings, account: 'signedin' }); }} />
-      </Sheet>
       <Sheet open={notices !== null} onClose={() => setNotices(null)} title={t('settings2.licenses')} wide>
         <pre className="st-notices">{notices}</pre>
       </Sheet>

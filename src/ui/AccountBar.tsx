@@ -15,6 +15,7 @@ import { useIsAdmin } from '../pages/Admin';
 import { ADMIN_LOGIN_EVENT, isUnlocked } from '../pages/AdminPhase1';
 import { usePlan } from '../pages/Premium';
 import { Ic } from './fx';
+import { openLogin } from './LoginWindow';
 
 // Topo do Painel: conta da pessoa (foto, nome, email), campainha de notificações e menu da conta.
 const BELL = 'M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10.3 21a1.9 1.9 0 0 0 3.4 0';
@@ -156,7 +157,7 @@ export function AccountBar() {
             {auth.user && <span className={'ab-plan' + (plan === 'free' ? '' : ' paid')}>{planName}</span>}
           </div>
           {/* Sem conta: "Entrar ou criar conta" é a primeira opção */}
-          {!auth.user && <button type="button" role="menuitem" className="ab-item accent" onClick={() => go('/definicoes')}><Ic d={ITEMS.in} />{t('acct.signIn')}</button>}
+          {!auth.user && <button type="button" role="menuitem" className="ab-item accent" onClick={() => { setOpen(null); openLogin(); }}><Ic d={ITEMS.in} />{t('acct.signIn')}</button>}
           {auth.user && <button type="button" role="menuitem" className="ab-item accent" onClick={() => go('/plus')}><Ic d={ITEMS.plan} />{plan === 'free' ? t('acct.upgrade') : t('acct.myPlan')}</button>}
           <button type="button" role="menuitem" className="ab-item" onClick={() => go('/definicoes')}><Ic d={ITEMS.backup} />{t('acct.backup')}</button>
           {isAdmin && <button type="button" role="menuitem" className="ab-item" onClick={() => { setOpen(null); if (isUnlocked()) navigate('/admin'); else window.dispatchEvent(new Event(ADMIN_LOGIN_EVENT)); }}><Ic d={ITEMS.admin} />{t('admin.title')}</button>}
