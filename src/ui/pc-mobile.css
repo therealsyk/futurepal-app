@@ -1690,4 +1690,4 @@ html:not(.pcm) .ap-tiles .gx-tile b, html:not(.pcm) .gx-tiles.even .gx-tile b { 
 .gd-nudge h3 { margin: 4px 4px 10px; font-size: 18px; font-weight: 800; } .gd-nudge p { display: flex; align-items: center; gap: 12px; margin: 0 2px 10px; font-size: 14.5px; } .gd-nudge .pco-mic { color: var(--mv, var(--accent)); background: color-mix(in srgb, var(--mv, var(--accent)) 16%, transparent); } .rc-popbtns .no.gd-no { border-color: var(--border); color: var(--text); }
 @media (prefers-reduced-motion: reduce) { .on-feats > div, .gd-ask .spi-card, .gd-ring, .gd-ring::after, .gd-card, .gd-card *, .gd-hand, .gd-hand * { animation: none; } }
 .gd-in p strong { color: var(--text); font-weight: 800; }
-html.guiding .nt-pop, html.guiding .spi-back:not(.gd-ask) { display: none !important; }
+html.guiding .nt-pop, html.guiding .spi-back:not(.gd-ask):not(:has([role="alertdialog"])) { display: none !important; }

@@ -31,9 +31,9 @@ export interface TxFormOptions { type: 'expense' | 'income'; accountId?: string;
 interface FormData { accounts: Account[]; cats: Category[]; groups: Group[]; bals: Record<string, number> }
 
 const OPEN = 'wallet:tx-open', SAVED = 'wallet:tx-saved';
-let waiting: TxFormOptions | null = null, listening = false; // pedido feito antes de a janela existir (ex.: app aberta logo em "nova transação")
+let waiting: TxFormOptions | null = null; // pedido feito antes de a janela existir (ex.: app aberta logo em "nova transação")
 /** Abre a janela, em qualquer página. */
-export const openTxForm = (o: TxFormOptions) => { if (!listening) { waiting = o; return; } window.dispatchEvent(new CustomEvent(OPEN, { detail: o })); };
+export const openTxForm = (o: TxFormOptions) => { if (window.dispatchEvent(new CustomEvent(OPEN, { detail: o, cancelable: true }))) waiting = o; }; // ninguém respondeu: abre assim que a janela existir
 /** Para as páginas se atualizarem depois de guardar. */
 export function useTxSaved(fn: () => void) {
   const ref = useRef(fn); ref.current = fn;
@@ -69,11 +69,10 @@ export function TxFormHost() {
   const [form, setForm] = useState<{ n: number; o: TxFormOptions; d: FormData } | null>(null);
   const at = useRef(pathname); // página onde a janela deve estar
   useEffect(() => {
-    const h = (e: Event) => { const o = (e as CustomEvent<TxFormOptions>).detail; loadData(o.type).then((d) => { at.current = window.location.hash.replace(/^#/, '').split('?')[0] || '/'; setForm({ n: Date.now(), o, d }); }).catch(() => {}); };
+    const h = (e: Event) => { e.preventDefault(); const o = (e as CustomEvent<TxFormOptions>).detail; loadData(o.type).then((d) => { at.current = window.location.hash.replace(/^#/, '').split('?')[0] || '/'; setForm({ n: Date.now(), o, d }); }).catch(() => {}); };
     window.addEventListener(OPEN, h);
-    listening = true;
     if (waiting) { const o = waiting; waiting = null; openTxForm(o); }
-    return () => { listening = false; window.removeEventListener(OPEN, h); };
+    return () => { window.removeEventListener(OPEN, h); };
   }, []);
   useEffect(() => { if (pathname !== at.current) { at.current = pathname; setForm(null); } }, [pathname]); // saiu da página (ex.: botão Voltar do telemóvel)
   if (!form) return null;
