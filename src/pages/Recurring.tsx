@@ -35,7 +35,7 @@ const KIND: Record<ServiceKind, () => string> = {
 const REC_CHANGED = 'wallet:rec-changed';
 const changed = () => { window.dispatchEvent(new Event(REC_CHANGED)); };
 const key = () => 'wallet.recIgnored.' + db.name;
-const ignoredList = (): string[] => { try { return JSON.parse(localStorage.getItem(key()) || '[]') as string[]; } catch { return []; } };
+export const ignoredList = (): string[] => { try { return JSON.parse(localStorage.getItem(key()) || '[]') as string[]; } catch { return []; } };
 const ignore = (k: string) => { try { localStorage.setItem(key(), JSON.stringify([...new Set([...ignoredList(), k])])); } catch { /* sem storage */ } changed(); };
 
 /** Passa um pagamento detetado a recorrente (começa na próxima data, nunca numa já passada). */

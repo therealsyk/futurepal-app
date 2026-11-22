@@ -300,12 +300,28 @@ export function Popover({ anchor, open, onClose, children, minWidth = 220, class
     document.addEventListener('keydown', k, true);
     return () => { document.removeEventListener('mousedown', h, true); document.removeEventListener('keydown', k, true); };
   }, [open, onClose, anchor]);
+  // há mais para ver: desvanece em cima/baixo e mostra um indicador de scroll (no telemóvel não há barra do sistema)
+  const thumb = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const box = ref.current;
+    if (!open || !pos || !box) return;
+    const sc = [box, ...box.querySelectorAll<HTMLElement>('.fx-pop-list')].find((e) => e.scrollHeight > e.clientHeight + 4) ?? box;
+    const upd = () => {
+      const more = sc.scrollHeight - sc.clientHeight, th = thumb.current;
+      box.classList.toggle('can-up', more > 4 && sc.scrollTop > 4);
+      box.classList.toggle('can-down', more > 4 && sc.scrollTop < more - 4);
+      if (th) { const h = Math.max(28, (box.clientHeight - 28) * (sc.clientHeight / sc.scrollHeight)), r = more > 0 ? sc.scrollTop / more : 0; th.style.display = more > 4 ? '' : 'none'; th.style.height = h + 'px'; th.style.top = box.offsetTop + 14 + r * (box.clientHeight - 28 - h) + 'px'; th.style.left = box.offsetLeft + box.offsetWidth - 8 + 'px'; }
+    };
+    const id = setTimeout(upd, 30);
+    sc.addEventListener('scroll', upd, { passive: true });
+    return () => { clearTimeout(id); sc.removeEventListener('scroll', upd); };
+  }, [open, pos]);
   if (!open || !pos) return null;
   return createPortal(
-    <div ref={ref} className={'fx-pop ' + className} onMouseDown={(e) => e.stopPropagation()}
+    <><div ref={ref} className={'fx-pop ' + className} onMouseDown={(e) => e.stopPropagation()}
       style={{ left: pos.left, top: pos.top, bottom: pos.bottom, width: pos.width, maxHeight: pos.maxH }}>
       {children}
-    </div>,
+    </div><i ref={thumb} className="fx-pop-thumb" aria-hidden="true" style={{ display: 'none' }} /></>,
     document.body,
   );
 }

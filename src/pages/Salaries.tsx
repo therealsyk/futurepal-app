@@ -1,3 +1,4 @@
+import { appConfirm } from '../ui/confirm';
 import { openTxForm, useTxSaved } from '../ui/TxForm';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -6,7 +7,7 @@ import { salaryGrid, salaryYearSummary, setSalary, softDelete } from '../core/fi
 import type { Category, Transaction } from '../db/database';
 import { parseMoneyToCents, formatMoney } from '../core/money';
 import { loadSettings } from '../core/settings';
-import { PageHead, MonthNav, catLabel, EmptyState, Ic, ICON } from '../ui/fx';
+import { PageHead, MonthNav, CatIcon, catLabel, EmptyState, Ic, ICON } from '../ui/fx';
 import { isSalaryTx, syncSalaryTransactions } from '../core/salaryTx';
 import { Metric } from './PcOverview';
 import { L } from '../i18n/phrases';
@@ -31,6 +32,7 @@ export const Salaries = () => {
   const [prev, setPrev] = useState({ salary: 0, expense: 0, income: 0 });
   const [salaryCats, setSalaryCats] = useState<Set<string>>(new Set());
   const [cats, setCats] = useState<Category[]>([]);
+  const [openRow, setOpenRow] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<number, string>>({});
   const fmt = (c: number) => formatMoney(c, s.currency, s.language);
   const monthNames = t('calendar.monthNames', { returnObjects: true }) as string[];
@@ -128,13 +130,20 @@ export const Salaries = () => {
       <div className="fx-card sal-extras" style={{ marginTop: 16 }}>
         <div className="fx-card-head"><h2>{t('salaries.extras')}</h2><span className="fx-num">{fmt(extrasTotal)}</span></div>
         {extras.length === 0 ? <EmptyState icon={ICON.wallet} title={t('salaries.noExtras')} sub={t('salaries.noExtrasSub')} /> : (
-          <div className="fx-list">
-            {extras.map((x) => (
-              <div className="fx-item" key={x.id}>
-                <div className="fx-avatar" style={{ background: 'var(--teal)', color: '#fff' }}><Ic d={ICON.plus} size={16} /></div>
-                <div className="fx-item-main"><b>{x.description || catLabel(t, cats.find((c) => c.id === x.categoryId) ?? { name: '' })}</b><span>{new Date(x.date + 'T00:00:00').toLocaleDateString(s.language, { day: 'numeric', month: 'short', year: 'numeric' })}</span></div>
-                <span className="fx-num fx-pos">+{fmt(x.amountCents)}</span>
-                <button type="button" className="fx-round sm" aria-label={t('common.delete')} onClick={async () => { await softDelete(db, 'transactions', x.id); await load(); }}><Ic d={ICON.trash} size={15} /></button>
+          <div className="sal-days">
+            {[...new Set(extras.map((x) => x.date))].map((day) => (
+              <div key={day} className="sh-day">
+                <div className="sh-dayhead"><b>{new Date(day + 'T00:00:00').toLocaleDateString(s.language, { weekday: 'short', day: 'numeric', month: 'short' })}</b></div>
+                {extras.filter((x) => x.date === day).map((x) => { const c = cats.find((k) => k.id === x.categoryId); return (
+                  <div key={x.id}>
+                    <button type="button" className="sh-tx txs-row" onClick={() => setOpenRow(openRow === x.id ? null : x.id)}>
+                      <CatIcon cat={c ?? {}} size={36} />
+                      <span className="sh-tx-main"><b>{x.description || (c ? catLabel(t, c) : '')}</b><small>{c ? catLabel(t, c) : ''}</small></span>
+                      <b className="fx-pos">+{fmt(x.amountCents)}</b>
+                    </button>
+                    {openRow === x.id && <div className="txs-actions"><button type="button" className="sh-danger" onClick={async () => { if (await appConfirm(L('Apagar este movimento?'))) { await softDelete(db, 'transactions', x.id); setOpenRow(null); await load(); } }}>{L('Apagar')}</button></div>}
+                  </div>
+                ); })}
               </div>
             ))}
           </div>

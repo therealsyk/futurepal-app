@@ -8,6 +8,10 @@ import { NewGoal } from './NewGoal';
 import { GoalCard, GoalView, type GoalInfo } from './GoalView';
 import { GoalRing } from '../ui/GoalRing';
 import { GTile } from './Split';
+import { CountMoney } from '../ui/CountMoney';
+import { allPayments, inPeriod, isEssential } from '../core/payments';
+import { hasFeature } from '../core/plan';
+import { ignoredList } from './Recurring';
 import { cmpShort } from '../core/compare';
 import { useMissing } from '../ui/missing';
 import { useEffect, useRef, useState } from 'react';
@@ -18,7 +22,7 @@ import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
-import type { Account, Budget, Category, Goal, Salary, Transaction, Transfer } from '../db/database';
+import type { Account, Budget, Category, Goal, Recurring, Salary, Transaction, Transfer } from '../db/database';
 import { accountBalanceCents, removeAccount, updateAccount } from '../core/accounts';
 import { setBudget } from '../core/finance';
 import { formatMoney, parseMoneyToCents } from '../core/money';
@@ -413,7 +417,8 @@ export function SimpleOverview({ yearly = false, embed }: { yearly?: boolean; em
   const [kind, setKind] = useState<'expense' | 'income'>('expense');
   const [tip, setTip] = useState<string | null>(null);
   useEffect(() => { if (!tip) return; const id = setTimeout(() => setTip(null), 2500); const off = () => setTip(null); document.addEventListener('click', off); return () => { clearTimeout(id); document.removeEventListener('click', off); }; }, [tip]);
-  useEffect(() => { loadAll().then(setD).catch(() => {}); }, []);
+  const [recs, setRecs] = useState<Recurring[]>([]);
+  useEffect(() => { loadAll().then(setD).catch(() => {}); db.recurrings.toArray().then((x) => setRecs(live(x))).catch(() => {}); }, []);
 
   const shift = (k: number) => setCur((c) => (yearly ? { y: c.y + k, m: c.m } : { y: c.y + Math.floor((c.m + k) / 12), m: ((c.m + k) % 12 + 12) % 12 }));
   const key = (y: number, m: number) => `${y}-${String(m + 1).padStart(2, '0')}`;
@@ -552,7 +557,7 @@ export function SimpleOverview({ yearly = false, embed }: { yearly?: boolean; em
             {m.income > 0 && <div className="sh-line"><span>{L('Salário')}</span><b>{money(m.salary)}</b></div>}
             {m.income > 0 && <div className="sh-line"><span>{L('Extras')}</span><b>{money(m.income - m.salary)}</b></div>}
             <div className="sh-line"><span>{yearly ? L('Despesas por mês') : L('Despesas por dia')}</span><span className="sh-valline"><b>{money(yearly ? perMonth : perDay)}</b>{yearly ? cmp('pm', perMonth, prevPerMonth, false) : cmp('pd', perDay, prevPerDay, false)}</span></div>
-            {m.income > 0 && <div className="sh-line"><span>{L('Poupaste')}</span><b className={bal < 0 ? 'fx-neg' : 'fx-pos'}>{Math.round((bal / m.income) * 100)}% dos rendimentos</b></div>}
+            {m.income > 0 && <div className="sh-line"><span>{L('Poupaste')}</span><b className={bal < 0 ? 'fx-neg' : 'fx-pos'}>{Math.round((bal / m.income) * 100)}% {L('dos rendimentos')}</b></div>}
             <Link to={yearly ? `/transacoes?ano=${cur.y}` : `/transacoes?mes=${pref}`} className="sh-line sh-linkrow"><span>{L('Movimentos')}</span><b>{m.rows.length} <Ic d={ICON.right} size={14} /></b></Link>
           </section>
   </>);
@@ -576,6 +581,25 @@ export function SimpleOverview({ yearly = false, embed }: { yearly?: boolean; em
           )}
         </section>
   </>);
+  // pagamentos recorrentes e subscrições deste mês/ano, e o que se podia ter poupado com os que não são essenciais
+  const recEl = (() => {
+    if (!d) return null;
+    const { added, found } = allPayments(d.txs, recs, ignoredList());
+    const from = pref + (yearly ? '-01-01' : '-01'), to = yearly ? pref + '-12-31' : `${pref}-${String(days).padStart(2, '0')}`;
+    const list = [...added, ...(hasFeature('subscriptions') ? found : [])].map((p) => { const v = inPeriod(p, from, to); return { p, cents: v.paid + v.due }; }).filter((x) => x.cents > 0);
+    if (!list.length) return null;
+    const total = list.reduce((a, x) => a + x.cents, 0), free = list.filter((x) => !isEssential(x.p, catOf(x.p.categoryId))).reduce((a, x) => a + x.cents, 0);
+    const share = Math.min(1, m.expense > 0 ? total / Math.max(total, m.expense) : 1);
+    return (
+      <Link to="/subscricoes" className="mv-card rs-card">
+        <span className="rs-head"><span className="pco-mic"><Ic d="M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3" size={18} /></span><b>{L('Recorrentes e subscrições')}</b><Ic d={ICON.right} size={16} /></span>
+        <span className="rs-main"><GoalRing r={share} size={92}><b>{Math.round(share * 100)}%</b></GoalRing>
+          <span className="rs-vals"><small>{yearly ? L('Gasto no ano') : L('Gasto no mês')}</small><strong className="fx-neg"><CountMoney cents={total} money={money} /></strong>
+            <em>{yearly ? fill(L('{m} por mês'), { m: money(Math.round(total / 12)) }) : fill(L('{m} por dia'), { m: money(Math.round(total / days)) })}</em></span></span>
+        {free > 0 && <span className="rs-save"><Ic d="M12 5v14M5 12l7 7 7-7" size={15} /><span>{L('Podias ter poupado')}</span><b className="fx-pos">{money(free)}</b></span>}
+      </Link>
+    );
+  })();
   if (embed) return <div className="mv sh sh-embed">{{ chart: chartEl, totals: totalsEl, lines: linesEl, cal: yearly ? yearCal() : monthCal(), cats: catsEl }[embed.part]}</div>;
 
   return (
@@ -600,6 +624,7 @@ export function SimpleOverview({ yearly = false, embed }: { yearly?: boolean; em
           {chartEl}
           {totalsEl}
           {linesEl}
+          {recEl}
           {yearly ? yearCal() : monthCal()}
         </>
       ) : catsEl}

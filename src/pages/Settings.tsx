@@ -6,7 +6,7 @@ import { CI_ENABLED } from '../core/ciFlag';
 import { trackEvent } from '../core/presence';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
-import { Seg, Sheet, Ic, ICON, PickMenu } from '../ui/fx';
+import { Sheet, Ic, ICON, PickMenu } from '../ui/fx';
 import { COUNTRIES, countryName } from '../core/locale';
 import { loadSettings, saveSettings, setTheme, type AppSettings } from '../core/settings';
 import { CURRENCY_CODES, currencyName } from '../core/currencies';
@@ -246,10 +246,16 @@ export function Settings() {
         <Row icon={I.flag} title={t('settings.country')} sub={t('settings2.countrySub')}>
           <PickMenu label={t('settings.country')} testId="settings-country" value={settings.country} options={COUNTRIES.map((c) => ({ value: c.code, label: countryName(c.code, settings.language) }))} onChange={(v) => changeCountry(String(v))} />
         </Row>
-        <Row icon={I.moon} title={t('settings.theme')}>
-          <Seg<'dark' | 'gray' | 'light'> value={settings.theme} onChange={changeTheme} label={t('settings.theme')}
-            options={[{ id: 'dark', label: t('settings.themeDark') }, { id: 'gray', label: t('settings.themeGray') }, { id: 'light', label: t('settings.themeLight') }]} />
-        </Row>
+        <div className="th-block">
+          <Row icon={I.moon} title={t('settings.theme')}>{null}</Row>
+          <div className="th-opts" role="radiogroup" aria-label={t('settings.theme')}>
+            {([['dark', t('settings.themeDark')], ['gray', t('settings.themeGray')], ['light', t('settings.themeLight')]] as const).map(([id, label]) => (
+              <button key={id} type="button" role="radio" aria-checked={settings.theme === id} className={'th-opt th-' + id + (settings.theme === id ? ' on' : '')} onClick={() => changeTheme(id)}>
+                <span className="th-view" aria-hidden="true"><i /><i /><i /></span><b>{label}</b>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {CI_ENABLED && <CiOptRow />}

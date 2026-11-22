@@ -951,6 +951,13 @@ export const PHRASES: Record<string, Tr> = {
   'Pedido registado': ['Request saved', 'Petición registrada', 'Demande enregistrée'],
   'Quero o {d}': ['I want {d}', 'Quiero {d}', 'Je veux {d}'],
   'Recomendado': ['Recommended', 'Recomendado', 'Recommandé'],
+  'dos rendimentos': ['of your income', 'de tus ingresos', 'de vos revenus'],
+  'Recorrentes e subscrições': ['Recurring and subscriptions', 'Recurrentes y suscripciones', 'Récurrents et abonnements'],
+  'Gasto no ano': ['Spent this year', 'Gastado en el año', 'Dépensé sur l’année'],
+  'Gasto no mês': ['Spent this month', 'Gastado en el mes', 'Dépensé sur le mois'],
+  '{m} por mês': ['{m} per month', '{m} al mes', '{m} par mois'],
+  '{m} por dia': ['{m} per day', '{m} al día', '{m} par jour'],
+  'Podias ter poupado': ['You could have saved', 'Podrías haber ahorrado', 'Vous auriez pu économiser'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */
