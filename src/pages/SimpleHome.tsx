@@ -1,5 +1,6 @@
 // Início simplificado — só o essencial, para qualquer pessoa.
 //  1. Quanto ainda tenho este mês  2. Adicionar gasto / dinheiro recebido  3. A minha poupança  4. Últimos movimentos
+import { CmpWords } from './PcOverview';
 import type { CSSProperties } from 'react';
 import { GoalRing } from '../ui/GoalRing';
 import { CountMoney } from '../ui/CountMoney';
@@ -9,7 +10,7 @@ import { WidgetEmpty, WidgetRow } from '../ui/WidgetRow';
 import { GroupPic } from './Groups';
 import { NotificationBell } from '../ui/AccountBar';
 import { goalValueCents, splitDesc } from '../core/debtPlan';
-import { Metric } from './PcOverview';
+
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -78,23 +79,38 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
   const name = meta.full_name || meta.name || auth.user?.email?.split('@')[0] || '';
 
   const heroEl = (<>
-      {/* os mesmos três valores do Resumo do PC */}
-      <div className="pco-metrics-row hm-metrics" data-tour={embed ? undefined : 'month'}>
+      <section className="mv-hero sh-hero" data-tour={embed ? undefined : 'month'}>
         {(() => {
-          const vm = ranged ? 'range' : mode, inP = (x: Transaction) => (ppr ? x.date >= ppr.from && x.date <= ppr.to : x.date.startsWith(prevPrefix));
+          const inP = (x: Transaction) => (ppr ? x.date >= ppr.from && x.date <= ppr.to : x.date.startsWith(prevPrefix));
           const pInc = (data?.txs ?? []).filter((x) => x.type === 'income' && inP(x)).reduce((a, x) => a + x.amountCents, 0), pLeft = pInc - prevSpent;
-          const dl = (n: number, b: number) => (b === 0 ? null : (n - b) / Math.abs(b)), bar = (v: number) => (received > 0 ? v / received : v > 0 ? 1 : 0);
-          const isCur = cur.y === now.getFullYear() && (mode === 'year' || cur.m === now.getMonth());
-          const days = mode === 'month' && !ranged ? (isCur ? now.getDate() : new Date(cur.y, cur.m + 1, 0).getDate()) : 0, months = isCur ? now.getMonth() + 1 : 12;
-          const sub = ranged ? undefined : mode === 'month' ? t('pco.avgDay', { v: money(Math.round(spent / days)) }) : t('pco.avgMonth', { v: money(Math.round(spent / months)) });
-          const c2 = { prevName: ranged ? t('pco.prev_' + per.preset) : mode === 'year' ? String(cur.y - 1) : new Date(cur.y, cur.m - 1, 1).toLocaleDateString(s.language, { month: 'long' }), vsLabel: t('pco.vs') };
-          return <>
-            <Metric icon="M12 19V5M5 12l7-7 7 7" tone="inc" title={t('pco.inc_' + vm)} value={money(received)} valueClass="fx-pos" delta={dl(received, pInc)} deltaGoodUp {...c2} bar={received > 0 ? 1 : 0} />
-            <Metric icon="M12 5v14M5 12l7 7 7-7" tone="exp" title={t('pco.spent_' + vm)} value={money(spent)} valueClass={spent > 0 ? 'fx-neg' : ''} delta={dl(spent, prevSpent)} deltaGoodUp={false} {...c2} sub={sub} bar={bar(spent)} />
-            <Metric icon="M19 7a3 3 0 0 0-3-2H9a6 6 0 0 0-6 6c0 2 1 3.5 2 4.5V19h3v-2h5v2h3v-3a6 6 0 0 0 2-3h2V9h-2zM15 10h.01" tone="sav" title={mode === 'month' && !ranged && isCur ? t('pco.leftMonth') : t('pco.saved_' + vm)} value={money(left)} valueClass={left < 0 ? 'fx-neg' : 'fx-pos'} delta={dl(left, pLeft)} deltaGoodUp {...c2} bar={bar(Math.max(0, left))} />
-          </>;
+          const who = ranged ? t('pco.prev_' + per.preset) : mode === 'year' ? String(cur.y - 1) : new Date(cur.y, cur.m - 1, 1).toLocaleDateString(s.language, { month: 'long' });
+          const ratio = received > 0 ? Math.min(1, spent / received) : spent > 0 ? 1 : 0;
+          // comparação à direita do nome, como no PC: só a parte que interessa tem cor
+          const dlt = (n: number, b: number, up: boolean) => {
+            if (b === 0) return null;
+            const p = Math.round(((n - b) / Math.abs(b)) * 100), good = p === 0 ? 'same' : (p > 0) === up ? 'good' : 'bad';
+            return <span className={'pco-delta ' + good}>{up ? <>{p > 0 ? '+' : ''}{p}% <small>{t('pco.vs')} {who}</small></> : <CmpWords t={t} pct={p} name={who} />}</span>;
+          };
+          const bar = <div className={'sh-bar' + (left < 0 ? ' over' : '')} aria-hidden="true"><i style={{ width: `${ratio * 100}%` }} /></div>;
+          return mode === 'month' ? (
+            <>
+              <div className="hm-row"><small className="mv-hero-label">{L('Ainda tens para gastar')}</small>{dlt(spent, prevSpent, false)}</div>
+              <div className="sh-valrow"><span className={'sh-big ' + (left < 0 ? 'fx-neg' : 'fx-pos')}>{money(left)}</span></div>
+              {bar}
+            </>
+          ) : (
+            <>
+              <div className="hm-row"><small className="mv-hero-label">{ranged ? L('Recebeste neste período') : L('Recebeste este ano')}</small>{dlt(received, pInc, true)}</div>
+              <div className="sh-valrow"><span className="sh-big fx-pos">{money(received)}</span></div>
+              {bar}
+              <div className="sh-kpis hm-kpis">
+                <div className="sh-kpi"><div className="hm-row"><small>{L('Gastos')}</small>{dlt(spent, prevSpent, false)}</div><b className="fx-neg">{money(spent)}</b></div>
+                <div className="sh-kpi"><div className="hm-row"><small>{L('Poupança')}</small>{dlt(left, pLeft, true)}</div><b className={left < 0 ? 'fx-neg' : 'fx-pos'}>{money(left)}</b></div>
+              </div>
+            </>
+          );
         })()}
-      </div>
+      </section>
 
       <Link to={ranged && pr ? `/transacoes?de=${pr.from}&ate=${pr.to}` : mode === 'month' ? '/visao-mensal' : `/resumo-ano?ano=${cur.y}`} className="sh-link">{ranged ? L('Ver movimentos do período') : mode === 'month' ? L('Ver resumo do mês') : L('Ver resumo do ano')} <Ic d={ICON.right} size={14} /></Link>
 

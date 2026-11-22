@@ -29,7 +29,7 @@ const IC = {
 };
 
 // Só a percentagem e "mais/menos" ficam coloridos; o resto igual ao "vs outubro" das outras caixas.
-function CmpWords({ t, pct, name }: { t: ReturnType<typeof useTranslation>['t']; pct: number; name: string }) {
+export function CmpWords({ t, pct, name }: { t: ReturnType<typeof useTranslation>['t']; pct: number; name: string }) {
   const full = cmpText(t, pct, name), short = cmpShort(t, pct);
   return full.startsWith(short) ? <>{short} <small>{full.slice(short.length).trim()}</small></> : <small>{full}</small>;
 }
