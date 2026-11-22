@@ -28,6 +28,8 @@ interface PendingOut { id: string; email: string | null; phone: string | null; s
 type Personal = { bill: SplitBill; cents: number; date: string; categoryId: string; accountId?: string };
 const today = () => new Date().toLocaleDateString('sv-SE');
 const errText = (e: unknown) => (e as { message?: string })?.message ?? String(e);
+const HOURGLASS = 'M6 3h12M6 21h12M7 3v3.5c0 2 5 4 5 5.5s-5 3.5-5 5.5V21M17 3v3.5c0 2-5 4-5 5.5s5 3.5 5 5.5V21';
+const LEAVE = 'M15 4h4v16h-4M10 16l-4-4 4-4M6 12h10';
 const CLOCK = 'M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 7v5l3 2', CHECK = 'M20 6 9 17l-5-5';
 
 /** Foto com o estado no canto: certo verde (pagou) ou relógio amarelo (falta). */
@@ -174,7 +176,7 @@ export function SplitGroup({ splitId, groupId, createdAt, local, cats, onChanged
         </div>
         <div className="gx-people">
         {members.map((m) => <span key={m.userId} className="gx-person"><Face m={m} /><b>{m.userId === me ? L('Tu') : m.displayName}</b></span>)}
-        {invs.map((i) => { const who = i.email ?? '+' + i.phone; return <span key={i.id} className={'gx-person ' + (i.status === 'declined' ? 'no' : 'wait')}><span className="gx-pic"><Face m={{ userId: i.id, displayName: who, avatarUrl: null }} /><i aria-hidden="true">{i.status === 'declined' ? '✕' : '⏳'}</i></span><b title={who}>{who}</b><small>{i.status === 'declined' ? L('Rejeitou') : L('Pendente')}</small></span>; })}
+        {invs.map((i) => { const who = i.email ?? '+' + i.phone; return <span key={i.id} className={'gx-person ' + (i.status === 'declined' ? 'no' : 'wait')}><span className="gx-pic"><Face m={{ userId: i.id, displayName: who, avatarUrl: null }} /><i aria-hidden="true">{i.status === 'declined' ? '✕' : <Ic d={HOURGLASS} size={13} />}</i></span><b title={who}>{who}</b><small>{i.status === 'declined' ? L('Rejeitou') : L('Pendente')}</small></span>; })}
         <button type="button" className="gx-person add" onClick={() => setInviting([])}><span className="sp-face-ph"><Ic d={ICON.plus} size={18} /></span><b>{L('Convidar')}</b></button>
         </div>
       </section>
@@ -219,7 +221,7 @@ export function SplitGroup({ splitId, groupId, createdAt, local, cats, onChanged
                   })}
                   {pending.map((i) => <div key={i.id} className="sp-row inv"><span className="sp-face-ph"><Ic d={CLOCK} size={17} /></span><span className="sp-row-main"><span className="sp-row-top"><b>{i.email ?? '+' + i.phone}</b></span><small>{L('Vai pagar')} <b>{money(eachOf(b))}</b> {L('quando aceitar')}</small></span><span className="sp-badge wait">{L('Pendente')}</span></div>)}
                 </div>
-                {owner === me && <button type="button" className="gx-rm" onClick={() => setClosing(b)}>{L('Apagar transação')}</button>}
+                {owner === me && <button type="button" className="gx-rm" onClick={() => setClosing(b)}><Ic d={ICON.trash} size={17} />{L('Apagar transação')}</button>}
               </div></div></div>
             </div>
           );
@@ -263,7 +265,7 @@ export function SplitGroup({ splitId, groupId, createdAt, local, cats, onChanged
           </div>, document.body);
       })()}
       <div className="gx-end">
-        <button type="button" className="sh-danger" onClick={leave}>{L('Sair do grupo')}</button>
+        <button type="button" className="gx-rm" onClick={leave}><Ic d={LEAVE} size={18} />{L('Sair do grupo')}</button>
       </div>
     </>
   );

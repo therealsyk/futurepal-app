@@ -1457,3 +1457,9 @@ html:not(.pcm) .mv-menu { padding: 0 11px; } html:not(.pcm) .mv-menu svg { displ
 .gx-person .sp-face, .gx-person > img, .gx-person .sp-face-ph, .gx-person .gx-pic img { width: 46px !important; height: 46px !important; flex: none; } .gx-person .sp-face-ph { display: grid; place-items: center; box-sizing: border-box; }
 .gx-pic { position: relative; display: grid; } .gx-pic > .sp-face { opacity: .6; } .gx-pic > i { position: absolute; top: -5px; right: -7px; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; background: var(--card); font-size: 12px; font-style: normal; } .gx-person.no .gx-pic > i { color: var(--red); }
 @media (max-width: 768px) { .gx-trash span { display: none; } .gx-trash { width: 40px; padding: 0; justify-content: center; } .gx-sum > div + div { padding-left: 16px; } }
+/* botões de apagar e sair bem visíveis */
+.gx-rm, .gx-trash { display: inline-flex; align-items: center; justify-content: center; gap: 9px; border: 1px solid color-mix(in srgb, var(--red) 60%, transparent); border-radius: 99px; background: color-mix(in srgb, var(--red) 16%, var(--card)); color: var(--red); font: inherit; font-weight: 750; cursor: pointer; transition: background .15s, color .15s; }
+.gx-rm { align-self: center; height: 44px; padding: 0 24px; font-size: 14.5px; } .gx-trash { height: 40px; padding: 0 17px; font-size: 14px; } .gx-rm:hover, .gx-trash:hover { background: var(--red); border-color: var(--red); color: #fff; }
+.gx-end { padding: 6px 0 28px; } .gx-end .gx-rm { min-width: 240px; height: 50px; font-size: 16px; }
+.gx-person.wait .gx-pic > i { background: #f5b85a; color: #3a2602; box-shadow: 0 0 0 2px var(--card); } .gx-pic > i { border-radius: 50% !important; }
+@media (max-width: 768px) { .gx-trash { width: auto; padding: 0 13px; } .gx-trash span { display: inline; } }
