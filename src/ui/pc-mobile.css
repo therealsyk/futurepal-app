@@ -1358,3 +1358,14 @@ html:not(.pcm) .fx-card-head { flex-wrap: wrap; row-gap: 2px; }
 .acc-chev { position: absolute; right: 16px; bottom: 16px; display: grid; transition: transform .25s; } [aria-expanded="true"] > .acc-chev { transform: rotate(180deg); }
 @media (prefers-reduced-motion: reduce) { .acc-exp, .acc-chev { transition: none; } }
 @media (min-height: 780px) { .bs-sheet:has(.acc-form), .bs-sheet:has(.acc-form) > .bs-body { overflow: visible; -webkit-mask-image: none !important; mask-image: none !important; } }
+
+/* Conta e saldo numa só peça, alinhada com as outras linhas; "Transferir" é uma linha como as outras */
+.tx-row.tx-acc, .acc-form .tx-row.tx-acc { min-height: 52px !important; padding: 0 !important; } .acc-form .tx-row.tx-acc { min-height: 44px !important; }
+.tx-accpick, .acc-form .tx-accpick.row { flex-direction: row-reverse; align-items: center; gap: 0; height: 38px; border-radius: 99px; background: var(--card-2); border: 1px solid var(--border); }
+.acc-form .tx-accpick.row { height: 34px; }
+.tx-accpick > small { position: relative; padding: 0 12px 0 14px; font-size: 13.5px !important; font-weight: 700 !important; white-space: nowrap; }
+.tx-accpick > small::after { content: ''; position: absolute; right: 0; top: 2px; bottom: 2px; width: 1px; background: var(--border); }
+.tx-accpick .fx-pick { margin: 0; } .tx-accpick .fx-pick > .fx-btn, .acc-form .tx-accpick .fx-pick > .fx-btn { height: 100%; min-height: 32px; padding: 0 12px; border-radius: 99px; background: none !important; font-size: 15px; font-weight: 700; }
+.tx-accpick .fx-pick > .fx-btn > span { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+button.tx-swaprow { width: 100%; padding: 0; border: 0; border-bottom: 1px solid var(--border); background: none; font: inherit; color: var(--muted); cursor: pointer; text-align: left; }
+button.tx-swaprow > span, button.tx-swaprow > span svg { color: var(--mv, var(--accent)); } button.tx-swaprow:hover > span { filter: brightness(1.15); }

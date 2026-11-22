@@ -349,9 +349,9 @@ export function Transactions() {
                 <span className="tx-accpick">
                   <PickMenu compact label={t('accounts.account')} value={accountId} options={accounts.map((a) => ({ value: a.id, label: a.name, sub: bals[a.id] !== undefined ? money(bals[a.id]) : undefined }))} onChange={(v) => { setAccountId(String(v)); if (String(v) === toAccount) setToAccount(''); }} />
                   {bals[accountId] !== undefined && <small className={bals[accountId] < 0 ? 'fx-neg' : 'fx-pos'}>{money(bals[accountId])}</small>}
-                  {!toAccount && <button type="button" className="tx-swapmini" onClick={() => (accounts.length > 1 ? setToAccount(accounts.find((a) => a.id !== accountId)?.id ?? '') : setError(L('Para transferir, cria primeiro outra conta (ex.: Poupanças) em Contas.')))}><Ic d="M4 7h13l-3-3M20 17H7l3 3" size={13} />{L('Transferir para outra conta')}</button>}
                 </span>
               </span></div>
+            {!toAccount && <button type="button" className="tx-row tx-swaprow" onClick={() => (accounts.length > 1 ? setToAccount(accounts.find((a) => a.id !== accountId)?.id ?? '') : setError(L('Para transferir, cria primeiro outra conta (ex.: Poupanças) em Contas.')))}><span><Ic d="M4 7h13l-3-3M20 17H7l3 3" size={18} />{L('Transferir para outra conta')}</span><Ic d={ICON.right} size={16} /></button>}
             {toAccount && (
               <div className="tx-row tx-acc"><span><Ic d="M4 7h13l-3-3M20 17H7l3 3" size={18} />{L('Para a conta')}</span>
                 <span className="tx-accval">
