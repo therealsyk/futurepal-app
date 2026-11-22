@@ -17,7 +17,6 @@ import { useTranslation } from 'react-i18next';
 import { EmptyState } from '../ui/EmptyState';
 import { FI, InviteRow, SwitchRow, TextRow } from '../ui/formFields';
 import { parseContact } from '../core/split';
-import { usePlan } from './Premium';
 import { FormError, useMissing } from '../ui/missing';
 import { squareImage } from '../core/assistant';
 import { listenSplit, tellSplit } from '../core/splitLive';
@@ -63,7 +62,6 @@ export function Groups() {
   const [split, setSplit] = useState(false);
   const [people, setPeople] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
-  const { has } = usePlan();
   const [edit, setEdit] = useState<Group | null>(null), [color, setColor] = useState(''), [image, setImage] = useState(''), [picErr, setPicErr] = useState('');
   const pickPhoto = async (f?: File) => { if (!f) return; try { setImage(await squareImage(f)); setPicErr(''); } catch { setPicErr(L('Não foi possível abrir esta foto. Experimenta outra (JPG ou PNG).')); } };
   const missing = useMissing(), emissing = useMissing();
@@ -208,11 +206,11 @@ export function Groups() {
         <div className="tx-rows">
           {adding === 'new' && <TextRow icon={FI.name} label={L('Nome')} value={name} onChange={setName} placeholder={L('Ex.: Férias de verão')} cls={miss.cls('name')} />}
           {!IS_DEMO && adding === 'new' && <SwitchRow icon="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M22 19v-1a4 4 0 0 0-3-3.9M16 4.1a3 3 0 0 1 0 5.8" label={L('Dividir despesas com outras pessoas?')} sub={split ? undefined : L('Cada um paga a sua parte e vê quem já pagou')} on={split} onChange={setSplit} />}
-          {split && (me && has('split') ? <InviteRow value={people} onChange={setPeople} cls={miss.cls('people')} /> : null)}
+          {split && (me ? <InviteRow value={people} onChange={setPeople} cls={miss.cls('people')} /> : null)}
         </div>
         {split && adding !== 'new' && of(adding.id).length > 0 && <p className="grp-hint">{L('As despesas que já estão neste grupo passam a ser divididas por todos.')}</p>}
-        {split && !(me && has('split')) && <div className="mv-card sp-start"><p>{me ? L('Criar grupos para dividir despesas faz parte do Plus e do Pro.') : L('Inicia sessão para convidares pessoas e dividires as despesas deste grupo.')}</p><Link to={me ? '/plus' : '/definicoes'} className="sh-btn out sm">{me ? L('Ver planos') : L('Iniciar sessão')}</Link></div>}
-        <button type="button" className="tx-addbtn" disabled={busy || (split && !(me && has('split')))} onClick={create}>{adding === 'new' ? L('Criar grupo') : L('Convidar')}</button>
+        {split && !me && <div className="mv-card sp-start"><p>{L('Inicia sessão para convidares pessoas e dividires as despesas deste grupo.')}</p><Link to="/definicoes" className="sh-btn out sm">{L('Iniciar sessão')}</Link></div>}
+        <button type="button" className="tx-addbtn" disabled={busy || (split && !me)} onClick={create}>{adding === 'new' ? L('Criar grupo') : L('Convidar')}</button>
       </div>
     </BottomSheet>
   );

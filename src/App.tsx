@@ -18,13 +18,14 @@ import { PcOverview } from './pages/PcOverview';
 import { AdminLogin, ADMIN_LOGIN_EVENT } from './pages/AdminPhase1';
 import { SplitInvitePopup } from './ui/SplitInvitePopup';
 import { TxFormHost } from './ui/TxForm';
+import { RecurringPage, RecurringPopup } from './pages/Recurring';
 import { DuplicateAccountsPopup } from './ui/DuplicateAccountsPopup';
 import { Groups } from './pages/Groups';
 import { SimpleAccounts, SimpleGoals, SimpleLimits, SimpleOverview } from './pages/SimplePages';
 import { AdminPage } from './pages/Admin';
 import { FamilyPage } from './pages/Family';
 import { AssistantPage } from './pages/Assistant';
-import { PlusPage, IrsPage, SubscriptionsPage, YearPage, ChallengesPage, WarrantiesPage, FreelancePage } from './pages/Premium';
+import { PlusPage, IrsPage, YearPage, ChallengesPage, WarrantiesPage, FreelancePage } from './pages/Premium';
 import { useIsMobile } from './ui/useIsMobile';
 import { DemoPage } from './ui/components';
 import SetupWizard, { ONBOARDED_FLAG } from './pages/SetupWizard';
@@ -213,7 +214,7 @@ export default function App() {
           <Route path="/plus" element={<PlusPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/irs" element={<IrsPage />} />
-          <Route path="/subscricoes" element={<SubscriptionsPage />} />
+          <Route path="/subscricoes" element={<RecurringPage />} />
           <Route path="/ano" element={<YearPage />} />
           <Route path="/desafios" element={<ChallengesPage />} />
           <Route path="/garantias" element={<WarrantiesPage />} />
@@ -240,6 +241,7 @@ export default function App() {
       <MobileTutorial enabled={isMobile && !PC_MOBILE} />
       {!IS_DEMO && <UpdateNotice />}
       {!IS_DEMO && <SplitInvitePopup />}
+      {!IS_DEMO && <RecurringPopup key={'rp' + dbName} />}
       {!IS_DEMO && <DuplicateAccountsPopup />}
       {adminLogin && <AdminLogin onDone={() => { setAdminLogin(false); window.location.hash = '#/admin'; }} onCancel={() => setAdminLogin(false)} />}
       {ann && <div className={'ann-bar ' + ann.level} role="status"><span>{ann.message}</span><button type="button" onClick={ann.close} aria-label={L('Fechar')}>✕</button></div>}

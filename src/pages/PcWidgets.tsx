@@ -9,6 +9,7 @@ import { planInfo, splitDesc, type PlanInfo } from '../core/debtPlan';
 import { PlanLine, PlanOne } from '../ui/AccountPlan';
 import { loadSettings } from '../core/settings';
 import { Ic, CatIcon, catLabel } from '../ui/fx';
+import { CountMoney } from '../ui/CountMoney';
 import { GoalRing } from '../ui/GoalRing';
 import { WidgetEmpty, WidgetRow, WidgetTop } from '../ui/WidgetRow';
 import { L } from '../i18n/phrases';
@@ -39,10 +40,10 @@ export function AccountsWidget({ money }: { money: (c: number) => string }) {
   return (
     <section className="mv-card pco-w">
       <Head icon={WALLET} title={t('pco.accounts')} to="/contas" link={t('blk.seeAll')} />
-      {rows.length > 0 && (() => { const tot = rows.filter((x) => x.a.type !== 'debt').reduce((a, x) => a + x.bal, 0); return <WidgetTop label={L('Dinheiro nas contas')} value={money(tot)} tone={tot < 0 ? 'fx-neg' : 'fx-pos'} />; })()}
+      {rows.length > 0 && (() => { const tot = rows.filter((x) => x.a.type !== 'debt').reduce((a, x) => a + x.bal, 0); return <WidgetTop label={L('Dinheiro nas contas')} value={<CountMoney cents={tot} money={money} />} tone={tot < 0 ? 'fx-neg' : 'fx-pos'} />; })()}
       <div className="pco-wlist">
         {rows.length === 0 && <p className="fx-muted">{t('pco.noAccounts')}</p>}
-        {rows.map(({ a, bal }, i) => <WidgetRow key={a.id} i={i} to="/contas" title={a.name} sub={t('pco.accType_' + a.type)} value={money(bal)} tone={a.type === 'debt' || bal < 0 ? 'fx-neg' : 'fx-pos'} pic={<span className={'wr-ic t-' + a.type}><Ic d={ACC_IC[a.type] ?? WALLET} size={22} /></span>} />)}
+        {rows.map(({ a, bal }, i) => <WidgetRow key={a.id} i={i} to="/contas" title={a.name} sub={t('pco.accType_' + a.type)} value={<CountMoney cents={bal} money={money} />} tone={a.type === 'debt' || bal < 0 ? 'fx-neg' : 'fx-pos'} pic={<span className={'wr-ic t-' + a.type}><Ic d={ACC_IC[a.type] ?? WALLET} size={22} /></span>} />)}
       </div>
     </section>
   );
@@ -67,11 +68,11 @@ export function LimitsWidget({ money, y, m }: { money: (c: number) => string; y:
     <section className="mv-card pco-w">
       <Head icon={LIMIT} title={L('Limites do mês')} to="/orcamentos" link={rows.length ? t('blk.seeAll') : L('Novo limite')} />
       {rows.length === 0 ? <WidgetEmpty pic={<Ic d={LIMIT} size={28} />} text={L('Sem limites este mês')} to="/orcamentos" label={L('Novo limite')} />
-        : <WidgetTop label={free >= 0 ? L('Ainda podes gastar') : L('Passaste os limites em')} value={money(Math.abs(free))} tone={free < 0 ? 'fx-neg' : 'fx-pos'} ratio={tot > 0 ? used / tot : 0} barTone={toneOf(tot > 0 ? used / tot : 0)} />}
+        : <WidgetTop label={free >= 0 ? L('Ainda podes gastar') : L('Passaste os limites em')} value={<CountMoney cents={Math.abs(free)} money={money} />} tone={free < 0 ? 'fx-neg' : 'fx-pos'} ratio={tot > 0 ? used / tot : 0} barTone={toneOf(tot > 0 ? used / tot : 0)} />}
       <div className="pco-wlist">
         {rows.map(({ b, c, spent }, i) => {
           const r = b.limitCents > 0 ? spent / b.limitCents : 0, left = b.limitCents - spent, tn = toneOf(r);
-          return <WidgetRow key={b.id} i={i} to="/orcamentos" title={c ? catLabel(t, c) : '—'} sub={`${money(spent)} ${L('de')} ${money(b.limitCents)}`} value={money(Math.abs(left))} tone={left < 0 ? 'fx-neg' : tn === 'warn' ? 'lm-warn' : 'fx-pos'} tag={`${Math.round(r * 100)}%`} tagTone={tn || 'ok'}
+          return <WidgetRow key={b.id} i={i} to="/orcamentos" title={c ? catLabel(t, c) : '—'} sub={`${money(spent)} ${L('de')} ${money(b.limitCents)}`} value={<CountMoney cents={Math.abs(left)} money={money} />} tone={left < 0 ? 'fx-neg' : tn === 'warn' ? 'lm-warn' : 'fx-pos'}
             pic={<GoalRing r={Math.min(1, r)} size={58} tone={tn}><CatIcon cat={c ?? {}} size={34} /></GoalRing>} />;
         })}
       </div>

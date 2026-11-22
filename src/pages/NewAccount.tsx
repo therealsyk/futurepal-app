@@ -1,10 +1,10 @@
 // Nova conta: o tipo em cima (Gastos | Poupança | Dívidas) e, conforme o tipo, o plano por mês, juros, data limite (cria a meta) e transferência.
 import { useState } from 'react';
 import { db } from '../db/app-db';
-import type { Account } from '../db/database';
+import type { Account, Goal } from '../db/database';
 import { addAccount, addTransfer, updateAccount } from '../core/accounts';
 import { activeCategories, addGoal, addRecurring, materializeDueRecurrings } from '../core/finance';
-import { joinDesc, payoff, type DebtPlan } from '../core/debtPlan';
+import { joinDesc, payoff, splitDesc, type DebtPlan } from '../core/debtPlan';
 import { parseMoneyToCents } from '../core/money';
 import { todayISO } from '../core/dates';
 import { loadSettings } from '../core/settings';
@@ -19,24 +19,30 @@ import { BottomSheet } from './SimplePages';
 
 const cents = (v: string) => Math.abs(parseMoneyToCents(v || '0') ?? 0);
 
-export function NewAccount({ initial, accounts, balOf, money, endText, onClose, onDone }: {
+/** O que se pode mudar numa conta que já existe. */
+export interface AccountEdit { balCents: number; name: string; desc: string; monthlyCents: number; rate: number; goal: boolean; end: string | null; targetCents: number }
+const num = (c: number) => (c / 100).toFixed(2).replace('.', ',');
+
+export function NewAccount({ initial, accounts, balOf, money, endText, onClose, onDone, edit }: {
+  edit?: { acc: Account; goal?: Goal; onSave: (e: AccountEdit) => Promise<void>; onDelete?: () => void };
   initial: Account['type']; accounts: Account[]; balOf: (a: Account) => number; money: (c: number) => string; endText: (months: number) => string;
   onClose: () => void; onDone: (kind: Account['type']) => void;
 }) {
   const s = loadSettings();
   const [kind, setKind] = useState<Account['type']>(initial);
-  const [bal, setBal] = useState(''), [name, setName] = useState(''), [desc, setDesc] = useState('');
-  const [hasMonthly, setHasMonthly] = useState(false), [monthly, setMonthly] = useState('');
-  const [hasRate, setHasRate] = useState(false), [rate, setRate] = useState('');
-  const [hasEnd, setHasEnd] = useState(false), [end, setEnd] = useState('');
-  const [wantGoal, setWantGoal] = useState(false), [target, setTarget] = useState('');
+  const was = splitDesc(edit?.acc.description), wasM = was.plan?.monthlyCents ?? 0, wasR = was.plan?.rate ?? 0, g0 = edit?.goal;
+  const [bal, setBal] = useState(edit ? num(balOf(edit.acc)) : ''), [name, setName] = useState(edit?.acc.name ?? ''), [desc, setDesc] = useState(was.text);
+  const [hasMonthly, setHasMonthly] = useState(wasM > 0), [monthly, setMonthly] = useState(wasM ? num(wasM) : '');
+  const [hasRate, setHasRate] = useState(wasR > 0), [rate, setRate] = useState(wasR ? String(wasR).replace('.', ',') : '');
+  const [hasEnd, setHasEnd] = useState(!!g0?.targetDate), [end, setEnd] = useState(g0?.targetDate?.slice(0, 10) ?? '');
+  const [wantGoal, setWantGoal] = useState(!!g0), [target, setTarget] = useState(g0 && initial !== 'debt' ? num(g0.targetCents) : '');
   const [how, setHow] = useState<'hand' | 'transfer'>('hand');
   const [from, setFrom] = useState(''), [amount, setAmount] = useState<string | null>(null), [date, setDate] = useState(todayISO()), [recurring, setRecurring] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const debt = kind === 'debt', plan = kind !== 'spending', start = cents(bal);
   const m = plan && hasMonthly ? cents(monthly) : 0, r = debt && hasRate ? Number(rate.replace(',', '.')) || 0 : 0;
-  const goal = plan && wantGoal, transfer = plan && how === 'transfer';
+  const goal = plan && wantGoal, transfer = plan && !edit && how === 'transfer';
   const now = new Date(), e = hasEnd && end ? new Date(end + 'T00:00:00') : null;
   const monthsLeft = e ? Math.max(1, (e.getFullYear() - now.getFullYear()) * 12 + e.getMonth() - now.getMonth()) : 0;
   const auto = m && monthsLeft ? start + m * monthsLeft : 0; // objetivo, se disser quanto por mês e até quando
@@ -47,7 +53,7 @@ export function NewAccount({ initial, accounts, balOf, money, endText, onClose, 
 
   const missing = useMissing();
   const first: MissRule[] = [
-    ['bal', debt ? L('quanto deves') : '', !debt || start > 0], ['name', L('o nome'), !!name.trim()],
+    ['bal', debt ? L('quanto deves') : '', !debt || !!edit || start > 0], ['name', L('o nome'), !!name.trim()],
     ['monthly', debt ? L('quanto abater por mês') : L('quanto juntar por mês'), !plan || (!hasMonthly && !r) || m > 0],
     ['rate', L('os juros'), !debt || !hasRate || r > 0],
     ['low', L('um valor por mês maior do que os juros'), !debt || !r || !m || !!po],
@@ -63,6 +69,7 @@ export function NewAccount({ initial, accounts, balOf, money, endText, onClose, 
     if (!miss.check() || busy) return;
     setBusy(true);
     try {
+      if (edit) { await edit.onSave({ balCents: parseMoneyToCents(bal || '0') ?? 0, name: name.trim(), desc, monthlyCents: m, rate: r, goal, end: hasEnd && end ? end : null, targetCents: goalCents }); return; }
       const p: DebtPlan | null = plan ? { monthlyCents: m, startCents: start, rate: r || undefined } : null;
       const acc = await addAccount(db, { name: name.trim(), description: joinDesc(desc, p), type: kind, currency: s.currency, initialBalanceCents: start, includeInNetWorth: true, isDefault: false, showOnHome: true });
       if (goal && p) { // a meta de sempre, ligada à conta: o valor vem do saldo (na dívida, do que já foi abatido)
@@ -88,7 +95,7 @@ export function NewAccount({ initial, accounts, balOf, money, endText, onClose, 
   const need = !hasMonthly && e && goalCents > 0 ? Math.ceil(Math.max(0, goalCents - (debt ? 0 : start)) / monthsLeft) : 0;
 
   const partA = <>
-    <AmountField value={bal} onChange={setBal} currency={s.currency} label={debt ? L('Quanto deves') : L('Saldo inicial')} cls={miss.cls('bal')} autoFocus={PC_MOBILE} />
+    <AmountField signed={!!edit} value={bal} onChange={setBal} currency={edit?.acc.currency ?? s.currency} label={edit ? (debt ? L('Quanto deves agora') : L('Quanto tem agora')) : debt ? L('Quanto deves') : L('Saldo inicial')} cls={miss.cls('bal')} autoFocus={PC_MOBILE && !edit} />
     <div className="tx-rows">
       <TextRow icon={FI.name} label={L('Nome da conta')} value={name} onChange={setName} cls={miss.cls('name')} placeholder={debt ? L('Ex.: Empréstimo da casa') : kind === 'savings' ? L('Ex.: Poupanças') : L('Ex.: Conta do banco')} />
       <TextRow label={L('Descrição')} value={desc} onChange={setDesc} />
@@ -102,11 +109,11 @@ export function NewAccount({ initial, accounts, balOf, money, endText, onClose, 
   const partB = plan && <>
     <div className="tx-rows">
       <SwitchRow icon={FI.date} cls={miss.cls('end')} label={hasEnd ? L('Data limite') : L('Tem data limite?')} sub={hasEnd ? undefined : L('Esta conta passa a mostrar se vais a tempo')} on={hasEnd} onChange={(v) => { setHasEnd(v); if (v) setWantGoal(true); }}><DatePicker value={end} onChange={setEnd} className="fx-input tx-val" /></SwitchRow>
-      {<SwitchRow icon={FI.track} label={debt ? L('Acompanhar esta dívida?') : L('Acompanhar esta poupança?')} sub={L('Mostra quanto falta, dentro da própria conta')} on={wantGoal} onChange={(v) => { setWantGoal(v); if (!v) setHasEnd(false); }} />}
+      {!g0 && <SwitchRow icon={FI.track} label={debt ? L('Acompanhar esta dívida?') : L('Acompanhar esta poupança?')} sub={L('Mostra quanto falta, dentro da própria conta')} on={wantGoal} onChange={(v) => { setWantGoal(v); if (!v) setHasEnd(false); }} />}
       {goal && !debt && <TextRow icon={FI.target} money label={L('Quanto queres juntar no total')} value={target} onChange={setTarget} placeholder={auto ? money(auto) : L('Ex.: 5000')} cls={miss.cls('target')} />}
     </div>
-    <h3 className="acc-how">{debt ? L('Como queres pagar?') : L('Como queres juntar?')}</h3>
-    <div className="tx-seg"><Seg value={how} onChange={setHow} label={debt ? L('Como queres pagar?') : L('Como queres juntar?')} options={[{ id: 'hand', label: L('À mão') }, { id: 'transfer', label: L('Transferir de outra conta') }]} /></div>
+    {!edit && <><h3 className="acc-how">{debt ? L('Como queres pagar?') : L('Como queres juntar?')}</h3>
+    <div className="tx-seg"><Seg value={how} onChange={setHow} label={debt ? L('Como queres pagar?') : L('Como queres juntar?')} options={[{ id: 'hand', label: L('À mão') }, { id: 'transfer', label: L('Transferir de outra conta') }]} /></div></>}
     {transfer && <div className="tx-rows">
       <AccountRow label={L('Da conta')} cls={miss.cls('from')} value={src} options={sources.map((a) => ({ id: a.id, name: a.name, sub: a.type === 'savings' ? L('Poupança') : L('Gastos'), right: money(balOf(a)) }))} balance={src2 && money(balOf(src2))} onChange={setFrom} />
       <TextRow icon={FI.money} money label={L('Valor a transferir')} value={amt} onChange={setAmount} placeholder="0" cls={miss.cls('amount')} />
@@ -120,13 +127,14 @@ export function NewAccount({ initial, accounts, balOf, money, endText, onClose, 
     {need > 0 && <p className="debt-prev">{fill(debt ? L('Para acabar a tempo precisas de abater cerca de {m} por mês') : L('Para lá chegares a tempo precisas de juntar cerca de {m} por mês'), { m: money(need) })}</p>}
   </>;
   return (
-    <BottomSheet title={L('Nova conta')} onClose={onClose}>
+    <BottomSheet title={edit ? L('Alterar conta') : L('Nova conta')} onClose={onClose}>
       <div className="acc-form">
         {miss.note}
-        <div className="tx-seg acc-kind"><Seg value={kind} onChange={pickKind} label={L('Tipo de conta')} options={[{ id: 'spending', label: L('Gastos') }, { id: 'savings', label: L('Poupança') }, { id: 'debt', label: L('Dívidas') }]} /></div>
+        {!edit && <div className="tx-seg acc-kind"><Seg value={kind} onChange={pickKind} label={L('Tipo de conta')} options={[{ id: 'spending', label: L('Gastos') }, { id: 'savings', label: L('Poupança') }, { id: 'debt', label: L('Dívidas') }]} /></div>}
         {partA}
         {partB}
-        <button type="button" className="tx-addbtn" disabled={busy} onClick={create}>{L('Criar conta')}</button>
+        <button type="button" className="tx-addbtn" disabled={busy} onClick={create}>{edit ? L('Guardar') : L('Criar conta')}</button>
+        {edit?.onDelete && <button type="button" className="gx-rm lm-del" onClick={edit.onDelete}>{L('Apagar conta')}</button>}
       </div>
     </BottomSheet>
   );

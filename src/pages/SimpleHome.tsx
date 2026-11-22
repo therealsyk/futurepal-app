@@ -2,6 +2,9 @@
 //  1. Quanto ainda tenho este mês  2. Adicionar gasto / dinheiro recebido  3. A minha poupança  4. Últimos movimentos
 import type { CSSProperties } from 'react';
 import { GoalRing } from '../ui/GoalRing';
+import { CountMoney } from '../ui/CountMoney';
+import { goalEtaMonths } from '../core/goalEta';
+import { fill } from '../ui/AccountPlan';
 import { WidgetEmpty, WidgetRow } from '../ui/WidgetRow';
 import { GroupPic } from './Groups';
 import { NotificationBell } from '../ui/AccountBar';
@@ -157,6 +160,13 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
       </section>
 
   </>);
+  // quando se chega à meta: pela data limite e pelo ritmo (valor por mês ou o que costuma juntar)
+  const goalWhen = (g: Goal, cur: number): string | undefined => {
+    const n = data ? goalEtaMonths(g, cur, data, now) : null;
+    const eta = n === null ? '' : new Date(now.getFullYear(), now.getMonth() + n, 1).toLocaleDateString(s.language, { month: 'long', year: 'numeric' });
+    if (eta) return fill(L('Chegas lá em {d}'), { d: eta });
+    return g.targetDate ? fill(L('Até {d}'), { d: new Date(g.targetDate).toLocaleDateString(s.language, { day: 'numeric', month: 'long', year: 'numeric' }) }) : undefined;
+  };
   const goalsEl = (<>
       {/* 6. Metas: só a principal, com a barra */}
       <section className="mv-card">
@@ -165,7 +175,7 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
           const gc = g.accountIds?.length ? accRows.filter((x) => g.accountIds!.includes(x.a.id)).reduce((x, y) => x + goalValueCents(y.a, y.bal), 0) : g.currentCents; // ligada a contas: o valor vem delas
           const r = g.targetCents > 0 ? Math.max(0, Math.min(1, gc / g.targetCents)) : 0;
           return (
-            <WidgetRow key={g.id} i={i} to="/metas" title={g.name} sub={`${money(gc)} ${L('de')} ${money(g.targetCents)}`} value={r >= 1 ? '🎉' : money(Math.max(0, g.targetCents - gc))} tag={r >= 1 ? L('concluída') : L('falta')} tagTone="ok" pic={<GoalRing r={r} size={58} />} />
+            <WidgetRow key={g.id} i={i} to="/metas" title={g.name} sub={`${money(gc)} ${L('de')} ${money(g.targetCents)}`} value={r >= 1 ? '🎉' : <CountMoney cents={Math.max(0, g.targetCents - gc)} money={money} />} when={r >= 1 ? undefined : goalWhen(g, gc)} pic={<GoalRing r={r} size={58} />} />
           );
         })}
         {(data?.goals.length ?? 0) === 0 && <WidgetEmpty pic={<Ic d="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8z" size={28} />} text={L('Define um objetivo (ex.: 1000 € para férias) e acompanha quanto falta.')} to="/metas" label={L('Criar meta')} />}</div>

@@ -25,7 +25,7 @@ import { catLabel, CategorySelect, Field, Ic, ICON, PickMenu, Seg, Sheet, Toggle
 import { FormError, useMissing } from './missing';
 import { useIsMobile } from './useIsMobile';
 
-export interface TxFormOptions { type: 'expense' | 'income'; accountId?: string; groupId?: string; toAccount?: string }
+export interface TxFormOptions { type: 'expense' | 'income'; accountId?: string; groupId?: string; toAccount?: string; recurring?: boolean }
 interface FormData { accounts: Account[]; cats: Category[]; groups: Group[]; bals: Record<string, number> }
 
 const OPEN = 'wallet:tx-open', SAVED = 'wallet:tx-saved';
@@ -94,7 +94,7 @@ function TxForm({ o, d, onClose, onKind }: { o: TxFormOptions; d: FormData; onCl
     if (toAccount) return (accounts.find((a) => a.isDefault && a.id !== toAccount) ?? accounts.find((a) => a.type !== 'debt' && a.id !== toAccount))?.id ?? '';
     return o.accountId ?? defaultAccountId(accounts) ?? '';
   });
-  const [recurring, setRecurring] = useState(false);
+  const [recurring, setRecurring] = useState(!!o.recurring);
   const [freq, setFreq] = useState<RecurringFrequency>('monthly');
   const [endDate, setEndDate] = useState('');
   const [moreOpts, setMoreOpts] = useState(false);

@@ -1,7 +1,9 @@
 // Contas e Limites, organizados como no vídeo de referência, no estilo FuturePal.
 import { beforePayments, goalValueCents, joinDesc, payoff, planInfo, splitDesc } from '../core/debtPlan';
 import { AccountPlanBox, endText as planEnd, fill } from '../ui/AccountPlan';
-import { NewAccount } from './NewAccount';
+import { NewAccount, type AccountEdit } from './NewAccount';
+import { addGoal } from '../core/finance';
+import { todayISO } from '../core/dates';
 import { NewGoal } from './NewGoal';
 import { GoalCard, GoalView, type GoalInfo } from './GoalView';
 import { GoalRing } from '../ui/GoalRing';
@@ -22,8 +24,9 @@ import { setBudget } from '../core/finance';
 import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
 import { forecastGoal, type GoalForecast } from '../core/goalForecast';
+import { goalMonthlyIn } from '../core/goalEta';
 import { Ic, ICON, CatIcon, catLabel } from '../ui/fx';
-import { AmountField, CategoryRow, FI, SwitchRow, TextRow } from '../ui/formFields';
+import { AmountField, CategoryRow, FI, SwitchRow } from '../ui/formFields';
 import { EmptyState } from '../ui/EmptyState';
 import { L } from '../i18n/phrases';
 import { DatePicker } from '../ui/DatePicker';
@@ -66,12 +69,6 @@ export function SimpleAccounts() {
   const [tab, setTab] = useState<'spending' | 'savings' | 'debt'>('spending');
   const [form, setForm] = useState(false);
   const [edit, setEdit] = useState<string | null>(null);
-  const [eName, setEName] = useState('');
-  const missingE = useMissing();
-  const [eBal, setEBal] = useState('');
-  const [eDesc, setEDesc] = useState('');
-  const [eMonthly, setEMonthly] = useState('');
-  const [eRate, setERate] = useState('');
   const [goals, setGoals] = useState<Goal[]>([]);
   const [openAcc, setOpenAcc] = useState<string | null>(null); // poupança/dívida aberta na lista
   const reload = () => { loadAll().then(setD).catch(() => {}); db.goals.toArray().then((g) => setGoals(live(g))).catch(() => {}); };
@@ -83,25 +80,27 @@ export function SimpleAccounts() {
   // Mesma conta que o Início: dinheiro nas contas (sem dívidas) e, à parte, quanto se deve
   const money_ = (d?.accounts ?? []).filter((a) => a.type !== 'debt').reduce((sum, a) => sum + balOf(a), 0);
   const debts = (d?.accounts ?? []).filter((a) => a.type === 'debt').reduce((sum, a) => sum + balOf(a), 0);
-  const num = (c: number) => (c / 100).toFixed(2).replace('.', ',');
-  const openEdit = (a: Account) => {
-    const { text, plan } = splitDesc(a.description);
-    setEdit(a.id); setEName(a.name); setEBal(num(balOf(a))); setEDesc(text); setEMonthly(plan?.monthlyCents ? num(plan.monthlyCents) : ''); setERate(plan?.rate ? String(plan.rate).replace('.', ',') : '');
-  };
-  const missE = missingE([['name', L('o nome'), !!eName.trim()]]);
-  const closeEdit = () => { setEdit(null); missE.reset(); };
-  const saveEdit = async (a: Account) => {
-    if (!missE.check()) return;
-    const v = parseMoneyToCents(eBal || '0') ?? 0, m = parseMoneyToCents(eMonthly || '0') ?? 0;
-    const before = balOf(a), old = splitDesc(a.description).plan;
+  const openEdit = (a: Account) => setEdit(a.id);
+  const closeEdit = () => setEdit(null);
+  const saveEdit = async (a: Account, e: AccountEdit) => {
+    const before = balOf(a), old = splitDesc(a.description).plan, v = e.balCents;
     // dívida: o que devia no início não muda quando a pessoa corrige quanto deve agora (a não ser que deva mais)
-    const rate = a.type === 'debt' ? Number(eRate.replace(',', '.')) || 0 : 0;
-    const plan = a.type === 'spending' ? null : { monthlyCents: Math.max(0, m), startCents: a.type === 'debt' ? Math.max(v, old?.startCents ?? Math.max(a.initialBalanceCents, before)) : old?.startCents ?? 0, rate: rate || undefined, goalId: old?.goalId };
+    const plan = a.type === 'spending' ? null : { monthlyCents: e.monthlyCents, startCents: a.type === 'debt' ? Math.max(v, old?.startCents ?? Math.max(a.initialBalanceCents, before)) : old?.startCents ?? 0, rate: (a.type === 'debt' && e.rate) || undefined, goalId: old?.goalId };
+    // acompanhamento (meta ligada à conta): data limite e quanto juntar
+    if (plan && e.goal) {
+      const total = a.type === 'debt' ? plan.startCents : e.targetCents, g = goals.find((x) => x.id === old?.goalId);
+      if (g) await db.goals.update(g.id, { name: e.name, targetDate: e.end, targetCents: total || g.targetCents, updatedAt: new Date().toISOString() });
+      else {
+        const n = await addGoal(db, e.name, total, todayISO(), e.end);
+        await db.goals.update(n.id, { notes: e.desc.trim() || undefined, accountIds: [a.id] });
+        plan.goalId = n.id;
+      }
+    }
     // com juros, o valor inicial é o que dá exatamente o saldo escrito depois do que já foi pago
     const paid = a.type === 'debt' ? (d?.transfers ?? []).filter((t2) => t2.toAccountId === a.id).reduce((x, t2) => x + t2.amountCents, 0) : 0;
     const base = d ? accountBalanceCents(a, d.txs, d.accounts, salaryToDate, d.transfers.filter((t2) => t2.toAccountId !== a.id)) : 0;
     const init = a.type === 'debt' ? a.initialBalanceCents + beforePayments(v, paid, plan) - base : a.initialBalanceCents + (v - before);
-    await updateAccount(db, a.id, { name: eName.trim(), description: joinDesc(eDesc, plan), initialBalanceCents: init });
+    await updateAccount(db, a.id, { name: e.name, description: joinDesc(e.desc, plan), initialBalanceCents: init });
     closeEdit(); reload();
   };
   const delAcc = async (a: Account) => {
@@ -114,10 +113,6 @@ export function SimpleAccounts() {
   };
   const list = (d?.accounts ?? []).filter((a) => a.type === tab).sort((a, b) => a.order - b.order);
   const endText = (months: number) => planEnd(months, s.language);
-  const previewEnd = (debt: string, per: string, pct: string) => {
-    const b = parseMoneyToCents(debt || '0') ?? 0, m = parseMoneyToCents(per || '0') ?? 0, p = payoff(b, m, Number(pct.replace(',', '.')) || 0);
-    return b > 0 && m > 0 ? <p className={'debt-prev' + (p ? '' : ' bad')}>{p ? endText(p.months) : L('Com este valor não chegas a abater: só dá para os juros.')}</p> : null;
-  };
   const editing = (d?.accounts ?? []).find((a) => a.id === edit);
 
   return (
@@ -148,21 +143,8 @@ export function SimpleAccounts() {
       ))}
 <button type="button" className="sh-btn in" onClick={() => setForm(true)}><Ic d={ICON.plus} size={20} />{L('Criar conta')}</button>
       {form && <NewAccount initial={tab} accounts={d?.accounts ?? []} balOf={balOf} money={money} endText={endText} onClose={() => setForm(false)} onDone={(k) => { setForm(false); setTab(k); reload(); }} />}
-      {editing && <BottomSheet title={L('Alterar conta')} onClose={closeEdit}>
-        <div className="acc-form">
-          {missE.note}
-          <AmountField signed value={eBal} onChange={setEBal} currency={editing.currency} label={editing.type === 'debt' ? L('Quanto deves agora') : L('Quanto tem agora')} />
-          <div className="tx-rows">
-            <TextRow icon={FI.name} label={L('Nome da conta')} value={eName} onChange={setEName} cls={missE.cls('name')} />
-            <TextRow label={L('Descrição')} value={eDesc} onChange={setEDesc} />
-            {editing.type !== 'spending' && <TextRow icon={FI.month} money label={editing.type === 'debt' ? L('Abater por mês') : L('Juntar por mês')} value={eMonthly} onChange={setEMonthly} />}
-            {editing.type === 'debt' && <TextRow icon={FI.pct} money label={L('Juros por ano (%)')} value={eRate} onChange={setERate} placeholder={L('Sem juros')} />}
-          </div>
-          {editing.type === 'debt' && previewEnd(eBal, eMonthly, eRate)}
-          <button type="button" className="tx-addbtn" onClick={() => saveEdit(editing)}>{L('Guardar')}</button>
-          {!editing.isDefault && <button type="button" className="sh-danger" onClick={() => delAcc(editing)}>{L('Apagar conta')}</button>}
-        </div>
-      </BottomSheet>}
+      {editing && <NewAccount key={editing.id} initial={editing.type} accounts={d?.accounts ?? []} balOf={balOf} money={money} endText={endText} onClose={closeEdit} onDone={() => {}}
+        edit={{ acc: editing, goal: goals.find((x) => x.id === splitDesc(editing.description).plan?.goalId), onSave: (e) => saveEdit(editing, e), onDelete: editing.isDefault ? undefined : () => delAcc(editing) }} />}
     </div>
   );
 }
@@ -327,25 +309,7 @@ export function SimpleGoals() {
   const balOf = (a: Account) => (d ? accountBalanceCents(a, d.txs, d.accounts, salaryToDate, d.transfers) : 0);
   const currentOf = (g: Goal) => (g.accountIds?.length ? (d?.accounts ?? []).filter((a) => g.accountIds!.includes(a.id)).reduce((x, a) => x + goalValueCents(a, balOf(a)), 0) : g.currentCents);
   // Quanto entrou na meta em cada um dos últimos 8 meses (o último é o mês atual)
-  const monthlyIn = (g: Goal): number[] => {
-    const keys = Array.from({ length: 8 }, (_, i) => { const dt = new Date(now.getFullYear(), now.getMonth() - 7 + i, 1); return { y: dt.getFullYear(), m: dt.getMonth() + 1 }; });
-    const ym = (k: { y: number; m: number }) => `${k.y}-${String(k.m).padStart(2, '0')}`;
-    if (g.accountIds?.length && d) {
-      // conta(s) ligadas: o que mudou no saldo de mês para mês
-      const endBal = (k: { y: number; m: number }) => {
-        const last = new Date(k.y, k.m, 0).toISOString().slice(0, 10);
-        const sal = d.salaries.filter((x) => x.year * 100 + x.month <= k.y * 100 + k.m).reduce((a, x) => a + x.amountCents, 0);
-        return d.accounts.filter((a) => g.accountIds!.includes(a.id)).reduce((sum, a) => sum + goalValueCents(a, accountBalanceCents(a, d.txs.filter((t) => t.date <= last), d.accounts, sal, d.transfers.filter((t) => t.date <= last))), 0);
-      };
-      const prev = new Date(now.getFullYear(), now.getMonth() - 8, 1);
-      const bals = [endBal({ y: prev.getFullYear(), m: prev.getMonth() + 1 }), ...keys.map(endBal)];
-      return keys.map((_, i) => bals[i + 1] - bals[i]);
-    }
-    if (g.contributions?.length) return keys.map((k) => g.contributions!.filter((c) => c.date.startsWith(ym(k))).reduce((a, c) => a + c.cents, 0));
-    // metas antigas sem histórico: reparte o que já tem pelos meses desde o início
-    const since = Math.max(1, (now.getFullYear() - +g.startDate.slice(0, 4)) * 12 + now.getMonth() + 1 - +g.startDate.slice(5, 7));
-    return keys.map((_, i) => (i >= 8 - Math.min(8, since + 1) && i < 7 ? Math.round(g.currentCents / since) : 0));
-  };
+  const monthlyIn = (g: Goal): number[] => (d ? goalMonthlyIn(g, d, now) : []);
   const dayRatio = now.getDate() / new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const fc = (g: Goal, cur: number): GoalForecast => {
     // conta com um valor certo por mês: a previsão é a do plano (a mesma que aparece na conta)

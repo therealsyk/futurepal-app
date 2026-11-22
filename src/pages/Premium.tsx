@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react';
+import { fill } from '../ui/AccountPlan';
 import { L } from '../i18n/phrases';
 import { useMissing } from '../ui/missing';
 import { LockedPreview } from '../ui/LockedPreview';
@@ -10,12 +12,12 @@ import { newId, stampNew, type Category, type Transaction, type Warranty } from 
 import { activeCategories } from '../core/finance';
 import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
-import { activePlan, hasFeature, loadPlan, PLAN_EVENT, PRICES, savePlan, trialDaysLeft, type Feature, type PlanId } from '../core/plan';
+import { activePlan, hasFeature, loadPlan, PLAN_EVENT, PRICES, savePlan, type Feature, type PlanId } from '../core/plan';
 import {
-  businessCsv, businessQuarters, CHALLENGE_DEFS, detectSubscriptions, efaturaDeadline, evaluateChallenge, irsSummary,
+  businessCsv, businessQuarters, CHALLENGE_DEFS, efaturaDeadline, evaluateChallenge, irsSummary,
   warrantyDaysLeft, warrantyEnd, yearReview, type Challenge, type ChallengeType,
 } from '../core/premium';
-import { catLabel, CatIcon, EmptyState, Field, Ic, ICON, PageHead, Sheet } from '../ui/fx';
+import { catLabel, EmptyState, Field, Ic, ICON, PageHead, Sheet } from '../ui/fx';
 import { DatePicker } from '../ui/DatePicker';
 import { getSupabase } from '../auth/supabase';
 import { useAuth } from '../auth/AuthContext';
@@ -82,10 +84,11 @@ const FEATURE_PAGES: Array<{ f: Feature; path: string; d: string }> = [
   { f: 'split', path: '/grupos', d: 'M12 3v18M5 8h7M12 16h7M4 21h16' },
   { f: 'freelance', path: '/independentes', d: 'M4 8h16v11H4zM9 8V5h6v3M4 13h16' },
 ];
+const PLAN_ICON: Record<PlanId, string> = { free: 'M3 7h18v12H3zM3 7l3-4h12l3 4M16 13h2', plus: 'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z', pro: 'M3 18h18M4 15l-1-9 5 4 4-6 4 6 5-4-1 9z' };
 // Os 3 planos: cada um tem tudo o do anterior. Preço sempre por mês; no anual, o equivalente mensal.
 const PLANS: Array<{ id: PlanId; features: string[] }> = [
-  { id: 'free', features: ['freeBasics', 'freeSync', 'freeLimits'] },
-  { id: 'plus', features: ['unlimited', 'forecast', 'subscriptions', 'yearReview', 'challenges', 'warranties', 'irs', 'split', 'assistantPlan'] },
+  { id: 'free', features: ['freeBasics', 'freeSync', 'split', 'freeLimits'] },
+  { id: 'plus', features: ['unlimited', 'forecast', 'subscriptions', 'yearReview', 'challenges', 'warranties', 'irs', 'assistantPlan'] },
   { id: 'pro', features: ['shared', 'freelance', 'aiMore', 'early'] },
 ];
 export function PlusPage() {
@@ -94,7 +97,6 @@ export function PlusPage() {
   const { state, plan } = usePlan();
   const { money } = useMoney();
   const [yearly, setYearly] = useState(false);
-  const days = trialDaysLeft(state);
   const priceOf = (id: PlanId) => {
     if (id === 'free') return { main: money(0), note: t('plus.forever') };
     const p = PRICES[id];
@@ -118,43 +120,38 @@ export function PlusPage() {
     setWanted(id); setWantMsg(t('plus.wantThanks', { plan: t('plus.plan_' + id) }));
   };
   return (
-    <div className="fx-page">
-      <PageHead title={t('plus.title')} />
-      {state.plan === 'free' && days > 0 && <p className="pm-banner">{t('plus.trialLeft', { count: days })}</p>}
-      <div className="pm-billing" role="group" aria-label={t('plus.billing')}>
-        <button type="button" className={!yearly ? 'on' : ''} aria-pressed={!yearly} onClick={() => setYearly(false)}>{t('plus.monthly')}</button>
-        <button type="button" className={yearly ? 'on' : ''} aria-pressed={yearly} onClick={() => setYearly(true)}>{t('plus.yearly')} <em>{t('plus.twoFree')}</em></button>
-      </div>
-      <div className="pm-plans">
+    <div className="fx-page mv sh pl-page">
+      <header className="mv-head"><h1 className="sh-title">{L('Planos')}</h1></header>
+      <section className="pl-intro">
+        <span className="pl-spark"><Ic d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" size={30} /></span>
+        <div><b>{L('Os planos estão quase a chegar')}</b><p>{L('Diz-nos qual queres e avisamos-te quando estiver disponível.')}</p></div>
+        <div className="pm-billing" role="group" aria-label={t('plus.billing')}>
+          <button type="button" className={!yearly ? 'on' : ''} aria-pressed={!yearly} onClick={() => setYearly(false)}>{t('plus.monthly')}</button>
+          <button type="button" className={yearly ? 'on' : ''} aria-pressed={yearly} onClick={() => setYearly(true)}>{t('plus.yearly')} <em>{t('plus.twoFree')}</em></button>
+        </div>
+      </section>
+      {wantMsg && <p className="pm-banner" role="status">{wantMsg}</p>}
+      <div className="pl-cards">
         {PLANS.map((p, i) => {
-          const pr = priceOf(p.id);
+          const pr = priceOf(p.id), mine = plan === p.id, asked = wanted === p.id;
           return (
-            <div key={p.id} className={'pm-plan' + (plan === p.id ? ' on' : '') + (p.id === 'plus' ? ' best' : '')}>
-              {p.id === 'plus' && <span className="pm-badge">{t('plus.popular')}</span>}
-              {p.id === 'pro' && <span className="pm-badge pro">{t('plus.complete')}</span>}
-              <h3>{t('plus.plan_' + p.id)}</h3>
-              <p className="pm-price"><b>{pr.main}</b>{p.id !== 'free' && <>/{t('plus.month')}</>}</p>
-              <p className="fx-muted fx-small">{pr.note}</p>
-              <p className="fx-muted">{t('plus.planSub_' + p.id)}</p>
-              {i > 0 && <p className="pm-inherit">{t('plus.everythingIn', { plan: t('plus.plan_' + PLANS[i - 1].id) })}</p>}
-              <ul className="pm-ticks">{p.features.map((f) => <li key={f}>{t('plus.short_' + f)}</li>)}</ul>
-              {plan === p.id ? <span className="pm-current">{t('plus.current')}</span> : p.id !== 'free' && (
-                <button type="button" className={'fx-btn pm-want' + (wanted === p.id ? '' : ' primary')} disabled={wanted === p.id} onClick={() => want(p.id as 'plus' | 'pro')}>
-                  {wanted === p.id ? t('plus.wantDone') : t('plus.want', { plan: t('plus.plan_' + p.id) })}
+            <section key={p.id} className={'mv-card pl-card k-' + p.id + (mine ? ' mine' : '')} style={{ '--i': i } as CSSProperties}>
+              {p.id === 'plus' && <span className="pl-flag">{L('Recomendado')}</span>}
+              <span className="pl-ic"><Ic d={PLAN_ICON[p.id]} size={34} /></span>
+              <h2>{t('plus.plan_' + p.id)}</h2>
+              <p className="pl-price"><b key={String(yearly)}>{pr.main}</b>{p.id !== 'free' && <small>/{t('plus.month')}</small>}</p>
+              <p className="pl-note">{pr.note}</p>
+              {i > 0 && <p className="pl-inherit">{t('plus.everythingIn', { plan: t('plus.plan_' + PLANS[i - 1].id) })}</p>}
+              <ul>{p.features.map((f, k) => <li key={f} style={{ '--k': k } as CSSProperties}><i><Ic d="M20 6 9 17l-5-5" size={13} /></i>{t('plus.short_' + f)}</li>)}</ul>
+              {mine ? <span className="pl-mine"><Ic d="M20 6 9 17l-5-5" size={16} />{t('plus.current')}</span> : p.id !== 'free' && (
+                <button type="button" className={'pl-want' + (asked ? ' done' : '')} disabled={asked} onClick={() => want(p.id as 'plus' | 'pro')}>
+                  {asked ? <><Ic d="M20 6 9 17l-5-5" size={17} />{L('Pedido registado')}</> : fill(L('Quero o {d}'), { d: t('plus.plan_' + p.id) })}
                 </button>
               )}
-            </div>
+            </section>
           );
         })}
       </div>
-      <ul className="pm-perks">
-        <li>{t('plus.perkTrial')}</li>
-        <li>{t('plus.perkYearly')}</li>
-        <li>{t('plus.perkFriend')}</li>
-        <li>{t('plus.perkFounder')}</li>
-      </ul>
-      {wantMsg && <p className="pm-banner" role="status">{wantMsg}</p>}
-      <p className="fx-muted fx-small">{t('plus.payNote')}</p>
       {import.meta.env.DEV && (
         <div className="pm-dev">
           <b>DEV</b>
@@ -164,7 +161,7 @@ export function PlusPage() {
           <button type="button" className="fx-btn" onClick={() => savePlan({ plan: 'free', trialEndsAt: null, trialUsed: false })}>reset</button>
         </div>
       )}
-      <h2 className="pm-h2">{t('plus.toolsTitle')}</h2>
+      <h2 className="pm-h2 pl-h2">{t('plus.toolsTitle')}</h2>
       <div className="pm-tools">
         {FEATURE_PAGES.map((x) => (
           <Link key={x.path} to={x.path} className="pm-tool">
@@ -221,37 +218,6 @@ export function IrsPage() {
 }
 
 // ---------------------------------------------------------------- subscrições
-export function SubscriptionsPage() {
-  const { t } = useTranslation();
-  const { txs, cats } = useData();
-  const { money } = useMoney();
-  const subs = useMemo(() => detectSubscriptions(txs), [txs]);
-  const total = subs.reduce((s, x) => s + x.annualCents, 0);
-  return (
-    <div className="fx-page">
-      <PageHead title={t('plus.subsTitle')} />
-      <Locked feature="subscriptions">
-        <div className="pm-hero"><small>{t('plus.subsYear')}</small><strong>{money(total)}</strong><span>{t('plus.subsCount', { count: subs.length })}</span></div>
-        {subs.length === 0 ? <EmptyState icon={ICON.repeat} title={t('plus.subsEmpty')} sub={t('plus.subsEmptySub')} /> : (
-          <div className="pm-list">
-            {subs.map((s) => {
-              const c = cats.find((x) => x.id === s.categoryId);
-              return (
-                <div key={s.key} className="fx-card pm-sub">
-                  {c ? <CatIcon cat={c} size={40} /> : null}
-                  <div className="pm-sub-main"><b>{s.name}</b><small className="fx-muted">{money(s.amountCents)} · {t('plus.freq_' + s.frequency)}</small></div>
-                  <div className="pm-sub-right"><b>{money(s.annualCents)}<small>/{t('plus.year')}</small></b>
-                    <span className={'pm-chip' + (s.daysUntil <= 3 && s.daysUntil >= 0 ? ' warn' : '')}>{s.daysUntil >= 0 ? t('plus.renewsIn', { count: s.daysUntil }) : t('plus.renewedLate')}</span></div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </Locked>
-    </div>
-  );
-}
-
 // ---------------------------------------------------------------- o teu ano em números
 export function YearPage() {
   const { t } = useTranslation();
