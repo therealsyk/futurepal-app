@@ -20,7 +20,7 @@ export function accountPayments(a: Account, transfers: Transfer[], txs: Transact
   ].sort((x, y) => y.date.localeCompare(x.date));
 }
 
-export function PaymentList({ a, transfers, txs, accounts, money, lang, short = 5 }: { a: Account; transfers: Transfer[]; txs: Transaction[]; accounts: Account[]; money: (c: number) => string; lang: string; short?: number }) {
+export function PaymentList({ a, transfers, txs, accounts, money, lang, short = 3 }: { a: Account; transfers: Transfer[]; txs: Transaction[]; accounts: Account[]; money: (c: number) => string; lang: string; short?: number }) {
   const [all, setAll] = useState(false);
   const list = accountPayments(a, transfers, txs), debt = a.type === 'debt';
   if (!list.length) return <p className="fx-muted db-none">{debt ? L('Ainda não abateste nada nesta dívida.') : L('Ainda não juntaste nada nesta conta.')}</p>;
@@ -61,30 +61,26 @@ export function DebtBoost({ a, left, txs, accounts, transfers, balOf, money, lan
           : base <= 0 ? <p className="gl-sub">{L('Define quanto abates por mês em "Ver conta" para veres sugestões.')}</p>
           : opts.length === 0 && !lumpEffect ? <p className="sh-alert">{fill(L('Num mês normal sobram-te cerca de {m}. Por agora não convém abater mais: mantém o valor atual.'), { m: money(b.freeCents) })}</p>
           : <>
-            <p className="gl-sub">{fill(L('Num mês normal sobram-te cerca de {m} depois das contas. Com qualquer opção, ficas com pelo menos {k} por mês para poupar.'), { m: money(b.freeCents), k: money(b.keepCents) })}</p>
+            <p className="gl-sub">{fill(L('Toca numa opção. Continuas a ter {k} por mês para poupar.'), { k: money(b.keepCents) })}</p>
             {opts.length > 0 && <div className="db-opts">{opts.map((o, i) => (
               <button key={o.extra} type="button" style={{ '--i': i } as CSSProperties} onClick={() => apply(o.monthly)}>
                 <small>{names[opts.length === 3 ? i : opts.length === 2 ? i + 1 : 1]}</small><b>{money(o.monthly)}<i>/{L('mês')}</i></b>
-                <em>+{money(o.extra)}</em><span>{L('Acabas em')} <strong>{endDate(o.effect.months, lang)}</strong></span><span className="fx-pos">{gain(o.effect)}</span>
+                <em>+{money(o.extra)}</em><span className="fx-pos">{fill(L('Acabas {m} mais cedo'), { m: duration(o.effect.saveMonths) })}</span>
               </button>
             ))}</div>}
-            {lumpEffect && <div className="db-lump"><span className="pco-mic"><Ic d="M13 2 4 14h7l-1 8 9-12h-7z" size={19} /></span><div><b>{fill(L('Podias pagar já {m}'), { m: money(lump) })}</b><small>{L('e ficavas com mais de 3 meses de despesas de lado.')} <strong className="fx-pos">{gain(lumpEffect)}</strong></small></div><Link className="gl-act" to={`/transacoes?nova=1&para=${a.id}`}>{L('Abater')}</Link></div>}
+            {lumpEffect && <div className="db-lump"><span className="pco-mic"><Ic d="M13 2 4 14h7l-1 8 9-12h-7z" size={19} /></span><div><b>{fill(L('Podias pagar já {m}'), { m: money(lump) })}</b><small className="fx-pos">{fill(L('Acabas {m} mais cedo'), { m: duration(lumpEffect.saveMonths) })}</small></div><Link className="gl-act" to={`/transacoes?nova=1&para=${a.id}`}>{L('Abater')}</Link></div>}
           </>}
       </section>
       <section className="mv-card gl-sec db-sim">
         <h2>{L('Simulador')}</h2>
-        <p className="gl-sub">{L('Arrasta e vê quando acabavas. Nada muda até confirmares.')}</p>
+        <p className="gl-sub">{L('Arrasta as bolas e vê quando acabas.')}</p>
         <label><span>{L('Pagar agora')}<b><CountMoney cents={now} money={money} /></b></span><input type="range" min={0} max={left} step={Math.max(1000, Math.round(left / 200 / 1000) * 1000)} value={now} style={{ '--r': `${(now / left) * 100}%` } as CSSProperties} onChange={(e) => setNow(+e.target.value)} /></label>
         <label><span>{L('Abater por mês')}<b><CountMoney cents={monthly} money={money} /></b></span><input type="range" min={0} max={top} step={step} value={monthly} style={{ '--r': `${(monthly / top) * 100}%` } as CSSProperties} onChange={(e) => setPer(+e.target.value)} /></label>
-        {sim ? <div className="gx-tiles db-res">
-          <div className="gx-tile"><span><Ic d="M6 21V4h11l-2 4 2 4H6" size={19} /></span><div><small>{L('Acabas em')}</small><b>{now >= left ? L('Agora') : endDate(sim.months, lang)}</b></div></div>
-          <div className={'gx-tile ' + (sim.saveMonths > 0 ? 'pos' : '')}><span><Ic d="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 7v5l3 2" size={19} /></span><div><small>{L('Tempo poupado')}</small><b>{sim.saveMonths > 0 ? duration(sim.saveMonths) : '—'}</b></div></div>
-          {rate > 0 && <div className={'gx-tile ' + (sim.saveInterestCents > 0 ? 'pos' : '')}><span><Ic d="M19 5L5 19M7 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM17 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" size={19} /></span><div><small>{L('Juros poupados')}</small><b><CountMoney cents={sim.saveInterestCents} money={money} /></b></div></div>}
-        </div> : <p className="sh-alert">{L('Com este valor a dívida não acaba: escolhe um valor por mês maior.')}</p>}
-        {sim && b.months >= 2 && monthly > base + b.extraCents + 100 && <p className="sh-alert">{fill(L('Cuidado: para não te faltar dinheiro, não convém passar de {m} por mês.'), { m: money(base + b.extraCents) })}</p>}
+        {sim ? <div className="db-out" key={sim.months}><small>{L('Acabas em')}</small><b>{now >= left ? L('Agora') : endDate(sim.months, lang)}</b>{(sim.saveMonths > 0 || sim.saveInterestCents > 0) && <span className="fx-pos">{gain(sim)}</span>}</div> : <p className="sh-alert">{L('Com este valor a dívida não acaba: escolhe um valor por mês maior.')}</p>}
+        {sim && b.months >= 2 && monthly > base + b.extraCents + 100 && <p className="sh-alert">{L('Cuidado: pode faltar-te dinheiro para as contas.')}</p>}
         {sim && per !== null && per !== (plan?.monthlyCents ?? 0) && per > 0 && <button type="button" className="gl-act main db-use" onClick={() => apply(per)}><Ic d="M20 6 9 17l-5-5" size={17} />{fill(L('Usar {m} por mês'), { m: money(per) })}</button>}
       </section>
-      <section className="mv-card gl-sec"><h2>{L('Pagamentos feitos')}</h2><PaymentList a={a} transfers={transfers} txs={txs} accounts={accounts} money={money} lang={lang} short={8} /></section>
+      <section className="mv-card gl-sec"><h2>{L('Pagamentos feitos')}</h2><PaymentList a={a} transfers={transfers} txs={txs} accounts={accounts} money={money} lang={lang} short={4} /></section>
     </>
   );
 }

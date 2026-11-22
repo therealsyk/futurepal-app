@@ -7,7 +7,7 @@ import { formatMoney } from '../core/money';
 import { loadSettings, saveSettings, type AppSettings } from '../core/settings';
 import { groupCurrencies, currencySymbol } from '../core/currencies';
 import { addAccount, ensureDefaultAccount, listAccounts, updateAccount } from '../core/accounts';
-import { addTransaction, addGoal, activeCategories, ensureDefaultCategories } from '../core/finance';
+import { addGoal, activeCategories, ensureDefaultCategories } from '../core/finance';
 import { parseMoneyToCents } from '../core/money';
 import { db, activateDatabaseFor } from '../db/app-db';
 import type { Account, Category, Transaction, Goal } from '../db/database';
@@ -16,7 +16,8 @@ import { getSupabase, hasSupabaseConfig } from '../auth/supabase';
 import { runSync } from '../sync/runSync';
 import { LoginForm } from './Login';
 import { useAuth } from '../auth/AuthContext';
-import { Ic, ICON, Sheet, Seg, catLabel, CategorySelect, PickMenu } from '../ui/fx';
+import { openTxForm, TxFormHost, useTxSaved } from '../ui/TxForm';
+import { Ic, ICON, Sheet, catLabel, PickMenu } from '../ui/fx';
 import { todayISO } from '../core/dates';
 import { currencyFlagUrl } from '../ui/currencyFlag';
 
@@ -316,32 +317,14 @@ function SwitchRow({ on, onChange, title, hint }: { on: boolean; onChange: (v: b
 
 function TransactionsStep({ currency, language }: { currency: string; language: string }) {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
   const [list, setList] = useState<Transaction[]>([]);
   const [cats, setCats] = useState<Category[]>([]);
-  const [type, setType] = useState<'expense' | 'income'>('expense');
-  const [amount, setAmount] = useState('');
-  const [desc, setDesc] = useState('');
-  const [catId, setCatId] = useState('');
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    activeCategories(db).then((c) => { setCats(c); if (c[0]) setCatId(c[0].id); }).catch(() => {});
-  }, []);
-
-  const missing = useMissing();
-  const miss = missing([['amount', L('o valor'), (parseMoneyToCents(amount) ?? 0) > 0], ['cat', L('a categoria'), !!catId]]);
-  async function save() {
-    const cents = parseMoneyToCents(amount);
-    if (!miss.check() || !cents) return;
-    const accounts = await listAccounts(db);
-    const acc = accounts.find((a) => a.isDefault) ?? accounts[0];
-    const tx = await addTransaction(db, {
-      date: today(), type, categoryId: catId, description: desc.trim(), amountCents: cents, currency, accountId: acc?.id,
-    });
-    setList((l) => [tx, ...l]);
-    setAmount(''); setDesc(''); setError(''); setOpen(false);
-  }
+  const reload = () => {
+    db.transactions.toArray().then((x) => setList(x.filter((y) => y.deletedAt === null).sort((a, d) => d.createdAt.localeCompare(a.createdAt))), () => {});
+    activeCategories(db).then(setCats).catch(() => {});
+  };
+  useEffect(reload, []);
+  useTxSaved(reload);
 
   return (
     <div className="ob-center">
@@ -366,18 +349,9 @@ function TransactionsStep({ currency, language }: { currency: string; language: 
             })}
           </ul>
         )}
-        <button type="button" className="ob-outline" onClick={() => setOpen(true)} data-testid="ob-add-tx">{t('onboard.addTx')}</button>
+        <button type="button" className="ob-outline" onClick={() => openTxForm({ type: 'expense', currency, language })} data-testid="ob-add-tx">{t('onboard.addTx')}</button>
       </div>
-      <Sheet open={open} onClose={() => { setOpen(false); miss.reset(); }} title={t('onboard.addTx')}
-        footer={<button type="button" className="ob-cta" onClick={save}>{t('common.add')}</button>}>
-        {miss.note}
-        <Seg<'expense' | 'income'> value={type} onChange={setType} label={t('onboard.addTx')}
-          options={[{ id: 'expense', label: t('onboard.expense') }, { id: 'income', label: t('onboard.income') }]} />
-        <input className={'ob-amount center' + miss.cls('amount')} inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0,00" aria-label={t('onboard.amount')} autoFocus />
-        <input className="fx-input" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder={t('onboard.txDescPh')} aria-label={t('onboard.txDescPh')} />
-        <CategorySelect cats={cats} kind={type} value={catId} onChange={setCatId} ariaLabel={t('onboard.category')} />
-        {error && <p className="ob-error" role="alert">{error}</p>}
-      </Sheet>
+      <TxFormHost />
     </div>
   );
 }

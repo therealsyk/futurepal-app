@@ -26,7 +26,7 @@ import { catLabel, CategorySelect, Field, Ic, ICON, PickMenu, Seg, Sheet, Toggle
 import { FormError, useMissing } from './missing';
 import { useIsMobile } from './useIsMobile';
 
-export interface TxFormOptions { type: 'expense' | 'income'; accountId?: string; groupId?: string; toAccount?: string; recurring?: boolean }
+export interface TxFormOptions { type: 'expense' | 'income'; accountId?: string; groupId?: string; toAccount?: string; recurring?: boolean; currency?: string; language?: string }
 interface FormData { accounts: Account[]; cats: Category[]; groups: Group[]; bals: Record<string, number> }
 
 const OPEN = 'wallet:tx-open', SAVED = 'wallet:tx-saved';
@@ -81,7 +81,7 @@ export function TxFormHost() {
 
 function TxForm({ o, d, onClose, onKind }: { o: TxFormOptions; d: FormData; onClose: () => void; onKind: (k: 'expense' | 'income') => void }) {
   const { t } = useTranslation();
-  const settings = loadSettings();
+  const settings = { ...loadSettings(), ...(o.currency ? { currency: o.currency } : {}), ...(o.language ? { language: o.language as ReturnType<typeof loadSettings>['language'] } : {}) }; // no setup a moeda ainda não está gravada
   const auth = useAuth();
   const isMobile = useIsMobile();
   const missing = useMissing();

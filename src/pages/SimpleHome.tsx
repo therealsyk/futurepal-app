@@ -2,6 +2,7 @@
 //  1. Quanto ainda tenho este mês  2. Adicionar gasto / dinheiro recebido  3. A minha poupança  4. Últimos movimentos
 import type { CSSProperties } from 'react';
 import { GoalRing } from '../ui/GoalRing';
+import { Metric } from './PcOverview';
 import { CountMoney } from '../ui/CountMoney';
 import { goalEtaMonths } from '../core/goalEta';
 import { fill } from '../ui/AccountPlan';
@@ -101,16 +102,21 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
               <div className="sh-valrow"><span className="sh-big fx-pos">{money(received)}</span></div>
               {!ranged && <small className="sh-cmp hm-l">{t('pco.avgMonth', { v: money(Math.round(received / nMonths)) })}</small>}
               <div className={"sh-bar" + (left < 0 ? " over" : "")} aria-hidden="true"><i style={{ width: `${ratio * 100}%` }} /></div>
-              {cmp}
-              <div className="sh-kpis">
-                <div className="sh-kpi"><small>{L('Gastos')}</small><div className="sh-valrow"><b className="fx-neg">{money(spent)}</b></div>{pct !== null && <span className="hm-pill" style={heat(pct)}>{pct}% {L('do recebido')}</span>}</div>
-                <div className="sh-kpi"><small>{L('Poupança')}</small><div className="sh-valrow"><b className={left < 0 ? 'fx-neg' : 'fx-pos'}>{money(left)}</b></div>{received > 0 && <span className="hm-pill" style={heat(left < 0 ? 100 : 100 - (left / received) * 100)}>{left < 0 ? L('Acima do recebido') : `${Math.round((left / received) * 100)}% ${L('do recebido')}`}</span>}{!ranged && <small className="sh-cmp hm-l">{t('pco.avgMonth', { v: money(Math.round(left / nMonths)) })}</small>}</div>
-              </div>
 
             </>
           );
         })()}
       </section>
+      {mode === 'year' && (() => {
+        const inP = (x: Transaction) => (ppr ? x.date >= ppr.from && x.date <= ppr.to : x.date.startsWith(prevPrefix));
+        const pInc = (data?.txs ?? []).filter((x) => x.type === 'income' && inP(x)).reduce((a, x) => a + x.amountCents, 0), dl = (n: number, b: number) => (b === 0 ? null : (n - b) / Math.abs(b));
+        const nM = cur.y === now.getFullYear() ? now.getMonth() + 1 : 12, per1 = (v: number) => (ranged ? undefined : t('pco.avgMonth', { v: money(Math.round(v / nM)) })), vm = ranged ? 'range' : 'year';
+        const c2 = { prevName: ranged ? t('pco.prev_' + per.preset) : String(cur.y - 1), vsLabel: t('pco.vs') }, bar = (v: number) => (received > 0 ? v / received : v > 0 ? 1 : 0);
+        return <div className="pco-metrics-row hm-metrics">
+          <Metric icon="M12 5v14M5 12l7 7 7-7" tone="exp" title={t('pco.spent_' + vm)} value={money(spent)} valueClass={spent > 0 ? 'fx-neg' : ''} delta={dl(spent, prevSpent)} deltaGoodUp={false} {...c2} sub={per1(spent)} bar={bar(spent)} />
+          <Metric icon="M19 7a3 3 0 0 0-3-2H9a6 6 0 0 0-6 6c0 2 1 3.5 2 4.5V19h3v-2h5v2h3v-3a6 6 0 0 0 2-3h2V9h-2zM15 10h.01" tone="sav" title={t('pco.saved_' + vm)} value={money(left)} valueClass={left < 0 ? 'fx-neg' : 'fx-pos'} delta={dl(left, pInc - prevSpent)} deltaGoodUp {...c2} sub={per1(left)} bar={bar(Math.max(0, left))} />
+        </div>;
+      })()}
 
       <Link to={ranged && pr ? `/transacoes?de=${pr.from}&ate=${pr.to}` : mode === 'month' ? '/visao-mensal' : `/resumo-ano?ano=${cur.y}`} className="sh-link">{ranged ? L('Ver movimentos do período') : mode === 'month' ? L('Ver resumo do mês') : L('Ver resumo do ano')} <Ic d={ICON.right} size={14} /></Link>
 

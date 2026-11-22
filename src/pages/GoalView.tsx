@@ -112,18 +112,18 @@ export function GoalView({ g, acc, info, extra, accounts, valueOf, money, date, 
         <div className="pl-tile"><small>{debt ? L('Acabas em') : L('Chegas lá em')}</small><b>{info.done ? L('Já chegaste') : info.eta || '—'}</b></div>
         <div className="pl-tile"><small>{L('Data limite')}</small><b>{g.targetDate ? date(g.targetDate) : L('Sem data')}</b></div>
       </div>
-      <section className="mv-card gl-sec">
+      {!debt && <section className="mv-card gl-sec">
         <h2>{L('Previsão')}</h2>
         <p className="fx-muted">{info.long}</p>
         {info.when && <p className={'sh-alert' + (info.when.ok ? ' ok' : '')}>{info.when.long}</p>}
-      </section>
+      </section>}
       {extra}
       {!acc && left > 0 && <section className="mv-card gl-sec">
         <h2>{L('Quando queres lá chegar?')}</h2>
         <p className="gl-sub">{L('Carrega numa opção para juntares esse valor todos os meses.')}</p>
         <div className="gl-plans">{plans.map((p) => <button key={p.n} type="button" className={monthly === p.m ? 'on' : ''} onClick={() => setPlan(p.m)}><small>{p.n === 12 ? L('Em 1 ano') : p.n === 24 ? L('Em 2 anos') : fill(L('Em {d} meses'), { d: String(p.n) })}</small><b>{money(p.m)}</b><em>{L('por mês')}</em></button>)}</div>
       </section>}
-      {linked.length > 0 && <section className="mv-card gl-sec">
+      {!acc && linked.length > 0 && <section className="mv-card gl-sec">
         <h2>{linked.length === 1 ? L('Conta usada') : L('Contas usadas')}</h2>
         {linked.map((a) => <div key={a.id} className="gl-line"><span><Ic d={ICON.wallet} size={17} />{a.name}</span><b className={valueOf(a) < 0 ? 'fx-neg' : 'fx-pos'}>{money(valueOf(a))}</b></div>)}
       </section>}

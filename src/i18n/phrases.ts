@@ -990,6 +990,10 @@ export const PHRASES: Record<string, Tr> = {
   'Com este valor a dívida não acaba: escolhe um valor por mês maior.': ['With this amount the debt never ends: choose a higher monthly amount.', 'Con este importe la deuda no acaba: elige uno mayor al mes.', 'Avec ce montant la dette ne finit pas : choisissez plus par mois.'],
   'Cuidado: para não te faltar dinheiro, não convém passar de {m} por mês.': ['Careful: to avoid running short, don’t go above {m} a month.', 'Cuidado: para que no te falte dinero, no pases de {m} al mes.', 'Attention : pour ne pas manquer d’argent, ne dépassez pas {m} par mois.'],
   'Usar {m} por mês': ['Use {m} a month', 'Usar {m} al mes', 'Utiliser {m} par mois'],
+  'Toca numa opção. Continuas a ter {k} por mês para poupar.': ['Tap an option. You still keep {k} a month to save.', 'Toca una opción. Sigues teniendo {k} al mes para ahorrar.', 'Touchez une option. Vous gardez {k} par mois à épargner.'],
+  'Acabas {m} mais cedo': ['You finish {m} sooner', 'Terminas {m} antes', 'Vous finissez {m} plus tôt'],
+  'Arrasta as bolas e vê quando acabas.': ['Drag the dots and see when you finish.', 'Arrastra los círculos y mira cuándo terminas.', 'Glissez les ronds et voyez quand vous finissez.'],
+  'Cuidado: pode faltar-te dinheiro para as contas.': ['Careful: you may run short for your bills.', 'Cuidado: puede faltarte dinero para las facturas.', 'Attention : vous pourriez manquer pour vos factures.'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */
