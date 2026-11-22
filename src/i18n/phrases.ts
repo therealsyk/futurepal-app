@@ -1179,6 +1179,9 @@ export const PHRASES: Record<string, Tr> = {
   'Esconder palavra-passe': ['Hide password', 'Ocultar contraseña', 'Masquer le mot de passe'],
   'Mostrar palavra-passe': ['Show password', 'Mostrar contraseña', 'Afficher le mot de passe'],
   'ou entra com': ['or continue with', 'o entra con', 'ou continuer avec'],
+  'Guarda os teus dados': ['Keep your data safe', 'Guarda tus datos', 'Gardez vos données'],
+  'Com conta, vês tudo no telemóvel e no computador e não perdes nada.': ['With an account, see it all on phone and computer and lose nothing.', 'Con cuenta, lo ves todo en móvil y ordenador y no pierdes nada.', 'Avec un compte, tout est sur mobile et ordinateur, sans rien perdre.'],
+  'Dados': ['Data', 'Datos', 'Données'],
 };
 
 /** Português do Brasil: as palavras de Portugal que lá se dizem de outra forma. */

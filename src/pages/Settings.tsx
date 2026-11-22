@@ -1,6 +1,7 @@
 import { PC_MOBILE } from '../core/uiMode';
 import { openTutorial } from '../ui/MobileTutorial';
-import { useRef, useState, type ChangeEvent, type ReactNode, useEffect } from 'react';
+import { useRef, useState, type ChangeEvent, type CSSProperties, type ReactNode, useEffect } from 'react';
+import logoUrl from '../assets/logo.svg';
 import { L } from '../i18n/phrases';
 import { CI_ENABLED } from '../core/ciFlag';
 import { trackEvent } from '../core/presence';
@@ -49,6 +50,9 @@ const I = {
   sheet: 'M4 4h16v16H4zM4 9h16M4 14h16M10 4v16',
   logout: 'M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 17l-5-5 5-5M5 12h11',
   chat: 'M4 5h16v11H9l-5 4zM8 9h8M8 12h5',
+  sliders: 'M4 7h9M17 7h3M15 9.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM4 17h3M11 17h9M9 19.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z',
+  data: 'M12 8c4.4 0 8-1.3 8-3s-3.6-3-8-3-8 1.3-8 3 3.6 3 8 3zM4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3',
+  info: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5.5M12 7.5h.01',
   swap: 'M16 3l4 4-4 4M20 7H9M8 21l-4-4 4-4M4 17h11',
 };
 
@@ -79,19 +83,18 @@ function AccountPhotoRow() {
   }
 
   return (
-    <div className="st-row st-photo" data-testid="st-user">
+    <div className="st2-me st-photo" data-testid="st-user">
       <button type="button" className="st-photo-img" disabled={busy} onClick={() => ref.current?.click()} aria-label={hasOwn ? t('profile.change') : t('profile.add')} title={hasOwn ? t('profile.change') : t('profile.add')} data-testid="st-photo-change">
         <UserAvatar user={user} name={name || user.email || '?'} />
-        <span className="st-photo-cam" aria-hidden="true"><Ic d="M4 8h3l2-3h6l2 3h3v11H4zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" size={12} /></span>
+        <span className="st-photo-cam" aria-hidden="true"><Ic d="M4 8h3l2-3h6l2 3h3v11H4zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" size={13} /></span>
       </button>
-      <span className="st-text"><b>{name || user.email}</b><small>{busy ? t('profile.saving') : msg || (name ? user.email : t('settings2.signedIn'))}</small></span>
-      {hasOwn && <button type="button" className="fx-btn" disabled={busy} onClick={remove}>{t('profile.remove')}</button>}
+      <span className="st2-who"><b>{name || user.email}</b><small>{busy ? t('profile.saving') : msg || (name ? user.email : t('settings2.signedIn'))}</small>{hasOwn && <button type="button" className="ob-link small" disabled={busy} onClick={remove}>{t('profile.remove')}</button>}</span>
       <input ref={ref} hidden type="file" accept="image/*" onChange={pick} />
     </div>
   );
 }
 
-function Row({ icon, title, sub, children, onClick, testId }: { icon: string; title: string; sub?: string; children?: ReactNode; onClick?: () => void; testId?: string }) {
+function Row({ icon, title, sub, children, onClick, testId, cls = '' }: { icon: string; title: string; sub?: string; children?: ReactNode; onClick?: () => void; testId?: string; cls?: string }) {
   const body = (
     <>
       <span className="st-ic"><Ic d={icon} size={22} /></span>
@@ -100,9 +103,11 @@ function Row({ icon, title, sub, children, onClick, testId }: { icon: string; ti
     </>
   );
   return onClick
-    ? <button type="button" className="st-row" onClick={onClick} data-testid={testId}>{body}</button>
-    : <div className="st-row" data-testid={testId}>{body}</div>;
+    ? <button type="button" className={'st-row' + cls} onClick={onClick} data-testid={testId}>{body}</button>
+    : <div className={'st-row' + cls} data-testid={testId}>{body}</div>;
 }
+
+const TABS = ['prefs', 'data', 'ai', 'about'] as const;
 
 export function Settings() {
   const { t, i18n } = useTranslation();
@@ -113,6 +118,7 @@ export function Settings() {
   const [backupMsg, setBackupMsg] = useState('');
   const [params, setParams] = useSearchParams();
   const [aiOpen, setAiOpen] = useState(params.get('ai') === '1');
+  const [tab, setTab] = useState(() => { const x = TABS.findIndex((v) => v === (params.get('ai') ? 'ai' : params.get('tab'))); return x < 0 ? 0 : x; });
   const [importOpen, setImportOpen] = useState(false);
   const [danger, setDanger] = useState<'account' | 'device' | null>(null);
   const [notices, setNotices] = useState<string | null>(null);
@@ -216,26 +222,35 @@ export function Settings() {
   const aiOn = isConfigured(ai);
 
   return (
-    <div className="fx-page st-page">
+    <div className="fx-page st-page st2">
       <header className="st-head"><h1>{t('settings.title')}</h1></header>
 
-      <h2 className="st-section">{t('settings2.account')}</h2>
-      <div className="st-group">
-        {!auth.configured ? (
-          <Row icon={I.user} title={t('settings2.localMode')} sub={t('settings.syncLocalOnly')} />
-        ) : auth.user ? (
-          <>
-            <AccountPhotoRow />
-            <Row icon={I.swap} title={t('switcher.menu')} sub={t('switcher.rowSub')} onClick={() => setSwitchOpen(true)} testId="st-switch" />
-            <Row icon={I.sync} title={t('settings.syncNow')} sub={syncMsg || t('settings.syncReady')} onClick={syncing ? undefined : onSync} testId="sync-btn" />
-          </>
-        ) : (
-          <Row icon={I.user} title={t('settings2.signInRow')} sub={t('settings2.signInRowSub')} onClick={() => openLogin()} testId="st-login" />
-        )}
+      <section className="mv-card st2-hero">
+        {!auth.configured ? <div className="st2-me"><img className="st2-logo" src={logoUrl} alt="" /><span className="st2-who"><b>{t('settings2.localMode')}</b><small>{t('settings.syncLocalOnly')}</small></span></div>
+          : auth.user ? (
+            <>
+              <AccountPhotoRow />
+              <div className="st2-acts">
+                <button type="button" className={syncing ? 'spin' : ''} disabled={syncing} onClick={onSync} data-testid="sync-btn"><span className="lg-ic"><Ic d={I.sync} size={20} /></span><b>{t('settings.syncNow')}</b></button>
+                <button type="button" onClick={() => setSwitchOpen(true)} data-testid="st-switch"><span className="lg-ic"><Ic d={I.swap} size={20} /></span><b>{t('switcher.menu')}</b></button>
+                <button type="button" onClick={onSignOut} data-testid="signout-btn"><span className="lg-ic"><Ic d={I.logout} size={20} /></span><b>{t('settings2.signOut')}</b></button>
+              </div>
+              {syncMsg && <p className="st2-note" role="status" key={syncMsg}>{syncMsg}</p>}
+            </>
+          ) : (
+            <><div className="st2-me"><img className="st2-logo" src={logoUrl} alt="" /><span className="st2-who"><b>{L('Guarda os teus dados')}</b><small>{L('Com conta, vês tudo no telemóvel e no computador e não perdes nada.')}</small></span></div>
+              <button type="button" className="ob-cta lg-go" onClick={() => openLogin()} data-testid="st-login">{t('settings2.signInRow')}<Ic d="M5 12h14M13 6l6 6-6 6" size={18} /></button></>
+          )}
+      </section>
+
+      <div className="st2-tabs" role="tablist" style={{ '--i': tab } as CSSProperties}>
+        {([[I.sliders, t('settings2.preferences')], [I.data, L('Dados')], [I.spark, t('ai.section')], [I.info, t('updates.about')]] as const).map(([d, label], i) => (
+          <button key={label} type="button" role="tab" aria-selected={tab === i} className={tab === i ? 'on' : ''} onClick={() => setTab(i)}><Ic d={d} size={22} /><b>{label}</b></button>
+        ))}
       </div>
 
-      <h2 className="st-section">{t('settings2.preferences')}</h2>
-      <div className="st-group">
+      <div className="mv-card st2-list" key={tab} role="tabpanel">
+        {tab === 0 && <>
         <Row icon={I.coins} title={t('settings.currency')} sub={t('settings2.currencySub')}>
           <PickMenu label={t('settings.currency')} testId="settings-currency" value={settings.currency} options={currencies.map((c) => ({ value: c, label: `${c} · ${currencyName(c, settings.language)}` }))} onChange={(v) => update({ ...settings, currency: String(v) })} />
         </Row>
@@ -255,38 +270,25 @@ export function Settings() {
             ))}
           </div>
         </div>
-      </div>
-
-      {CI_ENABLED && <CiOptRow />}
-      <h2 className="st-section">{t('ai.section')}</h2>
-      <div className="st-group">
-        <Row icon={I.spark} title={t('ai.rowTitle')} sub={aiOn ? `${L(getPreset(ai.provider)?.label ?? ai.provider)} · ${ai.model}` : t('ai.rowSub')} onClick={() => setAiOpen(true)} testId="ai-row" />
-      </div>
-
-      <h2 className="st-section">{t('updates.about')}</h2>
-      <div className="st-group">
-        <Row icon={I.sync} title={t('updates.version', { version: APP_VERSION })} sub={updMsg || t('updates.checkSub')} onClick={updBusy ? undefined : onCheckUpdates} testId="check-updates" />
-        {!PC_MOBILE && <Row icon="M9.1 9a3 3 0 1 1 4.2 2.7c-.8.4-1.3 1.1-1.3 2v.3M12 17.5h.01M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18z" title={L('Ver a visita guiada')} sub={L('Mostra onde está cada coisa na app')} onClick={openTutorial} />}
-        <Row icon={I.chat} title={t('feedback.row')} sub={t('feedback.rowSub')} onClick={() => setFeedbackOpen(true)} testId="feedback-row" />
-        <Row icon={I.sheet} title={t('settings2.licenses')} sub={t('settings2.licensesSub')} onClick={openNotices} testId="licenses" />
-      </div>
-
-      <h2 className="st-section">{t('settings2.data')}</h2>
-      <div className="st-group">
+        {CI_ENABLED && <CiOptRow />}
+        </>}
+        {tab === 1 && <>
         <Row icon={I.up} title={t('settings.backupExport')} sub={t('settings2.exportSub')} onClick={onExportBackup} testId="backup-export-btn" />
         <Row icon={I.down} title={t('settings.backupImport')} sub={t('settings2.importSub')} onClick={() => importRef.current?.click()} />
         <Row icon={I.sheet} title={t('importer.title')} sub={t('importer.rowSub')} onClick={() => setImportOpen(true)} testId="import-row" />
-        <Row icon={ICON.trash} title={t('danger.deleteDevice')} sub={t('danger.deviceSub')} onClick={() => setDanger('device')} testId="wipe-device" />
+        <Row icon={ICON.trash} title={t('danger.deleteDevice')} sub={t('danger.deviceSub')} onClick={() => setDanger('device')} testId="wipe-device" cls=" red" />
         <input ref={importRef} hidden type="file" accept="application/json" data-testid="backup-import-input" onChange={onImportBackup} />
+        {backupMsg && <p className="st2-note" role="status" data-testid="backup-result">{backupMsg}</p>}
+        {auth.user && <Row icon={I.user} title={t('danger.deleteAccount')} onClick={() => setDanger('account')} testId="delete-account" cls=" red" />}
+        </>}
+        {tab === 2 && <Row icon={I.spark} title={t('ai.rowTitle')} sub={aiOn ? `${L(getPreset(ai.provider)?.label ?? ai.provider)} · ${ai.model}` : t('ai.rowSub')} onClick={() => setAiOpen(true)} testId="ai-row" />}
+        {tab === 3 && <>
+        <Row icon={I.sync} title={t('updates.version', { version: APP_VERSION })} sub={updMsg || t('updates.checkSub')} onClick={updBusy ? undefined : onCheckUpdates} testId="check-updates" cls={updBusy ? ' spin' : ''} />
+        {!PC_MOBILE && <Row icon="M9.1 9a3 3 0 1 1 4.2 2.7c-.8.4-1.3 1.1-1.3 2v.3M12 17.5h.01M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18z" title={L('Ver a visita guiada')} sub={L('Mostra onde está cada coisa na app')} onClick={openTutorial} />}
+        <Row icon={I.chat} title={t('feedback.row')} sub={t('feedback.rowSub')} onClick={() => setFeedbackOpen(true)} testId="feedback-row" />
+        <Row icon={I.sheet} title={t('settings2.licenses')} sub={t('settings2.licensesSub')} onClick={openNotices} testId="licenses" />
+        </>}
       </div>
-      {backupMsg && <p className="st-msg" data-testid="backup-result">{backupMsg}</p>}
-
-      {auth.user && (
-        <>
-          <button type="button" className="st-signout" onClick={onSignOut} data-testid="signout-btn"><Ic d={I.logout} size={18} />{t('settings2.signOut')}</button>
-          <button type="button" className="st-danger-link" onClick={() => setDanger('account')} data-testid="delete-account">{t('danger.deleteAccount')}</button>
-        </>
-      )}
 
       <Sheet open={notices !== null} onClose={() => setNotices(null)} title={t('settings2.licenses')} wide>
         <pre className="st-notices">{notices}</pre>
@@ -322,11 +324,10 @@ function CiOptRow() {
     setOn(!on);
   };
   return (
-    <div className="st-group">
       <div className="st-row">
-        <span className="st-row-text"><b>{L('Contribuir para estatísticas anónimas')}</b><small>{L('Os teus dados entram só em totais de 10 ou mais pessoas, nunca de forma individual.')}</small></span>
+        <span className="st-ic"><Ic d="M4 20V10M10 20V4M16 20v-7M22 20H2" size={22} /></span>
+        <span className="st-text"><b>{L('Contribuir para estatísticas anónimas')}</b><small>{L('Os teus dados entram só em totais de 10 ou mais pessoas, nunca de forma individual.')}</small></span>
         <button type="button" role="switch" aria-checked={on} className={'ob-toggle' + (on ? ' on' : '')} onClick={toggle} aria-label={L('Contribuir para estatísticas anónimas')}><i /></button>
       </div>
-    </div>
   );
 }

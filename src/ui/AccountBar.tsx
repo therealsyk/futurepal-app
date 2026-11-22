@@ -159,7 +159,7 @@ export function AccountBar() {
           {/* Sem conta: "Entrar ou criar conta" é a primeira opção */}
           {!auth.user && <button type="button" role="menuitem" className="ab-item accent" onClick={() => { setOpen(null); openLogin(); }}><Ic d={ITEMS.in} />{t('acct.signIn')}</button>}
           {auth.user && <button type="button" role="menuitem" className="ab-item accent" onClick={() => go('/plus')}><Ic d={ITEMS.plan} />{plan === 'free' ? t('acct.upgrade') : t('acct.myPlan')}</button>}
-          <button type="button" role="menuitem" className="ab-item" onClick={() => go('/definicoes')}><Ic d={ITEMS.backup} />{t('acct.backup')}</button>
+          <button type="button" role="menuitem" className="ab-item" onClick={() => go('/definicoes?tab=data')}><Ic d={ITEMS.backup} />{t('acct.backup')}</button>
           {isAdmin && <button type="button" role="menuitem" className="ab-item" onClick={() => { setOpen(null); if (isUnlocked()) navigate('/admin'); else window.dispatchEvent(new Event(ADMIN_LOGIN_EVENT)); }}><Ic d={ITEMS.admin} />{t('admin.title')}</button>}
           {auth.configured && auth.user && <button type="button" role="menuitem" className="ab-item" onClick={() => { setOpen(null); setSwitcher(true); }} data-testid="switch-account"><Ic d={ITEMS.swap} />{t('switcher.menu')}</button>}
           <hr />
