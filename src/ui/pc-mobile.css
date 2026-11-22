@@ -1433,7 +1433,7 @@ html:not(.pcm) .mv-head { gap: 8px; } html:not(.pcm) .mv-hello { gap: 9px; min-w
 html:not(.pcm) .mv-menu { padding: 0 11px; } html:not(.pcm) .mv-menu svg { display: none; }
 /* ---- Convites: aviso num canto, com o cartão das notificações */
 .nt-pop { position: fixed; z-index: 60; right: 24px; bottom: 24px; width: 370px; max-width: calc(100vw - 24px); box-sizing: border-box; padding: 14px; border-radius: 24px; background: var(--card); border: 1px solid var(--border); box-shadow: 0 30px 80px -20px rgba(0,0,0,.8); animation: bs-up .35s cubic-bezier(.2,.8,.2,1) both; }
-.nt-pop .spi-later { display: block; margin: 10px auto 0; } .nt-pop.in-groups { bottom: 24px; }
+.nt-pop .spi-later { display: block; margin: 10px auto 0; }
 @media (max-width: 768px) { .nt-pop { left: 12px; right: 12px; width: auto; bottom: calc(96px + var(--safe-b, 0px)); } }
 @media (prefers-reduced-motion: reduce) { .nt-pop { animation: none; } }
 /* ---- Grupo dividido */
