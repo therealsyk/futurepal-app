@@ -1,5 +1,6 @@
 // Início simplificado — só o essencial, para qualquer pessoa.
 //  1. Quanto ainda tenho este mês  2. Adicionar gasto / dinheiro recebido  3. A minha poupança  4. Últimos movimentos
+import { NotificationBell } from '../ui/AccountBar';
 import { goalValueCents, splitDesc } from '../core/debtPlan';
 import { cmpText, refText } from '../core/compare';
 import { useEffect, useState } from 'react';
@@ -179,6 +180,7 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
           <UserAvatar user={auth.user} name={name || '?'} className="ab-initials mv-avatar" />
           <div className="mv-hello-txt">{name && <small>{L('Olá,')}</small>}<h1>{name ? name.split(' ')[0] + '!' : L('Olá!')}</h1></div>
         </div>
+        <NotificationBell />
         <button type="button" className="mv-sq mv-menu" data-tour="menu" onClick={() => window.dispatchEvent(new Event('wallet:open-more'))} aria-label={L('Mais funções')}><Ic d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" size={19} /><span>{L('Menu')}</span></button>
         <button type="button" className="mv-sq" data-tour="settings" onClick={() => navigate('/definicoes')} aria-label={t('nav.settings')}><Ic d={GEAR} size={20} /></button>
       </header>

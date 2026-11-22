@@ -71,49 +71,33 @@ function useNotifications(): Note[] {
   return notes;
 }
 
-export function AccountBar() {
+/** Campainha com o número de avisos e o painel (PC e telemóvel). */
+export function NotificationBell() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const auth = useAuth();
-  const isAdmin = useIsAdmin();
-  const { plan } = usePlan();
   const notes = useNotifications();
-  const [open, setOpen] = useState<null | 'menu' | 'bell'>(null);
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [noteErr, setNoteErr] = useState<string | null>(null);
+  const answer = async (id: string, accept: boolean) => { setBusy(id); setNoteErr(await answerSplitInvite(auth.user, id, accept)); setBusy(null); };
+  const go = (to: string) => { setOpen(false); navigate(to); };
   const ref = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     if (!open) return;
-    const onDown = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(null); };
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(null); };
+    const onDown = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
     document.addEventListener('mousedown', onDown);
     document.addEventListener('keydown', onKey);
     return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
   }, [open]);
-
-  const meta = (auth.user?.user_metadata ?? {}) as { name?: string; full_name?: string };
-  const email = auth.user?.email ?? '';
-  const name = meta.full_name || meta.name || (email ? email.split('@')[0] : t('acct.guest'));
-  const masked = email ? '•••••@' + email.split('@')[1] : t('settings2.localMode');
-  const [switcher, setSwitcher] = useState(false);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [noteErr, setNoteErr] = useState<string | null>(null);
-  const answer = async (id: string, accept: boolean) => { setBusy(id); setNoteErr(await answerSplitInvite(auth.user, id, accept)); setBusy(null); };
-  const go = (to: string) => { setOpen(null); navigate(to); };
-  const planName = t('plus.plan_' + activePlan());
-
   return (
-    <div className="ab" ref={ref}>
-      <AccountSwitcher open={switcher} onClose={() => setSwitcher(false)} />
-      <button type="button" className="ab-chip" onClick={() => setOpen(open === 'menu' ? null : 'menu')} aria-haspopup="menu" aria-expanded={open === 'menu'}>
-        <UserAvatar user={auth.user} name={name} />
-        <span className="ab-who"><small className="ab-hello">{t('acct.hello')}</small><b className="ab-full">{name}</b><b className="ab-first">{name.split(' ')[0]}!</b><small className="ab-mail">{masked}</small></span>
-      </button>
-      <button type="button" className={'ab-bell' + (notes.length ? ' has' : '')} onClick={() => setOpen(open === 'bell' ? null : 'bell')} aria-label={t('acct.notifications')} aria-expanded={open === 'bell'}>
+    <div className="nt" ref={ref}>
+      <button type="button" className={'ab-bell' + (notes.length ? ' has' : '')} onClick={() => setOpen(!open)} aria-label={t('acct.notifications')} aria-expanded={open}>
         <Ic d={BELL} size={20} />
         {notes.length > 0 && <i className="ab-dot">{notes.length > 9 ? '9+' : notes.length}</i>}
       </button>
-
-      {open === 'bell' && (
+      {open && (
         <div className="ab-pop ab-pop-bell" role="dialog" aria-label={t('acct.notifications')}>
           <header className="nt-head"><span className="nt-bell"><Ic d={BELL} size={18} /></span><h4>{t('acct.notifications')}</h4>{notes.length > 0 && <em>{notes.length}</em>}</header>
           {noteErr && <p className="fx-error">{noteErr}</p>}
@@ -132,6 +116,45 @@ export function AccountBar() {
           ))}</div>}
         </div>
       )}
+
+    </div>
+  );
+}
+
+export function AccountBar() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const auth = useAuth();
+  const isAdmin = useIsAdmin();
+  const { plan } = usePlan();
+  const [open, setOpen] = useState<null | 'menu'>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(null); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(null); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
+  }, [open]);
+
+  const meta = (auth.user?.user_metadata ?? {}) as { name?: string; full_name?: string };
+  const email = auth.user?.email ?? '';
+  const name = meta.full_name || meta.name || (email ? email.split('@')[0] : t('acct.guest'));
+  const masked = email ? '•••••@' + email.split('@')[1] : t('settings2.localMode');
+  const [switcher, setSwitcher] = useState(false);
+  const go = (to: string) => { setOpen(null); navigate(to); };
+  const planName = t('plus.plan_' + activePlan());
+
+  return (
+    <div className="ab" ref={ref}>
+      <AccountSwitcher open={switcher} onClose={() => setSwitcher(false)} />
+      <button type="button" className="ab-chip" onClick={() => setOpen(open === 'menu' ? null : 'menu')} aria-haspopup="menu" aria-expanded={open === 'menu'}>
+        <UserAvatar user={auth.user} name={name} />
+        <span className="ab-who"><small className="ab-hello">{t('acct.hello')}</small><b className="ab-full">{name}</b><b className="ab-first">{name.split(' ')[0]}!</b><small className="ab-mail">{masked}</small></span>
+      </button>
+      <NotificationBell />
 
       {open === 'menu' && (
         <div className="ab-pop" role="menu">

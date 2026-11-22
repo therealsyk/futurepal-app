@@ -1424,3 +1424,7 @@ html.pcm .fx-page.grp .grp-add, .grp-add { position: static !important; transfor
 .nt-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 11px; } .nt-btns button { height: 38px; border: 0; border-radius: 99px; font: inherit; font-size: 14px; font-weight: 750; cursor: pointer; } .nt-btns .yes { background: var(--mv, var(--accent)); color: var(--mv-ink, #032a2d); } .nt-btns .no { background: none; border: 1px solid color-mix(in srgb, var(--red) 55%, transparent); color: var(--red); } .nt-btns button:disabled { opacity: .5; }
 .nt-empty { display: grid; justify-items: center; gap: 8px; padding: 22px 10px; color: var(--muted); } .nt-empty span { width: 60px; height: 60px; display: grid; place-items: center; border-radius: 50%; background: var(--card-2); } .nt-empty p { margin: 0 !important; text-align: center; }
 @media (prefers-reduced-motion: reduce) { .ab-bell.has > svg { animation: none; } }
+/* campainha: no PC ancora à barra da conta; no telemóvel é um botão como os outros e o painel ocupa a largura */
+html.pcm .nt { display: contents; }
+html:not(.pcm) .nt .ab-bell { width: 44px; height: 44px; border-radius: 14px; } html:not(.pcm) .nt .ab-dot { top: -5px; right: -5px; }
+html:not(.pcm) .nt .ab-pop-bell { position: fixed; top: calc(66px + var(--safe-t, env(safe-area-inset-top, 0px))); left: 12px; right: 12px; width: auto; max-width: none; z-index: 70; box-sizing: border-box; }
