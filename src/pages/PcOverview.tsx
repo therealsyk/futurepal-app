@@ -1,6 +1,5 @@
 // Resumo do PC: Mensal | Anual | Período, caixas de rendimento/gastos/poupança, gráfico, contas,
 // últimos movimentos do período, categorias e calendário. Os widgets podem ir para qualquer sítio e mudar de tamanho (Personalizar).
-import { isFresh } from '../core/onboarding';
 import { useEffect, useRef, useState, type JSX } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -68,7 +67,7 @@ function loadLayout(): Cell[] {
     const old = JSON.parse(localStorage.getItem(ORDER_KEY) || 'null') as WidgetId[] | null;
     if (Array.isArray(old) && old.length && old.length <= 6 && old.every((x) => ALL_WIDGETS.includes(x)) && new Set(old).size === old.length) return fromOrder(old);
   } catch { /* sem storage */ }
-  return fromOrder(isFresh() ? ['metrics', 'latest'] : DEFAULT_ORDER); // conta nova: só o essencial
+  return fromOrder(DEFAULT_ORDER);
 }
 const SLIDERS = 'M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M16 4v4M10 10v4M18 16v4';
 const WNAME: Record<WidgetId, string> = {
