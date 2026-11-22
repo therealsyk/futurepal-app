@@ -623,10 +623,11 @@ export const PHRASES: Record<string, Tr> = {
   'Os teus dados entram só em totais de 10 ou mais pessoas, nunca de forma individual.': ['Your data only counts in totals of 10 or more people, never individually.', 'Tus datos solo cuentan en totales de 10 o más personas, nunca de forma individual.', 'Vos données ne comptent que dans des totaux de 10 personnes ou plus, jamais individuellement.'],
   'Últimos 3 meses': ['Last 3 months', 'Últimos 3 meses', '3 derniers mois'],
   'Últimos 6 meses': ['Last 6 months', 'Últimos 6 meses', '6 derniers mois'],
-  'Juntar as contas principais numa só?': ['Merge the main accounts into one?', '¿Unir las cuentas principales en una sola?', 'Fusionner les comptes principaux en un seul ?'],
   'Juntar contas': ['Merge accounts', 'Unir cuentas', 'Fusionner les comptes'],
   'Não foi possível juntar sem mudar o saldo. Nada foi alterado.': ['Could not merge without changing the balance. Nothing was changed.', 'No se pudo unir sin cambiar el saldo. No se cambió nada.', 'Impossible de fusionner sans changer le solde. Rien n’a été modifié.'],
-  'Tens duas contas principais. Junta-as numa só: o saldo total fica igual e nenhum movimento é apagado.': ['You have two main accounts. Merge them into one: the total stays the same and no transaction is deleted.', 'Tienes dos cuentas principales. Únelas en una: el total no cambia y no se elimina ningún movimiento.', 'Vous avez deux comptes principaux. Fusionnez-les : le total ne change pas et aucune opération n’est supprimée.'],
+  'Tens 2 contas principais': ['You have 2 main accounts', 'Tienes 2 cuentas principales', 'Vous avez 2 comptes principaux'],
+  'Queres uni-las numa só? O saldo total mantém-se e nenhum movimento é apagado.': ['Merge them into one? The total balance stays the same and no transaction is deleted.', '¿Quieres unirlas en una sola? El saldo total se mantiene y no se elimina ningún movimiento.', 'Les fusionner en un seul ? Le solde total reste le même et aucune opération n’est supprimée.'],
+  'Não': ['No', 'No', 'Non'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */

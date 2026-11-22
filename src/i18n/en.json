@@ -868,7 +868,11 @@
     "checkSub": "Tap to check for updates",
     "checking": "Checking for updates…",
     "upToDate": "You're on the latest version.",
-    "unknown": "Couldn't check (no internet or no server)."
+    "unknown": "Couldn't check (no internet or no server).",
+    "wait": "Please wait a moment",
+    "waitText": "We're updating FuturePal to version {{version}}.",
+    "waitInstall": "The app will close and reopen by itself.",
+    "installing": "Installing…"
   },
   "categoryGroups": {
     "income": "Income",

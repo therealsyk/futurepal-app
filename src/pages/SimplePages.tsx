@@ -11,7 +11,6 @@ import { accountBalanceCents, addAccount, removeAccount, updateAccount } from '.
 import { addGoal, contributeToGoal, setBudget } from '../core/finance';
 import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
-import { duplicateDefaults, mergeDuplicateDefaults } from '../core/mergeAccounts';
 import { forecastGoal, type GoalForecast } from '../core/goalForecast';
 import { Ic, ICON, CatIcon, catLabel, CategorySelect } from '../ui/fx';
 import { EmptyState } from '../ui/EmptyState';
@@ -73,12 +72,6 @@ export function SimpleAccounts() {
     await updateAccount(db, a.id, { name: eName.trim() || a.name, initialBalanceCents: a.initialBalanceCents + (v - balOf(a)) });
     setEdit(null); reload();
   };
-  const dupMains = duplicateDefaults(d?.accounts ?? []);
-  const mergeMains = async () => {
-    if (!(await appConfirm(`${L('Juntar as contas principais numa só?')} ${dupMains.map((a) => a.name).join(' + ')} → ${dupMains[0].name}: ${money(dupMains.reduce((x, a) => x + balOf(a), 0))}`, { ok: L('Juntar contas'), danger: false }))) return;
-    try { await mergeDuplicateDefaults(db); } catch { await appConfirm(L('Não foi possível juntar sem mudar o saldo. Nada foi alterado.'), { ok: 'OK' }); }
-    reload();
-  };
   const delAcc = async (a: Account) => { if (await appConfirm(`${L('Apagar conta')} "${a.name}"?`)) { await removeAccount(db, a.id); setEdit(null); reload(); } };
   const list = (d?.accounts ?? []).filter((a) => a.type === tab).sort((a, b) => a.order - b.order);
   const create = async () => {
@@ -97,10 +90,6 @@ export function SimpleAccounts() {
       <div className="sh-seg" role="tablist">
         {TYPES.map((x) => <button key={x.id} type="button" role="tab" aria-selected={tab === x.id} className={tab === x.id ? 'on' : ''} onClick={() => { setTab(x.id); setForm(false); }}>{x.label}</button>)}
       </div>
-      {tab === 'spending' && dupMains.length > 1 && (
-        <section className="mv-card acc-dup"><p>{L('Tens duas contas principais. Junta-as numa só: o saldo total fica igual e nenhum movimento é apagado.')}</p>
-          <button type="button" className="sh-btn in sm" onClick={mergeMains}>{L('Juntar contas')}</button></section>
-      )}
       {tab === 'debt' && <p className="sh-info">{L('Para baixar uma dívida, faz uma transferência de uma conta de gastos ou de poupança para a conta da dívida.')}</p>}
       {list.length === 0 && <EmptyState icon="M3 7a2 2 0 0 1 2-2h13v4M3 7v11a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1H5a2 2 0 0 1-2-2zM16 14.5h.01" title={tab === 'debt' ? L('Sem dívidas registadas') : tab === 'savings' ? L('Sem contas de poupança') : L('Sem contas de gastos')} text={tab === 'debt' ? L('Regista um empréstimo para acompanhares quanto ainda falta pagar.') : L('Cria uma conta para veres o teu saldo sempre atualizado.')} examples={tab === 'debt' ? ['🏠 Crédito habitação', '🚗 Crédito auto'] : tab === 'savings' ? ['🐷 Poupanças', '🛟 Fundo de emergência'] : ['🏦 Conta do banco', '💶 Dinheiro']} />}
       {list.map((a) => (

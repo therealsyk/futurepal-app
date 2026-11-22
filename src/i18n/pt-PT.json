@@ -868,7 +868,11 @@
     "checkSub": "Toca para procurar atualizações",
     "checking": "A procurar atualizações…",
     "upToDate": "Tens a versão mais recente.",
-    "unknown": "Não foi possível verificar (sem internet ou sem servidor)."
+    "unknown": "Não foi possível verificar (sem internet ou sem servidor).",
+    "wait": "Aguarda um momento",
+    "waitText": "Estamos a atualizar o FuturePal para a versão {{version}}.",
+    "waitInstall": "A app vai fechar e voltar a abrir sozinha.",
+    "installing": "A instalar…"
   },
   "categoryGroups": {
     "income": "Rendimentos",

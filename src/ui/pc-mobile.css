@@ -1090,6 +1090,47 @@ button.sp-row { cursor: pointer; } button.sp-row:hover { background: color-mix(i
 .ci-xlabels { display: flex; justify-content: space-between; gap: 4px; color: var(--muted); font-size: 11px; margin-top: 4px; overflow: hidden; }
 @media print { .adm-side, .adm-top, .ci-filters, .ad-filters { display: none !important; } .adm { position: static; } .adm-content { overflow: visible; } }
 
-/* Contas principais repetidas */
-.acc-dup { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
-.acc-dup p { margin: 0; flex: 1 1 240px; }
+/* Aviso de duas contas principais */
+.dup-ic { background: color-mix(in srgb, #f5b85a 18%, var(--card-2)); color: #f5b85a; box-shadow: 0 0 0 4px color-mix(in srgb, #f5b85a 14%, transparent); }
+.dup-list { width: 100%; padding: 4px 16px; border-radius: 16px; background: var(--card-2); }
+.dup-list p { display: flex; justify-content: space-between; gap: 12px; margin: 0; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14.5px; }
+.dup-list p:last-child { border-bottom: 0; }
+.dup-list span { min-width: 0; overflow-wrap: anywhere; text-align: left; } .dup-list b { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dup-total { font-weight: 750; }
+.dup-text { margin: 0; color: var(--muted); font-size: 14.5px; line-height: 1.45; }
+
+/* Atualização em curso: logótipo da app e pedido para aguardar */
+.up-block:has(.up-progress) { backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); background: rgba(5,6,9,.6); z-index: 200; }
+.up-progress { justify-items: center; gap: 12px; width: min(400px, 88vw); padding: 34px 30px 28px !important; border-radius: 28px !important; background: var(--card); border: 1px solid var(--border); box-shadow: 0 30px 80px -20px rgba(0,0,0,.8); }
+.up-progress > b { font-size: 20px; } .up-progress > span:not(.up-logo) { color: var(--muted); font-size: 14.5px; line-height: 1.45; } .up-progress > small { color: var(--muted); font-variant-numeric: tabular-nums; }
+.up-progress .up-track { width: 100%; }
+.up-logo { display: grid; place-items: center; margin-bottom: 4px; animation: up-pulse 2s ease-in-out infinite; }
+.up-logo img { width: 84px; height: 84px; }
+@keyframes up-pulse { 50% { transform: scale(1.06); filter: drop-shadow(0 8px 26px color-mix(in srgb, var(--mv, var(--accent)) 55%, transparent)); } }
+@media (prefers-reduced-motion: reduce) { .up-logo { animation: none; } }
+
+/* ---- Todas as janelas: mesmo tamanho, mesma posição e mesmo desfoque (o de "Nova meta") */
+.bs-backdrop, .fx-backdrop, html.pcm .fx-backdrop, .stm-backdrop, html.pcm .stm-backdrop, .pf-modal-back, .spi-back, .mb-backdrop, .up-block:has(.up-progress) {
+  background: rgba(5,6,9,.22) !important; backdrop-filter: blur(2px) !important; -webkit-backdrop-filter: blur(2px) !important;
+}
+.bs-sheet, .fx-sheet, .fx-sheet.wide, html.pcm .fx-sheet, html.pcm .fx-sheet:has(.tx-rows), html.pcm .stm {
+  width: min(560px, 100%) !important; height: min(700px, 88vh); height: min(700px, 88dvh); min-height: 0 !important; max-height: none !important;
+}
+.bs-sheet { display: flex; flex-direction: column; overflow: hidden; }
+.bs-sheet > .bs-grab, .bs-sheet > .bs-head { flex: none; }
+.bs-sheet > .bs-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; scrollbar-width: none; }
+.bs-sheet > .bs-body > * { flex: 1 0 auto; }
+.bs-body .sh-form > .sh-btn:last-child { margin-top: auto; }
+.fx-sheet > .fx-sheet-head, .fx-sheet > .fx-sheet-foot { flex: none; }
+.fx-sheet > .fx-sheet-body { flex: 1; min-height: 0; }
+@media (min-width: 769px) {
+  .bs-backdrop, html.pcm .fx-backdrop, html.pcm .stm-backdrop { display: flex; align-items: flex-end !important; justify-content: center; padding: 0 12px 28px 88px !important; }
+  .bs-sheet, html.pcm .fx-sheet, html.pcm .stm { margin: 0 !important; border-radius: 28px !important; }
+}
+@media (max-width: 768px) {
+  .bs-backdrop, .fx-backdrop { display: flex; align-items: flex-end !important; justify-content: center; padding: 0 !important; }
+  .bs-sheet, .fx-sheet, .fx-sheet.wide { margin: 0 !important; border-radius: 28px 28px 0 0 !important; height: min(700px, 86vh); height: min(700px, 86dvh); }
+}
+/* Avisos e confirmações (sem campos para preencher): pequenos e ao centro */
+.fx-backdrop:not(:has(input, select, textarea, .tx-rows, .ct-icons, .fx-selectbtn)) { align-items: center !important; }
+.fx-backdrop:not(:has(input, select, textarea, .tx-rows, .ct-icons, .fx-selectbtn)) > .fx-sheet { height: auto !important; max-height: 88dvh !important; }

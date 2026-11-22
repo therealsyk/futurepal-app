@@ -41,6 +41,20 @@ async function totals(db: WalletDB): Promise<{ money: number; debt: number }> {
   return { money: sum(false), debt: sum(true) };
 }
 
+export interface DuplicateSummary { accounts: Array<{ id: string; name: string; cents: number }>; total: number; currency: string }
+/** Contas principais repetidas com o saldo de cada uma, para o aviso. null = não há repetidas. */
+export async function duplicateSummary(db: WalletDB): Promise<DuplicateSummary | null> {
+  const accounts = (await db.accounts.toArray()).filter((a) => a.deletedAt === null);
+  const dups = duplicateDefaults(accounts);
+  if (!dups.length) return null;
+  const txs = (await db.transactions.toArray()).filter((x) => x.deletedAt === null);
+  const trs = (await db.transfers.toArray()).filter((x) => x.deletedAt === null);
+  const n = new Date(), ym = n.getFullYear() * 100 + n.getMonth() + 1;
+  const sal = (await db.salaries.toArray()).filter((x) => x.deletedAt === null && x.year * 100 + x.month <= ym).reduce((s, x) => s + x.amountCents, 0);
+  const rows = dups.map((a) => ({ id: a.id, name: a.name, cents: accountBalanceCents(a, txs, accounts, sal, trs) }));
+  return { accounts: rows, total: rows.reduce((s, r) => s + r.cents, 0), currency: dups[0].currency };
+}
+
 /** Junta as contas principais repetidas numa só. Devolve o total (igual ao de antes) ou null se não havia nada a juntar. */
 export async function mergeDuplicateDefaults(db: WalletDB): Promise<number | null> {
   return db.transaction('rw', [db.accounts, db.transactions, db.transfers, db.recurrings, db.goals, db.salaries], async () => {

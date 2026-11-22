@@ -1,3 +1,4 @@
+import logoUrl from '../assets/logo.svg';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getSupabase } from '../auth/supabase';
@@ -12,7 +13,7 @@ export const UPDATE_CHECK_EVENT = 'wallet:update-check'; // as Definições pede
 // Plugin nativo (android/.../ApkUpdaterPlugin.java): descarrega o APK dentro da app e abre o instalador.
 const ApkUpdater = registerPlugin<{ downloadAndInstall: (o: { url: string }) => Promise<void>; addListener: (e: 'progress', cb: (d: { percent: number }) => void) => Promise<{ remove: () => void }> }>('ApkUpdater');
 
-type Phase = 'idle' | 'downloading' | 'ready' | 'error';
+type Phase = 'idle' | 'downloading' | 'installing' | 'ready' | 'error';
 
 /** Junta a tabela do Supabase com o atualizador nativo do Windows (GitHub Releases). */
 export async function fullCheck(): Promise<UpdateInfo> {
@@ -68,8 +69,11 @@ export function UpdateNotice() {
       const off = du.onProgress((p) => setPercent(Math.round(p)));
       try {
         const ok = await du.download();
-        setPhase(ok ? 'ready' : 'error');
-        if (!ok) await openExternal(`https://github.com/${GITHUB_REPO}/releases/latest`);
+        if (!ok) { setPhase('error'); await openExternal(`https://github.com/${GITHUB_REPO}/releases/latest`); return; }
+        // um só clique: descarregou, instala logo. Se a app não fechar (instalação bloqueada), volta o botão.
+        setPhase('installing'); setPercent(100);
+        setTimeout(() => du.install(), 600);
+        setTimeout(() => setPhase('ready'), 45_000);
       } catch {
         setPhase('error');
       } finally {
@@ -115,13 +119,15 @@ export function UpdateNotice() {
     </>
   );
 
-  if (phase === 'downloading') {
+  if (phase === 'downloading' || phase === 'installing') {
     return (
       <div className="up-block" role="alertdialog" aria-modal="true" aria-label={t('updates.availableTitle', { version: info.latest })}>
         <div className="up-card up-progress">
-          <b>{t('updates.availableTitle', { version: info.latest })}</b>
-          <span>{t('updates.downloading', { percent })}</span>
-          <div className="up-track"><i className="up-bar" style={{ width: `${percent}%` }} /></div>
+          <span className="up-logo"><img src={logoUrl} alt="" /></span>
+          <b>{t('updates.wait')}</b>
+          <span>{t(phase === 'installing' ? 'updates.waitInstall' : 'updates.waitText', { version: info.latest })}</span>
+          <div className="up-track" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}><i className="up-bar" style={{ width: `${percent}%` }} /></div>
+          <small>{phase === 'installing' ? t('updates.installing') : t('updates.downloading', { percent })}</small>
         </div>
       </div>
     );

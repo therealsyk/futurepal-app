@@ -407,7 +407,11 @@
     "checkSub": "Touchez pour rechercher des mises à jour",
     "checking": "Recherche de mises à jour…",
     "upToDate": "Vous avez la dernière version.",
-    "unknown": "Vérification impossible (pas de connexion ou pas de serveur)."
+    "unknown": "Vérification impossible (pas de connexion ou pas de serveur).",
+    "wait": "Un instant s’il vous plaît",
+    "waitText": "Nous mettons à jour FuturePal vers la version {{version}}.",
+    "waitInstall": "L’app va se fermer et se rouvrir toute seule.",
+    "installing": "Installation…"
   },
   "categoryGroups": {
     "income": "Revenus",

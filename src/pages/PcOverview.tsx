@@ -16,7 +16,7 @@ import { SimpleHome } from './SimpleHome';
 import { SimpleOverview } from './SimplePages';
 import { AccountsWidget, AssistantWidget, LimitsWidget } from './PcWidgets';
 import { L } from '../i18n/phrases';
-import { cmpText } from '../core/compare';
+import { cmpShort, cmpText } from '../core/compare';
 
 const IC = {
   income: 'M12 19V5M5 12l7-7 7 7',
@@ -26,6 +26,12 @@ const IC = {
   wallet: 'M3 7h18v12H3zM3 7l3-4h12l3 4M16 13h2',
   grip: 'M9 5h.01M15 5h.01M9 12h.01M15 12h.01M9 19h.01M15 19h.01',
 };
+
+// Só a percentagem e "mais/menos" ficam coloridos; o resto igual ao "vs outubro" das outras caixas.
+function CmpWords({ t, pct, name }: { t: ReturnType<typeof useTranslation>['t']; pct: number; name: string }) {
+  const full = cmpText(t, pct, name), short = cmpShort(t, pct);
+  return full.startsWith(short) ? <>{short} <small>{full.slice(short.length).trim()}</small></> : <small>{full}</small>;
+}
 
 export function Metric({ icon, tone, title, value, valueClass, delta, deltaGoodUp, prevName, vsLabel, sub, bar }: {
   icon: string; tone: 'inc' | 'exp' | 'sav'; title: string; value: string; valueClass?: string;
@@ -39,7 +45,7 @@ export function Metric({ icon, tone, title, value, valueClass, delta, deltaGoodU
       <div className="pco-mhead">
         <span className="pco-mic"><Ic d={icon} size={18} /></span>
         <h3>{title}</h3>
-        {pct !== null ? <span className={'pco-delta ' + (good === null ? 'same' : good ? 'good' : 'bad')}>{deltaGoodUp ? <>{pct > 0 ? '+' : ''}{pct}% <small>{vsLabel} {prevName}</small></> : cmpText(t, pct, prevName)}</span>
+        {pct !== null ? <span className={'pco-delta ' + (good === null ? 'same' : good ? 'good' : 'bad')}>{deltaGoodUp ? <>{pct > 0 ? '+' : ''}{pct}% <small>{vsLabel} {prevName}</small></> : <CmpWords t={t} pct={pct} name={prevName} />}</span>
           : prevName ? <span className="pco-delta same" title={vsLabel + ' ' + prevName}>— <small>{vsLabel} {prevName}</small></span> : null}
       </div>
       <strong className={'pco-value ' + (valueClass ?? '')}>{value}</strong>
