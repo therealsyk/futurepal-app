@@ -31,6 +31,7 @@ type Personal = { bill: SplitBill; cents: number; date: string; categoryId: stri
 const today = () => new Date().toLocaleDateString('sv-SE');
 const errText = (e: unknown) => (e as { message?: string })?.message ?? String(e);
 const HOURGLASS = 'M6 3h12M6 21h12M7 3v3.5c0 2 5 4 5 5.5s-5 3.5-5 5.5V21M17 3v3.5c0 2-5 4-5 5.5s5 3.5 5 5.5V21';
+const FRIEND = 'M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M19 8v6M16 11h6';
 const LEAVE = 'M15 4h4v16h-4M10 16l-4-4 4-4M6 12h10';
 const CLOCK = 'M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 7v5l3 2', CHECK = 'M20 6 9 17l-5-5';
 
@@ -121,6 +122,7 @@ export function SplitGroup({ splitId, groupId, createdAt, color, pic, local, cat
   // a minha parte registada nas minhas transações, para não aparecer duas vezes
   const mineOf = (b: SplitBill) => local.find((x) => billOfTx(x.id) === b.id) ?? local.find((x) => !billOfTx(x.id) && x.type === 'expense' && x.description === b.description && Math.abs(x.amountCents - shareOf(b, me)) <= 1);
   const canAdd = owner === me || membersAdd;
+  const crowd: Array<Member & { wait?: boolean }> = [...members, ...pending.map((i) => ({ userId: i.id, displayName: i.email ?? '+' + i.phone, avatarUrl: null, wait: true }))]; // quem aparece no botão de convidar
   const nameOf = (id: string) => (id === me ? L('Tu') : members.find((m) => m.userId === id)?.displayName ?? '?');
   const memberOf = (id: string): Member => members.find((m) => m.userId === id) ?? { userId: id, displayName: nameOf(id), avatarUrl: null };
   const total = bills.reduce((a, b) => a + b.amountCents, 0);
@@ -177,7 +179,10 @@ export function SplitGroup({ splitId, groupId, createdAt, color, pic, local, cat
           <div className="gl-have"><small>{L('Total do grupo')}</small><b>{money(total)}</b><small>{bills.length} {bills.length === 1 ? L('transação') : L('transações')}</small></div>
           <div className="gl-acts">
             {canAdd && <button type="button" className="gl-act main" onClick={() => openTxForm({ type: 'expense', groupId })}><Ic d={ICON.plus} size={18} />{L('Adicionar')}</button>}
-            <button type="button" className="gl-act" onClick={() => setInviting([])}><Ic d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M19 8v6M16 11h6" size={18} />{L('Convidar')}</button>
+            <button type="button" className={'gl-act' + (crowd.length > 1 ? ' gx-inv' : '')} onClick={() => setInviting([])} aria-label={L('Convidar mais pessoas')} title={L('Convidar mais pessoas')}>
+              <Ic d={FRIEND} size={18} />
+              {crowd.length > 1 ? <><span className="gg-faces">{crowd.slice(0, 4).map((m) => <span key={m.userId} className={m.wait ? 'wait' : ''} title={m.displayName}><Face m={m} /></span>)}{crowd.length > 4 && <i>+{crowd.length - 4}</i>}</span><span className="gx-plus" aria-hidden="true"><Ic d={ICON.plus} size={17} /></span></> : L('Convidar')}
+            </button>
             {owner === me && <button type="button" className="gl-act" onClick={() => onEdit(membersAdd)}><Ic d="M4 20h4L19 9l-4-4L4 16zM13 7l4 4" size={18} />{L('Alterar')}</button>}
           </div>
         </div>

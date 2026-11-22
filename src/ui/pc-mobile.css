@@ -1531,3 +1531,8 @@ html:not(.pcm) .mv-menu { padding: 0 11px; } html:not(.pcm) .mv-menu svg { displ
 /* Convidar: participantes e estado numa caixa */
 .gx-crew { margin-bottom: 14px; } .gx-crew .sp-row { align-items: center; } .gx-crew .sp-row b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .gx-crew .sp-face { width: 40px !important; height: 40px !important; flex: none; } .gx-crew .gx-pic.wait, .gx-crew .gx-pic.no { opacity: .75; } .gx-crew .gx-tag { flex: none; display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; font-size: 12.5px; }
 .gx-tag.no { color: var(--red); background: color-mix(in srgb, var(--red) 15%, transparent); } .gx-hint.no { color: var(--red); }
+/* botão de convidar com as caras de quem já está no grupo e um + no fim */
+.gl-act.gx-inv { padding: 0 7px 0 16px; gap: 10px; } .gx-inv .gg-faces > * { width: 30px !important; height: 30px !important; border-color: var(--card-2); overflow: hidden; } .gx-inv .gg-faces .sp-face { width: 100% !important; height: 100% !important; font-size: 12px; } .gx-inv .gg-faces .wait { opacity: .6; } .gx-inv .gg-faces > i { font-size: 11.5px; }
+.gx-plus { display: grid; place-items: center; flex: none; width: 30px; height: 30px; border-radius: 50%; color: var(--mv); background: color-mix(in srgb, var(--mv) 18%, transparent); transition: transform .2s cubic-bezier(.3,1.6,.5,1), background .15s, color .15s; } .gx-inv:hover .gx-plus { transform: scale(1.1) rotate(90deg); background: var(--mv); color: var(--mv-ink, #032a2d); }
+@media (max-width: 768px) { .gg-shared .gl-acts { flex-wrap: wrap !important; justify-content: center; } .gl-act.gx-inv { flex: 1 1 100%; order: 3; } }
+@media (prefers-reduced-motion: reduce) { .gx-inv:hover .gx-plus { transform: none; } }
