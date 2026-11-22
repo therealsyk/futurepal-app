@@ -1182,6 +1182,23 @@ export const PHRASES: Record<string, Tr> = {
   'Guarda os teus dados': ['Keep your data safe', 'Guarda tus datos', 'Gardez vos données'],
   'Com conta, vês tudo no telemóvel e no computador e não perdes nada.': ['With an account, see it all on phone and computer and lose nothing.', 'Con cuenta, lo ves todo en móvil y ordenador y no pierdes nada.', 'Avec un compte, tout est sur mobile et ordinateur, sans rien perdre.'],
   'Dados': ['Data', 'Datos', 'Données'],
+  'Escreve o que recebeste este mês. Com isso, a app mostra quanto te sobra e quanto podes poupar.': ['Type what you earned this month. The app then shows what’s left and what you can save.', 'Escribe lo que recibiste este mes. La app te muestra lo que te sobra y lo que puedes ahorrar.', 'Indiquez vos revenus du mois. L’app montre ce qu’il vous reste et ce que vous pouvez épargner.'],
+  'Imagem': ['Image', 'Imagen', 'Image'],
+  'Escolher imagem': ['Choose image', 'Elegir imagen', 'Choisir une image'],
+  'Criar categoria': ['Create category', 'Crear categoría', 'Créer la catégorie'],
+  'Apagar categoria': ['Delete category', 'Eliminar categoría', 'Supprimer la catégorie'],
+  'Em breve: pergunta o que quiseres sobre o teu dinheiro': ['Coming soon: ask anything about your money', 'Muy pronto: pregunta lo que quieras sobre tu dinero', 'Bientôt : posez toutes vos questions sur votre argent'],
+  'Vai fazer parte do FuturePal Plus.': ['It will be part of FuturePal Plus.', 'Formará parte de FuturePal Plus.', 'Il fera partie de FuturePal Plus.'],
+  'Vamos avisar-te': ['We’ll let you know', 'Te avisaremos', 'Nous vous préviendrons'],
+  'Avisa-me quando chegar': ['Tell me when it’s here', 'Avísame cuando llegue', 'Prévenez-moi'],
+  'Nada registado neste ano': ['Nothing recorded this year', 'Nada registrado este año', 'Rien cette année'],
+  'Nada registado neste mês': ['Nothing recorded this month', 'Nada registrado este mes', 'Rien ce mois-ci'],
+  'Adiciona uma despesa ou um rendimento e vês aqui para onde vai o teu dinheiro.': ['Add an expense or income and see here where your money goes.', 'Añade un gasto o ingreso y mira aquí adónde va tu dinero.', 'Ajoutez une dépense ou un revenu et voyez où va votre argent.'],
+  'Já sabes o principal!': ['You know the essentials!', '¡Ya sabes lo principal!', 'Vous connaissez l’essentiel !'],
+  'Falta só: recorrentes, salários, categorias, calendário e assistente. Podes ver depois, em Ajuda.': ['Only recurring, salaries, categories, calendar and assistant are left. You can see them later, in Help.', 'Solo faltan recurrentes, salarios, categorías, calendario y asistente. Puedes verlos después, en Ayuda.', 'Restent : récurrents, salaires, catégories, calendrier et assistant. À voir plus tard, dans Aide.'],
+  'Ver o resto': ['See the rest', 'Ver el resto', 'Voir la suite'],
+  'Continuar a visita guiada': ['Continue the tour', 'Continuar la visita', 'Continuer la visite'],
+  'Fazer a visita guiada': ['Take the tour', 'Hacer la visita', 'Faire la visite'],
 };
 
 /** Português do Brasil: as palavras de Portugal que lá se dizem de outra forma. */

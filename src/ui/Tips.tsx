@@ -6,7 +6,7 @@ import { closeTip, did, growFrom, resetTips, tipSeen, tipsOn, TIPS_EVENT } from 
 import { L } from '../i18n/phrases';
 import { Ic, ICON } from './fx';
 import { boldTerms } from './boldTerms';
-import { guiding } from './Guide';
+import { guideStarted, guiding, resumeGuide } from './Guide';
 import { openTxForm, useTxSaved } from './TxForm';
 
 interface Stats { n: number; exp: number; inc: number; months: number; goals: number; accounts: number; limits: number }
@@ -85,6 +85,7 @@ export function HelpPage() {
           <div className={'acc-exp' + (open === i ? ' open' : '')} aria-hidden={open !== i}><div><ol>{steps.map((x, k) => <li key={x}><i>{k + 1}</i><span>{boldTerms(L(x))}</span></li>)}</ol></div></div>
         </section>
       ))}</div>
+      <button type="button" className="ob-cta lg-go hp-tour" onClick={resumeGuide}>{guideStarted() ? L('Continuar a visita guiada') : L('Fazer a visita guiada')}<Ic d="M5 12h14M13 6l6 6-6 6" size={18} /></button>
       <button type="button" className="gl-act hp-reset" disabled={reset} onClick={() => { resetTips(); setReset(true); }}>{reset ? L('As dicas vão voltar a aparecer') : L('Mostrar as dicas outra vez')}</button>
     </div>
   );

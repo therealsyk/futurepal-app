@@ -2,11 +2,13 @@ import { L } from '../i18n/phrases';
 import { FormError, useMissing } from '../ui/missing';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Sheet, Seg, Field } from '../ui/fx';
+import { Ic, Sheet } from '../ui/fx';
 import { getSupabase } from '../auth/supabase';
 import { useAuth } from '../auth/AuthContext';
 import { loadSettings } from '../core/settings';
 import { sendFeedback, type FeedbackKind } from '../core/feedback';
+
+const KINDS: Array<[FeedbackKind, string]> = [['idea', 'M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z'], ['bug', 'M8 9a4 4 0 0 1 8 0v6a4 4 0 0 1-8 0zM4 8l4 2M20 8l-4 2M4 18l4-2M20 18l-4-2M3 13h5M16 13h5M9 5 7 3M15 5l2-2'], ['other', 'M4 5h16v11H9l-5 4zM8 9h8M8 12h5']];
 
 /** Janela "Enviar feedback": ideia, problema (bug) ou outro assunto. */
 export function FeedbackSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -33,34 +35,29 @@ export function FeedbackSheet({ open, onClose }: { open: boolean; onClose: () =>
   }
 
   return (
-    <Sheet open={open} onClose={close} title={t('feedback.title')}
-      footer={sent
-        ? <><span style={{ flex: 1 }} /><button type="button" className="fx-btn primary" onClick={close}>{t('common.close')}</button></>
-        : <><span style={{ flex: 1 }} /><button type="button" className="fx-btn" onClick={close}>{t('common.cancel')}</button>
-          <button type="button" className="fx-btn primary" disabled={busy} onClick={send} data-testid="feedback-send">{busy ? t('feedback.sending') : t('feedback.send')}</button></>}>
+    <Sheet open={open} onClose={close} title={t('feedback.title')}>
       {sent ? (
-        <div className="fb-done" role="status">
-          <b>{t('feedback.thanks')}</b>
-          <p className="fx-muted">{t('feedback.thanksSub')}</p>
+        <div className="acc-form fbx done" role="status">
+          <span className="on-ok"><Ic d="M20 6 9 17l-5-5" size={46} /></span>
+          <h2>{t('feedback.thanks')}</h2><p>{t('feedback.thanksSub')}</p>
+          <button type="button" className="tx-addbtn" onClick={close}>{t('common.close')}</button>
         </div>
       ) : (
-        <>
-          <p className="fx-muted" style={{ marginTop: 0 }}>{t('feedback.intro')}</p>
-          <Seg<FeedbackKind> value={kind} onChange={setKind} label={t('feedback.kind')}
-            options={[{ id: 'idea', label: t('feedback.idea') }, { id: 'bug', label: t('feedback.bug') }, { id: 'other', label: t('feedback.other') }]} />
+        <div className="acc-form fbx">
+          <p>{t('feedback.intro')}</p>
+          <div className="st2-acts" role="radiogroup" aria-label={t('feedback.kind')}>
+            {KINDS.map(([id, d]) => <button key={id} type="button" role="radio" aria-checked={kind === id} className={kind === id ? 'on' : ''} onClick={() => setKind(id)}><span className="lg-ic"><Ic d={d} size={20} /></span><b>{t('feedback.' + id)}</b></button>)}
+          </div>
           {miss.note}
-          <Field label={kind === 'bug' ? t('feedback.bugLabel') : t('feedback.message')} miss={miss.cls('msg')}>
-            <textarea className="fx-input" rows={6} maxLength={4000} value={message} onChange={(e) => setMessage(e.target.value)}
-              placeholder={kind === 'bug' ? t('feedback.bugPh') : t('feedback.messagePh')} data-testid="feedback-message" />
-          </Field>
-          {!auth.user && (
-            <Field label={t('feedback.email')}>
-              <input className="fx-input" type="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('feedback.emailPh')} />
-            </Field>
-          )}
-          <p className="fx-muted fx-small">{t('feedback.privacy')}</p>
+          <div className="mv-card lg-card">
+            <label className={'lg-f top' + miss.cls('msg')}><span className="lg-ic"><Ic d="M4 5h16v11H9l-5 4zM8 9h8M8 12h5" size={20} /></span><span className="lg-in"><small>{kind === 'bug' ? t('feedback.bugLabel') : t('feedback.message')}</small>
+              <textarea rows={5} maxLength={4000} value={message} onChange={(e) => setMessage(e.target.value)} placeholder={kind === 'bug' ? t('feedback.bugPh') : t('feedback.messagePh')} data-testid="feedback-message" /></span></label>
+            {!auth.user && <label className="lg-f"><span className="lg-ic"><Ic d="M3 6h18v12H3zM3 7l9 7 9-7" size={20} /></span><span className="lg-in"><small>{t('feedback.email')}</small><input type="email" inputMode="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('feedback.emailPh')} /></span></label>}
+          </div>
           {error && <FormError text={error} />}
-        </>
+          <button type="button" className="tx-addbtn" disabled={busy} onClick={send} data-testid="feedback-send">{busy ? t('feedback.sending') : t('feedback.send')}</button>
+          <small className="fbx-note">{t('feedback.privacy')}</small>
+        </div>
       )}
     </Sheet>
   );

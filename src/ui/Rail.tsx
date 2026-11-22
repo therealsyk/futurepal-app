@@ -83,7 +83,7 @@ export default function Rail() {
         </NavLink>
         <button type="button" className="fx-rail-btn" onClick={cycleTheme} aria-label={themeLabel}>
           {svg(THEME_ICON[theme])}
-          <span className="fx-tip">{themeLabel}</span>
+          <span className="fx-tip">{t('nav.theme')}</span>
         </button>
         <NavLink
           to="/definicoes"

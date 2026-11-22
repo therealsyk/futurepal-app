@@ -36,6 +36,7 @@ import { AmountField, CategoryRow, FI, SwitchRow } from '../ui/formFields';
 import { EmptyState } from '../ui/EmptyState';
 import { L } from '../i18n/phrases';
 import { DatePicker } from '../ui/DatePicker';
+import { openTxForm } from '../ui/TxForm';
 
 // Folha que sobe do fundo do ecrã (resto desfocado). Voltar, tocar fora ou Esc fecham.
 export function BottomSheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
@@ -632,7 +633,11 @@ export function SimpleOverview({ yearly = false, embed }: { yearly?: boolean; em
         <button type="button" role="tab" aria-selected={tab === 'cat'} className={tab === 'cat' ? 'on' : ''} onClick={() => setTab('cat')}>{L('Categorias')}</button>
       </div>
 
-      {tab === 'sum' ? (
+      {d && m.rows.length === 0 ? (<>
+        {tab === 'sum' && bars.some((b) => b.income + b.expense > 0) && chartEl}
+        <EmptyState icon="M4 20V10M10 20V4M16 20v-7M22 20H2" title={yearly ? L('Nada registado neste ano') : L('Nada registado neste mês')} text={L('Adiciona uma despesa ou um rendimento e vês aqui para onde vai o teu dinheiro.')} />
+        <button type="button" className="sh-btn in" onClick={() => openTxForm({ type: 'expense' })}><Ic d={ICON.plus} size={18} />{L('Adicionar despesa')}</button>
+      </>) : tab === 'sum' ? (
         <>
           {chartEl}
           {totalsEl}

@@ -1,6 +1,6 @@
 import { LockedPreview } from '../ui/LockedPreview';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getSupabase } from '../auth/supabase';
 import { useAuth } from '../auth/AuthContext';
@@ -194,11 +194,27 @@ function AssistantChat({ own, cfg, onCfg, allowed }: { own: boolean; cfg: AiConf
     setDraft(null);
   };
 
+  const [asked, setAsked] = useState(false);
+  // o mesmo registo da página Planos ("Quero o Plus"); sem sessão, pede-se primeiro para entrar
+  const notify = async () => {
+    const sb = getSupabase();
+    if (!sb || !auth.user) { openLogin('signup'); return; }
+    const { error } = await sb.from('plan_interest').upsert({ user_id: auth.user.id, plan: 'plus', period: 'month', updated_at: new Date().toISOString() });
+    if (!error) setAsked(true);
+  };
   const examples = [t('assistant.ex1'), t('assistant.ex2'), t('assistant.ex3'), t('assistant.ex4')];
   const modelName = own ? cfg.model : L('IA do FuturePal');
 
   let blocked: ReactNode = null;
-  if (!allowed) blocked = <LockedPreview kind="chat" title={t('plus.lockedTitle')} text={t('plus.feat_assistant')} action={<><Link to="/plus" className="fx-btn primary">{t('plus.seePlans')}</Link><button type="button" className="fx-btn" onClick={() => setModels(true)}>{L('Já tenho outra IA (avançado)')}</button></>} />;
+  if (!allowed) blocked = (
+    <div className="ai-soon">
+      <span className="ai-orb"><Ic d={SPARK} size={34} /></span>
+      <h2>{L('Em breve: pergunta o que quiseres sobre o teu dinheiro')}</h2>
+      <div className="ai-soonex" aria-hidden="true">{examples.slice(0, 3).map((e, i) => <span key={e} style={{ animationDelay: `${i * 0.5}s` }}>{e}</span>)}</div>
+      <p>{L('Vai fazer parte do FuturePal Plus.')}</p>
+      <button type="button" className="ob-cta lg-go" disabled={asked} onClick={notify}>{asked ? <><Ic d="M20 6 9 17l-5-5" size={18} />{L('Vamos avisar-te')}</> : L('Avisa-me quando chegar')}</button>
+      <button type="button" className="on-skip" onClick={() => setModels(true)}>{L('Já tenho outra IA (avançado)')}</button>
+    </div>);
   else if (!ready) blocked = <LockedPreview kind="chat" title={t('assistant.needLogin')} text={L('Pergunta em português sobre os teus gastos e recebe respostas e dicas para poupar.')} action={<><button type="button" className="fx-btn primary" onClick={() => openLogin()}>{t('family.goLogin')}</button><button type="button" className="fx-btn" onClick={() => setModels(true)}>{L('Já tenho outra IA (avançado)')}</button></>} />;
 
   return (

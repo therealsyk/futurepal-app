@@ -1,13 +1,15 @@
 import { milestone } from '../core/onboarding';
 import { L } from '../i18n/phrases';
 import { FormError, useMissing } from '../ui/missing';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { appConfirm } from '../ui/confirm';
+import { Row } from '../ui/formFields';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
 import type { Category } from '../db/database';
 import { activeCategories, addCategory, softDelete } from '../core/finance';
 import { CAT_ICONS, CATEGORY_GROUPS, GROUP_ORDER, groupOf } from '../core/categoryCatalog';
-import { catLabel, PageHead, Sheet, Ic, ICON, CatIcon } from '../ui/fx';
+import { catLabel, PageHead, PickMenu, Sheet, Ic, ICON, CatIcon } from '../ui/fx';
 
 const COLORS = ['#16a34a', '#0ea5e9', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#c2410c', '#6b7280', '#ec4899', '#ef4444', '#14b8a6', '#eab308'];
 const groupColor = (g: string) => CATEGORY_GROUPS.find((x) => x.id === g)?.color ?? COLORS[0];
@@ -19,7 +21,7 @@ export function Categories() {
   const [cats, setCats] = useState<Category[]>([]);
   const [query, setQuery] = useState('');
   const [draft, setDraft] = useState<Draft | null>(null);
-  const [confirmDel, setConfirmDel] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = async () => setCats(await activeCategories(db));
@@ -34,9 +36,9 @@ export function Categories() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   [cats, q, t]);
 
-  const startNew = (group: string) => { setError(null); setConfirmDel(false); setDraft({ id: null, name: '', group, icon: 'dots', color: groupColor(group), image: '' }); };
+  const startNew = (group: string) => { setError(null); setDraft({ id: null, name: '', group, icon: 'dots', color: groupColor(group), image: '' }); };
   const startEdit = (c: Category) => {
-    setError(null); setConfirmDel(false);
+    setError(null);
     setDraft({ id: c.id, name: label(c), group: groupOf(c), icon: c.icon || 'dots', color: c.color || groupColor(groupOf(c)), image: c.image?.startsWith('data:') ? c.image : '' });
   };
   const missing = useMissing();
@@ -105,45 +107,28 @@ export function Categories() {
       ))}
       {q && sections.length === 0 && <p className="fx-muted">{t('categories.noResults')}</p>}
 
-      <Sheet open={draft !== null} onClose={close} title={draft?.id ? t('panel.editCategory') : t('panel.newCategory')} wide
-        footer={<>
-          {draft?.id && (confirmDel
-            ? <button type="button" className="fx-btn danger" onClick={remove} data-testid="cat-confirm-delete"><Ic d={ICON.trash} size={16} />{t('categories.confirmDelete')}</button>
-            : <button type="button" className="fx-btn danger" onClick={() => setConfirmDel(true)}><Ic d={ICON.trash} size={16} />{t('common.delete')}</button>)}
-          <span style={{ flex: 1 }} />
-          <button type="button" className="fx-btn" onClick={close}>{t('common.cancel')}</button>
-          <button type="button" className="fx-btn primary" onClick={save}>{draft?.id ? t('common.save') : t('panel.create')}</button>
-        </>}>
+      <Sheet open={draft !== null} onClose={close} title={draft?.id ? t('panel.editCategory') : t('panel.newCategory')}>
         {draft && (
-          <>
+          <div className="acc-form ctf" style={{ '--cc': draft.color } as CSSProperties}>
             {miss.note ?? (error && <FormError text={error} />)}
-            {confirmDel && <p className="fx-muted fx-small">{t('categories.deleteNote')}</p>}
-            <div className={'ct-preview' + miss.cls('name')}>
-              <CatIcon cat={{ icon: draft.icon, color: draft.color, image: draft.image }} size={56} />
-              <input className="fx-input big" autoFocus value={draft.name} placeholder={t('panel.categoryName')} onChange={(e) => setDraft({ ...draft, name: e.target.value })} aria-label={t('panel.categoryName')} />
+            <div className="ctf-top">
+              <span className="ctf-pic" key={draft.icon + draft.image}><CatIcon cat={{ icon: draft.icon, color: draft.color, image: draft.image }} size={84} /></span>
+              <input className={'ctf-name' + miss.cls('name')} autoFocus={!draft.id} maxLength={40} value={draft.name} placeholder={t('panel.categoryName')} onChange={(e) => setDraft({ ...draft, name: e.target.value })} aria-label={t('panel.categoryName')} />
             </div>
-            <div className="fx-label" style={{ margin: '12px 0 6px' }}>{t('categories.group')}</div>
-            <div className="ct-groups" role="radiogroup" aria-label={t('categories.group')}>
-              {GROUP_ORDER.map((g) => (
-                <button type="button" key={g} role="radio" aria-checked={draft.group === g} className={'ct-group' + (draft.group === g ? ' on' : '')} onClick={() => setDraft({ ...draft, group: g })}>{t('categoryGroups.' + g)}</button>
-              ))}
-            </div>
-            <div className="fx-label" style={{ margin: '12px 0 6px' }}>{t('categories.icon')}</div>
-            <div className="ct-icons" role="radiogroup" aria-label={t('categories.icon')}>
+            <div className="ctf-cols" role="radiogroup" aria-label={t('categories.color')}>{COLORS.map((x) => <button type="button" key={x} role="radio" aria-checked={x === draft.color} className={x === draft.color ? 'on' : ''} style={{ background: x }} onClick={() => setDraft({ ...draft, color: x })} aria-label={x} />)}</div>
+            <div className="ct-icons ctf-icons" role="radiogroup" aria-label={t('categories.icon')}>
               {Object.entries(CAT_ICONS).map(([k, d]) => (
-                <button type="button" key={k} role="radio" aria-checked={draft.icon === k} aria-label={k} className={draft.icon === k ? 'on' : ''} onClick={() => setDraft({ ...draft, icon: k, image: '' })}>
-                  <Ic d={d} size={20} />
-                </button>
+                <button type="button" key={k} role="radio" aria-checked={draft.icon === k} aria-label={k} className={draft.icon === k && !draft.image ? 'on' : ''} onClick={() => setDraft({ ...draft, icon: k, image: '' })}><Ic d={d} size={22} /></button>
               ))}
             </div>
-            <div className="fx-label" style={{ margin: '12px 0 6px' }}>{t('categories.color')}</div>
-            <div className="fx-swatches">{COLORS.map((c) => <button type="button" key={c} className={c === draft.color ? 'on' : ''} style={{ background: c }} onClick={() => setDraft({ ...draft, color: c })} aria-label={c} />)}</div>
-            <div className="fx-label" style={{ margin: '14px 0 6px' }}>{t('categories.ownImage')}</div>
-            <div className="fx-inline">
-              <input type="file" accept="image/*" className="fx-file" onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); }} />
-              {draft.image && <button type="button" className="fx-btn" onClick={() => setDraft({ ...draft, image: '' })}>{t('categories.useIcon')}</button>}
+            <div className="tx-rows">
+              <Row div icon="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" label={t('categories.group')}><PickMenu compact label={t('categories.group')} value={draft.group} options={GROUP_ORDER.map((g) => ({ value: g, label: t('categoryGroups.' + g) }))} onChange={(g) => setDraft({ ...draft, group: g })} /></Row>
+              <Row div icon="M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M9 9.5h.01" label={L('Imagem')}><button type="button" className="ctf-img" onClick={() => (draft.image ? setDraft({ ...draft, image: '' }) : fileRef.current?.click())}>{draft.image ? t('categories.useIcon') : L('Escolher imagem')}</button></Row>
+              <input ref={fileRef} hidden type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) upload(f); }} />
             </div>
-          </>
+            <button type="button" className="tx-addbtn" onClick={save}>{draft.id ? t('common.save') : L('Criar categoria')}</button>
+            {draft.id && <button type="button" className="ctf-del" onClick={async () => { if (await appConfirm(t('categories.deleteNote'), { ok: t('common.delete') })) remove().catch(() => {}); }}><Ic d={ICON.trash} size={17} />{L('Apagar categoria')}</button>}
+          </div>
         )}
       </Sheet>
     </div>

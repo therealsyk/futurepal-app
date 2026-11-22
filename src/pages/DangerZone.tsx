@@ -4,6 +4,7 @@ import Dexie from 'dexie';
 import { db, GUEST_DB, userDbName, currentDbName } from '../db/app-db';
 import { deleteMyAccount, authErrorKey } from '../auth/supabase';
 import { Ic, ICON } from '../ui/fx';
+import { SwitchRow } from '../ui/formFields';
 
 // "Apagar conta" (exigido pelas lojas) e "Apagar dados deste aparelho". Ambos pedem confirmação escrita.
 
@@ -63,25 +64,14 @@ export function DangerZone({ mode, onClose }: { mode: 'account' | 'device'; onCl
   }
 
   return (
-    <div className="dz">
+    <div className="acc-form dzx">
+      <span className="dzx-ic"><Ic d={ICON.trash} size={34} /></span>
       <p>{mode === 'account' ? t('danger.accountText') : t('danger.deviceText')}</p>
-      {mode === 'account' && (
-        <label className="dz-check">
-          <input type="checkbox" checked={alsoDevice} onChange={(e) => setAlsoDevice(e.target.checked)} />
-          <span>{t('danger.alsoDevice')}</span>
-        </label>
-      )}
-      <label className="fx-field"><span>{t('danger.typeToConfirm', { word })}</span>
-        <input className="fx-input" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" data-testid="danger-input" />
-      </label>
-      {error && <p className="fx-error" role="alert">{error}</p>}
-      <div className="ai-actions">
-        <span style={{ flex: 1 }} />
-        <button type="button" className="fx-btn" onClick={onClose}>{t('common.cancel')}</button>
-        <button type="button" className="fx-btn danger" disabled={!ok || busy} onClick={run} data-testid="danger-confirm">
-          <Ic d={ICON.trash} size={16} />{mode === 'account' ? t('danger.deleteAccount') : t('danger.deleteDevice')}
-        </button>
-      </div>
+      {mode === 'account' && <div className="tx-rows"><SwitchRow icon="M5 4h14v12H5zM9 20h6M12 16v4" label={t('danger.alsoDevice')} on={alsoDevice} onChange={setAlsoDevice} /></div>}
+      <div className="mv-card lg-card"><label className="lg-f"><span className="lg-ic"><Ic d="M4 20l1-5L16 4l4 4L9 19zM14 6l4 4" size={20} /></span><span className="lg-in"><small>{t('danger.typeToConfirm', { word })}</small><input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" placeholder={word} data-testid="danger-input" /></span></label></div>
+      {error && <p className="ob-error lg-msg" role="alert">{error}</p>}
+      <button type="button" className="dzx-go" disabled={!ok || busy} onClick={run} data-testid="danger-confirm"><Ic d={ICON.trash} size={18} />{mode === 'account' ? t('danger.deleteAccount') : t('danger.deleteDevice')}</button>
+      <button type="button" className="on-skip" onClick={onClose}>{t('common.cancel')}</button>
     </div>
   );
 }

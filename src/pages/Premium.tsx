@@ -114,7 +114,7 @@ export function PlusPage() {
       <section className="pl-intro">
         <span className="pl-spark"><Ic d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" size={30} /></span>
         <div><b>{L('Os planos estão quase a chegar')}</b><p>{L('Diz-nos qual queres e avisamos-te quando estiver disponível.')}</p></div>
-        <div className="pm-billing" role="group" aria-label={t('plus.billing')}>
+        <div className="sh-seg pl-seg" role="group" aria-label={t('plus.billing')}>
           <button type="button" className={!yearly ? 'on' : ''} aria-pressed={!yearly} onClick={() => setYearly(false)}>{t('plus.monthly')}</button>
           <button type="button" className={yearly ? 'on' : ''} aria-pressed={yearly} onClick={() => setYearly(true)}>{t('plus.yearly')} <em>{t('plus.twoFree')}</em></button>
         </div>

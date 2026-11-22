@@ -11,6 +11,7 @@ import { PageHead, MonthNav, CatIcon, catLabel, EmptyState, Ic, ICON } from '../
 import { isSalaryTx, syncSalaryTransactions } from '../core/salaryTx';
 import { Metric } from './PcOverview';
 import { L } from '../i18n/phrases';
+import { AmountField } from '../ui/formFields';
 
 const IC = {
   income: 'M12 19V5M5 12l7-7 7 7',
@@ -58,6 +59,7 @@ export const Salaries = () => {
   };
   useEffect(() => { load().catch(() => {}); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [year]);
 
+  const [pay, setPay] = useState('');
   const extrasTotal = extras.reduce((a, x) => a + x.amountCents, 0);
   const salaryTotal = summary?.salaryCents ?? 0;
   const income = salaryTotal + extrasTotal;
@@ -89,6 +91,7 @@ export const Salaries = () => {
   const today = new Date();
   const isCurrentYear = year === today.getFullYear();
   const months = isCurrentYear ? today.getMonth() + 1 : 12;
+  const start = isCurrentYear && summary !== null && income === 0; // ainda sem rendimentos: primeiro pergunta-se quanto recebe
   const avg = (v: number) => t('pco.avgMonth', { v: fmt(Math.round(v / months)) });
 
   return (
@@ -97,7 +100,14 @@ export const Salaries = () => {
         <MonthNav label={String(year)} onPrev={() => setYear(year - 1)} onNext={() => setYear(year + 1)} />
       </PageHead>
 
-      <div className="pco-metrics-row">
+      {start && <section className="mv-card sal-start">
+        <span className="on-logo sm"><Ic d="M3 7h18v12H3zM3 11h18M7 15h3" size={30} /></span>
+        <h2>{L('Quanto recebes por mês?')}</h2>
+        <p>{L('Escreve o que recebeste este mês. Com isso, a app mostra quanto te sobra e quanto podes poupar.')}</p>
+        <AmountField value={pay} onChange={setPay} currency={s.currency} kind="income" />
+        <button type="button" className="ob-cta lg-go" disabled={(parseMoneyToCents(pay) ?? 0) <= 0} onClick={() => { commit(today.getMonth() + 1, pay).then(() => setPay('')).catch(() => {}); }}>{L('Guardar')}<Ic d="M5 12h14M13 6l6 6-6 6" size={18} /></button>
+      </section>}
+      <div className={'pco-metrics-row' + (start ? ' hide' : '')}>
         <Metric icon={IC.income} tone="inc" title={t('salaries.annualSalaries')} value={fmt(salaryTotal)} valueClass="fx-pos" delta={dl(salaryTotal, prev.salary)} deltaGoodUp {...cmp}
           sub={t('salaries.plusExtras', { value: fmt(extrasTotal) })} bar={income > 0 ? salaryTotal / income : 0} />
         <Metric icon={IC.spent} tone="exp" title={t('salaries.annualExpenses')} value={fmt(expense)} valueClass={expense > 0 ? 'fx-neg' : ''} delta={dl(expense, prev.expense)} deltaGoodUp={false} {...cmp}

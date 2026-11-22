@@ -14,10 +14,15 @@ import { Ic, ICON } from './fx';
 import { openLogin } from './LoginWindow';
 import { openTxForm } from './TxForm';
 
-type Stage = 'acc' | 'accnav' | 'acc1' | 'askExp' | 'expnav' | 'exp' | 'askMore' | 'more';
-const KEY = 'wallet.guide', GUIDE_EVENT = 'wallet:guide';
+type Stage = 'acc' | 'accnav' | 'acc1' | 'askExp' | 'expnav' | 'exp' | 'askMore' | 'more' | 'ask2' | 'more2';
+const KEY = 'wallet.guide', GUIDE_EVENT = 'wallet:guide', AT = 'wallet.guideAt.';
+const get = (k: string) => { try { return localStorage.getItem(k); } catch { return null; } };
+const put = (k: string, v: string | null) => { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch { /* sem storage */ } };
 export const guideStage = (): Stage | null => { try { return localStorage.getItem(KEY) as Stage | null; } catch { return null; } };
 export function setGuide(s: Stage | null): void { try { if (s) localStorage.setItem(KEY, s); else localStorage.removeItem(KEY); } catch { /* sem storage */ } window.dispatchEvent(new Event(GUIDE_EVENT)); }
+/** Visita guiada a partir da Ajuda: recomeça onde a pessoa parou. */
+export const guideStarted = (): boolean => !!get(AT + 'more') || !!get(AT + 'more2');
+export function resumeGuide(): void { setGuide(get(AT + 'more2') ? 'more2' : 'more'); }
 /** Há um guia a decorrer: as outras dicas e avisos esperam. */
 export const guiding = (): boolean => guideStage() !== null;
 
@@ -77,6 +82,8 @@ const REST = (): StepDef[] => [
   { path: '/orcamentos', sel: '.fx-page > .sh-pill', t: () => L('Limites'), d: I.lim, text: () => after(L('Limites: escolhe o máximo a gastar numa categoria. A app avisa quando estiveres perto.')) },
   nav('/grupos', 'simple.groups'),
   { path: '/grupos', sel: '.fx-page > .sh-btn.in', t: () => L('Grupos'), d: I.grp, text: () => after(L('Grupos: junta as despesas de uma viagem ou jantar e divide-as com outras pessoas.')) },
+];
+const REST2 = (): StepDef[] => [
   nav('/subscricoes', 'nav.recurring'),
   { path: '/subscricoes', sel: '.fx-page > .sh-pill', t: () => L('Recorrentes'), d: I.rec, text: () => after(L('Recorrentes: vê o que se repete todos os meses e quanto podias poupar.')) },
   nav('/salarios', 'nav.salaries'),
@@ -96,13 +103,13 @@ function Ask({ d, title, text, yes, no, onYes, onNo }: { d: string; title: strin
 }
 
 /** Explica um passo de cada vez, com um anel à volta do sítio certo. while: seletor que tem de existir (a janela aberta). */
-function Coach({ steps: def, host, onEnd }: { steps: StepDef[] | (() => StepDef[]); host?: string; onEnd: (closed: boolean) => void }) {
+function Coach({ steps: def, host, save, onEnd }: { save?: string; steps: StepDef[] | (() => StepDef[]); host?: string; onEnd: (closed: boolean) => void }) {
   const navigate = useNavigate();
   const [steps] = useState<StepDef[]>(def);
   const [up, setUp] = useState(!host); // com janela: só aparece quando ela abre
-  const [i, setI] = useState(0), [r, setR] = useState<DOMRect | null>(null);
+  const [i, setI] = useState(() => { const at = save ? Number(get(AT + save) || 0) : 0; return at < steps.length ? at : 0; }), [r, setR] = useState<DOMRect | null>(null);
   const s = steps[i];
-  useEffect(() => { if (s.path) navigate(s.path); window.dispatchEvent(s.menu ? new CustomEvent('wallet:open-more', { detail: s.menu }) : new Event('wallet:close-more')); }, [i]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (save) put(AT + save, String(i)); if (s.path) navigate(s.path); window.dispatchEvent(s.menu ? new CustomEvent('wallet:open-more', { detail: s.menu }) : new Event('wallet:close-more')); }, [i]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     let seen = false, n = 0, moved = false;
     const id = setInterval(() => {
@@ -189,7 +196,10 @@ export function Guide() {
   if (st === 'askExp') return <Ask d={R} title={L('Queres saber como adicionar a primeira despesa?')} text={L('É rápido: mostramos-te campo a campo.')} yes={L('Vamos adicionar')} no={L('Fica para mais tarde')} onNo={() => go('askMore')} onYes={() => go('expnav')} />;
   if (st === 'exp') return list ? <Coach key="list" steps={MORE} onEnd={() => { setList(false); go('askMore'); }} /> : <Coach key="exp" steps={EXP} host=".fx-sheet" onEnd={() => setList(true)} />;
   if (st === 'askMore') return <Ask d={S} title={L('Queres ver o resto da app?')} text={L('Mostramos-te metas, limites, grupos e o resto em menos de um minuto.')} yes={L('Continuar')} no={L('Descobrir sozinho')} onNo={() => { navigate('/'); go(null); }} onYes={() => go('more')} />;
-  if (st === 'more') return <Coach key="more" steps={REST} onEnd={() => { navigate('/'); go(null); }} />;
+  const leave = () => { navigate('/'); go(null); };
+  if (st === 'more') return <Coach key="more" save="more" steps={REST} onEnd={(ok) => { if (!ok) { leave(); return; } put(AT + 'more', null); put(AT + 'more2', '0'); go('ask2'); }} />;
+  if (st === 'ask2') return <Ask d={S} title={L('Já sabes o principal!')} text={L('Falta só: recorrentes, salários, categorias, calendário e assistente. Podes ver depois, em Ajuda.')} yes={L('Ver o resto')} no={L('Fica para mais tarde')} onNo={leave} onYes={() => go('more2')} />;
+  if (st === 'more2') return <Coach key="more2" save="more2" steps={REST2} onEnd={(ok) => { if (ok) put(AT + 'more2', null); leave(); }} />;
   return null;
 }
 
