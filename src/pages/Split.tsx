@@ -123,7 +123,6 @@ export function SplitGroup({ splitId, groupId, createdAt, local, cats, onChanged
   const leftOf = (b: SplitBill) => (eachOf(b) ? Math.max(0, b.amountCents - b.shares.filter((x) => x.paidAt).length * eachOf(b)) : billProgress(b).remainingCents);
   // o que falta os outros pagarem nas transações que eu adicionei (conta com quem ainda não aceitou)
   const owed = bills.filter((b) => b.createdBy === me).reduce((a, b) => a + Math.max(0, leftOf(b) - (b.shares.some((x) => x.userId === me && !x.paidAt) ? shareOf(b, me) : 0)), 0);
-  const tone = (left: number, all: number) => (left === 0 ? 'ok' : left * 2 > all ? 'bad' : 'warn');
 
   // outra pessoa (só quem adicionou a transação): marca ou desmarca
   const mark = async (b: SplitBill, uid: string, paid: boolean) => {
@@ -165,16 +164,17 @@ export function SplitGroup({ splitId, groupId, createdAt, local, cats, onChanged
   return (
     <>
       <section className="mv-hero sh-hero grp-total">
+        {owner === me && <button type="button" className="gx-trash" onClick={removeGroup} aria-label={L('Apagar grupo')} title={L('Apagar grupo')}><Ic d={ICON.trash} size={17} /><span>{L('Apagar grupo')}</span></button>}
         <small className="mv-hero-label">{L('Total do grupo')}</small>
         <div className="sh-big">{money(total)}</div>
         <small className="sh-pct">{L('Criado a')} {day(createdAt)} · {bills.length} {bills.length === 1 ? L('transação') : L('transações')}</small>
         <div className="gx-sum">
-          <div className={owe > 0 ? 'bad' : 'ok'}><small>{L('Falta pagares')}</small><b>{money(owe)}</b><em>{owe > 0 ? `${L('em')} ${unpaid.length} ${unpaid.length === 1 ? L('transação') : L('transações')}` : L('Não tens nada por pagar ✓')}</em></div>
-          <div className={owed > 0 ? 'warn' : 'ok'}><small>{L('Têm de te pagar')}</small><b>{money(owed)}</b><em>{owed > 0 ? L('partes dos outros nas tuas transações') : L('Ninguém te deve nada ✓')}</em></div>
+          <div><small>{L('Tens de pagar')}</small><b>{money(owe)}</b><em>{owe > 0 ? `${unpaid.length} ${unpaid.length === 1 ? L('transação') : L('transações')}` : L('Está tudo pago')}</em></div>
+          <div><small>{L('Vais receber')}</small><b>{money(owed)}</b><em>{owed > 0 ? L('dos outros') : L('Nada a receber')}</em></div>
         </div>
         <div className="gx-people">
         {members.map((m) => <span key={m.userId} className="gx-person"><Face m={m} /><b>{m.userId === me ? L('Tu') : m.displayName}</b></span>)}
-        {invs.map((i) => <span key={i.id} className={'gx-person ' + (i.status === 'declined' ? 'no' : 'wait')}><span className="sp-face-ph"><Ic d={i.status === 'declined' ? ICON.close : CLOCK} size={17} /></span><b>{i.email ?? '+' + i.phone}</b><small>{i.status === 'declined' ? L('Rejeitou') : L('Pendente')}</small></span>)}
+        {invs.map((i) => { const who = i.email ?? '+' + i.phone; return <span key={i.id} className={'gx-person ' + (i.status === 'declined' ? 'no' : 'wait')}><span className="gx-pic"><Face m={{ userId: i.id, displayName: who, avatarUrl: null }} /><i aria-hidden="true">{i.status === 'declined' ? '✕' : '⏳'}</i></span><b title={who}>{who}</b><small>{i.status === 'declined' ? L('Rejeitou') : L('Pendente')}</small></span>; })}
         <button type="button" className="gx-person add" onClick={() => setInviting([])}><span className="sp-face-ph"><Ic d={ICON.plus} size={18} /></span><b>{L('Convidar')}</b></button>
         </div>
       </section>
@@ -185,13 +185,13 @@ export function SplitGroup({ splitId, groupId, createdAt, local, cats, onChanged
         {bills.length === 0 && <p className="fx-muted">{L('Tudo o que adicionares aqui é dividido por todos.')}</p>}
         {bills.map((b) => {
           const pr = billProgress(b), mine = mineOf(b), ex = open === b.id;
-          const left = leftOf(b), tn = tone(left, b.amountCents);
+          const left = leftOf(b);
           return (
             <div key={b.id} className="gx-item">
               <button type="button" className="sh-tx gx-row" aria-expanded={ex} onClick={() => setOpen(ex ? null : b.id)}>
                 <CatIcon cat={cats.find((c) => c.id === mine?.categoryId) ?? {}} size={36} />
                 <span className="sh-tx-main"><b>{b.description}</b><small>{day(b.date)} · {nameOf(b.createdBy)}</small></span>
-                <span className="gx-val"><b className="fx-neg">−{money(b.amountCents)}</b><em className={'gx-tag ' + tn}>{left > 0 ? `${L('Falta')} ${money(left)}` : L('Tudo pago ✓')}</em></span><span className="gx-chev"><Ic d={ICON.down} size={16} /></span>
+                <span className="gx-val"><b className="fx-neg">−{money(b.amountCents)}</b><em className={'gx-tag ' + (left > 0 ? 'warn' : 'ok')}>{left > 0 ? `${L('Falta')} ${money(left)}` : L('Pago')}</em></span><span className="gx-chev"><Ic d={ICON.down} size={16} /></span>
               </button>
               <div className="gx-faces">
                 {b.shares.map((x) => <Who key={x.userId} m={memberOf(x.userId)} name={nameOf(x.userId)} paid={!!x.paidAt} />)}
@@ -264,7 +264,6 @@ export function SplitGroup({ splitId, groupId, createdAt, local, cats, onChanged
       })()}
       <div className="gx-end">
         <button type="button" className="sh-danger" onClick={leave}>{L('Sair do grupo')}</button>
-        {owner === me && <button type="button" className="sh-danger" onClick={removeGroup}>{L('Apagar grupo')}</button>}
       </div>
     </>
   );

@@ -828,6 +828,9 @@ export const PHRASES: Record<string, Tr> = {
   'Já pagaste a tua parte de': ['Have you paid your share of', '¿Ya pagaste tu parte de', 'Avez-vous payé votre part de'],
   'Fica nas tuas despesas. Se a apagares de lá, volta a ficar por pagar no grupo.': ['It goes into your expenses. If you delete it there, it goes back to unpaid in the group.', 'Queda en tus gastos. Si la eliminas de ahí, vuelve a estar por pagar en el grupo.', 'Elle va dans vos dépenses. Si vous l’y supprimez, elle redevient à payer dans le groupe.'],
   'As despesas que já estão neste grupo passam a ser divididas por todos.': ['The expenses already in this group will be split between everyone.', 'Los gastos que ya están en este grupo pasan a dividirse entre todos.', 'Les dépenses déjà dans ce groupe seront partagées entre tous.'],
+  'Vais receber': ['You’ll receive', 'Vas a recibir', 'Vous allez recevoir'],
+  'dos outros': ['from the others', 'de los demás', 'des autres'],
+  'Nada a receber': ['Nothing to receive', 'Nada que recibir', 'Rien à recevoir'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */
