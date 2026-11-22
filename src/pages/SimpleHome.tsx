@@ -1,5 +1,9 @@
 // Início simplificado — só o essencial, para qualquer pessoa.
 //  1. Quanto ainda tenho este mês  2. Adicionar gasto / dinheiro recebido  3. A minha poupança  4. Últimos movimentos
+import type { CSSProperties } from 'react';
+import { GoalRing } from '../ui/GoalRing';
+import { WidgetEmpty, WidgetRow } from '../ui/WidgetRow';
+import { GroupPic } from './Groups';
 import { NotificationBell } from '../ui/AccountBar';
 import { goalValueCents, splitDesc } from '../core/debtPlan';
 import { cmpText, refText } from '../core/compare';
@@ -126,7 +130,7 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
   const latestEl = (<>
       {/* 4. Últimos movimentos, em linguagem simples */}
       <section className="mv-card">
-        <div className="mv-card-head"><h2>{t('blk.latest')}{rng && <small className="sh-count">{t('blk.txCount', { count: inRange.length })}</small>}</h2><Link to={embed?.seeAll ?? (rng ? `/transacoes?de=${rng.from}&ate=${rng.to}` : '/transacoes')} className="mv-link">{t('blk.seeAll')}</Link></div>
+        <div className="mv-card-head">{embed && <span className="pco-mic"><Ic d="M4 7h13l-3-3M20 17H7l3 3" size={18} /></span>}<h2>{t('blk.latest')}{rng && <small className="sh-count">{t('blk.txCount', { count: inRange.length })}</small>}</h2><Link to={embed?.seeAll ?? (rng ? `/transacoes?de=${rng.from}&ate=${rng.to}` : '/transacoes')} className="mv-link">{t('blk.seeAll')}</Link></div>
         <div className="sh-scroll">{latest.length === 0 ? <p className="fx-muted">{t('blk.noTx')}</p> : latest.map((x) => {
           const c = catOf(x.categoryId);
           return (
@@ -142,13 +146,13 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
   const groupsEl = (<>
       {/* 5. Grupos: juntar despesas de uma coisa só (férias, obras...) */}
       <section className="mv-card">
-        <div className="mv-card-head"><h2>{L('Os teus grupos')}</h2><Link to="/grupos" className="mv-link">{L('Ver todos')}</Link></div>
-        <div className="sh-groups-row">
-          {(data?.groups ?? []).map((g) => {
+        <div className="mv-card-head">{embed && <span className="pco-mic"><Ic d="M12 3l9 5-9 5-9-5zM3 13l9 5 9-5" size={18} /></span>}<h2>{L('Os teus grupos')}</h2><Link to="/grupos" className="mv-link">{L('Ver todos')}</Link></div>
+        <div className="sh-scroll wr-list">
+          {(data?.groups ?? []).length === 0 && <WidgetEmpty pic={<Ic d="M12 3l9 5-9 5-9-5zM3 13l9 5 9-5" size={28} />} text={L('Junta despesas de uma coisa só e vê quanto custou no total.')} to="/grupos" label={L('Novo grupo')} />}
+          {(data?.groups ?? []).slice(0, embed ? 40 : 3).map((g, i) => {
             const gt = (data?.txs ?? []).filter((x) => x.groupId === g.id);
-            return <Link key={g.id} to={`/grupos/${g.id}`} className="sh-group" style={{ ['--g' as string]: g.color }}><b>{g.name}</b><span>{money(gt.reduce((a, x) => a + (x.type === 'expense' ? x.amountCents : -x.amountCents), 0))}</span><small>{gt.length} {L('movimentos')}</small></Link>;
+            return <WidgetRow key={g.id} i={i} to={`/grupos/${g.id}`} title={g.name} sub={`${gt.length} ${gt.length === 1 ? L('movimento') : L('movimentos')}`} value={money(gt.reduce((a, x) => a + (x.type === 'expense' ? x.amountCents : -x.amountCents), 0))} pic={<span style={{ '--g': g.color } as CSSProperties}><GroupPic name={g.name} image={g.image} /></span>} />;
           })}
-          <Link to="/grupos" className="sh-group new"><Ic d={ICON.plus} size={20} /><b>{L('Novo grupo')}</b></Link>
         </div>
       </section>
 
@@ -156,19 +160,15 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
   const goalsEl = (<>
       {/* 6. Metas: só a principal, com a barra */}
       <section className="mv-card">
-        <div className="mv-card-head"><h2>{L('Metas')}</h2><Link to="/metas" className="mv-link">{(data?.goals.length ?? 0) > 0 ? L('Ver todas') : L('Criar meta')}</Link></div>
-        <div className="sh-scroll">{(data?.goals ?? []).slice(0, embed ? 20 : 1).map((g) => {
+        <div className="mv-card-head">{embed && <span className="pco-mic"><Ic d="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8z" size={18} /></span>}<h2>{L('Metas')}</h2><Link to="/metas" className="mv-link">{(data?.goals.length ?? 0) > 0 ? L('Ver todas') : L('Criar meta')}</Link></div>
+        <div className="sh-scroll wr-list">{(data?.goals ?? []).slice(0, embed ? 20 : 3).map((g, i) => {
           const gc = g.accountIds?.length ? accRows.filter((x) => g.accountIds!.includes(x.a.id)).reduce((x, y) => x + goalValueCents(y.a, y.bal), 0) : g.currentCents; // ligada a contas: o valor vem delas
           const r = g.targetCents > 0 ? Math.max(0, Math.min(1, gc / g.targetCents)) : 0;
           return (
-            <div key={g.id} className="sh-goal">
-              <div className="sh-row"><b>{g.name}</b><b>{Math.round(r * 100)}%</b></div>
-              <div className="sh-bar"><i style={{ width: `${r * 100}%` }} /></div>
-              <div className="sh-row"><small>{money(gc)} {L('guardados')}</small><small>{L('faltam')} {money(Math.max(0, g.targetCents - gc))}</small></div>
-            </div>
+            <WidgetRow key={g.id} i={i} to="/metas" title={g.name} sub={`${money(gc)} ${L('de')} ${money(g.targetCents)}`} value={r >= 1 ? '🎉' : money(Math.max(0, g.targetCents - gc))} tag={r >= 1 ? L('concluída') : L('falta')} tagTone="ok" pic={<GoalRing r={r} size={58} />} />
           );
         })}
-        {(data?.goals.length ?? 0) === 0 && <p className="fx-muted" style={{ margin: 0 }}>{L('Define um objetivo (ex.: 1000 € para férias) e acompanha quanto falta.')}</p>}</div>
+        {(data?.goals.length ?? 0) === 0 && <WidgetEmpty pic={<Ic d="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8z" size={28} />} text={L('Define um objetivo (ex.: 1000 € para férias) e acompanha quanto falta.')} to="/metas" label={L('Criar meta')} />}</div>
       </section>
   </>);
   if (embed) return <div className="mv sh sh-embed">{{ hero: heroEl, latest: latestEl, groups: groupsEl, goals: goalsEl }[embed.part]}</div>;

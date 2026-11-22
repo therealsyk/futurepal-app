@@ -1,4 +1,7 @@
 // Poupanças e dívidas: a caixa da conta (total, o que já foi, o que falta, quando acaba) e o resumo usado no widget.
+import { Ic } from './fx';
+import { GoalRing } from './GoalRing';
+import { WidgetRow } from './WidgetRow';
 import { Link } from 'react-router-dom';
 import type { Account } from '../db/database';
 import { splitDesc, type PlanInfo } from '../core/debtPlan';
@@ -49,15 +52,12 @@ export function AccountPlanBox({ a, p, money, lang, onEdit }: { a: Account; p: P
 }
 
 /** Linha do widget: nome, barra e quando termina. */
-export function PlanLine({ a, p, money, lang }: { a: Account; p: PlanInfo; money: (c: number) => string; lang: string }) {
+export function PlanLine({ a, p, money, lang, i = 0 }: { i?: number; a: Account; p: PlanInfo; money: (c: number) => string; lang: string }) {
   const debt = a.type === 'debt';
   return (
-    <Link to="/contas" className={'pl-line ' + a.type}>
-      <span><b>{a.name}</b><b>{p.total > 0 ? pct(p.ratio) + '%' : money(p.done)}</b></span>
-      {p.total > 0 && <i className="pco-limbar"><i style={{ width: `${Math.max(2, p.ratio * 100)}%` }} /></i>}
-      <small>{p.total > 0 ? fill(L('Falta {m} de {t}'), { m: money(p.left), t: money(p.total) }) : ''}</small>
-      <small>{p.total > 0 && p.left === 0 ? (debt ? L('Dívida paga! 🎉') : L('Objetivo atingido 🎉')) : p.months !== null && p.months > 0 ? `${debt ? L('Termina em') : L('Chegas lá em')} ${endDate(p.months, lang)}` : L('Define o valor por mês para saberes quando termina')}</small>
-    </Link>
+    <WidgetRow to="/contas" i={i} title={a.name} pic={p.total > 0 ? <GoalRing r={p.ratio} size={58} debt={debt} /> : <span className={'wr-ic t-' + a.type}><Ic d="M19 7a3 3 0 0 0-3-2H9a6 6 0 0 0-6 6c0 2 1 3.5 2 4.5V19h3v-2h5v2h3v-3a6 6 0 0 0 2-3h2V9h-2z" size={24} /></span>}
+      sub={p.total > 0 && p.left === 0 ? (debt ? L('Dívida paga! 🎉') : L('Objetivo atingido 🎉')) : p.months !== null && p.months > 0 ? `${debt ? L('Termina em') : L('Chegas lá em')} ${endDate(p.months, lang)}` : p.total > 0 ? `${money(p.done)} ${L('de')} ${money(p.total)}` : undefined}
+      value={p.total > 0 ? (p.left > 0 ? money(p.left) : '✓') : money(p.done)} tone={p.total > 0 && p.left > 0 && debt ? 'fx-neg' : 'fx-pos'} tag={p.total > 0 && p.left > 0 ? L('falta') : undefined} tagTone={debt ? 'warn' : 'ok'} />
   );
 }
 
@@ -67,6 +67,7 @@ export function PlanOne({ a, p, money, lang }: { a: Account; p: PlanInfo; money:
   if (!p.total) return <div className="pl-one"><div className="pl-tile"><small>{L('Já tens')}</small><b>{money(p.done)}</b></div></div>;
   return (
     <div className={'pl-one ' + a.type}>
+      <span className="pl-ring"><GoalRing r={p.ratio} size={120} debt={debt}><b>{pct(p.ratio)}%</b></GoalRing></span>
       <div className="pl-bar"><i style={{ width: `${Math.max(2, p.ratio * 100)}%` }} /><span>{pct(p.ratio)}%</span></div>
       <div className="pl-tiles">
         <div className="pl-tile"><small>{debt ? L('Já abateste') : L('Já tens')}</small><b className="fx-pos">{money(p.done)}</b></div>

@@ -1,5 +1,5 @@
 // Metas: cartão da lista (anel com a percentagem) e página de uma meta, com tudo o que se pode fazer nela.
-import { useState, type CSSProperties, type ReactNode } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { db } from '../db/app-db';
 import type { Account, Goal } from '../db/database';
@@ -12,6 +12,7 @@ import { AmountField } from '../ui/formFields';
 import { fill } from '../ui/AccountPlan';
 import { useMissing, FormError } from '../ui/missing';
 import { Ic, ICON } from '../ui/fx';
+import { GoalRing } from '../ui/GoalRing';
 import { PC_MOBILE } from '../core/uiMode';
 import { L } from '../i18n/phrases';
 import { BottomSheet } from './SimplePages';
@@ -20,17 +21,6 @@ const I = {
   add: 'M12 5v14M5 12h14', take: 'M5 12h14', edit: 'M4 20h4L19 9l-4-4L4 16zM13 7l4 4', swap: 'M7 7h12l-3-3M17 17H5l3 3',
   flag: 'M6 21V4h11l-2 4 2 4H6', clock: 'M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 7v5l3 2',
 };
-
-/** Anel que se enche até à percentagem da meta. */
-export function GoalRing({ r, size, debt, tone, children }: { r: number; size: number; debt?: boolean; tone?: string; children?: ReactNode }) {
-  const done = r >= 1;
-  return (
-    <span className={'gl-ring' + (tone !== undefined ? ' ' + tone : done ? ' done' : debt ? ' debt' : '')} style={{ width: size, height: size, '--p': r * 100 } as CSSProperties}>
-      <svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="43" />{r > 0.005 && <circle className="on" cx="50" cy="50" r="43" pathLength={100} />}</svg>
-      <span className="gl-ring-in">{children ?? <b>{done ? '✓' : `${Math.round(r * 100)}%`}</b>}</span>
-    </span>
-  );
-}
 
 export interface GoalInfo { cur: number; r: number; eta: string; per: number; done: boolean; when: { ok: boolean; short: string; long: string } | null; long: string }
 

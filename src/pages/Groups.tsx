@@ -37,7 +37,7 @@ const KINDS: Array<[RegExp, string]> = [
 const iconOf = (name: string) => KINDS.find(([re]) => re.test(name))?.[1] ?? 'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5';
 
 /** Foto do grupo ou, sem foto, o ícone na cor dele. */
-function GroupPic({ name, image, big }: { name: string; image?: string; big?: boolean }) {
+export function GroupPic({ name, image, big }: { name: string; image?: string; big?: boolean }) {
   return <span className={'gg-ic' + (big ? ' big' : '') + (image ? ' pic' : '')}>{image ? <img src={image} alt="" /> : <Ic d={iconOf(name)} size={big ? 62 : 30} />}</span>;
 }
 

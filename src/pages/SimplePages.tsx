@@ -3,7 +3,8 @@ import { beforePayments, goalValueCents, joinDesc, payoff, planInfo, splitDesc }
 import { AccountPlanBox, endText as planEnd, fill } from '../ui/AccountPlan';
 import { NewAccount } from './NewAccount';
 import { NewGoal } from './NewGoal';
-import { GoalCard, GoalRing, GoalView, type GoalInfo } from './GoalView';
+import { GoalCard, GoalView, type GoalInfo } from './GoalView';
+import { GoalRing } from '../ui/GoalRing';
 import { GTile } from './Split';
 import { cmpShort } from '../core/compare';
 import { useMissing } from '../ui/missing';
