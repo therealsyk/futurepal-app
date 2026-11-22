@@ -10,20 +10,22 @@ import { avatarUrl } from '../core/avatar';
 import { db } from '../db/app-db';
 import type { Account, Category, Transaction } from '../db/database';
 import { accountBalanceCents, defaultAccountId } from '../core/accounts';
-import { addTransaction, softDelete } from '../core/finance';
-import { formatMoney, parseMoneyToCents } from '../core/money';
+import { softDelete } from '../core/finance';
+import { putMyShare } from '../core/splitInvite';
+import { appConfirm } from '../ui/confirm';
+import { formatMoney } from '../core/money';
 import { loadSettings } from '../core/settings';
-import { billProgress, groupSummary, parseContact, toBills, type SplitBill } from '../core/split';
-import { SPLIT_CHANGED } from '../core/groupLink';
+import { billProgress, parseContact, toBills, type SplitBill } from '../core/split';
+import { billOfTx, SPLIT_CHANGED } from '../core/groupLink';
 import { catFitsKind, CatIcon, Ic, ICON, Sheet } from '../ui/fx';
-import { AccountRow, AmountField, CategoryRow, DateRow, InviteRow, TextRow } from '../ui/formFields';
+import { AccountRow, CategoryRow, DateRow, InviteRow } from '../ui/formFields';
 import { useMissing } from '../ui/missing';
 import { L } from '../i18n/phrases';
 import { BottomSheet } from './SimplePages';
 
 interface Member { userId: string; displayName: string; avatarUrl: string | null }
 interface PendingOut { id: string; email: string | null; phone: string | null; status?: string }
-type Personal = { description: string; cents: number; date: string; categoryId: string; accountId?: string };
+type Personal = { bill: SplitBill; cents: number; date: string; categoryId: string; accountId?: string };
 const today = () => new Date().toLocaleDateString('sv-SE');
 const errText = (e: unknown) => (e as { message?: string })?.message ?? String(e);
 const CLOCK = 'M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 7v5l3 2', CHECK = 'M20 6 9 17l-5-5';
@@ -33,12 +35,13 @@ function Who({ m, name, paid, wait }: { m: Member; name: string; paid?: boolean;
   return <span className={'gx-who' + (wait ? ' inv' : '')} title={name}><Face m={m} /><i className={paid ? 'ok' : 'wait'}><Ic d={paid ? CHECK : CLOCK} size={9} /></i></span>;
 }
 
-export function SplitGroup({ splitId, groupId, createdAt, local, cats, onChanged }: { splitId: string; groupId: string; createdAt: string; local: Transaction[]; cats: Category[]; onChanged: () => void }) {
+export function SplitGroup({ splitId, groupId, createdAt, local, cats, onChanged, onGone }: { splitId: string; groupId: string; createdAt: string; local: Transaction[]; cats: Category[]; onChanged: () => void; onGone: () => void }) {
   const { t } = useTranslation();
   const auth = useAuth();
   const me = auth.user?.id ?? '';
   const s = loadSettings();
   const [currency, setCurrency] = useState(s.currency);
+  const [owner, setOwner] = useState('');
   const [members, setMembers] = useState<Member[]>([]);
   const [bills, setBills] = useState<SplitBill[]>([]);
   const [invs, setInvs] = useState<PendingOut[]>([]);
@@ -48,6 +51,7 @@ export function SplitGroup({ splitId, groupId, createdAt, local, cats, onChanged
   const [personal, setPersonal] = useState<Personal | null>(null);
   const [closing, setClosing] = useState<SplitBill | null>(null);
   const [accs, setAccs] = useState<Account[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const [bals, setBals] = useState<Record<string, number>>({});
   const money = (c: number) => formatMoney(c, currency, s.language);
   const day = (iso: string) => new Date(iso).toLocaleDateString(s.language, { day: 'numeric', month: 'short', year: 'numeric' });
@@ -66,11 +70,18 @@ export function SplitGroup({ splitId, groupId, createdAt, local, cats, onChanged
     const sh = ids.length ? await sb.from('split_shares').select('*').in('bill_id', ids) : { data: [], error: null };
     const e = m.error || b.error || i.error || sh.error;
     setError(e ? errText(e) : null);
-    if (g.data) setCurrency((g.data as { currency: string }).currency);
+    if (g.data) { setCurrency((g.data as { currency: string }).currency); setOwner((g.data as { owner_id: string }).owner_id); }
     setMembers((m.data ?? []).map((r: any) => ({ userId: r.user_id, displayName: r.display_name, avatarUrl: r.avatar_url ?? null })));
-    setBills(toBills(b.data ?? [], sh.data ?? []));
+    setBills(toBills(b.data ?? [], sh.data ?? [])); setLoaded(!e);
     setInvs((i.data ?? []) as PendingOut[]);
   }, [splitId]);
+  // transações que o dono do grupo apagou: a minha parte sai também das minhas despesas
+  useEffect(() => {
+    if (!loaded || bills.length >= 300) return;
+    const ids = new Set(bills.map((b) => b.id));
+    const gone = local.filter((x) => { const b = billOfTx(x.id); return b && !ids.has(b); });
+    if (gone.length) Promise.all(gone.map((x) => softDelete(db, 'transactions', x.id))).then(onChanged, () => {});
+  }, [loaded, bills, local]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     load().catch((e) => setError(errText(e)));
     const on = () => { load().catch(() => {}); };
@@ -103,30 +114,45 @@ export function SplitGroup({ splitId, groupId, createdAt, local, cats, onChanged
   const eachOf = (b: SplitBill) => (pending.length ? Math.ceil(b.amountCents / (b.shares.length + pending.length)) : 0);
   const shareOf = (b: SplitBill, uid: string) => eachOf(b) || (b.shares.find((x) => x.userId === uid)?.shareCents ?? 0);
   // a minha parte registada nas minhas transações, para não aparecer duas vezes
-  const mineOf = (b: SplitBill) => local.find((x) => x.type === 'expense' && x.date === b.date && x.description === b.description && Math.abs(x.amountCents - shareOf(b, me)) <= 1)
-    ?? local.find((x) => x.type === 'expense' && x.description === b.description && b.shares.some((y) => y.userId === me && Math.abs(y.shareCents - x.amountCents) <= 1));
-  const mirrored = new Set(bills.map((b) => mineOf(b)?.id).filter(Boolean));
-  const only = local.filter((x) => !mirrored.has(x.id));
+  const mineOf = (b: SplitBill) => local.find((x) => billOfTx(x.id) === b.id) ?? local.find((x) => !billOfTx(x.id) && x.type === 'expense' && x.description === b.description && Math.abs(x.amountCents - shareOf(b, me)) <= 1);
   const nameOf = (id: string) => (id === me ? L('Tu') : members.find((m) => m.userId === id)?.displayName ?? '?');
   const memberOf = (id: string): Member => members.find((m) => m.userId === id) ?? { userId: id, displayName: nameOf(id), avatarUrl: null };
-  const total = bills.reduce((a, b) => a + b.amountCents, 0) + only.reduce((a, x) => a + (x.type === 'expense' ? x.amountCents : -x.amountCents), 0);
-  const sum = groupSummary(bills, me);
-  const owe = bills.reduce((a, b) => a + (b.createdBy !== me && b.shares.some((x) => x.userId === me && !x.paidAt) ? shareOf(b, me) : 0), 0);
+  const total = bills.reduce((a, b) => a + b.amountCents, 0);
+  const unpaid = bills.filter((b) => b.shares.some((x) => x.userId === me && !x.paidAt));
+  const owe = unpaid.reduce((a, b) => a + shareOf(b, me), 0);
+  const leftOf = (b: SplitBill) => (eachOf(b) ? Math.max(0, b.amountCents - b.shares.filter((x) => x.paidAt).length * eachOf(b)) : billProgress(b).remainingCents);
+  // o que falta os outros pagarem nas transações que eu adicionei (conta com quem ainda não aceitou)
+  const owed = bills.filter((b) => b.createdBy === me).reduce((a, b) => a + Math.max(0, leftOf(b) - (b.shares.some((x) => x.userId === me && !x.paidAt) ? shareOf(b, me) : 0)), 0);
+  const tone = (left: number, all: number) => (left === 0 ? 'ok' : left * 2 > all ? 'bad' : 'warn');
 
-  const setPaid = async (b: SplitBill, uid: string, paid: boolean) => {
-    if (!(await rpc('set_split_paid', { p_bill: b.id, p_user: uid, p_paid: paid }))) return;
-    await load();
-    const first = cats.find((c) => c.deletedAt === null && catFitsKind(c, 'expense'));
-    if (paid && uid === me && !mineOf(b)) setPersonal({ description: b.description, cents: shareOf(b, me), date: today(), categoryId: first?.id ?? '' });
+  // outra pessoa (só quem adicionou a transação): marca ou desmarca
+  const mark = async (b: SplitBill, uid: string, paid: boolean) => {
+    if (!(await appConfirm(`${paid ? L('Esta pessoa já pagou?') : L('Marcar como por pagar?')} ${nameOf(uid)}: ${money(shareOf(b, uid))}`, { ok: L('Sim'), danger: false }))) return;
+    if (await rpc('set_split_paid', { p_bill: b.id, p_user: uid, p_paid: paid })) await load();
   };
-  const savePersonal = async () => {
+  // eu: pede confirmação e regista nas minhas despesas
+  const pay = (b: SplitBill) => {
+    const exp = cats.filter((c) => c.deletedAt === null && catFitsKind(c, 'expense'));
+    setPersonal({ bill: b, cents: shareOf(b, me), date: today(), categoryId: (exp.find((c) => c.nameKey === 'catOther') ?? exp[0])?.id ?? '' });
+  };
+  const confirmPay = async () => {
     if (!personal || !missP.check()) return;
-    await addTransaction(db, { date: personal.date, type: 'expense', categoryId: personal.categoryId, description: personal.description, amountCents: personal.cents, currency, accountId: personal.accountId || defaultAccountId(accs) || undefined, groupId });
-    closePersonal(); onChanged();
+    const b = personal.bill;
+    if (!(await rpc('set_split_paid', { p_bill: b.id, p_user: me, p_paid: true }))) return;
+    if (!mineOf(b)) await putMyShare(db, b.id, me, { date: personal.date, type: 'expense', categoryId: personal.categoryId, description: b.description, amountCents: personal.cents, currency, accountId: personal.accountId || defaultAccountId(accs) || undefined, groupId });
+    closePersonal(); await load(); onChanged();
+  };
+  const leave = async () => {
+    if (!(await appConfirm(L('Queres mesmo sair deste grupo? Deixas de ver as transações dele.'), { ok: L('Sair do grupo') }))) return;
+    if (await rpc('leave_split_group', { p_group: splitId })) onGone();
+  };
+  const removeGroup = async () => {
+    if (!(await appConfirm(L('Queres mesmo apagar este grupo? Desaparece para todas as pessoas.'), { ok: L('Apagar grupo') }))) return;
+    if (await rpc('delete_split_group', { p_group: splitId })) onGone();
   };
   const removeBill = async (b: SplitBill) => {
-    const { error: e } = await getSupabase()!.from('split_bills').update({ deleted_at: new Date().toISOString() }).eq('id', b.id);
-    if (e) { setError(errText(e)); return; }
+    const { data, error: e } = await getSupabase()!.from('split_bills').update({ deleted_at: new Date().toISOString() }).eq('id', b.id).select('id');
+    if (e || !data?.length) { setError(e ? errText(e) : L('Só quem criou o grupo pode apagar transações.')); return; }
     const mine = mineOf(b);
     if (mine) await softDelete(db, 'transactions', mine.id); // a minha parte sai também das minhas transações
     await load(); onChanged();
@@ -141,34 +167,35 @@ export function SplitGroup({ splitId, groupId, createdAt, local, cats, onChanged
       <section className="mv-hero sh-hero grp-total">
         <small className="mv-hero-label">{L('Total do grupo')}</small>
         <div className="sh-big">{money(total)}</div>
-        <div className="sh-row"><small className="sh-pct">{L('Criado a')} {day(createdAt)}</small>
-          {owe > 0 ? <small className="fx-neg">{L('Tens de pagar')} <b>{money(owe)}</b></small> : sum.owedToMeCents > 0 ? <small className="fx-pos">{L('Têm de te pagar')} <b>{money(sum.owedToMeCents)}</b></small> : <small className="sh-pct">{L('Está tudo pago')}</small>}</div>
-      </section>
-      {error && <p className="fx-error">{error}</p>}
-
-      <section className="mv-card gx-people">
+        <small className="sh-pct">{L('Criado a')} {day(createdAt)} · {bills.length} {bills.length === 1 ? L('transação') : L('transações')}</small>
+        <div className="gx-sum">
+          <div className={owe > 0 ? 'bad' : 'ok'}><small>{L('Falta pagares')}</small><b>{money(owe)}</b><em>{owe > 0 ? `${L('em')} ${unpaid.length} ${unpaid.length === 1 ? L('transação') : L('transações')}` : L('Não tens nada por pagar ✓')}</em></div>
+          <div className={owed > 0 ? 'warn' : 'ok'}><small>{L('Têm de te pagar')}</small><b>{money(owed)}</b><em>{owed > 0 ? L('partes dos outros nas tuas transações') : L('Ninguém te deve nada ✓')}</em></div>
+        </div>
+        <div className="gx-people">
         {members.map((m) => <span key={m.userId} className="gx-person"><Face m={m} /><b>{m.userId === me ? L('Tu') : m.displayName}</b></span>)}
         {invs.map((i) => <span key={i.id} className={'gx-person ' + (i.status === 'declined' ? 'no' : 'wait')}><span className="sp-face-ph"><Ic d={i.status === 'declined' ? ICON.close : CLOCK} size={17} /></span><b>{i.email ?? '+' + i.phone}</b><small>{i.status === 'declined' ? L('Rejeitou') : L('Pendente')}</small></span>)}
         <button type="button" className="gx-person add" onClick={() => setInviting([])}><span className="sp-face-ph"><Ic d={ICON.plus} size={18} /></span><b>{L('Convidar')}</b></button>
+        </div>
       </section>
+      {error && <p className="fx-error">{error}</p>}
 
       <section className="mv-card">
         <div className="mv-card-head"><h2>{L('Transações')}</h2><Link to={`/transacoes?nova=1&grupo=${groupId}`} className="sh-btn in sm grp-add"><Ic d={ICON.plus} size={16} />{L('Adicionar transação')}</Link></div>
-        {bills.length + only.length === 0 && <p className="fx-muted">{L('Tudo o que adicionares aqui é dividido por todos.')}</p>}
+        {bills.length === 0 && <p className="fx-muted">{L('Tudo o que adicionares aqui é dividido por todos.')}</p>}
         {bills.map((b) => {
-          const pr = billProgress(b), mine = mineOf(b), share = b.shares.find((x) => x.userId === me), ex = open === b.id;
-          const left = eachOf(b) ? Math.max(0, b.amountCents - b.shares.filter((x) => x.paidAt).length * eachOf(b)) : pr.remainingCents;
+          const pr = billProgress(b), mine = mineOf(b), ex = open === b.id;
+          const left = leftOf(b), tn = tone(left, b.amountCents);
           return (
             <div key={b.id} className="gx-item">
               <button type="button" className="sh-tx gx-row" aria-expanded={ex} onClick={() => setOpen(ex ? null : b.id)}>
                 <CatIcon cat={cats.find((c) => c.id === mine?.categoryId) ?? {}} size={36} />
                 <span className="sh-tx-main"><b>{b.description}</b><small>{day(b.date)} · {nameOf(b.createdBy)}</small></span>
-                <b>−{money(b.amountCents)}</b><span className="gx-chev"><Ic d={ICON.down} size={16} /></span>
+                <span className="gx-val"><b className="fx-neg">−{money(b.amountCents)}</b><em className={'gx-tag ' + tn}>{left > 0 ? `${L('Falta')} ${money(left)}` : L('Tudo pago ✓')}</em></span><span className="gx-chev"><Ic d={ICON.down} size={16} /></span>
               </button>
               <div className="gx-faces">
                 {b.shares.map((x) => <Who key={x.userId} m={memberOf(x.userId)} name={nameOf(x.userId)} paid={!!x.paidAt} />)}
                 {pending.map((i) => <Who key={i.id} wait m={{ userId: i.id, displayName: i.email ?? i.phone ?? '?', avatarUrl: null }} name={i.email ?? '+' + i.phone} />)}
-                <small>{left > 0 ? `${L('Falta')} ${money(left)}` : L('Tudo pago ✓')}</small>
               </div>
               <div className={'acc-exp' + (ex ? ' open' : '')} aria-hidden={!ex} inert={!ex}><div><div className="gx-more">
                 <div className="pl-tiles">
@@ -179,27 +206,24 @@ export function SplitGroup({ splitId, groupId, createdAt, local, cats, onChanged
                 </div>
                 <div className="sp-list">
                   {b.shares.map((x) => {
-                    const can = b.createdBy === me && x.userId !== me, R = can ? 'button' : 'div';
+                    const mineRow = x.userId === me, can = b.createdBy === me && !mineRow;
                     return (
-                      <R key={x.userId} {...(can ? { type: 'button' as const, onClick: () => setPaid(b, x.userId, !x.paidAt), title: x.paidAt ? t('split.markUnpaid') : t('split.markPaid') } : {})} className={'sp-row' + (x.paidAt ? ' paid' : '')}>
+                      <div key={x.userId} className={'sp-row' + (x.paidAt ? ' paid' : '')}>
                         <span className="sp-facewrap"><Face m={memberOf(x.userId)} />{x.paidAt && <i className="sp-paidmark">✓</i>}</span>
                         <span className="sp-row-main"><span className="sp-row-top"><b>{nameOf(x.userId)}</b></span><small>{x.paidAt ? <span className="fx-pos">{L('Já pagou')} <b>{money(shareOf(b, x.userId))}</b></span> : <>{L('Tem de pagar')} <b>{money(shareOf(b, x.userId))}</b></>}</small></span>
-                        <span className={'sp-badge ' + (x.paidAt ? 'ok' : 'wait')}>{x.paidAt ? L('Pago') : can ? L('Marcar como pago') : L('Por pagar')}</span>
-                      </R>
+                        {mineRow && !x.paidAt ? <button type="button" className="gx-pay" onClick={() => pay(b)}>{L('Pagar')}</button>
+                          : can ? <button type="button" className={'sp-badge gx-mark ' + (x.paidAt ? 'ok' : 'wait')} onClick={() => mark(b, x.userId, !x.paidAt)}>{x.paidAt ? L('Pago') : L('Marcar como pago')}</button>
+                          : <span className={'sp-badge ' + (x.paidAt ? 'ok' : 'wait')}>{x.paidAt ? L('Pago') : L('Pendente')}</span>}
+                      </div>
                     );
                   })}
                   {pending.map((i) => <div key={i.id} className="sp-row inv"><span className="sp-face-ph"><Ic d={CLOCK} size={17} /></span><span className="sp-row-main"><span className="sp-row-top"><b>{i.email ?? '+' + i.phone}</b></span><small>{L('Vai pagar')} <b>{money(eachOf(b))}</b> {L('quando aceitar')}</small></span><span className="sp-badge wait">{L('Pendente')}</span></div>)}
                 </div>
-                <div className="debt-btns">
-                  {share && !share.paidAt && <button type="button" className="sh-btn in sm" onClick={() => setPaid(b, me, true)}>{t('split.iPaid', { amount: money(shareOf(b, me)) })}</button>}
-                  {share?.paidAt && <button type="button" className="sh-btn out sm" onClick={() => setPaid(b, me, false)}>{t('split.undoPaid')}</button>}
-                  {b.createdBy === me && <button type="button" className="sh-btn out sm gx-del" onClick={() => setClosing(b)}>{L('Apagar')}</button>}
-                </div>
+                {owner === me && <button type="button" className="gx-rm" onClick={() => setClosing(b)}>{L('Apagar transação')}</button>}
               </div></div></div>
             </div>
           );
         })}
-        {only.map((x) => <div key={x.id} className="gx-item"><div className="sh-tx"><CatIcon cat={cats.find((c) => c.id === x.categoryId) ?? {}} size={36} /><span className="sh-tx-main"><b>{x.description || '—'}</b><small>{day(x.date)} · {L('só tua')}</small></span><b className={x.type === 'income' ? 'fx-pos' : ''}>{x.type === 'income' ? '+' : '−'}{money(x.amountCents)}</b></div></div>)}
       </section>
 
       {inviting && <BottomSheet title={L('Convidar')} onClose={() => setInviting(null)}>
@@ -208,19 +232,19 @@ export function SplitGroup({ splitId, groupId, createdAt, local, cats, onChanged
           <button type="button" className="tx-addbtn" disabled={inviting.length === 0} onClick={sendInvites}>{L('Enviar convite')}</button></div>
       </BottomSheet>}
 
-      {/* Paguei a minha parte: fica também nas minhas despesas (e no total deste grupo) */}
-      <Sheet open={!!personal} onClose={closePersonal} title={L('Registar nas tuas despesas')}
-        footer={<div className="sp-pfoot"><button type="button" className="sp-pbtn no" onClick={closePersonal}>{t('split.personalNo')}</button><button type="button" className="sp-pbtn yes" onClick={savePersonal}>{L('Adicionar despesa')}</button></div>}>
+      {/* Já pagaste? Confirma e fica nas tuas despesas */}
+      <Sheet open={!!personal} onClose={closePersonal} title={L('Confirmar pagamento')}
+        footer={<button type="button" className="tx-addbtn" onClick={confirmPay}>{L('Sim, já paguei')}</button>}>
         {personal && <>
           {missP.note}
-          <p className="fx-muted fx-small" style={{ textAlign: 'center', margin: '0 0 4px' }}>{L('Pagaste a tua parte. Regista-a também nas tuas despesas.')}</p>
-          <AmountField kind="expense" value={(personal.cents / 100).toFixed(2).replace('.', ',')} onChange={(v) => { const c = parseMoneyToCents(v); if (c !== null) setPersonal({ ...personal, cents: c }); }} currency={currency} cls={missP.cls('amount')} />
+          <p className="gx-ask">{L('Já pagaste a tua parte de')} <b>{personal.bill.description}</b>?</p>
+          <div className="tx-amt gx-amt">−{money(personal.cents)}</div>
           <div className="tx-rows">
-            <TextRow label={t('transactions.description')} value={personal.description} onChange={(v) => setPersonal({ ...personal, description: v })} />
             <CategoryRow required cats={cats.filter((c) => c.deletedAt === null)} kind="expense" value={personal.categoryId} onChange={(v) => setPersonal({ ...personal, categoryId: v })} cls={missP.cls('category')} />
             {accs.length > 0 && (() => { const aid = personal.accountId || defaultAccountId(accs) || ''; return <AccountRow label={t('accounts.account')} value={aid} options={accs.map((a) => ({ id: a.id, name: a.name, right: bals[a.id] !== undefined ? money(bals[a.id]) : undefined }))} balance={bals[aid] !== undefined ? money(bals[aid]) : undefined} onChange={(v) => setPersonal({ ...personal, accountId: v })} />; })()}
             <DateRow label={t('transactions.date')} value={personal.date} onChange={(v) => setPersonal({ ...personal, date: v })} />
           </div>
+          <p className="grp-hint">{L('Fica nas tuas despesas. Se a apagares de lá, volta a ficar por pagar no grupo.')}</p>
         </>}
       </Sheet>
       {closing && (() => {
@@ -238,6 +262,10 @@ export function SplitGroup({ splitId, groupId, createdAt, local, cats, onChanged
             </div>
           </div>, document.body);
       })()}
+      <div className="gx-end">
+        <button type="button" className="sh-danger" onClick={leave}>{L('Sair do grupo')}</button>
+        {owner === me && <button type="button" className="sh-danger" onClick={removeGroup}>{L('Apagar grupo')}</button>}
+      </div>
     </>
   );
 }

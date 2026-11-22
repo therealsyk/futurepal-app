@@ -11,7 +11,9 @@ import { addGroup } from '../core/finance';
 import { formatMoney } from '../core/money';
 import { loadSettings } from '../core/settings';
 import { linkedGroupId, SPLIT_CHANGED, splitIdOf } from '../core/groupLink';
-import { CatIcon, Ic, ICON } from '../ui/fx';
+import { CatIcon, catLabel, Ic, ICON } from '../ui/fx';
+import { addSplitTransaction, putMyShare } from '../core/splitInvite';
+import { useTranslation } from 'react-i18next';
 import { EmptyState } from '../ui/EmptyState';
 import { FI, InviteRow, SwitchRow, TextRow } from '../ui/formFields';
 import { parseContact } from '../core/split';
@@ -26,6 +28,7 @@ const COLORS = ['#17c3c9', '#8b5cf6', '#f59e0b', '#ef4444', '#22c55e', '#3b82f6'
 
 export function Groups() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const auth = useAuth();
   const me = auth.user?.id ?? '';
   const { id } = useParams();
@@ -105,15 +108,13 @@ export function Groups() {
       close(); await load(); navigate(`/grupos/${gid}`);
     } finally { setBusy(false); }
   };
-  const remove = async (g: Group) => {
-    const split = splitIdOf(g.id);
-    if (!await appConfirm(`${L('Apagar grupo')} "${g.name}"? ${L('As despesas ficam, só deixam de estar no grupo.')}${split ? ' ' + L('Também sais da divisão de contas deste grupo.') : ''}`)) return;
-    if (split) { const r = await getSupabase()?.rpc('leave_split_group', { p_group: split }); if (r?.error) { await appConfirm(r.error.message, { ok: 'OK' }); return; } }
+  const drop = async (g: Group) => {
     const now = new Date().toISOString();
     await db.groups.update(g.id, { deletedAt: now, updatedAt: now });
     for (const x of of(g.id)) await db.transactions.update(x.id, { groupId: undefined, updatedAt: now });
     navigate('/grupos'); await load();
   };
+  const remove = async (g: Group) => { if (await appConfirm(`${L('Apagar grupo')} "${g.name}"? ${L('As despesas ficam, só deixam de estar no grupo.')}`)) await drop(g); };
   // o grupo passa a ser dividido: muda de id (para ficar ligado) e leva as suas transações
   const link = async (g: Group, splitId: string) => {
     const now = new Date().toISOString(), gid = linkedGroupId(splitId, me);
@@ -122,6 +123,14 @@ export function Groups() {
       for (const x of await db.transactions.toArray()) if (x.groupId === g.id) await db.transactions.update(x.id, { groupId: gid, updatedAt: now });
       if (gid !== g.id) await db.groups.update(g.id, { deletedAt: now, updatedAt: now });
     });
+    for (const x of (await db.transactions.toArray()).filter((y) => y.groupId === gid && y.deletedAt === null)) {
+      if (x.type === 'income') { await db.transactions.update(x.id, { groupId: undefined, updatedAt: now }); continue; }
+      const c = cats.find((y) => y.id === x.categoryId), desc = x.description || (c ? catLabel(t, c) : L('Despesa'));
+      const r = await addSplitTransaction(splitId, desc, x.amountCents, x.date);
+      if ('error' in r) { await appConfirm(r.error, { ok: 'OK' }); break; }
+      await putMyShare(db, r.billId, me, { date: x.date, type: 'expense', categoryId: x.categoryId, description: desc, amountCents: r.share, currency: x.currency, accountId: x.accountId, groupId: gid });
+      await db.transactions.update(x.id, { deletedAt: now, updatedAt: now, groupId: undefined });
+    }
     await load(); navigate(`/grupos/${gid}`, { replace: true });
   };
 
@@ -134,6 +143,7 @@ export function Groups() {
           {!IS_DEMO && adding === 'new' && <SwitchRow icon="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M22 19v-1a4 4 0 0 0-3-3.9M16 4.1a3 3 0 0 1 0 5.8" label={L('Dividir despesas com outras pessoas?')} sub={split ? undefined : L('Cada um paga a sua parte e vê quem já pagou')} on={split} onChange={setSplit} />}
           {split && (me && has('split') ? <InviteRow value={people} onChange={setPeople} cls={miss.cls('people')} /> : null)}
         </div>
+        {split && adding !== 'new' && of(adding.id).length > 0 && <p className="grp-hint">{L('As despesas que já estão neste grupo passam a ser divididas por todos.')}</p>}
         {split && me && has('split') && <p className="grp-hint">{L('Usa o email ou o número de telemóvel da conta da pessoa no FuturePal.')}</p>}
         {split && !(me && has('split')) && <div className="mv-card sp-start"><p>{me ? L('Criar grupos para dividir despesas faz parte do Plus e do Pro.') : L('Inicia sessão para convidares pessoas e dividires as despesas deste grupo.')}</p><Link to={me ? '/plus' : '/definicoes'} className="sh-btn out sm">{me ? L('Ver planos') : L('Iniciar sessão')}</Link></div>}
         <button type="button" className="tx-addbtn" disabled={busy || (split && !(me && has('split')))} onClick={create}>{adding === 'new' ? L('Criar grupo') : L('Convidar')}</button>
@@ -147,7 +157,7 @@ export function Groups() {
     return (
       <div className="fx-page mv sh grp">
         <header className="mv-head"><Link to="/grupos" className="mv-sq" aria-label={L('Voltar')}><Ic d={ICON.left} size={20} /></Link><h1 className="sh-title">{open.name}</h1></header>
-        {splitIdOf(open.id) && !IS_DEMO ? <SplitGroup key={open.id} splitId={splitIdOf(open.id)!} groupId={open.id} createdAt={open.createdAt} local={list} cats={cats} onChanged={() => { load().catch(() => {}); }} /> : <>
+        {splitIdOf(open.id) && !IS_DEMO ? <SplitGroup key={open.id} splitId={splitIdOf(open.id)!} groupId={open.id} createdAt={open.createdAt} local={list} cats={cats} onChanged={() => { load().catch(() => {}); }} onGone={() => drop(open)} /> : <>
         <section className="mv-hero sh-hero grp-total">
           <small className="mv-hero-label">{L('Total')}</small>
           <div className="sh-big">{money(total(open.id))}</div>
@@ -157,12 +167,12 @@ export function Groups() {
           <div className="mv-card-head"><h2>{L('Transações')}</h2><Link to={`/transacoes?nova=1&grupo=${open.id}`} className="sh-btn in sm grp-add"><Ic d={ICON.plus} size={16} />{L('Adicionar transação')}</Link></div>
           {list.length === 0 ? <p className="fx-muted">{L('Adiciona transações a este grupo para veres quanto custa no total.')}</p> : list.map((x) => {
             const c = cats.find((y) => y.id === x.categoryId);
-            return <div key={x.id} className="sh-tx"><CatIcon cat={c ?? {}} size={36} /><span className="sh-tx-main"><b>{x.description || '—'}</b><small>{day(x.date)}</small></span><b className={x.type === 'income' ? 'fx-pos' : ''}>{x.type === 'income' ? '+' : '−'}{money(x.amountCents)}</b></div>;
+            return <div key={x.id} className="sh-tx"><CatIcon cat={c ?? {}} size={36} /><span className="sh-tx-main"><b>{x.description || '—'}</b><small>{day(x.date)}</small></span><b className={x.type === 'income' ? 'fx-pos' : 'fx-neg'}>{x.type === 'income' ? '+' : '−'}{money(x.amountCents)}</b></div>;
           })}
         </section>
         </>}
         {!IS_DEMO && !splitIdOf(open.id) && <button type="button" className="fx-link grp-start" onClick={() => { setName(open.name); setSplit(true); setAdding(open); }}>{L('Dividir este grupo com outras pessoas')}</button>}
-        <button type="button" className="sh-danger" onClick={() => remove(open)}>{L('Apagar grupo')}</button>
+        {!splitIdOf(open.id) && <button type="button" className="sh-danger" onClick={() => remove(open)}>{L('Apagar grupo')}</button>}
         {sheet}
       </div>
     );

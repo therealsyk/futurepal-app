@@ -1,7 +1,8 @@
 // Responder a um convite de divisão (aviso ao abrir a app, notificações). Devolve a mensagem de erro, ou null.
 import type { User } from '@supabase/supabase-js';
 import { getSupabase } from '../auth/supabase';
-import { SPLIT_CHANGED } from './groupLink';
+import { SPLIT_CHANGED, shareTxId } from './groupLink';
+import { stampNew, type Transaction, type WalletDB } from '../db/database';
 
 export async function answerSplitInvite(user: User | null, id: string, accept: boolean): Promise<string | null> {
   const sb = getSupabase();
@@ -23,9 +24,14 @@ export async function splitPeople(splitId: string): Promise<{ members: string[];
 }
 
 /** Transação num grupo dividido: fica dividida por todos. Devolve a minha parte, ou o erro. */
-export async function addSplitTransaction(splitId: string, description: string, cents: number, date: string): Promise<{ share: number } | { error: string }> {
+export async function addSplitTransaction(splitId: string, description: string, cents: number, date: string): Promise<{ share: number; billId: string } | { error: string }> {
   const sb = getSupabase(), p = await splitPeople(splitId);
   if (!sb || !p) return { error: 'offline' };
-  const { error } = await sb.rpc('add_split_bill', { p_group: splitId, p_description: description, p_amount_cents: cents, p_date: date, p_members: p.members, p_creator_paid: true });
-  return error ? { error: error.message } : { share: Math.ceil(cents / (p.members.length + p.pending)) };
+  const { data, error } = await sb.rpc('add_split_bill', { p_group: splitId, p_description: description, p_amount_cents: cents, p_date: date, p_members: p.members, p_creator_paid: true });
+  return error ? { error: error.message } : { share: Math.ceil(cents / (p.members.length + p.pending)), billId: String(data) };
+}
+
+/** Regista a minha parte nas minhas despesas, ligada à transação do grupo (pagar outra vez recupera a apagada). */
+export async function putMyShare(db: WalletDB, billId: string, userId: string, input: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>): Promise<void> {
+  await db.transactions.put({ ...stampNew<Transaction>(input), id: shareTxId(billId, userId) });
 }

@@ -1,4 +1,5 @@
-import { addSplitTransaction, splitPeople } from '../core/splitInvite';
+import { addSplitTransaction, putMyShare, splitPeople } from '../core/splitInvite';
+import { useAuth } from '../auth/AuthContext';
 import { splitIdOf } from '../core/groupLink';
 import { AccountRow, AmountField, CategoryRow, DateRow, FI, RepeatRows, Row, TextRow } from '../ui/formFields';
 import { FormError, useMissing } from '../ui/missing';
@@ -58,6 +59,7 @@ export function Transactions() {
   const [type, setType] = useState<'expense' | 'income'>('expense');
   const [amount, setAmount] = useState('');
   const missing = useMissing();
+  const auth = useAuth();
   const [splitInfo, setSplitInfo] = useState(0); // por quantas pessoas se divide o grupo escolhido
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(todayISO());
@@ -165,14 +167,15 @@ export function Transactions() {
     setError(null);
     if (!miss.check() || cents === null) return;
     // grupo dividido: a transação é dividida por todos e nas minhas fica só a minha parte
-    const splitId = !toAccount && type === 'expense' ? splitIdOf(groupId) : null;
-    let mine = cents;
+    const splitId = !toAccount ? splitIdOf(groupId) : null;
+    let mine = cents, billId = '';
+    if (splitId && type === 'income') { setError(L('Num grupo dividido só se adicionam despesas.')); return; }
     const splitCat = cats.find((x) => x.id === categoryId), splitDesc = description.trim() || (splitCat ? catLabel(t, splitCat) : L('Despesa'));
     if (splitId) {
       if (recurring) { setError(L('Uma transação dividida não pode ser recorrente.')); return; }
       const r = await addSplitTransaction(splitId, splitDesc, cents, date);
       if ('error' in r) { setError(r.error === 'offline' ? L('Para dividir precisas de internet e de sessão iniciada.') : r.error); return; }
-      mine = r.share;
+      mine = r.share; billId = r.billId;
     }
     if (SIMPLE_UI && toAccount) { // transferência entre contas (pode repetir-se)
       try {
@@ -195,7 +198,8 @@ export function Transactions() {
         await addRecurring(db, { type, categoryId, description: description.trim(), amountCents: cents, currency: settings.currency, frequency: freq, nextDate: date, endDate: endDate || null, accountId: accountId || undefined });
         await materializeDueRecurrings(db, todayISO());
       } else {
-        await addTransaction(db, { date, type, categoryId, description: splitId ? splitDesc : description.trim(), amountCents: mine, currency: settings.currency, groupId: groupId || undefined, accountId: accountId || undefined });
+        if (billId) await putMyShare(db, billId, auth.user?.id ?? '', { date, type, categoryId, description: splitDesc, amountCents: mine, currency: settings.currency, groupId, accountId: accountId || undefined });
+        else await addTransaction(db, { date, type, categoryId, description: description.trim(), amountCents: cents, currency: settings.currency, groupId: groupId || undefined, accountId: accountId || undefined });
         if (type === 'income') await syncSalaryTransactions(db).catch(() => {}); // categoria Salário -> aba Salários
       }
       setRecurring(false); setEndDate(''); setAmount(''); setDescription('');
@@ -369,7 +373,7 @@ export function Transactions() {
             <DateRow label={t('transactions.date')} value={date} onChange={setDate} testId="tx-date" />
             {!toAccount && groups.length > 0 && <label className="tx-row"><span><Ic d="M4 6h16M4 12h16M4 18h10" size={18} />{L('Grupo')}</span>
               <PickMenu compact label={L('Grupo')} value={groupId} options={[{ value: '', label: L('Nenhum') }, ...groups.map((g) => ({ value: g.id, label: g.name }))]} onChange={(v) => setGroupId(String(v))} /></label>}
-            {splitInfo && type === 'expense' && !toAccount && <p className="gx-hint"><Ic d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6" size={16} />{L('Dividida por')} {splitInfo} {splitInfo === 1 ? L('pessoa') : L('pessoas')}{(parseMoneyToCents(amount) ?? 0) > 0 ? `: ${L('a tua parte é')} ${money(Math.ceil(parseMoneyToCents(amount)! / splitInfo))}` : ''}</p>}
+            {splitInfo > 0 && type === 'expense' && !toAccount && <p className="gx-hint"><Ic d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6" size={16} />{L('Dividida por')} {splitInfo} {splitInfo === 1 ? L('pessoa') : L('pessoas')}{(parseMoneyToCents(amount) ?? 0) > 0 ? `: ${L('a tua parte é')} ${money(Math.ceil(parseMoneyToCents(amount)! / splitInfo))}` : ''}</p>}
             <RepeatRows label={toAccount ? L('Repetir todos os meses') : undefined} on={recurring} setOn={setRecurring} freq={freq} setFreq={setFreq} end={endDate} setEnd={setEndDate} />
           </div>
         </>) : (<>

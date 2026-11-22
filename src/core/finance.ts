@@ -1,3 +1,4 @@
+import { billOfTx, SHARE_REMOVED } from './groupLink';
 import type { Transfer, WalletDB, Transaction, Category, Budget, Goal, Recurring, Group } from '../db/database';
 import { stampNew } from '../db/database';
 import { assertCents } from './money';
@@ -38,6 +39,8 @@ export async function addTransaction(db: WalletDB, input: Omit<Transaction, 'id'
 export async function softDelete(db: WalletDB, table: 'transactions' | 'categories' | 'budgets' | 'salaries' | 'goals' | 'recurrings' | 'groups', id: string): Promise<void> {
   const t = db.table(table) as any;
   await t.update(id, { deletedAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+  const bill = table === 'transactions' ? billOfTx(id) : null;
+  if (bill && typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(SHARE_REMOVED, { detail: bill }));
   if (table === 'transactions') await deleteSalaryOfTx(db, id); // apagar o salário nas Transações apaga-o também nos Salários
 }
 

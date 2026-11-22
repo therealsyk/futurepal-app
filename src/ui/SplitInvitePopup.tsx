@@ -5,7 +5,7 @@ import { useLocation } from 'react-router-dom';
 import { getSupabase } from '../auth/supabase';
 import { useAuth } from '../auth/AuthContext';
 import { answerSplitInvite } from '../core/splitInvite';
-import { SPLIT_CHANGED } from '../core/groupLink';
+import { SHARE_REMOVED, SPLIT_CHANGED } from '../core/groupLink';
 import { Ic } from './fx';
 import { InviteCard, INVITE_IC } from './InviteCard';
 import { L } from '../i18n/phrases';
@@ -30,6 +30,16 @@ export function SplitInvitePopup() {
     window.addEventListener(SPLIT_CHANGED, read);
     return () => window.removeEventListener(SPLIT_CHANGED, read);
   }, [auth.user, groups]);
+  // apagou a sua parte nas despesas: no grupo volta a estar por pagar
+  useEffect(() => {
+    const on = (e: Event) => {
+      const sb = getSupabase(), bill = (e as CustomEvent<string>).detail;
+      if (!sb || !auth.user || !bill) return;
+      Promise.resolve(sb.rpc('set_split_paid', { p_bill: bill, p_user: auth.user.id, p_paid: false })).then(() => window.dispatchEvent(new Event(SPLIT_CHANGED)), () => {});
+    };
+    window.addEventListener(SHARE_REMOVED, on);
+    return () => window.removeEventListener(SHARE_REMOVED, on);
+  }, [auth.user]);
   const show = groups ? list : list.filter((i) => !seen.includes(i.id));
   if (show.length === 0) return null;
   const answer = async (id: string, accept: boolean) => {
