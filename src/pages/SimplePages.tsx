@@ -3,7 +3,8 @@ import { beforePayments, debtStatus, goalValueCents, inThisMonth, joinDesc, payo
 import { NewAccount } from './NewAccount';
 import { cmpShort } from '../core/compare';
 import { useMissing } from '../ui/missing';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useFitSheet } from '../ui/useFitSheet';
 import { appConfirm } from '../ui/confirm';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
@@ -23,13 +24,15 @@ import { DatePicker } from '../ui/DatePicker';
 
 // Folha que sobe do fundo do ecrã (resto desfocado). Voltar, tocar fora ou Esc fecham.
 export function BottomSheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+  const body = useRef<HTMLDivElement>(null);
+  useFitSheet(body);
   useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [onClose]);
   return createPortal(
     <div className="bs-backdrop" onClick={onClose}>
       <div className="bs-sheet" role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
         <span className="bs-grab" aria-hidden="true" />
         <header className="bs-head"><button type="button" className="bs-back" onClick={onClose}><Ic d={ICON.left} size={18} />{L('Voltar')}</button><h2>{title}</h2><span /></header>
-        <div className="bs-body">{children}</div>
+        <div className="bs-body" ref={body}>{children}</div>
       </div>
     </div>,
     document.body,

@@ -1,3 +1,4 @@
+import { useFitSheet } from './useFitSheet';
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
@@ -97,6 +98,8 @@ export function MonthNav({ label, onPrev, onNext }: { label: string; onPrev: () 
 // Janela modal centrada (no telemóvel seria uma folha por baixo).
 export function Sheet({ title, open, onClose, children, footer, wide }: { title: string; open: boolean; onClose: () => void; children: ReactNode; footer?: ReactNode; wide?: boolean }) {
   const { t } = useTranslation();
+  const body = useRef<HTMLDivElement>(null);
+  useFitSheet(body, open);
   useEffect(() => {
     if (!open) return;
     const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -112,7 +115,7 @@ export function Sheet({ title, open, onClose, children, footer, wide }: { title:
           <h2>{title}</h2>
           <button type="button" className="fx-round" onClick={onClose} aria-label={t('common.close')}><Ic d={ICON.close} /></button>
         </div>
-        <div className="fx-sheet-body">{children}</div>
+        <div className="fx-sheet-body" ref={body}>{children}</div>
         {footer ? <div className="fx-sheet-foot">{footer}</div> : null}
       </div>
     </div>,
