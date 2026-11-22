@@ -1,5 +1,6 @@
 import { useRef, useState, type ChangeEvent, type ReactNode, useEffect } from 'react';
 import { L } from '../i18n/phrases';
+import { CI_ENABLED } from '../core/ciFlag';
 import { trackEvent } from '../core/presence';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
@@ -249,7 +250,7 @@ export function Settings() {
         </Row>
       </div>
 
-      <CiOptRow />
+      {CI_ENABLED && <CiOptRow />}
       <h2 className="st-section">{t('ai.section')}</h2>
       <div className="st-group">
         <Row icon={I.spark} title={t('ai.rowTitle')} sub={aiOn ? `${getPreset(ai.provider)?.label ?? ai.provider} · ${ai.model}` : t('ai.rowSub')} onClick={() => setAiOpen(true)} testId="ai-row" />

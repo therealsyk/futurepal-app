@@ -6,6 +6,15 @@
 --   • contas da equipa (@staff) e quem desligou "Contribuir para estatísticas anónimas" ficam de fora.
 -- Arquitetura: tudo no schema "ci" (separado dos dados das pessoas). Uma futura API B2B lê só public.ci_get(...).
 
+-- !! DESATIVADO (22/11/2026): NÃO CORRER. Falhas conhecidas, a corrigir antes de ligar:
+--   1. Poupança e metas contam meses/metas em vez de pessoas (uma só pessoa pode passar o mínimo de 10).
+--   2. Várias contagens (pessoas, despesas, qualidade) saem sem mínimo.
+--   3. A regra dos 50% só se aplica às categorias, não aos totais, médias e evolução mensal.
+--   4. Comparar filtros/períodos pode permitir deduzir valores de uma pessoa.
+--   5. Consultas respondidas pela cache não ficam na auditoria.
+--   6. A opção está ligada por defeito (tem de ser opt-in, com a política de privacidade atualizada).
+do $$ begin raise exception 'ci.sql esta desativado: ver as falhas no topo do ficheiro'; end $$;
+
 create schema if not exists ci;
 revoke all on schema ci from public, anon, authenticated;
 

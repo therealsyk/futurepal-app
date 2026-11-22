@@ -6,6 +6,7 @@ import { getAdminSupabase as getSupabase, STAFF_DOMAIN } from '../auth/supabase'
 import { loadSettings } from '../core/settings';
 import { Sheet, PickMenu } from '../ui/fx';
 import { L } from '../i18n/phrases';
+import { CI_ENABLED } from '../core/ciFlag';
 
 export type AdminTab = 'ci_overview' | 'ci_categories' | 'ci_trends' | 'ci_savings' | 'ci_quality' | 'ci_reports' | 'overview' | 'engagement' | 'health' | 'safety' | 'money' | 'live' | 'users' | 'plans' | 'tickets' | 'versions' | 'audit' | 'security' | 'team';
 const PLAN_NAME: Record<string, string> = { free: 'Free', plus: 'Plus', family: 'Family', pro: 'Pro' };
@@ -420,7 +421,7 @@ const ROLE_TABS: Record<string, AdminTab[]> = {
   finance: ['ci_overview', 'ci_categories', 'ci_trends', 'ci_savings', 'ci_quality', 'ci_reports', 'overview', 'money', 'users', 'security'],
   readonly: ['overview', 'engagement', 'security'],
 };
-export const allowedTab = (role: string, tab: AdminTab) => (ROLE_TABS[role] ?? ['overview']).includes(tab);
+export const allowedTab = (role: string, tab: AdminTab) => (CI_ENABLED || !tab.startsWith('ci_')) && (ROLE_TABS[role] ?? ['overview']).includes(tab);
 
 export function AdminShell({ tab, onTab, onRefresh, role, children }: { tab: AdminTab; onTab: (t: AdminTab) => void; onRefresh: () => void; role: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
