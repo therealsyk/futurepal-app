@@ -1175,6 +1175,10 @@ export const PHRASES: Record<string, Tr> = {
   'Contas da casa': ['House bills', 'Cuentas de casa', 'Factures de la maison'],
   'Jantar de sexta': ['Friday dinner', 'Cena del viernes', 'Dîner du vendredi'],
   'Outro (compatível com OpenAI)': ['Other (OpenAI compatible)', 'Otro (compatible con OpenAI)', 'Autre (compatible OpenAI)'],
+  'nome@email.com': ['name@email.com', 'nombre@email.com', 'nom@email.com'],
+  'Esconder palavra-passe': ['Hide password', 'Ocultar contraseña', 'Masquer le mot de passe'],
+  'Mostrar palavra-passe': ['Show password', 'Mostrar contraseña', 'Afficher le mot de passe'],
+  'ou entra com': ['or continue with', 'o entra con', 'ou continuer avec'],
 };
 
 /** Português do Brasil: as palavras de Portugal que lá se dizem de outra forma. */
