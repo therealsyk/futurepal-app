@@ -55,7 +55,7 @@ export function DuplicateAccountsPopup() {
         <p className="dup-text">{L('Queres uni-las numa só? O saldo total mantém-se e nenhum movimento é apagado.')}</p>
         {err && <p className="spi-warn">{L('Não foi possível juntar sem mudar o saldo. Nada foi alterado.')}</p>}
         <div className="spi-btns">
-          <button type="button" className="spi-btn no" disabled={busy} onClick={no}>{L('Não')}</button>
+          <button type="button" className="spi-btn danger" disabled={busy} onClick={no}>{L('Não')}</button>
           <button type="button" className="spi-btn yes" disabled={busy} onClick={join}>{busy ? '…' : L('Juntar contas')}</button>
         </div>
       </div>

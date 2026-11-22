@@ -628,6 +628,8 @@ export const PHRASES: Record<string, Tr> = {
   'Tens 2 contas principais': ['You have 2 main accounts', 'Tienes 2 cuentas principales', 'Vous avez 2 comptes principaux'],
   'Queres uni-las numa só? O saldo total mantém-se e nenhum movimento é apagado.': ['Merge them into one? The total balance stays the same and no transaction is deleted.', '¿Quieres unirlas en una sola? El saldo total se mantiene y no se elimina ningún movimiento.', 'Les fusionner en un seul ? Le solde total reste le même et aucune opération n’est supprimée.'],
   'Não': ['No', 'No', 'Non'],
+  'Calculadora': ['Calculator', 'Calculadora', 'Calculatrice'],
+  'Usar este valor': ['Use this amount', 'Usar este valor', 'Utiliser ce montant'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */

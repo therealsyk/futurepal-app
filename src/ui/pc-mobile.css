@@ -1109,28 +1109,44 @@ button.sp-row { cursor: pointer; } button.sp-row:hover { background: color-mix(i
 @keyframes up-pulse { 50% { transform: scale(1.06); filter: drop-shadow(0 8px 26px color-mix(in srgb, var(--mv, var(--accent)) 55%, transparent)); } }
 @media (prefers-reduced-motion: reduce) { .up-logo { animation: none; } }
 
-/* ---- Todas as janelas: mesmo tamanho, mesma posição e mesmo desfoque (o de "Nova meta") */
+/* ---- Todas as janelas: mesma largura, posição e desfoque (o de "Nova meta"); a altura é a do conteúdo */
 .bs-backdrop, .fx-backdrop, html.pcm .fx-backdrop, .stm-backdrop, html.pcm .stm-backdrop, .pf-modal-back, .spi-back, .mb-backdrop, .up-block:has(.up-progress) {
   background: rgba(5,6,9,.22) !important; backdrop-filter: blur(2px) !important; -webkit-backdrop-filter: blur(2px) !important;
 }
 .bs-sheet, .fx-sheet, .fx-sheet.wide, html.pcm .fx-sheet, html.pcm .fx-sheet:has(.tx-rows), html.pcm .stm {
-  width: min(560px, 100%) !important; height: min(700px, 88vh); height: min(700px, 88dvh); min-height: 0 !important; max-height: none !important;
+  width: min(560px, 100%) !important; height: auto; min-height: 0 !important; max-height: 88vh !important; max-height: 88dvh !important;
 }
-.bs-sheet { display: flex; flex-direction: column; overflow: hidden; }
-.bs-sheet > .bs-grab, .bs-sheet > .bs-head { flex: none; }
-.bs-sheet > .bs-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; scrollbar-width: none; }
-.bs-sheet > .bs-body > * { flex: 1 0 auto; }
-.bs-body .sh-form > .sh-btn:last-child { margin-top: auto; }
+.fx-sheet { position: relative; }
 .fx-sheet > .fx-sheet-head, .fx-sheet > .fx-sheet-foot { flex: none; }
-.fx-sheet > .fx-sheet-body { flex: 1; min-height: 0; }
 @media (min-width: 769px) {
   .bs-backdrop, html.pcm .fx-backdrop, html.pcm .stm-backdrop { display: flex; align-items: flex-end !important; justify-content: center; padding: 0 12px 28px 88px !important; }
   .bs-sheet, html.pcm .fx-sheet, html.pcm .stm { margin: 0 !important; border-radius: 28px !important; }
 }
 @media (max-width: 768px) {
   .bs-backdrop, .fx-backdrop { display: flex; align-items: flex-end !important; justify-content: center; padding: 0 !important; }
-  .bs-sheet, .fx-sheet, .fx-sheet.wide { margin: 0 !important; border-radius: 28px 28px 0 0 !important; height: min(700px, 86vh); height: min(700px, 86dvh); }
+  .bs-sheet, .fx-sheet, .fx-sheet.wide { margin: 0 !important; border-radius: 28px 28px 0 0 !important; }
 }
-/* Avisos e confirmações (sem campos para preencher): pequenos e ao centro */
+/* Avisos e confirmações (sem campos para preencher): ao centro */
 .fx-backdrop:not(:has(input, select, textarea, .tx-rows, .ct-icons, .fx-selectbtn)) { align-items: center !important; }
-.fx-backdrop:not(:has(input, select, textarea, .tx-rows, .ct-icons, .fx-selectbtn)) > .fx-sheet { height: auto !important; max-height: 88dvh !important; }
+
+/* ---- Calculadora da "Nova transação" */
+.calc-btn { position: absolute; right: -24px; bottom: 20px; z-index: 2; width: 48px; height: 48px; display: grid; place-items: center; padding: 0; border-radius: 50%; border: 1px solid var(--border); background: var(--card-2); color: var(--mv, var(--accent)); cursor: pointer; box-shadow: 0 12px 30px -10px rgba(0,0,0,.75); transition: transform .15s, background .15s, color .15s; }
+.calc-btn:hover { transform: scale(1.06); } .calc-btn.on { background: var(--mv, var(--accent)); color: var(--mv-ink, #032a2d); }
+.calc { position: fixed; z-index: 125; width: 264px; padding: 8px 14px 14px; border-radius: 26px; background: var(--card); border: 1px solid var(--border); box-shadow: 0 30px 80px -20px rgba(0,0,0,.8); color: var(--text); outline: none; animation: bs-fade .18s ease both; }
+.calc-head::before { content: ''; position: absolute; top: 7px; left: calc(50% - 18px); width: 36px; height: 4px; border-radius: 4px; background: var(--border); }
+.calc-head { display: flex; align-items: center; gap: 8px; height: 40px; cursor: grab; touch-action: none; user-select: none; color: var(--muted); }
+.calc-head:active { cursor: grabbing; } .calc-head b { flex: 1; color: var(--text); font-size: 14px; }
+.calc-x { width: 30px; height: 30px; display: grid; place-items: center; padding: 0; border-radius: 50%; border: 0; background: var(--card-2); color: var(--text); cursor: pointer; }
+.calc-screen { display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-end; min-height: 70px; margin: 2px 0 12px; padding: 10px 14px; border-radius: 18px; background: var(--bg); overflow: hidden; }
+.calc-screen small { max-width: 100%; min-height: 18px; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; text-align: right; }
+.calc-screen strong { max-width: 100%; font-size: 28px; line-height: 1.15; font-weight: 800; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; text-align: right; }
+.calc-keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.calc-keys button { height: 46px; padding: 0; border: 0; border-radius: 16px; background: var(--card-2); color: var(--text); font: inherit; font-size: 18px; font-weight: 650; cursor: pointer; transition: filter .12s, transform .08s; }
+.calc-keys button:hover { filter: brightness(1.2); } .calc-keys button:active { transform: scale(.94); }
+.calc-keys .fn { color: var(--muted); font-size: 16px; } .calc-keys .zero { grid-column: span 2; }
+.calc-keys .op { background: color-mix(in srgb, var(--mv, var(--accent)) 16%, var(--card-2)); color: var(--mv, var(--accent)); font-size: 21px; }
+.calc-keys .eq { background: var(--mv, var(--accent)); color: var(--mv-ink, #032a2d); font-size: 21px; }
+.calc-use { width: 100%; height: 44px; margin-top: 10px; border: 0; border-radius: 99px; background: var(--mv, var(--accent)); color: var(--mv-ink, #032a2d); font: inherit; font-size: 14.5px; font-weight: 750; cursor: pointer; }
+.calc-use:disabled { background: var(--card-2); color: var(--muted); cursor: default; }
+@media (max-width: 768px) { .calc-btn { right: 16px; bottom: calc(22px + var(--safe-b, 0px)); } .calc-keys button { height: 48px; } }
+@media (prefers-reduced-motion: reduce) { .calc { animation: none; } .calc-btn:hover { transform: none; } }

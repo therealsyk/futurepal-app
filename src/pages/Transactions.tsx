@@ -14,6 +14,7 @@ import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
 import { catLabel, PageHead, Seg, Sheet, Toggle, Field, MonthNav, EmptyState, AccountSwitch, Ic, ICON, useAccounts, CategorySelect, CatIcon, PickMenu } from '../ui/fx';
 import { DatePicker } from '../ui/DatePicker';
+import { CalculatorButton } from '../ui/Calculator';
 import { todayISO } from '../core/dates';
 import { syncSalaryTransactions } from '../core/salaryTx';
 import { Sponsored } from '../ui/Sponsored';
@@ -325,8 +326,8 @@ export function Transactions() {
 
       <Sheet open={open} onClose={() => { setOpen(false); setToAccount(''); }} title={toAccount ? L('Transferência') : t('transactions.addTransaction')}
         footer={SIMPLE_UI && isMobile
-          ? <button type="button" className="tx-addbtn" onClick={submit}>{toAccount ? L('Transferir') : type === 'expense' ? L('Adicionar despesa') : L('Adicionar rendimento')}</button>
-          : <><span style={{ flex: 1 }} /><button type="button" className="fx-btn" onClick={() => setOpen(false)}>{t('common.cancel')}</button><button type="button" className="fx-btn primary" onClick={submit}>{t('common.add')}</button></>}>
+          ? <><button type="button" className="tx-addbtn" onClick={submit}>{toAccount ? L('Transferir') : type === 'expense' ? L('Adicionar despesa') : L('Adicionar rendimento')}</button><CalculatorButton value={amount} lang={settings.language} onUse={setAmount} /></>
+          : <><span style={{ flex: 1 }} /><button type="button" className="fx-btn" onClick={() => setOpen(false)}>{t('common.cancel')}</button><button type="button" className="fx-btn primary" onClick={submit}>{t('common.add')}</button><CalculatorButton value={amount} lang={settings.language} onUse={setAmount} /></>}>
         {error && <p className="fx-error">{error}</p>}
         {SIMPLE_UI && isMobile ? (<>
           {/* Formulário (telemóvel): valor grande e linhas com ícone */}
