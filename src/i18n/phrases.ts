@@ -994,6 +994,8 @@ export const PHRASES: Record<string, Tr> = {
   'Acabas {m} mais cedo': ['You finish {m} sooner', 'Terminas {m} antes', 'Vous finissez {m} plus tôt'],
   'Arrasta as bolas e vê quando acabas.': ['Drag the dots and see when you finish.', 'Arrastra los círculos y mira cuándo terminas.', 'Glissez les ronds et voyez quand vous finissez.'],
   'Cuidado: pode faltar-te dinheiro para as contas.': ['Careful: you may run short for your bills.', 'Cuidado: puede faltarte dinero para las facturas.', 'Attention : vous pourriez manquer pour vos factures.'],
+  'Agora pagas': ['You pay now', 'Ahora pagas', 'Vous payez'],
+  'Poupas {m}': ['You save {m}', 'Ahorras {m}', 'Vous gagnez {m}'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */

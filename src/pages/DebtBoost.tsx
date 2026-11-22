@@ -5,7 +5,7 @@ import { db } from '../db/app-db';
 import type { Account, Transaction, Transfer } from '../db/database';
 import { updateAccount } from '../core/accounts';
 import { budget, options, simulate, usualPayment, type Effect } from '../core/debtBoost';
-import { joinDesc, splitDesc } from '../core/debtPlan';
+import { joinDesc, payoff, splitDesc } from '../core/debtPlan';
 import { duration, endDate, fill } from '../ui/AccountPlan';
 import { appConfirm } from '../ui/confirm';
 import { CountMoney } from '../ui/CountMoney';
@@ -41,6 +41,7 @@ export function DebtBoost({ a, left, txs, accounts, transfers, balOf, money, lan
   const base = usualPayment(plan?.monthlyCents ?? 0, a.id, transfers);
   const liquid = accounts.filter((x) => x.type !== 'debt').reduce((s, x) => s + balOf(x), 0);
   const b = budget(txs, transfers, accounts, liquid), opts = base > 0 ? options(left, base, rate, b) : [];
+  const nowEnd = base > 0 ? payoff(left, base, rate) : null; // como está hoje: é com isto que as opções se comparam
   const lump = Math.min(b.lumpCents, left), lumpEffect = lump > 0 && base > 0 ? simulate(left, base, rate, lump, base) : null;
   const top = Math.max(base * 3, base + b.extraCents * 2, Math.ceil(left / 24)), step = top > 200000 ? 5000 : 1000;
   const [now, setNow] = useState(0), [per, setPer] = useState<number | null>(null);
@@ -62,13 +63,14 @@ export function DebtBoost({ a, left, txs, accounts, transfers, balOf, money, lan
           : opts.length === 0 && !lumpEffect ? <p className="sh-alert">{fill(L('Num mês normal sobram-te cerca de {m}. Por agora não convém abater mais: mantém o valor atual.'), { m: money(b.freeCents) })}</p>
           : <>
             <p className="gl-sub">{fill(L('Toca numa opção. Continuas a ter {k} por mês para poupar.'), { k: money(b.keepCents) })}</p>
+            {nowEnd && <div className="db-now"><span><small>{L('Agora pagas')}</small><b>{money(base)}<i>/{L('mês')}</i></b></span><Ic d={ICON.right} size={18} /><span><small>{L('Acabas em')}</small><b>{endDate(nowEnd.months, lang)}</b></span></div>}
             {opts.length > 0 && <div className="db-opts">{opts.map((o, i) => (
               <button key={o.extra} type="button" style={{ '--i': i } as CSSProperties} onClick={() => apply(o.monthly)}>
                 <small>{names[opts.length === 3 ? i : opts.length === 2 ? i + 1 : 1]}</small><b>{money(o.monthly)}<i>/{L('mês')}</i></b>
-                <em>+{money(o.extra)}</em><span className="fx-pos">{fill(L('Acabas {m} mais cedo'), { m: duration(o.effect.saveMonths) })}</span>
+                <em>+{money(o.extra)}</em><span>{L('Acabas em')} <strong>{endDate(o.effect.months, lang)}</strong></span><span className="fx-pos">{fill(L('Poupas {m}'), { m: duration(o.effect.saveMonths) })}</span>
               </button>
             ))}</div>}
-            {lumpEffect && <div className="db-lump"><span className="pco-mic"><Ic d="M13 2 4 14h7l-1 8 9-12h-7z" size={19} /></span><div><b>{fill(L('Podias pagar já {m}'), { m: money(lump) })}</b><small className="fx-pos">{fill(L('Acabas {m} mais cedo'), { m: duration(lumpEffect.saveMonths) })}</small></div><Link className="gl-act" to={`/transacoes?nova=1&para=${a.id}`}>{L('Abater')}</Link></div>}
+            {lumpEffect && <div className="db-lump"><span className="pco-mic"><Ic d="M13 2 4 14h7l-1 8 9-12h-7z" size={19} /></span><div><b>{fill(L('Podias pagar já {m}'), { m: money(lump) })}</b><small>{L('Acabas em')} <strong>{endDate(lumpEffect.months, lang)}</strong> · <strong className="fx-pos">{fill(L('Poupas {m}'), { m: duration(lumpEffect.saveMonths) })}</strong></small></div><Link className="gl-act" to={`/transacoes?nova=1&para=${a.id}`}>{L('Abater')}</Link></div>}
           </>}
       </section>
       <section className="mv-card gl-sec db-sim">
