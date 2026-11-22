@@ -61,9 +61,7 @@ const MENU: StepDef[] = [
   { sel: '.mb-allbtn', t: () => L('Menu'), d: I.grid, tap: true, menu: 'short', text: () => L('Toca em {x} para veres o resto.').replace('{x}', i18next.t('simple.allFeatures')) },
 ];
 const ACCNAV = (): StepDef[] => [nav('/contas', 'nav.accounts'), { path: '/contas', sel: '.fx-page > .sh-btn.in', t: () => L('Criar conta'), d: ICON.wallet, tap: true, text: () => L('Sempre que quiseres uma conta nova, toca em Criar conta.') }];
-const EXPNAV = (): StepDef[] => (pc()
-  ? [nav('/transacoes', 'nav.transactions'), { path: '/transacoes', sel: '.fx-page .fx-btn.primary', t: () => L('Nova transação'), d: ICON.plus, tap: true, text: () => L('Sempre que gastares dinheiro, toca em Nova transação.') }]
-  : [{ sel: '.mb-plus', t: () => L('Nova transação'), d: ICON.plus, tap: true, text: () => L('Sempre que gastares dinheiro, toca no botão + em baixo.') }]);
+const EXPNAV = (): StepDef[] => [{ path: pc() ? '/' : undefined, sel: pc() ? '.pc-fab' : '.mb-plus', t: () => L('Nova transação'), d: ICON.plus, tap: true, text: () => (pc() ? L('Sempre que gastares dinheiro, toca no botão + do Início.') : L('Sempre que gastares dinheiro, toca no botão + em baixo.')) }];
 const MORE = (): StepDef[] => [
   nav('/transacoes', 'nav.transactions'),
   { path: '/transacoes', sel: '.txs-search, .fx-search', t: () => L('Transações'), d: I.list, text: () => L('Aqui vês e procuras todas as tuas transações.') },

@@ -1147,7 +1147,7 @@ export const PHRASES: Record<string, Tr> = {
   'No Início, toca em Menu. É por aqui que encontras as outras páginas.': ['On Home, tap Menu. The other pages are here.', 'En Inicio, toca Menú. Aquí están las demás páginas.', 'À l’Accueil, touchez Menu. Les autres pages sont là.'],
   'Toca em {x} para veres o resto.': ['Tap {x} to see the rest.', 'Toca {x} para ver el resto.', 'Touchez {x} pour voir le reste.'],
   'Sempre que quiseres uma conta nova, toca em Criar conta.': ['Whenever you want a new account, tap Create account.', 'Cuando quieras una cuenta nueva, toca Crear cuenta.', 'Pour un nouveau compte, touchez Créer un compte.'],
-  'Sempre que gastares dinheiro, toca em Nova transação.': ['Whenever you spend money, tap New transaction.', 'Cuando gastes dinero, toca Nueva transacción.', 'À chaque dépense, touchez Nouvelle transaction.'],
+  'Sempre que gastares dinheiro, toca no botão + do Início.': ['Whenever you spend money, tap the + button on Home.', 'Cuando gastes dinero, toca el botón + de Inicio.', 'À chaque dépense, touchez le bouton + de l’Accueil.'],
   'Sempre que gastares dinheiro, toca no botão + em baixo.': ['Whenever you spend money, tap the + button below.', 'Cuando gastes dinero, toca el botón + abajo.', 'À chaque dépense, touchez le bouton + en bas.'],
   'Nova categoria': ['New category', 'Nueva categoría', 'Nouvelle catégorie'],
   'Mensal': ['Monthly', 'Mensual', 'Mensuel'],
