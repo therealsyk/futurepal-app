@@ -1095,6 +1095,8 @@ export const PHRASES: Record<string, Tr> = {
   'O valor grande é o que ainda tens neste mês.': ['The big amount is what you have left this month.', 'El importe grande es lo que te queda este mes.', 'Le grand montant est ce qu’il vous reste ce mois.'],
   'A barra mostra quanto do rendimento já gastaste.': ['The bar shows how much of your income you’ve spent.', 'La barra muestra cuánto has gastado.', 'La barre montre la part dépensée.'],
   'As comparações são com o mês ou ano anterior.': ['Comparisons are with the previous month or year.', 'Las comparaciones son con el mes o año anterior.', 'Les comparaisons portent sur le mois ou l’an précédent.'],
+  'Despesas do ano': ['Spent this year', 'Gastos del año', 'Dépenses de l’année'],
+  'Poupança do ano': ['Saved this year', 'Ahorro del año', 'Épargne de l’année'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */
