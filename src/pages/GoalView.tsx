@@ -16,6 +16,7 @@ import { GoalRing } from '../ui/GoalRing';
 import { PC_MOBILE } from '../core/uiMode';
 import { L } from '../i18n/phrases';
 import { BottomSheet } from './SimplePages';
+import { CALENDAR, GTile } from './Split';
 
 const I = {
   add: 'M12 5v14M5 12h14', take: 'M5 12h14', edit: 'M4 20h4L19 9l-4-4L4 16zM13 7l4 4', swap: 'M7 7h12l-3-3M17 17H5l3 3',
@@ -106,11 +107,11 @@ export function GoalView({ g, acc, info, extra, accounts, valueOf, money, date, 
           </div>
         </div>
       </section>
-      <div className="pl-tiles gl-tiles">
-        <div className="pl-tile"><small>{L('Falta')}</small><b>{money(left)}</b></div>
-        <div className="pl-tile"><small>{L('Por mês')}</small><b>{info.per > 0 ? money(info.per) : '—'}</b></div>
-        <div className="pl-tile"><small>{debt ? L('Acabas em') : L('Chegas lá em')}</small><b>{info.done ? L('Já chegaste') : info.eta || '—'}</b></div>
-        <div className="pl-tile"><small>{L('Data limite')}</small><b>{g.targetDate ? date(g.targetDate) : L('Sem data')}</b></div>
+      <div className="gx-tiles even">
+        <GTile d="M12 19V5M5 12l7-7 7 7" tone={left > 0 ? 'neg' : 'pos'} label={debt ? L('Falta pagar') : L('Falta')} value={money(left)} />
+        <GTile d={CALENDAR} label={L('Por mês')} value={info.per > 0 ? money(info.per) : '—'} />
+        <GTile d={I.flag} label={debt ? L('Acabas em') : L('Chegas lá em')} value={info.done ? L('Já chegaste') : info.eta || '—'} />
+        <GTile d={I.clock} label={L('Data limite')} value={g.targetDate ? date(g.targetDate) : L('Sem data')} />
       </div>
       {!debt && <section className="mv-card gl-sec">
         <h2>{L('Previsão')}</h2>

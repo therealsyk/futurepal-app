@@ -8,6 +8,7 @@ import { NewGoal } from './NewGoal';
 import { GoalCard, GoalView, type GoalInfo } from './GoalView';
 import { GoalRing } from '../ui/GoalRing';
 import { GTile } from './Split';
+import { milestone } from '../core/onboarding';
 import { DebtBoost, MoreInfo, PaymentList } from './DebtBoost';
 import { CountMoney } from '../ui/CountMoney';
 import { allPayments, inPeriod, isEssential } from '../core/payments';
@@ -216,6 +217,7 @@ export function SimpleLimits() {
   const create = async () => {
     const cents = parseMoneyToCents(amt);
     if (!miss.check() || !cents) return;
+    milestone('limit');
     // com data limite: o mesmo limite em todos os meses até lá; sem data: só este mês
     let y = cur.y, mo = cur.m + 1;
     const [ey, em] = hasEnd && endM ? endM.split('-').map(Number) : [y, mo];
@@ -597,7 +599,7 @@ export function SimpleOverview({ yearly = false, embed }: { yearly?: boolean; em
     if (!d) return null;
     const { added, found } = allPayments(d.txs, recs, ignoredList());
     const from = pref + (yearly ? '-01-01' : '-01'), to = yearly ? pref + '-12-31' : `${pref}-${String(days).padStart(2, '0')}`;
-    const list = [...added, ...(hasFeature('subscriptions') ? found : [])].map((p) => { const v = inPeriod(p, from, to); return { p, cents: v.paid + v.due }; }).filter((x) => x.cents > 0);
+    const list = [...added, ...(hasFeature('subscriptions') ? found : [])].map((p) => { const v = inPeriod(p, from, to); const now_ = !yearly && (cur.y > now.getFullYear() || isNow); return { p, cents: v.paid + v.due || (now_ ? p.monthlyCents : 0) }; }).filter((x) => x.cents > 0); // no mês atual conta também o que é habitual
     if (!list.length) return null;
     const total = list.reduce((a, x) => a + x.cents, 0), free = list.filter((x) => !isEssential(x.p, catOf(x.p.categoryId))).reduce((a, x) => a + x.cents, 0);
     const share = Math.min(1, m.expense > 0 ? total / Math.max(total, m.expense) : 1);

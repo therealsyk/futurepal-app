@@ -77,6 +77,10 @@ export default function Rail() {
         )}
       </nav>
       <div className="fx-rail-bottom">
+        <NavLink to="/ajuda" aria-label={t('nav.help')} className={({ isActive }) => 'fx-rail-btn' + (isActive ? ' active' : '')}>
+          {svg('M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .8-1 1.7M12 17h.01')}
+          <span className="fx-tip">{t('nav.help')}</span>
+        </NavLink>
         <button type="button" className="fx-rail-btn" onClick={cycleTheme} aria-label={themeLabel}>
           {svg(THEME_ICON[theme])}
           <span className="fx-tip">{themeLabel}</span>

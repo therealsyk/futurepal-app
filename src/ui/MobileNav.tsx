@@ -21,7 +21,7 @@ const SIMPLE_TABS = [
   { path: '/orcamentos', key: 'simple.tabLimits', d: 'M12 3a9 9 0 1 0 9 9h-9zM15 3.5V9h5.5A9 9 0 0 0 15 3.5z' },
   { path: '/contas', key: 'nav.accounts', d: ICON.wallet },
 ];
-const SIMPLE_MORE = ['/visao-mensal', '/subscricoes', '/categorias'];
+const SIMPLE_MORE = ['/visao-mensal', '/subscricoes', '/categorias', '/ajuda'];
 // já estão nos separadores, no Início ou no ⚙ — não se repetem em "Ver todas"
 const SIMPLE_HIDE = ['/transacoes', '/orcamentos', '/definicoes'];
 const MORE = [
@@ -37,6 +37,7 @@ const MORE = [
   { path: '/salarios', key: 'nav.salaries', d: 'M3 7h18v12H3zM3 11h18M7 15h3' },
   { path: '/categorias', key: 'nav.categories', d: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM16.5 13.5a3 3 0 1 1 0 6 3 3 0 0 1 0-6z' },
   { path: '/assistente', key: 'plus.short_assistant', d: 'M4 5h16v11H9l-5 4zM9 10h.01M12 10h.01M15 10h.01' },
+  { path: '/ajuda', key: 'nav.help', d: 'M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .8-1 1.7M12 17h.01' },
   { path: '/definicoes', key: 'nav.settings', d: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7 7 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z' },
 ];
 

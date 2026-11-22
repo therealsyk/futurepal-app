@@ -18,6 +18,7 @@ import { PcOverview } from './pages/PcOverview';
 import { AdminLogin, ADMIN_LOGIN_EVENT } from './pages/AdminPhase1';
 import { SplitInvitePopup } from './ui/SplitInvitePopup';
 import { TxFormHost } from './ui/TxForm';
+import { HelpPage, PageTip } from './ui/Tips';
 import { RecurringPage, RecurringPopup } from './pages/Recurring';
 import { DuplicateAccountsPopup } from './ui/DuplicateAccountsPopup';
 import { Groups } from './pages/Groups';
@@ -193,6 +194,7 @@ export default function App() {
     <div className="app-shell">
       <Rail />
       <main className="app-main" key={dbName}>
+        {!IS_DEMO && <PageTip />}
         <Routes>
           <Route path="/" element={PC_MOBILE ? <PcOverview /> : isMobile ? (SIMPLE_UI ? <SimpleHome /> : <MobileHome />) : <Dashboard />} />
           <Route path="/painel" element={<Dashboard />} />
@@ -212,6 +214,7 @@ export default function App() {
           <Route path="/categorias" element={<Categories />} />
           <Route path="/definicoes" element={<Settings />} />
           <Route path="/plus" element={<PlusPage />} />
+          <Route path="/ajuda" element={<HelpPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/irs" element={<IrsPage />} />
           <Route path="/subscricoes" element={<RecurringPage />} />

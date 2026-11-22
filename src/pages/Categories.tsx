@@ -1,3 +1,4 @@
+import { milestone } from '../core/onboarding';
 import { L } from '../i18n/phrases';
 import { FormError, useMissing } from '../ui/missing';
 import { useEffect, useMemo, useState } from 'react';
@@ -48,6 +49,7 @@ export function Categories() {
     setError(null);
     if (!miss.check()) return;
     try {
+      if (!draft.id) milestone('category');
       const fields = { color: draft.color, icon: draft.icon, group: draft.group, image: draft.image || undefined };
       if (!draft.id) {
         await addCategory(db, { name, order: cats.length + 1, ...fields });

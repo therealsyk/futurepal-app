@@ -1,115 +1,81 @@
-import { L } from '../i18n/phrases';
-import { useMissing } from '../ui/missing';
-import { useEffect, useMemo, useRef, useState } from 'react';
+// Primeira utilização: uma pergunta, uma ação útil e só depois (se a pessoa quiser) criar conta.
+// Abertura -> o que queres fazer primeiro? -> primeira ação -> guardar o progresso (opcional) -> Início.
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { COUNTRIES, countryName } from '../core/locale';
-import { formatMoney } from '../core/money';
-import { loadSettings, saveSettings, type AppSettings } from '../core/settings';
-import { groupCurrencies, currencySymbol } from '../core/currencies';
-import { addAccount, ensureDefaultAccount, listAccounts, updateAccount } from '../core/accounts';
-import { addGoal, activeCategories, ensureDefaultCategories } from '../core/finance';
-import { parseMoneyToCents } from '../core/money';
-import { db, activateDatabaseFor } from '../db/app-db';
-import type { Account, Category, Transaction, Goal } from '../db/database';
-import { mirrorSettings } from '../core/settingsSync';
-import { getSupabase, hasSupabaseConfig } from '../auth/supabase';
-import { runSync } from '../sync/runSync';
-import { LoginForm } from './Login';
 import { useAuth } from '../auth/AuthContext';
-import { openTxForm, TxFormHost, useTxSaved } from '../ui/TxForm';
-import { Ic, ICON, Sheet, catLabel, PickMenu } from '../ui/fx';
+import { getSupabase, hasSupabaseConfig } from '../auth/supabase';
+import { ensureDefaultAccount } from '../core/accounts';
 import { todayISO } from '../core/dates';
-import { currencyFlagUrl } from '../ui/currencyFlag';
+import { addGoal, addGroup, ensureDefaultCategories, setSalary } from '../core/finance';
+import { COUNTRIES, countryName } from '../core/locale';
+import { formatMoney, parseMoneyToCents } from '../core/money';
+import { chooseGoal, finishOnboarding, milestone, screen, startOnboarding, type Goal1 } from '../core/onboarding';
+import { syncSalaryTransactions } from '../core/salaryTx';
+import { loadSettings, saveSettings, type AppSettings } from '../core/settings';
+import { mirrorSettings } from '../core/settingsSync';
+import { activateDatabaseFor, db } from '../db/app-db';
+import { L } from '../i18n/phrases';
+import { runSync } from '../sync/runSync';
+import { CountMoney } from '../ui/CountMoney';
+import { DatePicker } from '../ui/DatePicker';
+import { AmountField, FI, SwitchRow, TextRow } from '../ui/formFields';
+import { Ic, ICON, PickMenu } from '../ui/fx';
+import { fill } from '../ui/AccountPlan';
+import { GoalRing } from '../ui/GoalRing';
+import { useMissing } from '../ui/missing';
+import { openTxForm, TxFormHost, useTxSaved } from '../ui/TxForm';
+import { LoginForm } from './Login';
 
-// Primeira utilização, um passo por ecrã (como numa app de telemóvel):
-// boas-vindas -> (entrar) -> moeda -> primeira conta -> transações -> meta -> criar conta (opcional).
-type Step = 'welcome' | 'auth' | 'currency' | 'account' | 'transactions' | 'goal' | 'signup';
-const ORDER: Step[] = ['welcome', 'currency', 'account', 'transactions', 'goal'];
-
+type Step = 'splash' | 'ask' | 'act' | 'done' | 'keep' | 'auth' | 'signup';
 const LANGUAGES = [
-  { code: 'pt-PT', label: 'Português (Portugal)' },
-  { code: 'pt-BR', label: 'Português (Brasil)' },
-  { code: 'en', label: 'English' },
-  { code: 'es', label: 'Español' },
-  { code: 'fr', label: 'Français' },
+  { code: 'pt-PT', label: 'Português (Portugal)' }, { code: 'pt-BR', label: 'Português (Brasil)' }, { code: 'en', label: 'English' }, { code: 'es', label: 'Español' }, { code: 'fr', label: 'Français' },
 ];
-
-const today = todayISO;
+const IC = {
+  expenses: 'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6', goal: 'M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8z',
+  split: 'M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M22 19v-1a4 4 0 0 0-3-3.9M16 4.1a3 3 0 0 1 0 5.8', save: 'M19 7a3 3 0 0 0-3-2H9a6 6 0 0 0-6 6c0 2 1 3.5 2 4.5V19h3v-2h5v2h3v-3a6 6 0 0 0 2-3h2V9h-2zM15 10h.01',
+};
+const GROUP_COLOR = '#17c3c9';
 
 export const ONBOARDED_FLAG = 'wallet.justOnboarded';
 
+/** País e língua do aparelho, para não perguntar à partida. */
+function guess(): { language: string; country: string } {
+  const nav = typeof navigator !== 'undefined' ? navigator.language || 'pt-PT' : 'pt-PT', [l, c] = nav.split('-');
+  const language = LANGUAGES.find((x) => x.code === nav)?.code ?? LANGUAGES.find((x) => x.code.startsWith(l))?.code ?? 'en';
+  return { language, country: COUNTRIES.some((x) => x.code === c) ? c : language === 'pt-PT' ? 'PT' : language === 'pt-BR' ? 'BR' : language === 'es' ? 'ES' : language === 'fr' ? 'FR' : 'PT' };
+}
+
 export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings) => void }) {
   const { t, i18n } = useTranslation();
-  const initial = loadSettings();
-  const [step, setStep] = useState<Step>('welcome');
-  const [language, setLanguage] = useState(initial.language);
-  const [country, setCountry] = useState(initial.country || 'PT');
-  const [currency, setCurrency] = useState(initial.currency || 'EUR');
-  const [signedIn, setSignedIn] = useState(false);
-  // Conta de gastos criada neste setup: ao voltar atrás e avançar de novo é editada, não duplicada.
-  const [setupAccount, setSetupAccount] = useState<Account | null>(null);
+  const initial = loadSettings(), auth = useAuth();
+  const [g0] = useState(guess);
+  const [step, setStep] = useState<Step>('splash');
+  const [goal, setGoal] = useState<Goal1>('expenses');
+  const [language, setLanguage] = useState(initial.country ? initial.language : g0.language);
+  const [country, setCountry] = useState(initial.country || g0.country);
+  const [signedIn, setSignedIn] = useState(false), [syncNote, setSyncNote] = useState('');
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
-  const [syncNote, setSyncNote] = useState('');
-  const auth = useAuth();
+  const info = COUNTRIES.find((c) => c.code === country), currency = info?.currency ?? initial.currency ?? 'EUR';
   const loginHandled = useRef(false); // o login (formulário ou social) só é tratado uma vez
-  // Login social (Google/Facebook/Apple): acaba fora da app; quando a sessão chega, o setup continua sozinho.
+  useEffect(() => { ensureDefaultCategories(db).catch(() => {}); startOnboarding(); if (i18n.language !== language) i18n.changeLanguage(language); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { screen(step === 'act' ? 'act_' + goal : step); }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Login social: acaba fora da app; quando a sessão chega, o setup continua sozinho.
   useEffect(() => {
-    if (step === 'auth' && auth.user && !signedIn && !syncNote) afterLogin().catch(() => setStep('currency'));
-    // último passo (criar conta) com Google/Facebook/Apple: quando a sessão chega, termina o setup
-    if (step === 'signup' && auth.user && !signedIn) { setSignedIn(true); finish({ ...buildSettings(), account: 'signedin' }).catch(() => {}); }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auth.user?.id, step]);
+    if (step === 'auth' && auth.user && !signedIn && !syncNote) afterLogin().catch(() => setStep('ask'));
+    if (step === 'signup' && auth.user && !signedIn) { setSignedIn(true); finish({ ...build(), account: 'signedin' }).catch(() => {}); }
+  }, [auth.user?.id, step]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { ensureDefaultCategories(db).catch(() => {}); }, []);
-
-  function pickLanguage(code: string) {
-    setLanguage(code);
-    i18n.changeLanguage(code);
-  }
-
-  function pickCountry(code: string) {
-    setCountry(code);
-    const info = COUNTRIES.find((c) => c.code === code);
-    if (info) setCurrency(info.currency);
-  }
-
-  function back() {
-    if (step === 'auth') { setStep('welcome'); return; }
-    if (step === 'signup') { setStep('goal'); return; }
-    const i = ORDER.indexOf(step);
-    if (i > 0) setStep(ORDER[i - 1]);
-  }
-
-  function next() {
-    const i = ORDER.indexOf(step);
-    if (i < ORDER.length - 1) setStep(ORDER[i + 1]);
-    else if (step === 'goal' && hasSupabaseConfig()) { setAuthMode('signup'); setStep('signup'); } // último passo: criar conta ou entrar
-    else finish();
-  }
-
-  function buildSettings(): AppSettings {
-    const info = COUNTRIES.find((c) => c.code === country);
-    return {
-      ...initial,
-      language,
-      country,
-      currency,
-      firstDayOfWeek: info ? info.firstDayOfWeek : initial.firstDayOfWeek,
-      dateFormat: info ? info.dateFormat : initial.dateFormat,
-      account: signedIn ? 'signedin' : 'none',
-    };
-  }
-
-  async function finish(fromSync?: AppSettings) {
-    const s = fromSync ?? buildSettings();
+  const build = (): AppSettings => ({ ...initial, language, country, currency, firstDayOfWeek: info ? info.firstDayOfWeek : initial.firstDayOfWeek, dateFormat: info ? info.dateFormat : initial.dateFormat, account: signedIn ? 'signedin' : 'none' }) as AppSettings;
+  async function finish(from?: AppSettings) {
+    const s = from ?? build();
     await ensureDefaultAccount(db, s.currency, t('accounts.mainName'));
     const saved = saveSettings(s);
     await mirrorSettings(db, saved);
+    finishOnboarding(s.account === 'signedin');
     try { sessionStorage.setItem(ONBOARDED_FLAG, '1'); } catch { /* sem storage */ }
     onDone(s);
   }
-
-  // Depois de entrar: traz os dados da nuvem. Se a conta já foi configurada noutro aparelho, salta o resto.
+  // "Já tenho conta": traz os dados da nuvem. Se a conta já foi configurada noutro aparelho, entra logo na app.
   async function afterLogin() {
     if (loginHandled.current) return;
     loginHandled.current = true;
@@ -119,291 +85,96 @@ export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings
       setSyncNote(t('onboard.syncing'));
       const { data } = await sb.auth.getUser();
       if (data.user) {
-        await activateDatabaseFor(data.user.id); // a partir daqui, os dados são os desta conta
+        await activateDatabaseFor(data.user.id);
         await ensureDefaultCategories(db);
         const res = await runSync(sb, db, data.user.id);
-        if (!res.error && res.settings) {
-          await finish({ ...res.settings, account: 'signedin' });
-          return;
-        }
+        if (!res.error && res.settings) { await finish({ ...res.settings, account: 'signedin' }); return; }
       }
       setSyncNote('');
     }
-    setStep('currency');
+    setStep('ask');
   }
-
-  const showBack = step !== 'welcome';
-  const dots = ORDER.indexOf(step);
+  const after = () => (signedIn || !hasSupabaseConfig() ? finish().catch(() => {}) : setStep('keep'));
+  const back = () => setStep(step === 'ask' || step === 'auth' ? 'splash' : step === 'act' ? 'ask' : step === 'signup' ? 'keep' : 'act');
+  const money = (c: number) => formatMoney(c, currency, language);
+  const pick = (g: Goal1) => { setGoal(g); chooseGoal(g); setStep('act'); };
+  const choices: Array<[Goal1, string]> = [['expenses', L('Controlar as minhas despesas')], ['goal', L('Poupar para uma meta')], ['split', L('Dividir despesas com outras pessoas')], ['save', L('Ver quanto posso poupar')]];
 
   return (
-    <div className="ob-screen">
-      <div className="ob-top">
-        {showBack ? (
-          <button type="button" className="ob-round" onClick={back} aria-label={t('onboard.back')}><Ic d={ICON.left} size={20} /></button>
-        ) : <span className="ob-round-spacer" />}
-        {dots > 0 && (
-          <div className="ob-dots" aria-hidden="true">
-            {ORDER.slice(1).map((s, i) => <i key={s} className={i < dots ? 'on' : ''} />)}
+    <div className="ob-screen on-screen">
+      {step !== 'splash' && step !== 'done' && step !== 'keep' && <div className="ob-top"><button type="button" className="ob-round" onClick={back} aria-label={t('onboard.back')}><Ic d={ICON.left} size={20} /></button>{step !== 'auth' && step !== 'signup' && <button type="button" className="on-skip" onClick={() => finish().catch(() => {})}>{L('Agora não')}</button>}</div>}
+      <div className="ob-body on-body" key={step}>
+        {step === 'splash' && <div className="on-center">
+          <span className="on-logo"><Ic d={ICON.wallet} size={46} /></span>
+          <h1>FuturePal</h1>
+          <p>{L('Controla as tuas despesas e descobre para onde vai cada cêntimo, no poupar é que está o ganho.')}</p>
+          <button type="button" className="ob-cta" onClick={() => setStep('ask')} data-testid="ob-start">{L('Começar')}</button>
+          {hasSupabaseConfig() && <button type="button" className="on-skip" onClick={() => { setAuthMode('signin'); setStep('auth'); }} data-testid="ob-login">{L('Já tenho conta')}</button>}
+          <div className="on-lang">
+            <PickMenu compact label={t('settings.language')} value={language} testId="ob-language" options={LANGUAGES.map((l) => ({ value: l.code, label: l.label }))} onChange={(v) => { setLanguage(String(v) as typeof language); i18n.changeLanguage(String(v)); }} />
+            <PickMenu compact label={t('settings.country')} value={country} testId="ob-country" options={COUNTRIES.map((c) => ({ value: c.code, label: `${countryName(c.code, language)} · ${c.currency}` }))} onChange={(v) => setCountry(String(v))} />
           </div>
-        )}
-        <span className="ob-round-spacer" />
-      </div>
-
-      <div className="ob-body">
-        {step === 'welcome' && (
-          <Welcome
-            language={language} country={country} onLanguage={pickLanguage} onCountry={pickCountry}
-            onStart={() => setStep('currency')}
-          />
-        )}
-        {step === 'signup' && (
-          // Os dados do setup ficam neste aparelho; ao entrar na conta, a app pergunta se os quer levar para lá.
-          <div className="ob-last">
-            <LoginForm key={authMode} initialMode={authMode} onDone={() => { setSignedIn(true); finish({ ...buildSettings(), account: 'signedin' }).catch(() => {}); }} onSkip={() => { finish().catch(() => {}); }} />
-          </div>
-        )}
-        {step === 'auth' && (
-          syncNote ? <p className="ob-sub" role="status">{syncNote}</p>
-            : <LoginForm key={authMode} initialMode={authMode} onDone={() => { afterLogin().catch(() => setStep('currency')); }} onSkip={() => setStep('currency')} />
-        )}
-        {step === 'currency' && <CurrencyStep language={language} value={currency} onChange={setCurrency} />}
-        {step === 'account' && <AccountStep currency={currency} language={language} existing={setupAccount} onCreated={(a) => { setSetupAccount(a); next(); }} />}
-        {step === 'transactions' && <TransactionsStep currency={currency} language={language} />}
-        {step === 'goal' && <GoalStep currency={currency} language={language} />}
-      </div>
-
-      {step !== 'welcome' && step !== 'auth' && step !== 'account' && step !== 'signup' && (
-        <div className="ob-foot">
-          <button type="button" className="ob-cta" onClick={next} data-testid="ob-continue">{t('onboard.continue')}</button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Welcome({ language, country, onLanguage, onCountry, onStart, onLogin }: {
-  language: string; country: string; onLanguage: (c: string) => void; onCountry: (c: string) => void; onStart: () => void; onLogin?: () => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <div className="ob-welcome">
-      <div className="ob-logo" aria-hidden="true"><Ic d={ICON.wallet} size={34} /></div>
-      <h1 className="ob-title">{t('onboard.welcomeTitle')}</h1>
-      <p className="ob-sub">{t('onboard.welcomeSub')}</p>
-
-      <div className="ob-card ob-rows">
-        <div className="ob-row">
-          <span className="ob-row-text"><b>{t('settings.language')}</b><small>{t('onboard.languageHint')}</small></span>
-          <PickMenu label={t('settings.language')} value={language} testId="ob-language" options={LANGUAGES.map((l) => ({ value: l.code, label: l.label }))} onChange={(v) => onLanguage(String(v))} />
-        </div>
-        <div className="ob-row">
-          <span className="ob-row-text"><b>{t('settings.country')}</b><small>{t('onboard.countryHint')}</small></span>
-          <PickMenu label={t('settings.country')} value={country} testId="ob-country" options={COUNTRIES.map((c) => ({ value: c.code, label: countryName(c.code, language) }))} onChange={(v) => onCountry(String(v))} />
-        </div>
-      </div>
-
-      <div className="ob-actions">
-        <button type="button" className="ob-cta" onClick={onStart} data-testid="ob-start">{t('onboard.start')}</button>
-        {onLogin && <button type="button" className="ob-outline" onClick={onLogin} data-testid="ob-login">{t('onboard.haveAccount')}</button>}
-      </div>
-    </div>
-  );
-}
-
-function CurrencyStep({ language, value, onChange }: { language: string; value: string; onChange: (c: string) => void }) {
-  const { t } = useTranslation();
-  const [query, setQuery] = useState('');
-  const groups = useMemo(() => groupCurrencies(language, query), [language, query]);
-  return (
-    <div>
-      <h1 className="ob-title small">{t('onboard.currencyTitle')}</h1>
-      <label className="ob-search">
-        <Ic d={ICON.search} size={18} />
-        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('onboard.search')} aria-label={t('onboard.search')} />
-      </label>
-      <div role="radiogroup" aria-label={t('onboard.currencyTitle')}>
-        {groups.map((g) => (
-          <section key={g.letter} className="ob-group">
-            <h2>{g.letter}</h2>
-            <div className="ob-card ob-list">
-              {g.items.map((c) => (
-                <button key={c.code} type="button" role="radio" aria-checked={value === c.code} className={'ob-option' + (value === c.code ? ' on' : '')} onClick={() => onChange(c.code)}>
-                  <span className="ob-radio" aria-hidden="true" />
-                  {currencyFlagUrl(c.code)
-                    ? <img className="ob-coin ob-flag" src={currencyFlagUrl(c.code)!} alt="" aria-hidden="true" />
-                    : <span className="ob-coin" aria-hidden="true">{currencySymbol(c.code, language)}</span>}
-                  <span>{c.name} ({c.code})</span>
-                </button>
-              ))}
-            </div>
-          </section>
-        ))}
-        {groups.length === 0 && <p className="ob-sub">{t('onboard.noResults')}</p>}
-      </div>
-    </div>
-  );
-}
-
-function AccountStep({ currency, language, existing, onCreated }: {
-  currency: string; language: string; existing: Account | null; onCreated: (acc: Account | null) => void;
-}) {
-  const { t } = useTranslation();
-  const [name, setName] = useState(existing?.name ?? '');
-  const [description, setDescription] = useState(existing?.description ?? '');
-  const [balance, setBalance] = useState(existing && existing.initialBalanceCents !== 0 ? (Math.abs(existing.initialBalanceCents) / 100).toFixed(2).replace('.', ',') : '');
-  const [positive, setPositive] = useState(existing ? existing.initialBalanceCents >= 0 : true);
-  const [netWorth, setNetWorth] = useState(existing?.includeInNetWorth ?? true);
-  const [isDefault, setIsDefault] = useState(existing?.isDefault ?? true);
-  const [showHome, setShowHome] = useState(existing?.showOnHome ?? true);
-  const [error, setError] = useState('');
-
-  async function create(useDefaultName = false) {
-    const finalName = useDefaultName ? t('accounts.mainName') : name.trim();
-    const cents = balance.trim() ? parseMoneyToCents(balance) : 0;
-    if (cents === null) { setError(t('onboard.badAmount')); return; }
-    if (useDefaultName && existing) { onCreated(existing); return; } // já criada neste setup: não cria outra
-    if (useDefaultName && (await listAccounts(db)).length > 0) { onCreated(null); return; }
-    const input = {
-      name: finalName, description: description.trim(), type: 'spending' as const, currency,
-      initialBalanceCents: positive ? Math.abs(cents) : -Math.abs(cents), includeInNetWorth: netWorth, isDefault, showOnHome: showHome,
-    };
-    if (existing) {
-      await updateAccount(db, existing.id, input);
-      onCreated({ ...existing, ...input });
-    } else {
-      onCreated(await addAccount(db, input));
-    }
-  }
-
-  return (
-    <div className="ob-account">
-      <h1 className="ob-title small left">{t('onboard.accountTitle')}</h1>
-      <input className="ob-huge" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('onboard.accountNamePh')} aria-label={t('onboard.accountName')} data-testid="ob-account-name" />
-      <label className="ob-label">{t('onboard.descriptionOpt')}</label>
-      <input className="ob-big" value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t('onboard.descriptionPh')} />
-      <hr className="ob-hr" />
-      <div className="ob-balance">
-        <div>
-          <label className="ob-label muted" htmlFor="ob-balance">{t('onboard.initialBalance')}</label>
-          <input id="ob-balance" className="ob-amount" inputMode="decimal" value={balance} onChange={(e) => setBalance(e.target.value)} placeholder="0" />
-        </div>
-        <span className="ob-pill static">{currencyFlagUrl(currency) ? <img className="ob-coin sm ob-flag" src={currencyFlagUrl(currency)!} alt="" /> : <span className="ob-coin sm">{currencySymbol(currency, language)}</span>}{currency}</span>
-      </div>
-      <hr className="ob-hr" />
-      <details className="ob-more"><summary>{L('Mais opções')}</summary>
-      <div className="ob-switches">
-      <SwitchRow on={positive} onChange={setPositive} title={t('onboard.positive')} hint={t('onboard.positiveHint')} />
-      <SwitchRow on={netWorth} onChange={setNetWorth} title={t('onboard.netWorth')} hint={t('onboard.netWorthHint')} />
-      <SwitchRow on={isDefault} onChange={setIsDefault} title={t('onboard.default')} hint={t('onboard.defaultHint')} />
-      <SwitchRow on={showHome} onChange={setShowHome} title={t('onboard.showHome')} hint={t('onboard.showHomeHint')} />
-      </div></details>
-      {error && <p className="ob-error" role="alert">{error}</p>}
-      <div className="ob-foot inline">
-        <button type="button" className="ob-cta" disabled={!name.trim()} onClick={() => create()} data-testid="ob-account-create">{t('onboard.createAccount')}</button>
-        <button type="button" className="ob-ghost" onClick={() => create(true)}>{t('onboard.skipStep')}</button>
-      </div>
-    </div>
-  );
-}
-
-function SwitchRow({ on, onChange, title, hint }: { on: boolean; onChange: (v: boolean) => void; title: string; hint: string }) {
-  return (
-    <div className="ob-switchrow">
-      <div><b>{title}</b><span>{hint}</span></div>
-      <button type="button" role="switch" aria-checked={on} aria-label={title} className={'ob-toggle' + (on ? ' on' : '')} onClick={() => onChange(!on)}><i /></button>
-    </div>
-  );
-}
-
-function TransactionsStep({ currency, language }: { currency: string; language: string }) {
-  const { t } = useTranslation();
-  const [list, setList] = useState<Transaction[]>([]);
-  const [cats, setCats] = useState<Category[]>([]);
-  const reload = () => {
-    db.transactions.toArray().then((x) => setList(x.filter((y) => y.deletedAt === null).sort((a, d) => d.createdAt.localeCompare(a.createdAt))), () => {});
-    activeCategories(db).then(setCats).catch(() => {});
-  };
-  useEffect(reload, []);
-  useTxSaved(reload);
-
-  return (
-    <div className="ob-center">
-      <h1 className="ob-title">{t('onboard.txTitle')}</h1>
-      <p className="ob-sub">{t('onboard.txSub')}</p>
-      <div className="ob-card ob-empty">
-        {list.length === 0 ? (
-          <>
-            <span className="ob-empty-ic"><Ic d={ICON.wallet} size={34} /></span>
-            <p>{t('onboard.noTx')}</p>
-          </>
-        ) : (
-          <ul className="ob-txlist">
-            {list.map((tx) => {
-              const c = cats.find((x) => x.id === tx.categoryId);
-              return (
-                <li key={tx.id}>
-                  <span>{tx.description || (c ? catLabel(t, c) : '')}</span>
-                  <b className={tx.type === 'income' ? 'pos' : ''}>{(tx.type === 'expense' ? '-' : '+') + formatMoney(tx.amountCents, currency, language)}</b>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-        <button type="button" className="ob-outline" onClick={() => openTxForm({ type: 'expense', currency, language })} data-testid="ob-add-tx">{t('onboard.addTx')}</button>
+        </div>}
+        {step === 'ask' && <div className="on-col">
+          <h1>{L('O que queres fazer primeiro?')}</h1>
+          <div className="on-choices">{choices.map(([id, label], i) => <button key={id} type="button" style={{ '--i': i } as CSSProperties} onClick={() => pick(id)} data-testid={'ob-goal-' + id}><span><Ic d={IC[id]} size={26} /></span><b>{label}</b><Ic d={ICON.right} size={18} /></button>)}</div>
+        </div>}
+        {step === 'act' && goal === 'expenses' && <ExpenseAct currency={currency} language={language} onDone={() => setStep('done')} />}
+        {step === 'act' && goal === 'goal' && <GoalAct currency={currency} onDone={() => setStep('done')} />}
+        {step === 'act' && goal === 'split' && <GroupAct currency={currency} language={language} onDone={() => setStep('done')} />}
+        {step === 'act' && goal === 'save' && <SaveAct currency={currency} money={money} onDone={after} />}
+        {step === 'done' && <div className="on-center">
+          <span className="on-ok"><Ic d="M20 6 9 17l-5-5" size={46} /></span>
+          <h1>{goal === 'expenses' ? L('Despesa guardada') : goal === 'goal' ? L('Meta criada') : L('Grupo criado')}</h1>
+          <p>{goal === 'expenses' ? L('Já a vês no resumo deste mês.') : goal === 'goal' ? L('A app mostra quanto falta e quando lá chegas.') : L('Junta pessoas em Grupos quando quiseres.')}</p>
+          <button type="button" className="ob-cta" onClick={after}>{t('onboard.continue')}</button>
+        </div>}
+        {step === 'keep' && <div className="on-center">
+          <span className="on-logo"><Ic d="M7 18a4 4 0 0 1-.5-8 6 6 0 0 1 11.6 1.5A3.5 3.5 0 0 1 17.5 18M12 12v8M9 15l3-3 3 3" size={44} /></span>
+          <h1>{L('Queres guardar o teu progresso?')}</h1>
+          <p>{L('A tua conta guarda despesas, grupos, metas e limites em todos os dispositivos.')}</p>
+          <button type="button" className="ob-cta" onClick={() => { setAuthMode('signup'); setStep('signup'); }}>{L('Criar conta')}</button>
+          <button type="button" className="ob-outline" onClick={() => { setAuthMode('signin'); setStep('signup'); }}>{L('Entrar')}</button>
+          <button type="button" className="on-skip" onClick={() => finish().catch(() => {})} data-testid="ob-continue">{L('Continuar sem conta')}</button>
+        </div>}
+        {step === 'auth' && (syncNote ? <p className="ob-sub" role="status">{syncNote}</p> : <LoginForm key={authMode} initialMode={authMode} onDone={() => { afterLogin().catch(() => setStep('ask')); }} onSkip={() => setStep('ask')} />)}
+        {/* Os dados ficam neste aparelho; ao entrar na conta, a app pergunta se os quer levar para lá. */}
+        {step === 'signup' && <div className="ob-last"><LoginForm key={authMode} initialMode={authMode} onDone={() => { setSignedIn(true); finish({ ...build(), account: 'signedin' }).catch(() => {}); }} onSkip={() => { finish().catch(() => {}); }} /></div>}
       </div>
       <TxFormHost />
     </div>
   );
 }
 
-function GoalStep({ currency, language }: { currency: string; language: string }) {
-  const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState('');
-  const [target, setTarget] = useState('');
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [error, setError] = useState('');
+const Head = ({ d, title, text }: { d: string; title: string; text?: string }) => <div className="on-head"><span className="on-logo sm"><Ic d={d} size={34} /></span><h1>{title}</h1>{text && <p>{text}</p>}</div>;
+const Form = ({ children }: { children: ReactNode }) => <div className="mv-card on-form"><div className="acc-form">{children}</div></div>;
 
-  const missing = useMissing();
-  const miss = missing([['name', L('o nome'), !!name.trim()], ['amount', L('o valor'), (parseMoneyToCents(target) ?? 0) > 0]]);
-  async function save() {
-    const cents = parseMoneyToCents(target);
-    if (!miss.check() || !cents) return;
-    const g = await addGoal(db, name.trim(), cents, today());
-    setGoals((l) => [...l, g]);
-    setName(''); setTarget(''); setError(''); setOpen(false);
-  }
-
-  const features = [
-    { cls: 'green', d: ICON.target, title: t('onboard.goalF1'), sub: t('onboard.goalF1Sub') },
-    { cls: 'blue', d: 'M12 3a9 9 0 1 0 9 9h-9zM15 3.5V9h5.5A9 9 0 0 0 15 3.5z', title: t('onboard.goalF2'), sub: t('onboard.goalF2Sub') },
-    { cls: 'red', d: 'M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM4 10h16M8 3v4M16 3v4', title: t('onboard.goalF3'), sub: t('onboard.goalF3Sub') },
-  ];
-
-  return (
-    <div className="ob-center">
-      <h1 className="ob-title">{t('onboard.goalTitle')}</h1>
-      <p className="ob-sub">{t('onboard.goalSub')}</p>
-      <div className="ob-card ob-features">
-        {goals.length === 0 ? features.map((f) => (
-          <div key={f.title} className="ob-feature">
-            <span className={'ob-feat-ic ' + f.cls}><Ic d={f.d} size={24} /></span>
-            <div><b>{f.title}</b><span>{f.sub}</span></div>
-          </div>
-        )) : (
-          <ul className="ob-txlist">
-            {goals.map((g) => <li key={g.id}><span>{g.name}</span><b>{formatMoney(g.targetCents, currency, language)}</b></li>)}
-          </ul>
-        )}
-        <button type="button" className="ob-outline" onClick={() => setOpen(true)} data-testid="ob-add-goal">{t('onboard.createGoal')}</button>
-      </div>
-      <Sheet open={open} onClose={() => { setOpen(false); miss.reset(); }} title={t('onboard.createGoal')}
-        footer={<button type="button" className="ob-cta" onClick={save}>{t('common.save')}</button>}>
-        {miss.note}
-        <input className={'fx-input' + miss.cls('name')} value={name} onChange={(e) => setName(e.target.value)} placeholder={t('onboard.goalNamePh')} aria-label={t('onboard.goalNamePh')} autoFocus />
-        <input className={'ob-amount center' + miss.cls('amount')} inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value)} placeholder="0,00" aria-label={t('onboard.goalTarget')} />
-        {error && <p className="ob-error" role="alert">{error}</p>}
-      </Sheet>
-    </div>
-  );
+function ExpenseAct({ currency, language, onDone }: { currency: string; language: string; onDone: () => void }) {
+  useTxSaved(onDone);
+  return <div className="on-center"><Head d={IC.expenses} title={L('Vamos adicionar a tua primeira despesa')} text={L('Escreve o valor, escolhe uma categoria e, se quiseres, indica a data e a conta onde pagaste.')} /><button type="button" className="ob-cta" onClick={() => openTxForm({ type: 'expense', currency, language, first: true })} data-testid="ob-add-tx"><Ic d={ICON.plus} size={18} />{L('Adicionar despesa')}</button></div>;
+}
+function GoalAct({ currency, onDone }: { currency: string; onDone: () => void }) {
+  const [name, setName] = useState(''), [v, setV] = useState(''), [has, setHas] = useState(false), [end, setEnd] = useState('');
+  const c = parseMoneyToCents(v) ?? 0, missing = useMissing(), miss = missing([['v', L('o valor'), c > 0], ['name', L('o nome'), !!name.trim()], ['end', L('a data limite'), !has || !!end]]);
+  return <div className="on-col"><Head d={IC.goal} title={L('Qual é a tua primeira meta?')} /><Form>{miss.note}
+    <AmountField value={v} onChange={setV} currency={currency} label={L('Quanto queres juntar')} cls={miss.cls('v')} />
+    <div className="tx-rows"><TextRow icon={FI.target} label={L('Nome da meta')} value={name} onChange={setName} placeholder={L('Ex.: Férias, carro')} cls={miss.cls('name')} />
+      <SwitchRow icon={FI.date} cls={miss.cls('end')} label={has ? L('Data limite') : L('Tem data limite?')} on={has} onChange={setHas}><DatePicker value={end} onChange={setEnd} className="fx-input tx-val" /></SwitchRow></div>
+    <button type="button" className="tx-addbtn" onClick={async () => { if (!miss.check()) return; await addGoal(db, name.trim(), c, todayISO(), has ? end : null); milestone('goal'); onDone(); }}>{L('Criar meta')}</button></Form></div>;
+}
+function GroupAct({ currency, language, onDone }: { currency: string; language: string; onDone: () => void }) {
+  const [name, setName] = useState(''), [id, setId] = useState('');
+  useTxSaved(() => { if (id) onDone(); });
+  const missing = useMissing(), miss = missing([['name', L('o nome'), !!name.trim()]]);
+  if (id) return <div className="on-center"><Head d={IC.expenses} title={L('Adiciona a primeira despesa do grupo')} text={name} /><button type="button" className="ob-cta" onClick={() => openTxForm({ type: 'expense', groupId: id, currency, language, first: true })}><Ic d={ICON.plus} size={18} />{L('Adicionar despesa')}</button><button type="button" className="on-skip" onClick={onDone}>{L('Agora não')}</button></div>;
+  return <div className="on-col"><Head d={IC.split} title={L('Cria o teu primeiro grupo')} text={L('Cria um grupo, adiciona pessoas e divide despesas automaticamente.')} /><Form>{miss.note}
+    <div className="tx-rows"><TextRow icon={FI.name} label={L('Nome do grupo')} value={name} onChange={setName} placeholder={L('Ex.: Férias de verão')} cls={miss.cls('name')} /></div>
+    <button type="button" className="tx-addbtn" onClick={async () => { if (!miss.check()) return; const g = await addGroup(db, name.trim(), GROUP_COLOR); milestone('group'); setId(g.id); }}>{L('Criar grupo')}</button></Form></div>;
+}
+function SaveAct({ currency, money, onDone }: { currency: string; money: (c: number) => string; onDone: () => void }) {
+  const [v, setV] = useState(''), [inc, setInc] = useState(0);
+  const c = parseMoneyToCents(v) ?? 0, missing = useMissing(), miss = missing([['v', L('o valor'), c > 0]]);
+  const keep = async () => { const n = new Date(); await setSalary(db, n.getFullYear(), n.getMonth() + 1, inc); await syncSalaryTransactions(db, currency).catch(() => {}); milestone('income'); onDone(); };
+  if (inc > 0) return <div className="on-center"><GoalRing r={0.2} size={168}><b>20%</b></GoalRing><h1>{L('Podes poupar cerca de')}</h1><b className="on-big fx-pos"><CountMoney cents={Math.round(inc * 0.2)} money={money} /></b><p>{fill(L('por mês, ou {m} num ano. É uma estimativa: guardar 20% do que recebes. Com as tuas despesas fica mais certa.'), { m: money(Math.round(inc * 2.4)) })}</p><button type="button" className="ob-cta" onClick={() => { keep().catch(onDone); }}>{L('Guardar como salário deste mês')}</button><button type="button" className="on-skip" onClick={onDone}>{L('Continuar sem guardar')}</button></div>;
+  return <div className="on-col"><Head d={IC.save} title={L('Quanto recebes por mês?')} /><Form>{miss.note}<AmountField value={v} onChange={setV} currency={currency} label={L('Rendimento mensal')} kind="income" cls={miss.cls('v')} /><button type="button" className="tx-addbtn" onClick={() => { if (miss.check()) setInc(c); }}>{L('Calcular')}</button></Form></div>;
 }

@@ -7,6 +7,7 @@ import { activeCategories, addGoal, addRecurring, materializeDueRecurrings } fro
 import { joinDesc, payoff, splitDesc, type DebtPlan } from '../core/debtPlan';
 import { parseMoneyToCents } from '../core/money';
 import { todayISO } from '../core/dates';
+import { milestone } from '../core/onboarding';
 import { loadSettings } from '../core/settings';
 import { DatePicker } from '../ui/DatePicker';
 import { Seg } from '../ui/fx';
@@ -71,6 +72,7 @@ export function NewAccount({ initial, accounts, balOf, money, endText, onClose, 
     try {
       if (edit) { await edit.onSave({ balCents: parseMoneyToCents(bal || '0') ?? 0, name: name.trim(), desc, monthlyCents: m, rate: r, goal, end: hasEnd && end ? end : null, targetCents: goalCents }); return; }
       const p: DebtPlan | null = plan ? { monthlyCents: m, startCents: start, rate: r || undefined } : null;
+      milestone('account');
       const acc = await addAccount(db, { name: name.trim(), description: joinDesc(desc, p), type: kind, currency: s.currency, initialBalanceCents: start, includeInNetWorth: true, isDefault: false, showOnHome: true });
       if (goal && p) { // a meta de sempre, ligada à conta: o valor vem do saldo (na dívida, do que já foi abatido)
         const g = await addGoal(db, name.trim(), goalCents, todayISO(), e ? end : null);

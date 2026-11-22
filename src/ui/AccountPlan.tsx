@@ -35,7 +35,7 @@ export function AccountPlanBox({ a, p, money, lang, onEdit, children, more }: { 
           <GoalRing r={p.ratio} size={128} debt={debt}><b>{pct(p.ratio)}%</b><small>{debt ? L('pago') : L('completo')}</small></GoalRing>
           <div className="gl-have"><small>{debt ? L('Falta pagar') : L('Falta juntar')}</small><b className={debt ? 'fx-neg' : ''}><CountMoney cents={left} money={money} /></b><small>{L('de')} {money(p.total)}</small></div>
         </div>}
-        <div className="gx-tiles ap-tiles">
+        <div className="gx-tiles even ap-tiles">
           {tile('M20 6 9 17l-5-5', debt ? L('Já pagaste') : L('Já tens'), <CountMoney cents={p.done} money={money} />, 'pos')}
           {p.total > 0 && tile(FLAG, debt ? L('Acabas em') : L('Chegas lá em'), p.months === null ? '—' : endDate(p.months, lang))}
           {p.monthly > 0 && tile(CAL, L('Este mês'), monthLeft === 0 ? L('Feito ✓') : `${money(p.inMonth)} / ${money(p.monthly)}`, monthLeft === 0 ? 'pos' : '')}

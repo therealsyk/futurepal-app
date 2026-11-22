@@ -6,6 +6,7 @@ import { activeCategories, addGoal, addRecurring, materializeDueRecurrings } fro
 import { joinDesc, splitDesc } from '../core/debtPlan';
 import { parseMoneyToCents } from '../core/money';
 import { todayISO } from '../core/dates';
+import { milestone } from '../core/onboarding';
 import { loadSettings } from '../core/settings';
 import { DatePicker } from '../ui/DatePicker';
 import { Seg } from '../ui/fx';
@@ -44,6 +45,7 @@ export function NewGoal({ edit, current = 0, accounts, balOf, money, onClose, on
         onDone();
         return;
       }
+      milestone('goal');
       const g = await addGoal(db, name.trim(), cents(target), todayISO(), hasEnd && end ? end : null);
       await db.goals.update(g.id, { notes: joinDesc(notes, m ? { monthlyCents: m, startCents: 0 } : null) || undefined, accountIds: byAcc ? accs : undefined });
       if (rep) {

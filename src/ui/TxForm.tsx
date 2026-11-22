@@ -1,6 +1,6 @@
 // Janela "Nova transação": uma só para toda a app. Fica por cima das páginas e continua aberta quando a página de fundo muda
 // (Despesa mostra as Transações; Rendimento mostra Salários e extras).
-import { startTransition, useEffect, useRef, useState } from 'react';
+import { startTransition, useEffect, useRef, useState, type CSSProperties } from 'react';
 import i18next from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -11,6 +11,7 @@ import type { Account, Category, Group, RecurringFrequency } from '../db/databas
 import { accountBalanceCents as balOfAcc, addTransfer, defaultAccountId, ensureDefaultAccount, listAccounts, salariesUntil } from '../core/accounts';
 import { activeCategories, addRecurring, addTransaction, listGroups, materializeDueRecurrings, RECURRING_FREQUENCIES } from '../core/finance';
 import { todayISO } from '../core/dates';
+import { milestone } from '../core/onboarding';
 import { splitIdOf } from '../core/groupLink';
 import { formatMoney, parseMoneyToCents } from '../core/money';
 import { syncSalaryTransactions } from '../core/salaryTx';
@@ -26,7 +27,7 @@ import { catLabel, CategorySelect, Field, Ic, ICON, PickMenu, Seg, Sheet, Toggle
 import { FormError, useMissing } from './missing';
 import { useIsMobile } from './useIsMobile';
 
-export interface TxFormOptions { type: 'expense' | 'income'; accountId?: string; groupId?: string; toAccount?: string; recurring?: boolean; currency?: string; language?: string }
+export interface TxFormOptions { type: 'expense' | 'income'; accountId?: string; groupId?: string; toAccount?: string; recurring?: boolean; currency?: string; language?: string; first?: boolean }
 interface FormData { accounts: Account[]; cats: Category[]; groups: Group[]; bals: Record<string, number> }
 
 const OPEN = 'wallet:tx-open', SAVED = 'wallet:tx-saved';
@@ -39,6 +40,7 @@ export function useTxSaved(fn: () => void) {
   useEffect(() => { const h = () => ref.current(); window.addEventListener(SAVED, h); return () => window.removeEventListener(SAVED, h); }, []);
 }
 
+const q = (s: string) => JSON.stringify(s);
 /** Categoria "Rendimentos extras": criada na primeira vez que é precisa. */
 async function ensureExtras() {
   if ((await db.categories.toArray()).some((c) => c.deletedAt === null && c.name === 'extras')) return;
@@ -115,7 +117,7 @@ function TxForm({ o, d, onClose, onKind }: { o: TxFormOptions; d: FormData; onCl
     return () => { on = false; };
   }, [groupId]);
 
-  const done = () => { window.dispatchEvent(new Event(SAVED)); onClose(); };
+  const done = () => { if (!toAccount) milestone(type); if (recurring) milestone('recurring'); window.dispatchEvent(new Event(SAVED)); onClose(); };
   // Rendimento: a categoria escolhe-se sempre (não fica uma por acaso)
   const pickType = (v: 'expense' | 'income') => {
     if (v === type) return;
@@ -180,7 +182,7 @@ function TxForm({ o, d, onClose, onKind }: { o: TxFormOptions; d: FormData; onCl
           {/* Formulário (telemóvel): valor grande e linhas com ícone */}
           <div className="tx-seg"><Seg value={type} onChange={pickType} label={t('transactions.type')} options={[{ id: 'expense', label: t('transactions.typeExpense') }, { id: 'income', label: t('transactions.typeIncome') }]} /></div>
           <AmountField value={amount} onChange={setAmount} currency={settings.currency} cls={miss.cls('amount')} autoFocus kind={toAccount ? undefined : type} />
-          <div className="tx-rows">
+          <div className={'tx-rows' + (o.first ? ' tx-first' : '')} style={o.first ? ({ '--h1': q(L('Opcional: adiciona detalhes')), '--h2': q(L('Onde gastaste?')), '--h3': q(L('Com que dinheiro pagaste?')), '--h5': q(L('Quando foi?')), '--h6': q(L('Repete todos os meses?')) } as CSSProperties) : undefined}>
             <TextRow label={t('transactions.description')} value={description} onChange={setDescription} />
             {toAccount ? <Row div icon={FI.cat} label={t('transactions.category')}><span className="tx-muted">{L('Transferência')}</span></Row> : <CategoryRow cats={cats} kind={type} value={categoryId} onChange={setCategoryId} cls={miss.cls('cat')} required={type === 'income'} />}
             <AccountRow label={toAccount ? L('Da conta') : t('accounts.account')} value={accountId} options={accounts.map((a) => ({ id: a.id, name: a.name, right: bals[a.id] !== undefined ? money(bals[a.id]) : undefined }))} balance={bals[accountId] !== undefined ? money(bals[accountId]) : undefined} onChange={(v) => { setAccountId(v); if (v === toAccount) setToAccount(''); }} />

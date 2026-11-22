@@ -3,6 +3,8 @@
 import type { CSSProperties } from 'react';
 import { GoalRing } from '../ui/GoalRing';
 import { Metric } from './PcOverview';
+import { LimitsWidget } from './PcWidgets';
+import { isFresh } from '../core/onboarding';
 import { CountMoney } from '../ui/CountMoney';
 import { goalEtaMonths } from '../core/goalEta';
 import { fill } from '../ui/AccountPlan';
@@ -72,6 +74,7 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
   // Só contas com dinheiro (as dívidas, ex.: empréstimo da casa, ficam de fora para não assustar)
   const saved = data ? data.accounts.filter((a) => a.type !== 'debt').reduce((sum, a) => sum + accountBalanceCents(a, data.txs, data.accounts, salaryToDate, data.transfers), 0) : 0;
   const accRows = data ? [...data.accounts].sort((a, b) => Number(a.type === 'debt') - Number(b.type === 'debt') || a.order - b.order).map((a) => ({ a, bal: accountBalanceCents(a, data.txs, data.accounts, salaryToDate, data.transfers) })) : [];
+  const fresh = isFresh(); // conta nova: só o essencial
   const rng = embed ? embed.range : ranged ? pr ?? undefined : undefined;
   const inRange = (data?.txs ?? []).filter((x) => !rng || (x.date >= rng.from && x.date <= rng.to));
   const latest = [...inRange].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt)).slice(0, embed ? 40 : 5); // no Resumo do PC o widget pode ser esticado: mostra o que couber
@@ -125,6 +128,7 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
         <Link to="/transacoes?nova=1" className="sh-btn out"><Ic d="M5 12h14" size={22} />{L('Gastei')}</Link>
         <Link to="/transacoes?nova=1&tipo=income" className="sh-btn in"><Ic d="M12 5v14M5 12h14" size={22} />{L('Recebi')}</Link>
       </div>}
+      {fresh && !embed && (data?.goals.length ?? 0) === 0 && <Link to="/metas" className="gl-act hm-goal"><Ic d="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8z" size={18} />{L('Criar meta')}</Link>}
 
       {/* 3. As contas da pessoa e quanto tem em cada uma */}
       {!embed && accRows.length > 0 && <section className="mv-card sh-accs" data-tour="accounts">
@@ -180,7 +184,7 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
   const goalsEl = (<>
       {/* 6. Metas: só a principal, com a barra */}
       <section className="mv-card">
-        <div className="mv-card-head">{embed && <span className="pco-mic"><Ic d="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8z" size={18} /></span>}<h2>{L('Metas')}</h2><Link to="/metas" className="mv-link">{(data?.goals.length ?? 0) > 0 ? L('Ver todas') : L('Criar meta')}</Link></div>
+        <div className="mv-card-head">{embed && <span className="pco-mic"><Ic d="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8z" size={18} /></span>}<h2>{L('Metas')}</h2>{(data?.goals.length ?? 0) > 0 && <Link to="/metas" className="mv-link">{L('Ver todas')}</Link>}</div>
         <div className="sh-scroll wr-list">{(data?.goals ?? []).slice(0, embed ? 20 : 3).map((g, i) => {
           const gc = g.accountIds?.length ? accRows.filter((x) => g.accountIds!.includes(x.a.id)).reduce((x, y) => x + goalValueCents(y.a, y.bal), 0) : g.currentCents; // ligada a contas: o valor vem delas
           const r = g.targetCents > 0 ? Math.max(0, Math.min(1, gc / g.targetCents)) : 0;
@@ -209,8 +213,9 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
       <PeriodFilter value={per} onChange={setPer} />
       {heroEl}
       {latestEl}
-      {groupsEl}
-      {goalsEl}
+      {(!fresh || (data?.groups.length ?? 0) > 0) && groupsEl}
+      {(!fresh || (data?.goals.length ?? 0) > 0) && goalsEl}
+      {!fresh && <LimitsWidget money={money} y={now.getFullYear()} m={now.getMonth()} />}
     </div>
   );
 }

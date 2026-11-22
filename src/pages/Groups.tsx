@@ -19,6 +19,7 @@ import { FI, InviteRow, SwitchRow, TextRow } from '../ui/formFields';
 import { parseContact } from '../core/split';
 import { FormError, useMissing } from '../ui/missing';
 import { squareImage } from '../core/assistant';
+import { milestone } from '../core/onboarding';
 import { listenSplit, tellSplit } from '../core/splitLive';
 import { IS_DEMO } from '../demo/demo';
 import { BottomSheet } from './SimplePages';
@@ -166,6 +167,7 @@ export function Groups() {
       const sid = split ? await startSplit() : null;
       if (split && !sid) return;
       if (adding && adding !== 'new') { const g = adding; close(); if (sid) await link(g, sid); return; }
+      milestone('group');
       let gid: string;
       if (sid) { gid = linkedGroupId(sid, me); const n = new Date().toISOString(), color = COLORS[groups.length % COLORS.length]; await pushGroup(sid, { name: name.trim(), color }); await db.groups.put({ id: gid, name: name.trim(), color, createdAt: n, updatedAt: n, deletedAt: null }); }
       else gid = (await addGroup(db, name.trim(), COLORS[groups.length % COLORS.length])).id;
