@@ -786,6 +786,8 @@ export const PHRASES: Record<string, Tr> = {
   'Ver planos': ['See plans', 'Ver planes', 'Voir les offres'],
   'Despesas divididas': ['Split expenses', 'Gastos divididos', 'Dépenses partagées'],
   'Dividir este grupo com outras pessoas': ['Split this group with other people', 'Dividir este grupo con otras personas', 'Partager ce groupe avec d’autres personnes'],
+  'Convite para dividir despesas': ['Invite to split expenses', 'Invitación para dividir gastos', 'Invitation à partager des dépenses'],
+  'Convidado por': ['Invited by', 'Invitado por', 'Invité par'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */

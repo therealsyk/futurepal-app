@@ -1,3 +1,6 @@
+import { answerSplitInvite } from '../core/splitInvite';
+import { SPLIT_CHANGED } from '../core/groupLink';
+import { L } from '../i18n/phrases';
 import { useEffect, useRef, useState } from 'react';
 import { UserAvatar } from './UserAvatar';
 import { AccountSwitcher } from './AccountSwitcher';
@@ -26,39 +29,45 @@ const ITEMS = {
   swap: 'M16 3l4 4-4 4M20 7H9M8 21l-4-4 4-4M4 17h11',
 };
 
-type Note = { id: string; text: string; to: string };
+type Note = { id: string; text: string; to: string; kind: 'invite' | 'plan' | 'sub' | 'warranty' | 'tax'; invite?: { id: string; by: string; group: string } };
+const NOTE_IC: Record<Note['kind'], string> = {
+  invite: 'M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M19 8v6M22 11h-6', plan: 'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z',
+  sub: 'M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3', warranty: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4', tax: 'M7 3h10v18l-5-3-5 3zM10 8h4M10 12h4',
+};
 
 function useNotifications(): Note[] {
   const { t } = useTranslation();
   const [notes, setNotes] = useState<Note[]>([]);
+  const [tick, setTick] = useState(0);
+  useEffect(() => { const on = () => setTick((n) => n + 1); window.addEventListener(SPLIT_CHANGED, on); return () => window.removeEventListener(SPLIT_CHANGED, on); }, []);
   useEffect(() => {
     (async () => {
       const out: Note[] = [];
       const plan = loadPlan();
       const left = trialDaysLeft(plan);
-      if (plan.plan === 'free' && left > 0 && left <= 3) out.push({ id: 'trial', text: t('acct.nTrial', { count: left }), to: '/plus' });
+      if (plan.plan === 'free' && left > 0 && left <= 3) out.push({ kind: 'plan', id: 'trial', text: t('acct.nTrial', { count: left }), to: '/plus' });
       if (hasFeature('subscriptions')) {
         const txs = (await db.transactions.toArray()).filter((x) => x.deletedAt === null);
-        for (const s of detectSubscriptions(txs)) if (s.daysUntil >= 0 && s.daysUntil <= 3) out.push({ id: 'sub' + s.key, text: t('acct.nSub', { name: s.name, count: s.daysUntil }), to: '/subscricoes' });
+        for (const s of detectSubscriptions(txs)) if (s.daysUntil >= 0 && s.daysUntil <= 3) out.push({ kind: 'sub', id: 'sub' + s.key, text: t('acct.nSub', { name: s.name, count: s.daysUntil }), to: '/subscricoes' });
       }
       if (hasFeature('warranties')) {
         for (const w of (await db.warranties.toArray()).filter((x) => x.deletedAt === null)) {
           const d = warrantyDaysLeft(w.purchaseDate, w.months);
-          if (d >= 0 && d <= 30) out.push({ id: 'w' + w.id, text: t('acct.nWarranty', { name: w.name, count: d }), to: '/garantias' });
+          if (d >= 0 && d <= 30) out.push({ kind: 'warranty', id: 'w' + w.id, text: t('acct.nWarranty', { name: w.name, count: d }), to: '/garantias' });
         }
       }
       const m = new Date().getMonth();
-      if (m <= 1) out.push({ id: 'irs', text: t('acct.nIrs'), to: '/irs' });
+      if (m <= 1) out.push({ kind: 'tax', id: 'irs', text: t('acct.nIrs'), to: '/irs' });
       // convites para grupos de divisão de contas (qualquer plano)
       const sb = getSupabase();
       if (sb && (await sb.auth.getSession()).data.session) {
         const { data } = await sb.rpc('my_split_invites');
         for (const i of (data ?? []) as Array<{ id: string; group_name: string; invited_by_name: string }>)
-          out.unshift({ id: 'inv' + i.id, text: t('acct.nSplitInvite', { name: i.invited_by_name, group: i.group_name }), to: '/grupos' });
+          out.unshift({ kind: 'invite', invite: { id: i.id, by: i.invited_by_name, group: i.group_name }, id: 'inv' + i.id, text: t('acct.nSplitInvite', { name: i.invited_by_name, group: i.group_name }), to: '/grupos' });
       }
       setNotes(out);
     })().catch(() => {});
-  }, [t]);
+  }, [t, tick]);
   return notes;
 }
 
@@ -86,6 +95,9 @@ export function AccountBar() {
   const name = meta.full_name || meta.name || (email ? email.split('@')[0] : t('acct.guest'));
   const masked = email ? '•••••@' + email.split('@')[1] : t('settings2.localMode');
   const [switcher, setSwitcher] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [noteErr, setNoteErr] = useState<string | null>(null);
+  const answer = async (id: string, accept: boolean) => { setBusy(id); setNoteErr(await answerSplitInvite(auth.user, id, accept)); setBusy(null); };
   const go = (to: string) => { setOpen(null); navigate(to); };
   const planName = t('plus.plan_' + activePlan());
 
@@ -96,17 +108,28 @@ export function AccountBar() {
         <UserAvatar user={auth.user} name={name} />
         <span className="ab-who"><small className="ab-hello">{t('acct.hello')}</small><b className="ab-full">{name}</b><b className="ab-first">{name.split(' ')[0]}!</b><small className="ab-mail">{masked}</small></span>
       </button>
-      <button type="button" className="ab-bell" onClick={() => setOpen(open === 'bell' ? null : 'bell')} aria-label={t('acct.notifications')} aria-expanded={open === 'bell'}>
+      <button type="button" className={'ab-bell' + (notes.length ? ' has' : '')} onClick={() => setOpen(open === 'bell' ? null : 'bell')} aria-label={t('acct.notifications')} aria-expanded={open === 'bell'}>
         <Ic d={BELL} size={20} />
-        {notes.length > 0 && <i className="ab-dot" />}
+        {notes.length > 0 && <i className="ab-dot">{notes.length > 9 ? '9+' : notes.length}</i>}
       </button>
 
       {open === 'bell' && (
         <div className="ab-pop ab-pop-bell" role="dialog" aria-label={t('acct.notifications')}>
-          <h4>{t('acct.notifications')}</h4>
-          {notes.length === 0 ? <p className="fx-muted">{t('acct.noNotes')}</p> : notes.map((n) => (
-            <button key={n.id} type="button" className="ab-note" onClick={() => go(n.to)}>{n.text}</button>
-          ))}
+          <header className="nt-head"><span className="nt-bell"><Ic d={BELL} size={18} /></span><h4>{t('acct.notifications')}</h4>{notes.length > 0 && <em>{notes.length}</em>}</header>
+          {noteErr && <p className="fx-error">{noteErr}</p>}
+          {notes.length === 0 ? <div className="nt-empty"><span><Ic d={BELL} size={26} /></span><p>{t('acct.noNotes')}</p></div> : <div className="nt-list">{notes.map((n) => n.invite ? (
+            <div key={n.id} className="nt-card invite">
+              <span className="nt-ic"><Ic d={NOTE_IC.invite} size={18} /></span>
+              <div className="nt-body">
+                <small>{L('Convite para dividir despesas')}</small>
+                <b>{n.invite.group}</b>
+                <p>{L('Convidado por')} {n.invite.by}</p>
+                <div className="nt-btns"><button type="button" className="no" disabled={busy === n.invite.id} onClick={() => answer(n.invite!.id, false)}>{L('Rejeitar')}</button><button type="button" className="yes" disabled={busy === n.invite.id} onClick={() => answer(n.invite!.id, true)}>{L('Aceitar')}</button></div>
+              </div>
+            </div>
+          ) : (
+            <button key={n.id} type="button" className={'nt-card ' + n.kind} onClick={() => go(n.to)}><span className="nt-ic"><Ic d={NOTE_IC[n.kind]} size={18} /></span><span className="nt-body">{n.text}</span><Ic d="M9 6l6 6-6 6" size={16} /></button>
+          ))}</div>}
         </div>
       )}
 
