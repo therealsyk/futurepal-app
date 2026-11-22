@@ -8,6 +8,7 @@ import { NewGoal } from './NewGoal';
 import { GoalCard, GoalView, type GoalInfo } from './GoalView';
 import { GoalRing } from '../ui/GoalRing';
 import { GTile } from './Split';
+import { DebtBoost, MoreInfo, PaymentList } from './DebtBoost';
 import { CountMoney } from '../ui/CountMoney';
 import { allPayments, inPeriod, isEssential } from '../core/payments';
 import { hasFeature } from '../core/plan';
@@ -63,7 +64,8 @@ async function loadAll(): Promise<Data> {
 const useMoney = () => { const s = loadSettings(); return (c: number) => formatMoney(c, s.currency, s.language); };
 
 // ── Contas: total no topo, separadores Gastos / Poupança / Dívidas, um cartão por conta
-const TYPES = [{ id: 'spending', label: L('Gastos') }, { id: 'savings', label: L('Poupança') }, { id: 'debt', label: L('Dívidas') }] as const;
+// nomes lidos na altura: assim seguem a língua escolhida
+const TYPES = [{ id: 'spending', get label() { return L('Gastos'); } }, { id: 'savings', get label() { return L('Poupança'); } }, { id: 'debt', get label() { return L('Dívidas'); } }] as const;
 const TYPE_IC: Record<string, string> = { spending: ICON.wallet, savings: 'M19 7a3 3 0 0 0-3-2H9a6 6 0 0 0-6 6c0 2 1 3.5 2 4.5V19h3v-2h5v2h3v-3a6 6 0 0 0 2-3h2V9h-2z', debt: 'M3 10l9-6 9 6M5 10v9h14v-9M9 19v-5h6v5' };
 
 export function SimpleAccounts() {
@@ -140,7 +142,9 @@ export function SimpleAccounts() {
           </button>
           {a.type === 'spending' ? splitDesc(a.description).text && <p className="acc-desc">{splitDesc(a.description).text}</p> : (
             <div className={'acc-exp' + (openAcc === a.id ? ' open' : '')} aria-hidden={openAcc !== a.id} inert={openAcc !== a.id}><div>
-              <AccountPlanBox a={a} p={planInfo(a, balOf(a), d?.transfers ?? [], goals.find((x) => x.id === splitDesc(a.description).plan?.goalId), now)} money={money} lang={s.language} onEdit={() => openEdit(a)} />
+              <AccountPlanBox a={a} p={planInfo(a, balOf(a), d?.transfers ?? [], goals.find((x) => x.id === splitDesc(a.description).plan?.goalId), now)} money={money} lang={s.language} onEdit={() => openEdit(a)} more={<MoreInfo id={a.id} />}>
+                <div className="db-inbox"><h3>{a.type === 'debt' ? L('Pagamentos feitos') : L('Dinheiro que entrou')}</h3><PaymentList a={a} transfers={d?.transfers ?? []} txs={d?.txs ?? []} accounts={d?.accounts ?? []} money={money} lang={s.language} /></div>
+              </AccountPlanBox>
             </div></div>
           )}
         </div>
@@ -304,6 +308,9 @@ export function SimpleGoals() {
   const s = loadSettings();
   const [d, setD] = useState<(Data & { goals: Goal[] }) | null>(null);
   const [open, setOpen] = useState<string | null>(null);
+  const [fromAcc] = useState(() => new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('conta')); // vindo de uma conta de poupança/dívida
+  const [left_, setLeft] = useState(false);
+  const navigate = useNavigate();
   const [form, setForm] = useState(false);
   const reload = async () => setD({ ...(await loadAll()), goals: live(await db.goals.toArray()) });
   useEffect(() => { reload().catch(() => {}); }, []);
@@ -317,7 +324,7 @@ export function SimpleGoals() {
   const dayRatio = now.getDate() / new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const fc = (g: Goal, cur: number): GoalForecast => {
     // conta com um valor certo por mês: a previsão é a do plano (a mesma que aparece na conta)
-    const acc = (d?.accounts ?? []).find((a) => splitDesc(a.description).plan?.goalId === g.id), plan = acc ? splitDesc(acc.description).plan : null;
+    const acc = (d?.accounts ?? []).find((a) => 'acc:' + a.id === g.id || splitDesc(a.description).plan?.goalId === g.id), plan = acc ? splitDesc(acc.description).plan : null;
     if (acc && plan && plan.monthlyCents > 0) {
       const left = Math.max(0, g.targetCents - cur), m = plan.monthlyCents;
       const etaMonths = acc.type === 'debt' ? payoff(Math.max(0, balOf(acc)), m, plan.rate)?.months ?? null : Math.ceil(left / m);
@@ -365,12 +372,15 @@ export function SimpleGoals() {
   const ownGoals = (d?.goals ?? []).filter((x) => !accGoals.some((y) => y.g.id === x.id));
   const info = (x: Goal): GoalInfo => {
     const cur = currentOf(x), f = fc(x, cur);
-    return { cur, r: x.targetCents > 0 ? Math.max(0, Math.min(1, cur / x.targetCents)) : 0, eta: etaLabel(f), per: f.etaMonths === null ? 0 : f.perMonthCents, done: x.targetCents > 0 && cur >= x.targetCents, when: deadlineInfo(x, cur), long: forecastLong(x, cur, accGoals.find((y) => y.g.id === x.id)?.acc.type === 'debt') };
+    return { cur, r: x.targetCents > 0 ? Math.max(0, Math.min(1, cur / x.targetCents)) : 0, eta: etaLabel(f), per: f.etaMonths === null ? 0 : f.perMonthCents, done: x.targetCents > 0 && cur >= x.targetCents, when: deadlineInfo(x, cur), long: forecastLong(x, cur, (accGoals.find((y) => y.g.id === x.id)?.acc ?? (x.id.startsWith('acc:') ? d?.accounts.find((y) => y.id === x.id.slice(4)) : undefined))?.type === 'debt') };
   };
-  const g = d?.goals.find((x) => x.id === open);
+  const viaAcc = fromAcc && !left_ ? d?.accounts.find((x) => x.id === fromAcc) : undefined, viaPlan = viaAcc && splitDesc(viaAcc.description).plan;
+  const viaGoal: Goal | undefined = viaAcc && (d?.goals.find((x) => x.id === viaPlan?.goalId) ?? { id: 'acc:' + viaAcc.id, name: viaAcc.name, targetCents: viaAcc.type === 'debt' ? Math.max(balOf(viaAcc), viaPlan?.startCents ?? viaAcc.initialBalanceCents) : 0, currentCents: 0, startDate: viaAcc.createdAt.slice(0, 10), targetDate: null, accountIds: [viaAcc.id], createdAt: viaAcc.createdAt, updatedAt: viaAcc.updatedAt, deletedAt: null });
+  const g = viaGoal ?? d?.goals.find((x) => x.id === open);
+  const gAcc = viaAcc ?? accGoals.find((y) => y.g.id === g?.id)?.acc;
   if (g && d) return (
     <>
-      <GoalView g={g} acc={accGoals.find((y) => y.g.id === g.id)?.acc} info={info(g)} accounts={d.accounts} valueOf={(a) => goalValueCents(a, balOf(a))} money={money} date={date} onBack={() => setOpen(null)} onEdit={() => setForm(true)} reload={reload} />
+      <GoalView g={g} acc={gAcc} info={info(g)} accounts={d.accounts} extra={gAcc?.type === 'debt' ? <DebtBoost key={gAcc.id} a={gAcc} left={Math.max(0, balOf(gAcc))} txs={d.txs} accounts={d.accounts} transfers={d.transfers} balOf={balOf} money={money} lang={s.language} reload={reload} /> : gAcc ? <section className="mv-card gl-sec"><h2>{L('Dinheiro que entrou')}</h2><PaymentList a={gAcc} transfers={d.transfers} txs={d.txs} accounts={d.accounts} money={money} lang={s.language} short={8} /></section> : undefined} valueOf={(a) => goalValueCents(a, balOf(a))} money={money} date={date} onBack={() => { if (viaGoal) { setLeft(true); navigate('/contas'); } else setOpen(null); }} onEdit={() => setForm(true)} reload={reload} />
       {form && <NewGoal edit={g} current={currentOf(g)} accounts={d.accounts} balOf={balOf} money={money} onClose={() => setForm(false)} onDone={() => { setForm(false); reload(); }} />}
     </>
   );

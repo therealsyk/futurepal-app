@@ -25,34 +25,60 @@ const between = (a: string, b: string) => Math.round((at(b) - at(a)) / day);
 export const isoDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const median = (xs: number[]) => { const s = [...xs].sort((a, b) => a - b), m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2); };
 /** "NETFLIX.COM 0815/PT" e "Netflix com" são o mesmo. */
-export const payKey = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[0-9#*/.\-_,:()]+/g, ' ').replace(/\b(compra|pagamento|pag|deb|debito|direto|dd|cartao|visa|mb|ref)\b/g, ' ').replace(/\s+/g, ' ').trim();
+export const payKey = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[0-9#*/.\-_,:()]+/g, ' ').replace(/\b(compras?|pagamentos?|pagto|pag|deb|debito|direto|directo|sepa|dd|cartao|card|visa|mastercard|contactless|mb|mbway|way|ref|trf|transf|transferencia|para|de|do|da|em|a|no|lisboa|porto|portugal|prt|pt|lda|sa|com|www|https?|payment|purchase|jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\b/g, ' ').replace(/\s+/g, ' ').trim();
 
 // intervalo entre pagamentos (dias): de, até, folga, quantas vezes para ter a certeza
 const STEPS: Array<[RecurringFrequency, number, number, number, number]> = [
   ['weekly', 6, 8, 2, 4], ['biweekly', 13, 16, 3, 4], ['monthly', 26, 35, 6, 3], ['bimonthly', 55, 67, 8, 3], ['quarterly', 85, 98, 10, 3], ['semiannual', 172, 192, 14, 2], ['yearly', 350, 381, 16, 2],
 ];
 
+/** Junta valores parecidos (o mesmo comerciante pode ter a subscrição e compras soltas). */
+function clusters(list: Transaction[], tol: number): Transaction[][] {
+  const out: Transaction[][] = [];
+  for (const t of [...list].sort((a, b) => a.amountCents - b.amountCents)) {
+    const c = out.find((x) => Math.abs(t.amountCents - median(x.map((y) => y.amountCents))) <= Math.max(100, median(x.map((y) => y.amountCents)) * tol));
+    if (c) c.push(t); else out.push([t]);
+  }
+  return out;
+}
+
+/** Padrão de uma lista do mesmo pagamento: aceita um mês falhado e alguns dias de diferença. ref = até quando há dados. */
+function pattern(key: string, all: Transaction[], ref: string, now: string): Payment | null {
+  const list = [...all].sort((a, b) => a.date.localeCompare(b.date)).filter((t, i, xs) => i === 0 || between(xs[i - 1].date, t.date) > 2);
+  if (list.length < 2) return null;
+  const gaps = list.slice(1).map((t, i) => between(list[i].date, t.date)), g = median(gaps);
+  const step = STEPS.find(([, a, b]) => g >= a && g <= b) ?? STEPS.find(([, a, b]) => Math.min(...gaps) >= a && Math.min(...gaps) <= b && gaps.length > 1);
+  if (!step) return null;
+  const mid = (step[1] + step[2]) / 2, ok = gaps.filter((x) => [1, 2].some((k) => Math.abs(x - mid * k) <= step[3] * k)).length;
+  if (ok / gaps.length < (step[0] === 'weekly' || step[0] === 'biweekly' ? 0.8 : 0.66)) return null;
+  const last = list[list.length - 1];
+  if (between(last.date, ref) > mid * 1.6 + 5) return null; // já deixou de sair
+  let next = advanceDate(last.date, step[0]);
+  for (let n = 0; n < 60 && next < now && between(next, now) > mid * 0.6; n++) next = advanceDate(next, step[0]);
+  return { key, name: (last.description || '').trim() || key, categoryId: last.categoryId, cents: last.amountCents, frequency: step[0], monthlyCents: monthlyEquivalentCents(last.amountCents, step[0]), nextDate: next, daysUntil: between(now, next), accountId: last.accountId, sure: list.length >= step[4], hits: list.map((t) => ({ date: t.date, cents: t.amountCents })) };
+}
+
 /** Despesas que se repetem com valor parecido e intervalo regular, e que ainda parecem estar ativas. */
 export function detectPayments(txs: Transaction[], today = new Date()): Payment[] {
-  const now = isoDay(today), groups = new Map<string, Transaction[]>();
-  for (const t of txs) {
-    if (t.deletedAt !== null || t.type !== 'expense' || t.date > now) continue;
-    const k = payKey(t.description || '') || `cat:${t.categoryId}:${t.amountCents}`;
-    groups.set(k, [...(groups.get(k) ?? []), t]);
-  }
-  const out: Payment[] = [];
-  for (const [key, all] of groups) {
-    const list = all.sort((a, b) => a.date.localeCompare(b.date));
+  const now = isoDay(today), exp = txs.filter((t) => t.deletedAt === null && t.type === 'expense' && t.date <= now);
+  if (!exp.length) return [];
+  // os movimentos podem só ir até ao último extrato importado: "ativo" mede-se a partir daí
+  const lastDay = exp.reduce((a, t) => (t.date > a ? t.date : a), ''), ref = between(lastDay, now) > 75 ? now : lastDay, groups = new Map<string, Transaction[]>();
+  for (const t of exp) { const k = payKey(t.description || ''); if (k.length > 1) groups.set(k, [...(groups.get(k) ?? []), t]); }
+  const out: Payment[] = [], used = new Set<string>();
+  const take = (p: Payment | null, list: Transaction[]) => { if (p) { out.push(p); for (const t of list) used.add(t.id); } };
+  for (const [key, list] of groups) {
     if (list.length < 2) continue;
-    const med = median(list.map((t) => t.amountCents)), tol = serviceOf(key)?.varies ? 0.5 : 0.15;
-    if (list.some((t) => Math.abs(t.amountCents - med) > med * tol)) continue;
-    const gaps = list.slice(1).map((t, i) => between(list[i].date, t.date)), g = median(gaps);
-    const step = STEPS.find(([, a, b]) => g >= a && g <= b);
-    if (!step || gaps.some((x) => Math.abs(x - g) > step[3])) continue;
-    const last = list[list.length - 1], next = advanceDate(last.date, step[0]), until = between(now, next);
-    if (until < -Math.max(7, Math.round(g * 0.6))) continue; // já deixou de sair
-    out.push({ key, name: (last.description || '').trim() || key, categoryId: last.categoryId, cents: last.amountCents, frequency: step[0], monthlyCents: monthlyEquivalentCents(last.amountCents, step[0]), nextDate: next, daysUntil: until, accountId: last.accountId, sure: list.length >= step[4], hits: list.map((t) => ({ date: t.date, cents: t.amountCents })) });
+    const varies = serviceOf(key)?.varies ?? false;
+    const sets = varies ? [list] : clusters(list, 0.15);
+    const found = sets.map((x) => ({ x, p: pattern(key, x, ref, now) })).filter((y) => y.p);
+    // o mesmo nome com dois valores: cada um fica com a sua chave
+    found.forEach(({ x, p }, n) => take(n === 0 ? p : { ...p!, key: `${key}#${p!.cents}` }, x));
   }
+  // nome que muda todos os meses (referências bancárias) mas a mesma categoria e exatamente o mesmo valor
+  const same = new Map<string, Transaction[]>();
+  for (const t of exp) if (!used.has(t.id) && t.amountCents >= 300) { const k = `cat:${t.categoryId}:${t.amountCents}`; same.set(k, [...(same.get(k) ?? []), t]); }
+  for (const [key, list] of same) { if (list.length < 3) continue; const p = pattern(key, list, ref, now); if (p && p.frequency !== 'weekly' && p.frequency !== 'biweekly') take(p, list); }
   return out;
 }
 
@@ -67,7 +93,7 @@ export function allPayments(txs: Transaction[], recs: Recurring[], ignored: stri
   });
   const keys = new Set(mine.map((r) => payKey(r.description)).filter(Boolean)), ids = new Set(recs.map((r) => r.id)), skip = new Set(ignored);
   const auto = new Set(txs.filter((t) => t.recurringId && ids.has(t.recurringId)).map((t) => payKey(t.description || '') || `cat:${t.categoryId}:${t.amountCents}`));
-  const found = detectPayments(txs, today).filter((p) => !skip.has(p.key) && !keys.has(p.key) && !auto.has(p.key)
+  const found = detectPayments(txs.filter((t) => !t.recurringId || !ids.has(t.recurringId)), today).filter((p) => !skip.has(p.key) && !keys.has(p.key.split('#')[0]) && !auto.has(p.key)
     && !mine.some((r) => r.categoryId === p.categoryId && r.frequency === p.frequency && Math.abs(r.amountCents - p.cents) <= p.cents * 0.02));
   const big = (a: Payment, b: Payment) => b.monthlyCents - a.monthlyCents;
   return { added: added.sort(big), found: found.sort(big) };

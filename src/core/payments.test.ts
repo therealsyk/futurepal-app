@@ -23,6 +23,18 @@ describe('pagamentos recorrentes', () => {
     expect(detectPayments([tx('2026-10-01', 1000, 'Loja'), tx('2026-10-12', 1000, 'Loja'), tx('2026-11-19', 1000, 'Loja')], today)).toHaveLength(0);
     expect(detectPayments([tx('2026-05-05', 999, 'Gym'), tx('2026-06-05', 999, 'Gym'), tx('2026-07-05', 999, 'Gym')], today)).toHaveLength(0);
   });
+  it('encontra padrões em extratos reais: compras soltas, um mês falhado e nomes que mudam', () => {
+    const loose = [tx('2026-09-10', 4210, 'COMPRA NETFLIX 991'), ...netflix]; // uma compra solta no mesmo sítio
+    expect(detectPayments(loose, today)).toHaveLength(1);
+    const gap = ['2026-05-05', '2026-06-05', '2026-08-06', '2026-09-05', '2026-10-05', '2026-11-05'].map((d) => tx(d, 999, 'Spotify AB'));
+    expect(detectPayments(gap, today)[0]).toMatchObject({ frequency: 'monthly', sure: true });
+    const rent = ['2026-08-01', '2026-09-01', '2026-10-01', '2026-11-01'].map((d, i) => tx(d, 65000, 'TRF 00' + i + ' xkq' + 'abcd'[i]));
+    expect(detectPayments(rent, today)[0]).toMatchObject({ cents: 65000, frequency: 'monthly' });
+    // extrato importado só até meados de outubro: continua ativo
+    expect(detectPayments(['2026-08-05', '2026-09-05', '2026-10-05'].map((d) => tx(d, 1299, 'HBO Max')), today)).toHaveLength(1);
+    // compras do dia a dia não são recorrentes
+    expect(detectPayments(Array.from({ length: 20 }, (_, i) => tx(`2026-11-${String(i + 1).padStart(2, '0')}`, 120 + (i % 3) * 10, 'Café Central')), today)).toHaveLength(0);
+  });
   it('a conta da luz varia e continua a ser detetada', () => {
     expect(detectPayments([tx('2026-09-10', 4000, 'EDP'), tx('2026-10-10', 5200, 'EDP'), tx('2026-11-10', 4600, 'EDP')], today)).toHaveLength(1);
   });

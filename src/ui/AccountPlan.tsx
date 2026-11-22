@@ -3,6 +3,7 @@ import { Ic } from './fx';
 import { CountMoney } from './CountMoney';
 import { GoalRing } from './GoalRing';
 import { WidgetRow } from './WidgetRow';
+import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import type { Account } from '../db/database';
 import { splitDesc, type PlanInfo } from '../core/debtPlan';
@@ -21,7 +22,7 @@ export function duration(months: number): string {
 }
 export const endText = (months: number, lang: string) => fill(L('Acabas em {d} (faltam {m})'), { d: endDate(months, lang), m: duration(months) });
 
-export function AccountPlanBox({ a, p, money, lang, onEdit }: { a: Account; p: PlanInfo; money: (c: number) => string; lang: string; onEdit: () => void }) {
+export function AccountPlanBox({ a, p, money, lang, onEdit, children, more }: { children?: ReactNode; more?: ReactNode; a: Account; p: PlanInfo; money: (c: number) => string; lang: string; onEdit: () => void }) {
   const debt = a.type === 'debt', text = splitDesc(a.description).text, left = p.left, monthLeft = Math.max(0, p.monthly - p.inMonth);
   const tile = (label: string, value: string, sub?: string, cls = '') => <div className="pl-tile"><small>{label}</small><b className={cls}>{value}</b>{sub && <em>{sub}</em>}</div>;
   return (
@@ -44,6 +45,8 @@ export function AccountPlanBox({ a, p, money, lang, onEdit }: { a: Account; p: P
         {p.rate > 0 && p.payable !== null && <p className="pl-note">{fill(L('Juros de {r}% por ano: ainda vais pagar {m} só de juros.'), { r: String(p.rate).replace('.', ','), m: money(p.payable - left) })}</p>}
         {p.deadline && <p className={'pl-note ' + (p.onTime === null ? '' : p.onTime ? 'fx-pos' : 'fx-neg')}>{p.onTime === null ? `${L('Data limite')}: ` : ''}{p.onTime === null ? new Date(p.deadline + 'T00:00:00').toLocaleDateString(lang, { day: 'numeric', month: 'long', year: 'numeric' }) : fill(p.onTime ? L('Vais a tempo: {d}') : L('⚠ A este ritmo não chegas até {d}'), { d: new Date(p.deadline + 'T00:00:00').toLocaleDateString(lang, { day: 'numeric', month: 'long', year: 'numeric' }) })}</p>}
       </>}
+      {children}
+      {more}
       <div className="debt-btns">
         <button type="button" className="sh-btn out sm" onClick={onEdit}>{L('Alterar')}</button>
         <Link to={`/transacoes?nova=1&para=${a.id}`} className="sh-btn in sm">{debt ? L('Abater') : L('Juntar')}</Link>

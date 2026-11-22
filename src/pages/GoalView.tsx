@@ -1,5 +1,5 @@
 // Metas: cartão da lista (anel com a percentagem) e página de uma meta, com tudo o que se pode fazer nela.
-import { useState, type CSSProperties } from 'react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { db } from '../db/app-db';
 import type { Account, Goal } from '../db/database';
@@ -67,8 +67,8 @@ function MoveSheet({ g, take, money, onClose, onDone }: { g: Goal; take: boolean
   );
 }
 
-export function GoalView({ g, acc, info, accounts, valueOf, money, date, onBack, onEdit, reload }: {
-  g: Goal; acc?: Account; info: GoalInfo; accounts: Account[]; valueOf: (a: Account) => number; money: (c: number) => string; date: (iso: string) => string; onBack: () => void; onEdit: () => void; reload: () => void;
+export function GoalView({ g, acc, info, extra, accounts, valueOf, money, date, onBack, onEdit, reload }: {
+  extra?: ReactNode; g: Goal; acc?: Account; info: GoalInfo; accounts: Account[]; valueOf: (a: Account) => number; money: (c: number) => string; date: (iso: string) => string; onBack: () => void; onEdit: () => void; reload: () => void;
 }) {
   const [move, setMove] = useState<'' | 'add' | 'take'>(''), [all, setAll] = useState(false);
   const debt = acc?.type === 'debt', linked = accounts.filter((a) => g.accountIds?.includes(a.id)), hand = !g.accountIds?.length;
@@ -117,6 +117,7 @@ export function GoalView({ g, acc, info, accounts, valueOf, money, date, onBack,
         <p className="fx-muted">{info.long}</p>
         {info.when && <p className={'sh-alert' + (info.when.ok ? ' ok' : '')}>{info.when.long}</p>}
       </section>
+      {extra}
       {!acc && left > 0 && <section className="mv-card gl-sec">
         <h2>{L('Quando queres lá chegar?')}</h2>
         <p className="gl-sub">{L('Carrega numa opção para juntares esse valor todos os meses.')}</p>
