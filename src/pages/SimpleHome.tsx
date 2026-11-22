@@ -178,7 +178,7 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
       <header className="mv-head">
         <div className="mv-hello">
           <UserAvatar user={auth.user} name={name || '?'} className="ab-initials mv-avatar" />
-          <div className="mv-hello-txt">{name && <small>{L('Olá,')}</small>}<h1>{name ? name.split(' ')[0] + '!' : L('Olá!')}</h1></div>
+          <div className="mv-hello-txt">{name && <small>{L('Olá,')}</small>}<h1 style={{ fontSize: Math.max(13, Math.min(20, Math.floor(100 / ((name.split(' ')[0].length + 1) * 0.58)))) }}>{name ? name.split(' ')[0] + '!' : L('Olá!')}</h1></div>
         </div>
         <NotificationBell />
         <button type="button" className="mv-sq mv-menu" data-tour="menu" onClick={() => window.dispatchEvent(new Event('wallet:open-more'))} aria-label={L('Mais funções')}><Ic d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" size={19} /><span>{L('Menu')}</span></button>

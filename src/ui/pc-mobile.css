@@ -1428,3 +1428,6 @@ html.pcm .fx-page.grp .grp-add, .grp-add { position: static !important; transfor
 html.pcm .nt { display: contents; }
 html:not(.pcm) .nt .ab-bell { width: 44px; height: 44px; border-radius: 14px; } html:not(.pcm) .nt .ab-dot { top: -5px; right: -5px; }
 html:not(.pcm) .nt .ab-pop-bell { position: fixed; top: calc(66px + var(--safe-t, env(safe-area-inset-top, 0px))); left: 12px; right: 12px; width: auto; max-width: none; z-index: 70; box-sizing: border-box; }
+/* topo do telemóvel: o primeiro nome cabe sempre numa linha */
+html:not(.pcm) .mv-head { gap: 8px; } html:not(.pcm) .mv-hello { gap: 9px; min-width: 0; } html:not(.pcm) .mv-hello-txt { min-width: 0; } html:not(.pcm) .mv-hello h1 { white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; } html:not(.pcm) .mv-hello .mv-avatar { width: 42px; height: 42px; }
+html:not(.pcm) .mv-menu { padding: 0 11px; } html:not(.pcm) .mv-menu svg { display: none; }
