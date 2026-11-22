@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { appConfirm } from '../ui/confirm';
 import { openTxForm, useTxSaved } from '../ui/TxForm';
 import { useEffect, useState } from 'react';
@@ -59,7 +60,8 @@ export const Salaries = () => {
   };
   useEffect(() => { load().catch(() => {}); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [year]);
 
-  const [pay, setPay] = useState('');
+  const [pay, setPay] = useState(''), [later, setLaterS] = useState(() => { try { return sessionStorage.getItem('wallet.salLater') === '1'; } catch { return false; } });
+  const setLater = (v: boolean) => { setLaterS(v); try { sessionStorage.setItem('wallet.salLater', '1'); } catch { /* sem storage */ } };
   const extrasTotal = extras.reduce((a, x) => a + x.amountCents, 0);
   const salaryTotal = summary?.salaryCents ?? 0;
   const income = salaryTotal + extrasTotal;
@@ -100,14 +102,16 @@ export const Salaries = () => {
         <MonthNav label={String(year)} onPrev={() => setYear(year - 1)} onNext={() => setYear(year + 1)} />
       </PageHead>
 
-      {start && <section className="mv-card sal-start">
+      {start && !later && createPortal(<div className="spi-back sal-back" onMouseDown={(e) => { if (e.target === e.currentTarget) setLater(true); }}><section className="mv-card sal-start" role="dialog" aria-modal="true" aria-label={L('Quanto recebes por mês?')}>
+        <button type="button" className="tipb-x lg-x" onClick={() => setLater(true)} aria-label={L('Fechar')}><Ic d={ICON.close} size={18} /></button>
         <span className="on-logo sm"><Ic d="M3 7h18v12H3zM3 11h18M7 15h3" size={30} /></span>
         <h2>{L('Quanto recebes por mês?')}</h2>
         <p>{L('Escreve o que recebeste este mês. Com isso, a app mostra quanto te sobra e quanto podes poupar.')}</p>
         <AmountField value={pay} onChange={setPay} currency={s.currency} kind="income" />
         <button type="button" className="ob-cta lg-go" disabled={(parseMoneyToCents(pay) ?? 0) <= 0} onClick={() => { commit(today.getMonth() + 1, pay).then(() => setPay('')).catch(() => {}); }}>{L('Guardar')}<Ic d="M5 12h14M13 6l6 6-6 6" size={18} /></button>
-      </section>}
-      <div className={'pco-metrics-row' + (start ? ' hide' : '')}>
+        <button type="button" className="on-skip" onClick={() => setLater(true)}>{L('Agora não')}</button>
+      </section></div>, document.body)}
+      <div className="pco-metrics-row">
         <Metric icon={IC.income} tone="inc" title={t('salaries.annualSalaries')} value={fmt(salaryTotal)} valueClass="fx-pos" delta={dl(salaryTotal, prev.salary)} deltaGoodUp {...cmp}
           sub={t('salaries.plusExtras', { value: fmt(extrasTotal) })} bar={income > 0 ? salaryTotal / income : 0} />
         <Metric icon={IC.spent} tone="exp" title={t('salaries.annualExpenses')} value={fmt(expense)} valueClass={expense > 0 ? 'fx-neg' : ''} delta={dl(expense, prev.expense)} deltaGoodUp={false} {...cmp}

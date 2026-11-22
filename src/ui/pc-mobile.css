@@ -1734,3 +1734,4 @@ html.guiding .nt-pop, html.guiding .spi-back:not(.gd-ask):not(.lg-back):not(:has
 @media (prefers-reduced-motion: reduce) { .ctf *, .dzx *, .ai-soon *, .sal-start, .fx-rail-btn svg { animation: none !important; transition: none !important; } }
 html[data-theme="light"] .tx-seg .fx-seg { background: color-mix(in srgb, var(--text) 7%, var(--card)) !important; }
 @media (max-width: 768px) { .ct-page > .fx-head > *:last-child { display: flex; justify-content: center; width: 100%; } }
+.sal-back .sal-start { position: relative; width: min(480px, 100%); margin: 0; box-sizing: border-box; border-radius: 32px; max-height: calc(100dvh - 32px); overflow-y: auto; box-shadow: 0 40px 100px -20px rgba(0,0,0,.85); }
