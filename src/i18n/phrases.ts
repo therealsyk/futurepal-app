@@ -1137,6 +1137,21 @@ export const PHRASES: Record<string, Tr> = {
   'Vês tudo no telemóvel e no computador.': ['See everything on phone and computer.', 'Míralo todo en móvil y ordenador.', 'Tout sur mobile et ordinateur.'],
   'Se perderes o aparelho, não perdes nada.': ['Lose the device, lose nothing.', 'Si pierdes el móvil, no pierdes nada.', 'Appareil perdu, rien de perdu.'],
   'Tens a certeza? Sem conta, os teus dados ficam só neste aparelho e podem perder-se.': ['Are you sure? Without an account, your data stays only on this device and may be lost.', '¿Seguro? Sin cuenta, tus datos quedan solo aquí y pueden perderse.', 'Sûr ? Sans compte, vos données restent ici et peuvent se perdre.'],
+  'Valor': ['Amount', 'Importe', 'Montant'],
+  'Início': ['Home', 'Inicio', 'Accueil'],
+  'Assistente': ['Assistant', 'Asistente', 'Assistant'],
+  'Onde encontrar': ['Where to find it', 'Dónde está', 'Où le trouver'],
+  'Toca em {x}, no menu à esquerda.': ['Tap {x} in the menu on the left.', 'Toca {x}, en el menú de la izquierda.', 'Touchez {x} dans le menu à gauche.'],
+  'Toca em {x}, na barra de baixo.': ['Tap {x} in the bar below.', 'Toca {x}, en la barra de abajo.', 'Touchez {x} dans la barre du bas.'],
+  'Está no Menu. Toca em {x}.': ['It’s in the Menu. Tap {x}.', 'Está en el Menú. Toca {x}.', 'C’est dans le Menu. Touchez {x}.'],
+  'No Início, toca em Menu. É por aqui que encontras as outras páginas.': ['On Home, tap Menu. The other pages are here.', 'En Inicio, toca Menú. Aquí están las demás páginas.', 'À l’Accueil, touchez Menu. Les autres pages sont là.'],
+  'Toca em {x} para veres o resto.': ['Tap {x} to see the rest.', 'Toca {x} para ver el resto.', 'Touchez {x} pour voir le reste.'],
+  'Sempre que quiseres uma conta nova, toca em Criar conta.': ['Whenever you want a new account, tap Create account.', 'Cuando quieras una cuenta nueva, toca Crear cuenta.', 'Pour un nouveau compte, touchez Créer un compte.'],
+  'Sempre que gastares dinheiro, toca em Nova transação.': ['Whenever you spend money, tap New transaction.', 'Cuando gastes dinero, toca Nueva transacción.', 'À chaque dépense, touchez Nouvelle transaction.'],
+  'Sempre que gastares dinheiro, toca no botão + em baixo.': ['Whenever you spend money, tap the + button below.', 'Cuando gastes dinero, toca el botón + abajo.', 'À chaque dépense, touchez le bouton + en bas.'],
+  'Nova categoria': ['New category', 'Nueva categoría', 'Nouvelle catégorie'],
+  'Mensal': ['Monthly', 'Mensual', 'Mensuel'],
+  'Anual': ['Yearly', 'Anual', 'Annuel'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */

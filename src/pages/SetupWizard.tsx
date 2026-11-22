@@ -113,12 +113,12 @@ export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings
   return (
     <div className="ob-screen on-screen">
       {step !== 'splash' && step !== 'done' && step !== 'keep' && <div className="ob-top"><button type="button" className="ob-round" onClick={back} aria-label={t('onboard.back')}><Ic d={ICON.left} size={20} /></button>{step !== 'auth' && step !== 'signup' && <button type="button" className="on-skip" onClick={() => finish().catch(() => {})}>{L('Agora não')}</button>}</div>}
+      {step === 'splash' && <div className="on-feats" aria-hidden="true"><div>{[0, 1].map((k) => <span key={k}>{FEATS.map(([d, label]) => <b key={label}><Ic d={d} size={18} />{L(label)}</b>)}</span>)}</div></div>}
       <div className="ob-body on-body" key={step}>
         {step === 'splash' && <div className="on-center">
           <img className="on-brand" src={logoUrl} alt="FuturePal" />
           <h1>FuturePal</h1>
           <p>{L('Controla as tuas despesas e descobre para onde vai cada cêntimo, no poupar é que está o ganho.')}</p>
-          <div className="on-feats">{FEATS.map(([d, label], i) => <span key={label} style={{ '--i': i } as CSSProperties}><Ic d={d} size={17} />{L(label)}</span>)}</div>
           <button type="button" className="ob-cta" onClick={() => setStep('ask')} data-testid="ob-start">{L('Começar')}</button>
           {hasSupabaseConfig() && <button type="button" className="on-skip" onClick={() => { setAuthMode('signin'); setStep('auth'); }} data-testid="ob-login">{L('Já tenho conta')}</button>}
         </div>}

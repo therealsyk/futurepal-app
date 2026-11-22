@@ -5,6 +5,7 @@ import { db } from '../db/app-db';
 import { closeTip, did, growFrom, resetTips, tipSeen, tipsOn, TIPS_EVENT } from '../core/onboarding';
 import { L } from '../i18n/phrases';
 import { Ic, ICON } from './fx';
+import { boldTerms } from './boldTerms';
 import { guiding } from './Guide';
 import { openTxForm, useTxSaved } from './TxForm';
 
@@ -81,7 +82,7 @@ export function HelpPage() {
       <div className="hp-list">{ARTICLES.map(([d, title, steps], i) => (
         <section key={title} className={'mv-card hp-item' + (open === i ? ' open' : '')}>
           <button type="button" aria-expanded={open === i} onClick={() => setOpen(open === i ? null : i)}><span className="pco-mic"><Ic d={d} size={19} /></span><b>{L(title)}</b><Ic d={ICON.down} size={18} /></button>
-          <div className={'acc-exp' + (open === i ? ' open' : '')} aria-hidden={open !== i}><div><ol>{steps.map((x) => <li key={x}>{L(x)}</li>)}</ol></div></div>
+          <div className={'acc-exp' + (open === i ? ' open' : '')} aria-hidden={open !== i}><div><ol>{steps.map((x, k) => <li key={x}><i>{k + 1}</i><span>{boldTerms(L(x))}</span></li>)}</ol></div></div>
         </section>
       ))}</div>
       <button type="button" className="gl-act hp-reset" disabled={reset} onClick={() => { resetTips(); setReset(true); }}>{reset ? L('As dicas vão voltar a aparecer') : L('Mostrar as dicas outra vez')}</button>

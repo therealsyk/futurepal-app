@@ -50,7 +50,7 @@ export default function MobileNav() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const inMore = MORE.some((m) => pathname.startsWith(m.path));
-  useEffect(() => { const on = () => setMore(true); window.addEventListener('wallet:open-more', on); return () => window.removeEventListener('wallet:open-more', on); }, []);
+  useEffect(() => { const on = (e: Event) => { setMore(true); if ((e as CustomEvent).detail !== undefined) setAll((e as CustomEvent).detail === 'all'); }, off = () => { setMore(false); setAll(false); }; window.addEventListener('wallet:open-more', on); window.addEventListener('wallet:close-more', off); return () => { window.removeEventListener('wallet:open-more', on); window.removeEventListener('wallet:close-more', off); }; }, []);
   const go = (p: string) => { setMore(false); setAll(false); navigate(p); };
 
   return (
@@ -81,7 +81,7 @@ export default function MobileNav() {
             <span className="mb-grabber" aria-hidden="true" />
             <div className="mb-grid">
               {moreItems.map((it) => (
-                <button key={it.path} type="button" className={'mb-tile' + (pathname.startsWith(it.path) || (it.path === '/visao-mensal' && pathname === '/resumo-ano') ? ' active' : '')} onClick={() => go(it.path)}>
+                <button key={it.path} type="button" data-go={it.path} className={'mb-tile' + (pathname.startsWith(it.path) || (it.path === '/visao-mensal' && pathname === '/resumo-ano') ? ' active' : '')} onClick={() => go(it.path)}>
                   <span><Ic d={it.d} size={20} /></span>
                   <b>{SIMPLE_UI && it.path === '/visao-mensal' ? L('Resumo') : t(it.key)}</b>
                 </button>
