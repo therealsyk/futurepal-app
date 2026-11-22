@@ -1,6 +1,6 @@
 -- Divisão de contas v5 (substitui o split-v4.sql: quem já o correu corre este por cima; quem não correu só precisa deste).
--- O nome, a foto e a cor do grupo são iguais para todos. Só altera o grupo (nome, foto, transações, apagar) quem o criou
--- e as pessoas a quem o criador deu permissão.
+-- O nome, a foto e a cor do grupo são iguais para todos. Só altera o grupo (nome, foto, transações) quem o criou
+-- e as pessoas a quem o criador deu permissão. Apagar o grupo: só quem o criou.
 -- Correr uma vez no Supabase (SQL Editor), depois de split.sql, split-v2.sql e split-v3.sql. Pode correr-se mais do que uma vez.
 
 alter table public.split_groups add column if not exists image text;
@@ -65,7 +65,7 @@ end $$;
 create or replace function public.delete_split_group(p_group uuid)
 returns void language plpgsql security definer set search_path = public as $$
 begin
-  if not public.can_edit_split(p_group) then raise exception 'not allowed to delete this group'; end if;
+  if not public.is_split_owner(p_group) then raise exception 'only the group owner can delete it'; end if;
   delete from public.split_groups where id = p_group; -- membros, convites, transações e partes saem em cascata
 end $$;
 

@@ -1534,7 +1534,7 @@ html:not(.pcm) .mv-menu { padding: 0 11px; } html:not(.pcm) .mv-menu svg { displ
 /* botão de convidar com as caras de quem já está no grupo e um + no fim */
 .gl-act.gx-inv { padding: 0 7px 0 16px; gap: 10px; } .gx-inv .gg-faces > * { width: 30px !important; height: 30px !important; border-color: var(--card-2); overflow: hidden; } .gx-inv .gg-faces .sp-face { width: 100% !important; height: 100% !important; font-size: 12px; } .gx-inv .gg-faces .wait { opacity: .6; } .gx-inv .gg-faces > i { font-size: 11.5px; }
 .gx-plus { display: grid; place-items: center; flex: none; width: 30px; height: 30px; border-radius: 50%; color: var(--mv); background: color-mix(in srgb, var(--mv) 18%, transparent); transition: transform .2s cubic-bezier(.3,1.6,.5,1), background .15s, color .15s; } .gx-inv:hover .gx-plus { transform: scale(1.1) rotate(90deg); background: var(--mv); color: var(--mv-ink, #032a2d); }
-@media (max-width: 768px) { .gg-shared .gl-acts { flex-wrap: wrap !important; justify-content: center; } .gl-act.gx-inv { flex: 1 1 100%; order: 3; } }
+@media (max-width: 768px) { .gg-hero .gl-acts { flex-wrap: wrap; } .gg-hero .gl-act.main { flex: 1 1 100%; } .gg-hero .gl-act { flex: 1 1 auto; } }
 @media (prefers-reduced-motion: reduce) { .gx-inv:hover .gx-plus { transform: none; } }
 /* caixas simples do grupo */
 .gx-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; } .gx-tile { display: flex; align-items: center; gap: 14px; min-width: 0; padding: 16px; border: 1px solid var(--border); border-radius: 20px; background: var(--card); }
@@ -1544,5 +1544,4 @@ html:not(.pcm) .mv-menu { padding: 0 11px; } html:not(.pcm) .mv-menu svg { displ
 /* Alterar grupo: permissões por pessoa e apagar; sair do grupo no canto do cartão */
 .gx-eds { margin: 8px 0 0; max-height: 208px; overflow-y: auto; scrollbar-width: none; }
 .gx-leave { position: absolute; top: 16px; right: 16px; display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 15px; border: 1px solid color-mix(in srgb, var(--text) 14%, transparent); border-radius: 99px; background: color-mix(in srgb, var(--card) 55%, transparent); color: var(--muted); font: inherit; font-size: 13.5px; font-weight: 650; cursor: pointer; transition: color .15s, border-color .15s, background .15s; } .gx-leave:hover { color: var(--red); border-color: color-mix(in srgb, var(--red) 55%, transparent); background: color-mix(in srgb, var(--red) 12%, var(--card)); } .gx-leave:active { transform: scale(.96); }
-.tx-row.gg-delrow { width: 100%; padding: 0; border-width: 0 0 1px; background: none; color: var(--red); font: inherit; cursor: pointer; text-align: left; } .tx-row.gg-delrow > span { color: var(--red); } .gg-delrow > svg { transition: transform .18s; } .gg-delrow:hover > svg { transform: translateX(3px); } .acc-exp.open + .gg-delrow { margin-top: 8px; }
-.tx-row.gg-delrow > span > svg { color: var(--red) !important; }
+.gg-hero ~ .gx-end { display: flex; justify-content: center; }

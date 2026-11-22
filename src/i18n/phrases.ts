@@ -896,6 +896,13 @@ export const PHRASES: Record<string, Tr> = {
   'Só tu podes alterar': ['Only you can change it', 'Solo tú puedes cambiarlo', 'Vous seul pouvez le modifier'],
   'Ainda não há mais ninguém neste grupo.': ['There’s no one else in this group yet.', 'Aún no hay nadie más en este grupo.', 'Il n’y a encore personne d’autre dans ce groupe.'],
   'Sair': ['Leave', 'Salir', 'Quitter'],
+  'Ainda não há transações': ['No transactions yet', 'Aún no hay transacciones', 'Pas encore d’opérations'],
+  'Adiciona as despesas deste grupo e vê quanto custa no total.': ['Add this group’s expenses and see how much it costs in total.', 'Añade los gastos de este grupo y mira cuánto cuesta en total.', 'Ajoutez les dépenses de ce groupe et voyez combien il coûte au total.'],
+  'Quando alguém adicionar uma despesa, aparece aqui a tua parte.': ['When someone adds an expense, your share shows up here.', 'Cuando alguien añada un gasto, aquí aparece tu parte.', 'Quand quelqu’un ajoute une dépense, votre part apparaît ici.'],
+  'Jantar': ['Dinner', 'Cena', 'Dîner'],
+  'Hotel': ['Hotel', 'Hotel', 'Hôtel'],
+  'Gasolina': ['Petrol', 'Gasolina', 'Essence'],
+  'Compras': ['Groceries', 'Compras', 'Courses'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */

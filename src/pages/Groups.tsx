@@ -23,7 +23,7 @@ import { squareImage } from '../core/assistant';
 import { listenSplit, tellSplit } from '../core/splitLive';
 import { IS_DEMO } from '../demo/demo';
 import { BottomSheet } from './SimplePages';
-import { CALENDAR, Face, GTile, SplitGroup, type Member, type SplitEditInfo } from './Split';
+import { CALENDAR, EMPTY_IC, Face, GTile, SplitGroup, type Member, type SplitEditInfo } from './Split';
 import { openTxForm, useTxSaved } from '../ui/TxForm';
 import { L } from '../i18n/phrases';
 
@@ -230,7 +230,7 @@ export function Groups() {
           <div className="gl-sum">
             <div className="gl-have"><small>{L('Total do grupo')}</small><b>{money(total(open.id))}</b><small>{count(list.length)}</small></div>
             <div className="gl-acts">
-              <button type="button" className="gl-act main" onClick={() => openTxForm({ type: 'expense', groupId: open.id })}><Ic d={ICON.plus} size={18} />{L('Adicionar')}</button>
+              <button type="button" className="gl-act main" onClick={() => openTxForm({ type: 'expense', groupId: open.id })}><Ic d={ICON.plus} size={18} />{L('Adicionar transação')}</button>
               {!IS_DEMO && <button type="button" className="gl-act" onClick={() => { setName(open.name); setSplit(true); setAdding(open); }}><Ic d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M19 8v6M16 11h6" size={18} />{L('Convidar')}</button>}
               <button type="button" className="gl-act" onClick={startEdit}><Ic d="M4 20h4L19 9l-4-4L4 16zM13 7l4 4" size={18} />{L('Alterar')}</button>
             </div>
@@ -245,13 +245,14 @@ export function Groups() {
             <GTile d={CALENDAR} label={L('Criado a')} value={day(open.createdAt)} />
           </div>;
         })()}
-        <section className="mv-card gl-sec">
+        {list.length === 0 ? <EmptyState icon={EMPTY_IC} title={L('Ainda não há transações')} text={L('Adiciona as despesas deste grupo e vê quanto custa no total.')} examples={['🍽️ '+L('Jantar'), '🏨 '+L('Hotel'), '⛽ '+L('Gasolina'), '🛒 '+L('Compras')]} /> : <section className="mv-card gl-sec">
           <h2>{L('Transações')}</h2>
-          {list.length === 0 ? <p className="fx-muted">{L('Adiciona transações a este grupo para veres quanto custa no total.')}</p> : list.map((x) => {
+          {list.map((x) => {
             const c = cats.find((y) => y.id === x.categoryId);
             return <div key={x.id} className="sh-tx"><CatIcon cat={c ?? {}} size={40} /><span className="sh-tx-main"><b>{x.description || (c ? catLabel(t, c) : '—')}</b><small>{day(x.date)}</small></span><b className={x.type === 'income' ? 'fx-pos' : 'fx-neg'}>{x.type === 'income' ? '+' : '−'}{money(x.amountCents)}</b></div>;
           })}
-        </section>
+        </section>}
+        <div className="gx-end"><button type="button" className="gx-rm" onClick={() => remove(open).catch(() => {})}><Ic d={ICON.trash} size={18} />{L('Apagar grupo')}</button></div>
         </>}
         {sheet}
         {edit && <BottomSheet title={L('Alterar grupo')} onClose={closeEdit}><div className="acc-form">
@@ -271,7 +272,6 @@ export function Groups() {
               {info.people.map((m) => { const on = eds.includes(m.userId); return <div key={m.userId} className="sp-row"><Face m={m} /><span className="sp-row-main"><span className="sp-row-top"><b>{m.displayName}</b></span></span><button type="button" role="switch" aria-checked={on} aria-label={m.displayName} className={'ob-toggle' + (on ? ' on' : '')} onClick={() => setEds(on ? eds.filter((x) => x !== m.userId) : [...eds, m.userId])}><i /></button></div>; })}
             </div></div></div>
           </>}
-          <button type="button" className="tx-row gg-delrow" onClick={() => { const g = edit, del = info?.remove; closeEdit(); if (del) del(); else remove(g).catch(() => {}); }}><span><Ic d={ICON.trash} size={18} />{L('Apagar grupo')}</span><Ic d={ICON.right} size={16} /></button>
           <button type="button" className="tx-addbtn" onClick={saveEdit}>{L('Guardar')}</button>
         </div></BottomSheet>}
       </div>

@@ -20,6 +20,7 @@ import { catFitsKind, CatIcon, Ic, ICON, Sheet } from '../ui/fx';
 import { AccountRow, CategoryRow, DateRow, InviteRow } from '../ui/formFields';
 import { FormError, useMissing } from '../ui/missing';
 import { tellSplit } from '../core/splitLive';
+import { EmptyState } from '../ui/EmptyState';
 import { openTxForm, useTxSaved } from '../ui/TxForm';
 import { L } from '../i18n/phrases';
 import { BottomSheet } from './SimplePages';
@@ -34,6 +35,7 @@ const FRIEND = 'M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3
 const LEAVE = 'M10 4H5v16h5M15 8l4 4-4 4M19 12H9';
 const CLOCK = 'M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 7v5l3 2', CHECK = 'M20 6 9 17l-5-5';
 
+export const EMPTY_IC = 'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6';
 export const CALENDAR = 'M5 5h14v15H5zM5 10h14M8 3v4M16 3v4';
 const FRIENDS = 'M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M22 19v-1a4 4 0 0 0-3-3.9M16 4.1a3 3 0 0 1 0 5.8';
 /** Caixa simples: ícone, o que é e o valor. */
@@ -47,7 +49,7 @@ function Who({ m, name, paid, wait }: { m: Member; name: string; paid?: boolean;
 }
 
 /** O que a janela Alterar precisa de saber de um grupo partilhado. */
-export interface SplitEditInfo { owner: boolean; people: Member[]; editors: string[]; remove: () => void }
+export interface SplitEditInfo { owner: boolean; people: Member[]; editors: string[] }
 
 export function SplitGroup({ splitId, groupId, createdAt, color, pic, local, cats, onEdit, onChanged, onGone }: { color: string; pic: ReactNode; onEdit: (info: SplitEditInfo) => void; splitId: string; groupId: string; createdAt: string; local: Transaction[]; cats: Category[]; onChanged: () => void; onGone: () => void }) {
   const { t } = useTranslation();
@@ -189,12 +191,12 @@ export function SplitGroup({ splitId, groupId, createdAt, color, pic, local, cat
         <div className="gl-sum">
           <div className="gl-have"><small>{L('Total do grupo')}</small><b>{money(total)}</b><small>{bills.length} {bills.length === 1 ? L('transação') : L('transações')}</small></div>
           <div className="gl-acts">
-            {canEdit && <button type="button" className="gl-act main" onClick={() => openTxForm({ type: 'expense', groupId })}><Ic d={ICON.plus} size={18} />{L('Adicionar')}</button>}
+            {canEdit && <button type="button" className="gl-act main" onClick={() => openTxForm({ type: 'expense', groupId })}><Ic d={ICON.plus} size={18} />{L('Adicionar transação')}</button>}
             <button type="button" className={'gl-act' + (crowd.length > 1 ? ' gx-inv' : '')} onClick={() => setInviting([])} aria-label={L('Convidar mais pessoas')} title={L('Convidar mais pessoas')}>
               <Ic d={FRIEND} size={18} />
               {crowd.length > 1 ? <><span className="gg-faces">{crowd.slice(0, 4).map((m) => <span key={m.userId} className={m.wait ? 'wait' : ''} title={m.displayName}><Face m={m} /></span>)}{crowd.length > 4 && <i>+{crowd.length - 4}</i>}</span><span className="gx-plus" aria-hidden="true"><Ic d={ICON.plus} size={17} /></span></> : L('Convidar')}
             </button>
-            {canEdit && <button type="button" className="gl-act" onClick={() => onEdit({ owner: owner === me, people: members.filter((m) => m.userId !== me), editors, remove: removeGroup })}><Ic d="M4 20h4L19 9l-4-4L4 16zM13 7l4 4" size={18} />{L('Alterar')}</button>}
+            {canEdit && <button type="button" className="gl-act" onClick={() => onEdit({ owner: owner === me, people: members.filter((m) => m.userId !== me), editors })}><Ic d="M4 20h4L19 9l-4-4L4 16zM13 7l4 4" size={18} />{L('Alterar')}</button>}
           </div>
         </div>
       </section>
@@ -206,9 +208,9 @@ export function SplitGroup({ splitId, groupId, createdAt, color, pic, local, cat
         <GTile d={CALENDAR} label={L('Criado a')} value={day(createdAt)} />
       </div>
 
-      <section className="mv-card gl-sec">
+      {loaded && bills.length === 0 && <EmptyState icon={EMPTY_IC} title={L('Ainda não há transações')} text={canEdit ? L('Tudo o que adicionares aqui é dividido por todos.') : L('Quando alguém adicionar uma despesa, aparece aqui a tua parte.')} examples={['🍽️ '+L('Jantar'), '🏨 '+L('Hotel'), '⛽ '+L('Gasolina'), '🛒 '+L('Compras')]} />}
+      {bills.length > 0 && <section className="mv-card gl-sec">
         <h2>{L('Transações')}</h2>
-        {bills.length === 0 && <p className="fx-muted">{canEdit ? L('Tudo o que adicionares aqui é dividido por todos.') : L('Ainda não há transações neste grupo.')}</p>}
         {bills.map((b) => {
           const pr = billProgress(b), mine = mineOf(b), ex = open === b.id;
           const left = leftOf(b);
@@ -250,7 +252,8 @@ export function SplitGroup({ splitId, groupId, createdAt, color, pic, local, cat
             </div>
           );
         })}
-      </section>
+      </section>}
+      {loaded && owner === me && <div className="gx-end"><button type="button" className="gx-rm" onClick={removeGroup}><Ic d={ICON.trash} size={18} />{L('Apagar grupo')}</button></div>}
 
       {/* Convidar: quem está no grupo, quem falta responder e convidar mais pessoas */}
       {inviting && <BottomSheet title={L('Convidar')} onClose={() => setInviting(null)}>
