@@ -1,13 +1,14 @@
 // Janela "Nova transação": uma só para toda a app. Fica por cima das páginas e continua aberta quando a página de fundo muda
 // (Despesa mostra as Transações; Rendimento mostra Salários e extras).
 import { startTransition, useEffect, useRef, useState } from 'react';
+import i18next from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { db } from '../db/app-db';
 import { stampNew } from '../db/database';
 import type { Account, Category, Group, RecurringFrequency } from '../db/database';
-import { accountBalanceCents as balOfAcc, addTransfer, defaultAccountId, listAccounts, salariesUntil } from '../core/accounts';
+import { accountBalanceCents as balOfAcc, addTransfer, defaultAccountId, ensureDefaultAccount, listAccounts, salariesUntil } from '../core/accounts';
 import { activeCategories, addRecurring, addTransaction, listGroups, materializeDueRecurrings, RECURRING_FREQUENCIES } from '../core/finance';
 import { todayISO } from '../core/dates';
 import { splitIdOf } from '../core/groupLink';
@@ -29,8 +30,9 @@ export interface TxFormOptions { type: 'expense' | 'income'; accountId?: string;
 interface FormData { accounts: Account[]; cats: Category[]; groups: Group[]; bals: Record<string, number> }
 
 const OPEN = 'wallet:tx-open', SAVED = 'wallet:tx-saved';
+let waiting: TxFormOptions | null = null, listening = false; // pedido feito antes de a janela existir (ex.: app aberta logo em "nova transação")
 /** Abre a janela, em qualquer página. */
-export const openTxForm = (o: TxFormOptions) => { window.dispatchEvent(new CustomEvent(OPEN, { detail: o })); };
+export const openTxForm = (o: TxFormOptions) => { if (!listening) { waiting = o; return; } window.dispatchEvent(new CustomEvent(OPEN, { detail: o })); };
 /** Para as páginas se atualizarem depois de guardar. */
 export function useTxSaved(fn: () => void) {
   const ref = useRef(fn); ref.current = fn;
@@ -51,6 +53,7 @@ async function sameIncome(cents: number, date: string) {
 
 async function loadData(type: 'expense' | 'income'): Promise<FormData> {
   if (type === 'income') await ensureExtras();
+  await ensureDefaultAccount(db, loadSettings().currency, i18next.t('accounts.mainName')); // conta nova: já há onde registar
   const [accounts, cats, groups, all, trs, sals] = await Promise.all([listAccounts(db), activeCategories(db), listGroups(db), db.transactions.toArray(), db.transfers.toArray(), db.salaries.toArray()]);
   const n = new Date(), sal = salariesUntil(sals, n.getFullYear(), n.getMonth() + 1);
   const live = all.filter((x) => x.deletedAt === null), lt = trs.filter((x) => x.deletedAt === null);
@@ -66,7 +69,9 @@ export function TxFormHost() {
   useEffect(() => {
     const h = (e: Event) => { const o = (e as CustomEvent<TxFormOptions>).detail; loadData(o.type).then((d) => { at.current = window.location.hash.replace(/^#/, '').split('?')[0] || '/'; setForm({ n: Date.now(), o, d }); }).catch(() => {}); };
     window.addEventListener(OPEN, h);
-    return () => window.removeEventListener(OPEN, h);
+    listening = true;
+    if (waiting) { const o = waiting; waiting = null; openTxForm(o); }
+    return () => { listening = false; window.removeEventListener(OPEN, h); };
   }, []);
   useEffect(() => { if (pathname !== at.current) { at.current = pathname; setForm(null); } }, [pathname]); // saiu da página (ex.: botão Voltar do telemóvel)
   if (!form) return null;

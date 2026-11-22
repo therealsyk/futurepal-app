@@ -16,7 +16,9 @@ import './ui/mobile.css';
 import './ui/pc-mobile.css';
 import { loadSettings, setTheme } from './core/settings';
 import { prepareDemo } from './demo/demo';
+import { setupAndroidBack } from './core/androidBack';
 
+setupAndroidBack();
 prepareDemo(); // modo demonstração do website: língua, setup feito, sem tutorial
 const settings = loadSettings();
 

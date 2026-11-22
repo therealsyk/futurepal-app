@@ -1605,3 +1605,5 @@ html:not(.pcm) .mv-menu { padding: 0 11px; } html:not(.pcm) .mv-menu svg { displ
 @media (max-width: 900px) { .pl-cards { grid-template-columns: 1fr; } .pl-card.k-plus { order: -1; } }
 @media (prefers-reduced-motion: reduce) { .rc-found, .rc-pop .rc-ic, .pl-spark, .pl-card, .pl-card li, .pl-price b, .pl-want.done { animation: none; } .pl-card:hover, .pl-card:hover .pl-ic { transform: none; } }
 .rc-sec > h2 { font-weight: 800 !important; }
+.rc-page .rc-save, html.pcm .mv.sh.rc-page .rc-save.mv-card { padding: 18px 22px 20px !important; } .rc-savehead { align-items: flex-start; } .rc-savenum { flex-direction: row; align-items: baseline; gap: 8px; } .rc-savenum b { font-size: clamp(20px, 2.4vw, 27px); line-height: 1; }
+@media (max-width: 480px) { .rc-savenum { flex-direction: column; align-items: flex-end; gap: 2px; } }

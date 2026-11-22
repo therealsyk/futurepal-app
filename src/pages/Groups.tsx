@@ -69,13 +69,13 @@ export function Groups() {
   const [info, setInfo] = useState<SplitEditInfo | null>(null), [allow, setAllow] = useState(false), [eds, setEds] = useState<string[]>([]); // grupo partilhado: quem mais o pode alterar
   // grupo partilhado: o servidor guarda e todos passam a ver o mesmo
   const pushGroup = async (sid: string, f: { name: string; color: string; image?: string }): Promise<string | null> => {
-    const { error } = await getSupabase()!.rpc('update_split_group', { p_group: sid, p_name: f.name, p_color: f.color, p_image: f.image ?? '' });
+    const { error } = await getSupabase()!.rpc('update_split_group', { p_group: sid, p_name: f.name.slice(0, 80), p_color: f.color, p_image: f.image ?? '' });
     if (!error) tellSplit(sid);
     return error ? (/update_split_group|set_split_editors|schema cache/i.test(error.message) ? L('O servidor ainda não está atualizado. Tenta mais tarde.') : error.message) : null;
   };
   const saveEdit = async () => {
     if (!edit || !emiss.check()) return;
-    const f = { name: name.trim(), color, image }, sid = splitOf(edit.id);
+    const f = { name: name.trim().slice(0, 80), color, image }, sid = splitOf(edit.id);
     if (sid) {
       if (info?.owner) {
         const { error } = await getSupabase()!.rpc('set_split_editors', { p_group: sid, p_users: allow ? eds : [] });
