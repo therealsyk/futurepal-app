@@ -421,7 +421,8 @@
     "useIcon": "Usar ícone",
     "imageTooBig": "A imagem é demasiado grande (máx. 300 KB).",
     "confirmDelete": "Sim, apagar",
-    "deleteNote": "As transações desta categoria ficam guardadas."
+    "deleteNote": "As transações desta categoria ficam guardadas.",
+    "catInvestIncome": "Investimentos"
   },
   "account": {
     "title": "Conta",
@@ -1445,7 +1446,7 @@
     "customize": "Personalizar",
     "done": "Concluído",
     "reset": "Repor",
-    "dragHint": "Arrasta os blocos para trocar de lugar.",
+    "dragHint": "Arrasta os widgets para qualquer sítio e puxa pelos lados ou cantos para mudar o tamanho.",
     "prev_m1": "mês anterior",
     "prev_q": "3 meses anteriores",
     "prev_s": "6 meses anteriores",

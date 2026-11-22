@@ -588,16 +588,16 @@ export function SimpleOverview({ yearly = false, embed }: { yearly?: boolean; em
             <button type="button" className={kind === 'income' ? 'on' : ''} onClick={() => setKind('income')}>{t('blk.income')}</button>
           </div>
           {catRows.total === 0 ? <p className="fx-muted" style={{ textAlign: 'center' }}>{t('blk.noData')}</p> : (
-            <>
+            <div className="sh-cats">
               <div className="sh-donut" style={{ background: `conic-gradient(${donut})` }}><span><small>{t('blk.total')}</small><b>{money(catRows.total)}</b></span></div>
-              {catRows.list.map((x, i) => (
+              <div className="sh-catlist">{catRows.list.map((x, i) => (
                 <div key={x.id} className="sh-catrow">
                   <i className="sh-dot" style={{ background: COLS[i % COLS.length] }} />
                   <span className="sh-tx-main"><b>{x.c ? catLabel(t, x.c) : '—'}</b><span className="sh-catbar"><i style={{ width: `${x.r * 100}%`, background: COLS[i % COLS.length] }} /></span></span>
                   <span className="sh-catval"><b>{money(x.v)}</b><small>{Math.round(x.r * 100)}%</small></span>
                 </div>
-              ))}
-            </>
+              ))}</div>
+            </div>
           )}
         </section>
   </>);

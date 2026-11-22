@@ -343,7 +343,8 @@
     "useIcon": "Usar icono",
     "imageTooBig": "La imagen es demasiado grande (máx. 300 KB).",
     "confirmDelete": "Sí, eliminar",
-    "deleteNote": "Las transacciones de esta categoría se conservan."
+    "deleteNote": "Las transacciones de esta categoría se conservan.",
+    "catInvestIncome": "Inversiones"
   },
   "budgets": {
     "title": "Presupuestos",
@@ -581,7 +582,7 @@
     "customize": "Personalizar",
     "done": "Hecho",
     "reset": "Restablecer",
-    "dragHint": "Arrastra los bloques para cambiarlos de sitio.",
+    "dragHint": "Arrastra los widgets a cualquier sitio y tira de los lados o esquinas para cambiar su tamaño.",
     "prev_m1": "mes anterior",
     "prev_q": "3 meses anteriores",
     "prev_s": "6 meses anteriores",

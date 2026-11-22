@@ -1,6 +1,6 @@
 // Resumo do PC: Mensal | Anual | Período, caixas de rendimento/gastos/poupança, gráfico, contas,
-// últimos movimentos do período, categorias e calendário. Os blocos podem ser trocados de sítio (Personalizar).
-import { useEffect, useRef, useState, type DragEvent, type JSX } from 'react';
+// últimos movimentos do período, categorias e calendário. Os widgets podem ir para qualquer sítio e mudar de tamanho (Personalizar).
+import { useEffect, useRef, useState, type JSX } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
@@ -15,6 +15,8 @@ import { OverviewChart } from './Dashboard';
 import { SimpleHome } from './SimpleHome';
 import { SimpleOverview } from './SimplePages';
 import { AccountsWidget, AssistantWidget, LimitsWidget } from './PcWidgets';
+import { FreeGrid } from '../ui/FreeGrid';
+import { addCell, fromOrder, validLayout, type Cell } from '../core/widgetGrid';
 import { L } from '../i18n/phrases';
 import { cmpShort, cmpText } from '../core/compare';
 
@@ -24,7 +26,6 @@ const IC = {
   saved: 'M19 7a3 3 0 0 0-3-2H9a6 6 0 0 0-6 6c0 2 1 3.5 2 4.5V19h3v-2h5v2h3v-3a6 6 0 0 0 2-3h2V9h-2zM15 10h.01',
   chart: 'M4 20V10M10 20V4M16 20v-7M22 20H2',
   wallet: 'M3 7h18v12H3zM3 7l3-4h12l3 4M16 13h2',
-  grip: 'M9 5h.01M15 5h.01M9 12h.01M15 12h.01M9 19h.01M15 19h.01',
 };
 
 // Só a percentagem e "mais/menos" ficam coloridos; o resto igual ao "vs outubro" das outras caixas.
@@ -58,14 +59,16 @@ export function Metric({ icon, tone, title, value, valueClass, delta, deltaGoodU
 type WidgetId = 'chart' | 'metrics' | 'latest' | 'cats' | 'cal' | 'goals' | 'limits' | 'accounts' | 'groups' | 'assistant';
 const ALL_WIDGETS: WidgetId[] = ['chart', 'metrics', 'latest', 'cats', 'cal', 'goals', 'limits', 'accounts', 'groups', 'assistant'];
 const DEFAULT_ORDER: WidgetId[] = ['chart', 'metrics', 'latest', 'cats', 'cal'];
-const MAX_WIDGETS = 6; // 2 em cima + até 4 em baixo: tudo cabe no ecrã sem scroll
-const ORDER_KEY = 'wallet.pcoOrder.v3';
-function loadOrder(): WidgetId[] {
+const ORDER_KEY = 'wallet.pcoOrder.v3'; // disposição antiga (só a ordem)
+const LAYOUT_KEY = 'wallet.pcoLayout.v4';
+function loadLayout(): Cell[] {
   try {
-    const v = JSON.parse(localStorage.getItem(ORDER_KEY) || 'null') as WidgetId[] | null;
-    if (Array.isArray(v) && v.length >= 1 && v.length <= MAX_WIDGETS && v.every((x) => ALL_WIDGETS.includes(x)) && new Set(v).size === v.length) return v;
+    const v = validLayout(JSON.parse(localStorage.getItem(LAYOUT_KEY) || 'null'), ALL_WIDGETS);
+    if (v) return v;
+    const old = JSON.parse(localStorage.getItem(ORDER_KEY) || 'null') as WidgetId[] | null;
+    if (Array.isArray(old) && old.length && old.length <= 6 && old.every((x) => ALL_WIDGETS.includes(x)) && new Set(old).size === old.length) return fromOrder(old);
   } catch { /* sem storage */ }
-  return DEFAULT_ORDER;
+  return fromOrder(DEFAULT_ORDER);
 }
 const SLIDERS = 'M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M16 4v4M10 10v4M18 16v4';
 const WNAME: Record<WidgetId, string> = {
@@ -126,10 +129,9 @@ export function PcOverview() {
   const now = new Date();
   const [per, setPer] = useState<Period>(() => initialPeriod(now));
   const [txs, setTxs] = useState<Transaction[]>([]);
-  const [order, setOrder] = useState<WidgetId[]>(loadOrder);
+  const [cells, setCells] = useState<Cell[]>(loadLayout);
   const [editing, setEditing] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
-  const [drag, setDrag] = useState<WidgetId | null>(null);
   useEffect(() => { db.transactions.toArray().then((r) => setTxs(r.filter((x) => x.deletedAt === null))).catch(() => {}); }, []);
 
   const key = (y: number, m: number) => `${y}-${String(m + 1).padStart(2, '0')}`;
@@ -196,18 +198,9 @@ export function PcOverview() {
     assistant: <AssistantWidget />,
   };
 
-  const onDrop = (target: WidgetId) => (e: DragEvent) => {
-    e.preventDefault();
-    if (!drag || drag === target) return;
-    const next = [...order]; const i = next.indexOf(drag), j = next.indexOf(target);
-    [next[i], next[j]] = [next[j], next[i]];
-    setOrder(next); setDrag(null);
-    try { localStorage.setItem(ORDER_KEY, JSON.stringify(next)); } catch { /* sem storage */ }
-  };
-  const save = (next: WidgetId[]) => { setOrder(next); try { localStorage.setItem(ORDER_KEY, JSON.stringify(next)); } catch { /* sem storage */ } };
-  const reset = () => { setOrder(DEFAULT_ORDER); try { localStorage.removeItem(ORDER_KEY); } catch { /* sem storage */ } };
-  const hidden = ALL_WIDGETS.filter((w) => !order.includes(w));
-  const bottomN = Math.max(1, order.length - 2);
+  const save = (next: Cell[]) => { setCells(next); try { localStorage.setItem(LAYOUT_KEY, JSON.stringify(next)); } catch { /* sem storage */ } };
+  const reset = () => { setCells(fromOrder(DEFAULT_ORDER)); try { localStorage.removeItem(LAYOUT_KEY); localStorage.removeItem(ORDER_KEY); } catch { /* sem storage */ } };
+  const hidden = ALL_WIDGETS.filter((w) => !cells.some((c) => c.id === w));
 
   return (
     <div className="fx-page pco">
@@ -220,8 +213,7 @@ export function PcOverview() {
             <div className="pco-addw">
               <button type="button" className="pf-chip on" onClick={() => setAddOpen(!addOpen)} disabled={hidden.length === 0}>+ {L('Adicionar widget')}</button>
               {addOpen && <div className="pf-menu pco-addmenu" role="menu">
-                {order.length >= MAX_WIDGETS && <p className="pco-addfull">{L('Tira um widget primeiro para caber tudo no ecrã.')}</p>}
-                {hidden.map((w) => <button key={w} type="button" role="menuitem" disabled={order.length >= MAX_WIDGETS} onClick={() => { save([...order, w]); setAddOpen(false); }}>{L(WNAME[w])}</button>)}
+                {hidden.map((w) => <button key={w} type="button" role="menuitem" onClick={() => { save(addCell(cells, w)); setAddOpen(false); }}>{L(WNAME[w])}</button>)}
               </div>}
             </div>
             <button type="button" className="pf-chip" onClick={reset}>{t('pco.reset')}</button>
@@ -234,16 +226,7 @@ export function PcOverview() {
       </header>
       {editing && <p className="pco-hint">{t('pco.dragHint')}</p>}
 
-      <div className={'pco-grid b' + bottomN + (order.length <= 2 ? ' one' : '') + (editing ? ' editing' : '')}>
-        {order.map((id, i) => (
-          <div key={id} className={`pco-slot s${i}` + (drag === id ? ' dragging' : '')} draggable={editing}
-            onDragStart={() => setDrag(id)} onDragEnd={() => setDrag(null)} onDragOver={(e) => { if (editing) e.preventDefault(); }} onDrop={onDrop(id)}>
-            {editing && <span className="pco-grip"><Ic d={IC.grip} size={18} /></span>}
-            {editing && order.length > 1 && <button type="button" className="pco-wdel" onClick={() => save(order.filter((x) => x !== id))} aria-label={L('Tirar widget')}>✕</button>}
-            {blocks[id]}
-          </div>
-        ))}
-      </div>
+      <FreeGrid cells={cells} editing={editing} names={(id) => L(WNAME[id as WidgetId])} render={(id) => blocks[id as WidgetId]} onChange={save} onRemove={(id) => save(cells.filter((c) => c.id !== id))} />
     </div>
   );
 }

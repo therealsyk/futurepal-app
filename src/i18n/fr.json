@@ -343,7 +343,8 @@
     "useIcon": "Utiliser l’icône",
     "imageTooBig": "L’image est trop lourde (300 Ko max).",
     "confirmDelete": "Oui, supprimer",
-    "deleteNote": "Les transactions de cette catégorie sont conservées."
+    "deleteNote": "Les transactions de cette catégorie sont conservées.",
+    "catInvestIncome": "Investissements"
   },
   "budgets": {
     "title": "Budgets",
@@ -581,7 +582,7 @@
     "customize": "Personnaliser",
     "done": "Terminé",
     "reset": "Réinitialiser",
-    "dragHint": "Faites glisser les blocs pour les échanger.",
+    "dragHint": "Faites glisser les widgets où vous voulez et tirez sur les côtés ou les coins pour les redimensionner.",
     "prev_m1": "mois précédent",
     "prev_q": "3 mois précédents",
     "prev_s": "6 mois précédents",

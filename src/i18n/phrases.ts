@@ -190,7 +190,6 @@ export const PHRASES: Record<string, Tr> = {
   'Ver movimentos do período': ['See transactions in this period', 'Ver movimientos del periodo', 'Voir les opérations de la période'],
   'Gasto no período': ['Spent in period', 'Gastado en el periodo', 'Dépensé sur la période'],
   'Adicionar widget': ['Add widget', 'Añadir widget', 'Ajouter un widget'],
-  'Tira um widget primeiro para caber tudo no ecrã.': ['Remove a widget first so everything fits on screen.', 'Quita un widget primero para que todo quepa en pantalla.', 'Retirez d’abord un widget pour que tout tienne à l’écran.'],
   'Tirar widget': ['Remove widget', 'Quitar widget', 'Retirer le widget'],
   'Gráfico de rendimentos': ['Income chart', 'Gráfico de ingresos', 'Graphique des revenus'],
   'Rendimento, gastos e poupança': ['Income, spending and savings', 'Ingresos, gastos y ahorro', 'Revenus, dépenses et épargne'],

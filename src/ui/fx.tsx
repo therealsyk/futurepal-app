@@ -271,8 +271,14 @@ export function Popover({ anchor, open, onClose, children, minWidth = 220, class
       if (!a) return;
       const vw = window.innerWidth, vh = window.innerHeight;
       const width = Math.min(Math.max(a.width, minWidth), vw - 16);
-      const left = Math.min(Math.max(8, a.left), vw - width - 8);
-      const below = vh - a.bottom - 12, above = a.top - 12;
+      // dentro de uma janela, a lista não sai dela (para os lados, e para cima/baixo se houver espaço)
+      const host = anchor.current?.closest('.fx-sheet, .bs-sheet')?.getBoundingClientRect();
+      const left = Math.max(8, Math.min(a.left, (host ? host.right - 14 : vw - 8) - width));
+      let below = vh - a.bottom - 12, above = a.top - 12;
+      if (host) {
+        const hb = host.bottom - a.bottom - 18, ha = a.top - host.top - 18;
+        if (hb >= 260 || ha >= 260) { below = hb; above = ha; }
+      }
       if (below >= 300 || below >= above) setPos({ left, top: a.bottom + 6, width, maxH: Math.min(420, below) });
       else setPos({ left, bottom: vh - a.top + 6, width, maxH: Math.min(420, above) });
     };

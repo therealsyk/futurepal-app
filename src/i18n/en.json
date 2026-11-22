@@ -509,7 +509,8 @@
     "useIcon": "Use icon",
     "imageTooBig": "The picture is too large (max 300 KB).",
     "confirmDelete": "Yes, delete",
-    "deleteNote": "Transactions in this category are kept."
+    "deleteNote": "Transactions in this category are kept.",
+    "catInvestIncome": "Investments"
   },
   "budgets": {
     "title": "Budgets",
@@ -1451,7 +1452,7 @@
     "customize": "Customize",
     "done": "Done",
     "reset": "Reset",
-    "dragHint": "Drag the blocks to swap their places.",
+    "dragHint": "Drag widgets anywhere and pull their sides or corners to resize them.",
     "prev_m1": "previous month",
     "prev_q": "previous 3 months",
     "prev_s": "previous 6 months",

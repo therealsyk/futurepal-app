@@ -6,6 +6,7 @@ export interface CatalogGroup { id: string; color: string; items: CatalogItem[] 
 
 // Ícones 24×24 de traço (stroke), no estilo dos restantes ícones da app.
 export const CAT_ICONS: Record<string, string> = {
+  trend: 'M3 17l6-6 4 4 8-8M15 7h6v6',
   dots: 'M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM8 12h.01M12 12h.01M16 12h.01',
   shirt: 'M8 3l-5 3 2 5 3-1v11h8V10l3 1 2-5-5-3a4 4 0 0 1-8 0z',
   heart: 'M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z',
@@ -65,7 +66,7 @@ export const CAT_ICONS: Record<string, string> = {
 };
 
 export const CATEGORY_GROUPS: CatalogGroup[] = [
-  { id: 'income', color: '#16a34a', items: [{ key: 'catSalary', icon: 'salary' }, { key: 'catPension', icon: 'income' }, { key: 'catOtherIncome', icon: 'income' }] },
+  { id: 'income', color: '#16a34a', items: [{ key: 'catSalary', icon: 'salary' }, { key: 'catPension', icon: 'income' }, { key: 'catInvestIncome', icon: 'trend' }, { key: 'catOtherIncome', icon: 'income' }] },
   { id: 'housing', color: '#0ea5e9', items: [
     { key: 'catHome', icon: 'home' }, { key: 'catRent', icon: 'key' }, { key: 'catBills', icon: 'receipt' }, { key: 'catElectricity', icon: 'bolt' },
     { key: 'catWater', icon: 'drop' }, { key: 'catInternet', icon: 'wifi' }, { key: 'catTelephone', icon: 'phone' }, { key: 'catTv', icon: 'tv' },

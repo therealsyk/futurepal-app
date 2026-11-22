@@ -56,7 +56,7 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
   const saved = data ? data.accounts.filter((a) => a.type !== 'debt').reduce((sum, a) => sum + accountBalanceCents(a, data.txs, data.accounts, salaryToDate, data.transfers), 0) : 0;
   const rng = embed ? embed.range : ranged ? pr ?? undefined : undefined;
   const inRange = (data?.txs ?? []).filter((x) => !rng || (x.date >= rng.from && x.date <= rng.to));
-  const latest = [...inRange].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt)).slice(0, 5);
+  const latest = [...inRange].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt)).slice(0, embed ? 40 : 5); // no Resumo do PC o widget pode ser esticado: mostra o que couber
   const catOf = (id: string) => data?.cats.find((c) => c.id === id);
   const meta = (auth.user?.user_metadata ?? {}) as { name?: string; full_name?: string };
   const name = meta.full_name || meta.name || auth.user?.email?.split('@')[0] || '';
@@ -140,7 +140,7 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
       {/* 6. Metas: só a principal, com a barra */}
       <section className="mv-card">
         <div className="mv-card-head"><h2>{L('Metas')}</h2><Link to="/metas" className="mv-link">{(data?.goals.length ?? 0) > 0 ? L('Ver todas') : L('Criar meta')}</Link></div>
-        {(data?.goals ?? []).slice(0, 1).map((g) => {
+        {(data?.goals ?? []).slice(0, embed ? 20 : 1).map((g) => {
           const r = g.targetCents > 0 ? Math.min(1, g.currentCents / g.targetCents) : 0;
           return (
             <div key={g.id} className="sh-goal">
