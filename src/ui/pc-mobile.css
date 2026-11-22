@@ -1512,3 +1512,10 @@ html:not(.pcm) .mv-menu { padding: 0 11px; } html:not(.pcm) .mv-menu svg { displ
 .gl-chips em.due { color: var(--amber, #f5b942); background: color-mix(in srgb, var(--amber, #f5b942) 16%, transparent); }
 @media (max-width: 768px) { .gg-ic { width: 62px; height: 62px; border-radius: 20px; } }
 @media (prefers-reduced-motion: reduce) { .gg-crew { animation: none; } .gg-card:hover .gg-ic { transform: none; } }
+
+/* Dentro de um grupo: a mesma página das metas, na cor do grupo */
+.gg-hero { border-color: color-mix(in srgb, var(--g) 40%, transparent) !important; background: radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--g) 28%, transparent), transparent 60%), var(--card) !important; }
+.gg-ic.big { width: 150px; height: 150px; border-radius: 42px; animation: gg-pop .5s cubic-bezier(.3,1.5,.5,1) backwards; } @keyframes gg-pop { from { opacity: 0; transform: scale(.6) rotate(-10deg); } }
+.gg-colors { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin: 18px 0; } .gg-colors button { width: 38px; height: 38px; border: 3px solid transparent; border-radius: 50%; cursor: pointer; transition: transform .15s; } .gg-colors button.on { border-color: var(--text); transform: scale(1.12); }
+@media (max-width: 768px) { .gg-ic.big { width: 112px; height: 112px; border-radius: 32px; } .gg-hero .gl-act { font-size: 14px; gap: 6px; } }
+@media (prefers-reduced-motion: reduce) { .gg-ic.big { animation: none; } }

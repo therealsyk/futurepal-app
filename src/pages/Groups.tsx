@@ -22,7 +22,7 @@ import { useMissing } from '../ui/missing';
 import { IS_DEMO } from '../demo/demo';
 import { BottomSheet } from './SimplePages';
 import { Face, SplitGroup, type Member } from './Split';
-import { useTxSaved } from '../ui/TxForm';
+import { openTxForm, useTxSaved } from '../ui/TxForm';
 import { L } from '../i18n/phrases';
 
 // Ícone do cartão: adivinhado pelo nome do grupo (senão, um ícone neutro)
@@ -50,13 +50,17 @@ export function Groups() {
   const [cats, setCats] = useState<Category[]>([]);
   const [shared, setShared] = useState<Record<string, { cents: number; n: number }>>({}); // total e número de transações de cada grupo dividido
   const [crew, setCrew] = useState<Record<string, { members: Member[]; pending: number; due: boolean }>>({}); // pessoas de cada grupo dividido
+  const [alive, setAlive] = useState<Set<string> | null>(null); // divisões que existem mesmo (null = ainda não se sabe)
   const [name, setName] = useState('');
   const [adding, setAdding] = useState<'new' | Group | null>(null); // grupo novo, ou um que já existe e passa a ser dividido
   const [split, setSplit] = useState(false);
   const [people, setPeople] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const { has } = usePlan();
-  const missing = useMissing();
+  const [edit, setEdit] = useState<Group | null>(null), [color, setColor] = useState('');
+  const missing = useMissing(), emissing = useMissing();
+  const emiss = emissing([['name', L('o nome'), !!name.trim()]]);
+  const closeEdit = () => { setEdit(null); setName(''); emiss.reset(); };
   const miss = missing([['name', L('o nome'), !!name.trim()], ['people', L('quem queres convidar'), !split || people.length > 0]]);
 
   const load = async () => {
@@ -75,6 +79,7 @@ export function Groups() {
       const sum: Record<string, { cents: number; n: number }> = {};
       for (const b of (bl.data ?? []) as Array<{ group_id: string; amount_cents: number }>) { const k = (sum[b.group_id] ??= { cents: 0, n: 0 }); k.cents += Number(b.amount_cents); k.n++; }
       setShared(sum);
+      if (data) setAlive(new Set((data as Array<{ id: string }>).map((g) => g.id)));
       const [mb, iv, mine] = await Promise.all([
         sb.from('split_members').select('*').order('joined_at'),
         sb.from('split_invites').select('group_id').eq('status', 'pending'),
@@ -103,6 +108,7 @@ export function Groups() {
   useTxSaved(() => { load().catch(() => {}); });
   const of = (g: string) => txs.filter((x) => x.groupId === g);
   const total = (g: string) => of(g).reduce((a, x) => a + (x.type === 'expense' ? x.amountCents : -x.amountCents), 0);
+  const splitOf = (gid: string) => { const k = splitIdOf(gid); return k && (!alive || alive.has(k)) ? k : null; }; // divisão apagada: volta a ser um grupo normal
   const sharedOf = (id2: string) => { const k = splitIdOf(id2); return k ? shared[k] : undefined; };
   const count = (n: number) => `${n} ${n === 1 ? L('movimento') : L('movimentos')}`;
   const close = () => { setAdding(null); setName(''); setSplit(false); setPeople([]); miss.reset(); };
@@ -178,25 +184,45 @@ export function Groups() {
   if (open) {
     const list = of(open.id).sort((a, b) => b.date.localeCompare(a.date));
     return (
-      <div className="fx-page mv sh grp">
+      <div className="fx-page mv sh grp gl-page">
         <header className="mv-head"><Link to="/grupos" className="mv-sq" aria-label={L('Voltar')}><Ic d={ICON.left} size={20} /></Link><h1 className="sh-title">{open.name}</h1></header>
-        {splitIdOf(open.id) && !IS_DEMO ? <SplitGroup key={open.id} splitId={splitIdOf(open.id)!} groupId={open.id} createdAt={open.createdAt} local={list} cats={cats} onChanged={() => { load().catch(() => {}); }} onGone={() => drop(open)} /> : <>
-        <section className="mv-hero sh-hero grp-total">
-          <small className="mv-hero-label">{L('Total')}</small>
-          <div className="sh-big">{money(total(open.id))}</div>
-          <div className="sh-row"><small className="sh-pct">{L('Criado a')} {day(open.createdAt)}</small><small className="sh-pct">{count(list.length)}</small></div>
+        {splitOf(open.id) && !IS_DEMO ? <SplitGroup key={open.id} splitId={splitIdOf(open.id)!} groupId={open.id} createdAt={open.createdAt} local={list} cats={cats} onChanged={() => { load().catch(() => {}); }} onGone={() => drop(open)} /> : <>
+        <section className="mv-hero sh-hero gl-hero gg-hero" style={{ '--g': open.color } as CSSProperties}>
+          <span className="gg-ic big"><Ic d={iconOf(open.name)} size={62} /></span>
+          <div className="gl-sum">
+            <div className="gl-have"><small>{L('Total do grupo')}</small><b>{money(total(open.id))}</b><small>{count(list.length)}</small></div>
+            <div className="gl-acts">
+              <button type="button" className="gl-act main" onClick={() => openTxForm({ type: 'expense', groupId: open.id })}><Ic d={ICON.plus} size={18} />{L('Adicionar')}</button>
+              {!IS_DEMO && <button type="button" className="gl-act" onClick={() => { setName(open.name); setSplit(true); setAdding(open); }}><Ic d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M19 8v6M16 11h6" size={18} />{L('Dividir')}</button>}
+              <button type="button" className="gl-act" onClick={() => { setName(open.name); setColor(open.color); setEdit(open); }}><Ic d="M4 20h4L19 9l-4-4L4 16zM13 7l4 4" size={18} />{L('Alterar')}</button>
+            </div>
+          </div>
         </section>
-        <section className="mv-card">
-          <div className="mv-card-head"><h2>{L('Transações')}</h2><Link to={`/transacoes?nova=1&grupo=${open.id}`} className="sh-btn in sm grp-add"><Ic d={ICON.plus} size={16} />{L('Adicionar transação')}</Link></div>
+        {list.length > 0 && (() => {
+          const out = list.filter((x) => x.type === 'expense'), top = [...out].sort((a, b) => b.amountCents - a.amountCents)[0], sum = out.reduce((a, x) => a + x.amountCents, 0);
+          return <div className="pl-tiles gl-tiles">
+            <div className="pl-tile"><small>{L('Maior gasto')}</small><b>{top ? money(top.amountCents) : '—'}</b>{top && <em>{top.description || catLabel(t, cats.find((y) => y.id === top.categoryId) ?? { name: '' })}</em>}</div>
+            <div className="pl-tile"><small>{L('Média por gasto')}</small><b>{out.length ? money(Math.round(sum / out.length)) : '—'}</b></div>
+            <div className="pl-tile"><small>{L('Último movimento')}</small><b>{day(list[0].date)}</b></div>
+            <div className="pl-tile"><small>{L('Criado a')}</small><b>{day(open.createdAt)}</b></div>
+          </div>;
+        })()}
+        <section className="mv-card gl-sec">
+          <h2>{L('Transações')}</h2>
           {list.length === 0 ? <p className="fx-muted">{L('Adiciona transações a este grupo para veres quanto custa no total.')}</p> : list.map((x) => {
             const c = cats.find((y) => y.id === x.categoryId);
-            return <div key={x.id} className="sh-tx"><CatIcon cat={c ?? {}} size={36} /><span className="sh-tx-main"><b>{x.description || '—'}</b><small>{day(x.date)}</small></span><b className={x.type === 'income' ? 'fx-pos' : 'fx-neg'}>{x.type === 'income' ? '+' : '−'}{money(x.amountCents)}</b></div>;
+            return <div key={x.id} className="sh-tx"><CatIcon cat={c ?? {}} size={40} /><span className="sh-tx-main"><b>{x.description || (c ? catLabel(t, c) : '—')}</b><small>{day(x.date)}</small></span><b className={x.type === 'income' ? 'fx-pos' : 'fx-neg'}>{x.type === 'income' ? '+' : '−'}{money(x.amountCents)}</b></div>;
           })}
         </section>
+        <div className="gx-end gl-end"><button type="button" className="gx-rm" onClick={() => remove(open)}><Ic d={ICON.trash} size={18} />{L('Apagar grupo')}</button></div>
         </>}
-        {!IS_DEMO && !splitIdOf(open.id) && <button type="button" className="fx-link grp-start" onClick={() => { setName(open.name); setSplit(true); setAdding(open); }}>{L('Dividir este grupo com outras pessoas')}</button>}
-        {!splitIdOf(open.id) && <button type="button" className="sh-danger" onClick={() => remove(open)}>{L('Apagar grupo')}</button>}
         {sheet}
+        {edit && <BottomSheet title={L('Alterar grupo')} onClose={closeEdit}><div className="acc-form">
+          {emiss.note}
+          <div className="tx-rows"><TextRow icon={FI.name} label={L('Nome')} value={name} onChange={setName} placeholder={L('Ex.: Férias de verão')} cls={emiss.cls('name')} /></div>
+          <div className="gg-colors" role="radiogroup" aria-label={L('Cor')}>{COLORS.map((c) => <button key={c} type="button" role="radio" aria-checked={c === color} aria-label={c} className={c === color ? 'on' : ''} style={{ background: c }} onClick={() => setColor(c)} />)}</div>
+          <button type="button" className="tx-addbtn" onClick={async () => { if (!emiss.check()) return; await db.groups.update(edit.id, { name: name.trim(), color, updatedAt: new Date().toISOString() }); closeEdit(); await load(); }}>{L('Guardar')}</button>
+        </div></BottomSheet>}
       </div>
     );
   }
@@ -207,7 +233,8 @@ export function Groups() {
       {groups.length === 0 && <EmptyState icon="M4 6h16M4 12h16M4 18h10" title={L('Ainda não tens grupos')} text={L('Junta despesas de uma coisa só e vê quanto custou no total.')} examples={['✈️ Viagem', '🔨 Obras', '🎄 Natal']} />}
       <div className="gl-grid">
         {groups.map((g, i) => {
-          const sid = splitIdOf(g.id), c = sid ? crew[sid] : undefined, others = (c?.members ?? []).filter((m) => m.userId !== me), n = (c?.members.length ?? 0) + (c?.pending ?? 0);
+          const sid = splitIdOf(g.id), k = sid ? crew[sid] : undefined, c = k && k.members.some((m) => m.userId !== me) || k?.pending ? k : undefined, // só eu: é um grupo normal
+             others = (c?.members ?? []).filter((m) => m.userId !== me), n = (c?.members.length ?? 0) + (c?.pending ?? 0);
           const names = others.length === 0 ? '' : others.length <= 2 ? others.map((m) => m.displayName.split(' ')[0]).join(` ${L('e')} `) : `${others[0].displayName.split(' ')[0]}, ${others[1].displayName.split(' ')[0]} +${others.length - 2}`;
           return (
             <Link key={g.id} to={`/grupos/${g.id}`} className="mv-card gl-card gg-card" style={{ '--g': g.color, '--i': i } as CSSProperties}>
@@ -217,9 +244,8 @@ export function Groups() {
                 <span className="gl-money"><b>{money(sharedOf(g.id)?.cents ?? total(g.id))}</b> · {count(sharedOf(g.id)?.n ?? of(g.id).length)}</span>
                 {sid && c && <span className="gg-crew">
                   <span className="gg-faces">{others.slice(0, 4).map((m) => <Face key={m.userId} m={m} />)}{others.length > 4 && <i>+{others.length - 4}</i>}{c.pending > 0 && <i className="wait" title={L('Pendente')}>⏳</i>}</span>
-                  <small>{names ? `${L('Com')} ${names}` : c.pending > 0 ? L('À espera de resposta') : L('Só tu, por agora')}</small>
+                  <small>{names ? `${L('Com')} ${names}` : L('À espera de resposta')}</small>
                 </span>}
-                {sid && !c && <span className="gl-chips"><em className="dim">{L('Dividido')}</em></span>}
                 {sid && c && n > 1 && sharedOf(g.id) && <span className="gl-chips"><em className={c.due ? 'due' : 'ok'}>{c.due ? L('Por pagar') : L('Pago')}</em></span>}
               </span>
               <span className="gl-go"><Ic d={ICON.right} size={18} /></span>

@@ -131,8 +131,8 @@ function TxForm({ o, d, onClose, onKind }: { o: TxFormOptions; d: FormData; onCl
     if (splitId) {
       if (recurring) { setError(L('Uma transação dividida não pode ser recorrente.')); return; }
       const r = await addSplitTransaction(splitId, splitDesc, cents, date);
-      if ('error' in r) { setError(r.error === 'offline' ? L('Para dividir precisas de internet e de sessão iniciada.') : r.error); return; }
-      mine = r.share; billId = r.billId;
+      if ('error' in r && r.error === 'gone') { /* a divisão foi apagada: fica uma transação normal deste grupo */ } else if ('error' in r) { setError(r.error === 'offline' ? L('Para dividir precisas de internet e de sessão iniciada.') : r.error); return; }
+      else { mine = r.share; billId = r.billId; }
     }
     if (SIMPLE_UI && toAccount) { // transferência entre contas (pode repetir-se)
       try {

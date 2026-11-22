@@ -870,6 +870,12 @@ export const PHRASES: Record<string, Tr> = {
   'À espera de resposta': ['Waiting for a reply', 'Esperando respuesta', 'En attente de réponse'],
   'Só tu, por agora': ['Just you, for now', 'Solo tú, por ahora', 'Juste vous, pour l’instant'],
   'Disponível': ['Available', 'Disponible', 'Disponible'],
+  'Dividir': ['Split', 'Dividir', 'Partager'],
+  'Maior gasto': ['Biggest expense', 'Mayor gasto', 'Plus grosse dépense'],
+  'Média por gasto': ['Average expense', 'Media por gasto', 'Dépense moyenne'],
+  'Último movimento': ['Latest transaction', 'Último movimiento', 'Dernière opération'],
+  'Alterar grupo': ['Edit group', 'Editar grupo', 'Modifier le groupe'],
+  'Cor': ['Colour', 'Color', 'Couleur'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */

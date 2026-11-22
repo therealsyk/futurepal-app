@@ -19,7 +19,7 @@ export async function splitPeople(splitId: string): Promise<{ members: string[];
   const sb = getSupabase();
   if (!sb) return null;
   const [m, i] = await Promise.all([sb.from('split_members').select('user_id').eq('group_id', splitId), sb.from('split_invites').select('id').eq('group_id', splitId).eq('status', 'pending')]);
-  if (m.error || !m.data?.length) return null;
+  if (m.error) return null; // sem membros: a divisão já não existe
   return { members: (m.data as Array<{ user_id: string }>).map((x) => x.user_id), pending: i.data?.length ?? 0 };
 }
 
@@ -27,6 +27,7 @@ export async function splitPeople(splitId: string): Promise<{ members: string[];
 export async function addSplitTransaction(splitId: string, description: string, cents: number, date: string): Promise<{ share: number; billId: string } | { error: string }> {
   const sb = getSupabase(), p = await splitPeople(splitId);
   if (!sb || !p) return { error: 'offline' };
+  if (!p.members.length) return { error: 'gone' };
   const { data, error } = await sb.rpc('add_split_bill', { p_group: splitId, p_description: description, p_amount_cents: cents, p_date: date, p_members: p.members, p_creator_paid: true });
   return error ? { error: error.message } : { share: Math.ceil(cents / (p.members.length + p.pending)), billId: String(data) };
 }
