@@ -1692,4 +1692,4 @@ html:not(.pcm) .ap-tiles .gx-tile b, html:not(.pcm) .gx-tiles.even .gx-tile b { 
 .gd-in p strong { color: var(--text); font-weight: 800; }
 html.guiding .nt-pop, html.guiding .spi-back:not(.gd-ask):not(:has([role="alertdialog"])) { display: none !important; }
 .fa-top { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; } .fa-top p { margin: 0 auto; max-width: 380px; color: var(--muted); font-size: 15px; line-height: 1.45; } .fa-q { margin: 14px 0 -6px; text-align: center; font-size: 15px; font-weight: 700; }
-.fx-datepop .fx-dp-grid .fx-cal-d { aspect-ratio: 1 / 0.68; } .fx-datepop .fx-dp-foot { position: sticky; bottom: 0; margin-top: 6px; }
+.fx-datepop .fx-dp-grid .fx-cal-d { aspect-ratio: auto; min-height: 0; height: 38px; } .fx-datepop .fx-dp-foot { position: sticky; bottom: 0; margin-top: 6px; }
