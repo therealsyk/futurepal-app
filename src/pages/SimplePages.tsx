@@ -177,6 +177,7 @@ export function SimpleLimits() {
   const [form, setForm] = useState(false);
   const [edit, setEdit] = useState<Budget | null>(null);
   const [editAmt, setEditAmt] = useState('');
+  const [editHas, setEditHas] = useState(false), [editEnd, setEditEnd] = useState(''); // alterar: data limite (AAAA-MM)
   const [delConfirm, setDelConfirm] = useState(false);
   const missing = useMissing();
   const missingEdit = useMissing();
@@ -195,7 +196,31 @@ export function SimpleLimits() {
   const spentIn = (id: string) => month.filter((x) => x.type === 'expense' && x.categoryId === id).reduce((a, x) => a + x.amountCents, 0);
   const expenseCats = (d?.cats ?? []).filter((c) => c.group !== 'income' && !limits.some((b) => b.categoryId === c.id));
   const miss = missing([['amount', L('o valor'), (parseMoneyToCents(amt) ?? 0) > 0], ['cat', L('a categoria'), !!cat], ['end', L('a data limite'), !hasEnd || !!endM]]);
-  const missEdit = missingEdit([['amount', L('o valor'), (parseMoneyToCents(editAmt) ?? 0) > 0]]);
+  const ymOf = (y: number, m: number) => `${y}-${String(m).padStart(2, '0')}`;
+  const missEdit = missingEdit([['amount', L('o valor'), (parseMoneyToCents(editAmt) ?? 0) > 0], ['end', L('a data limite'), !editHas || (!!edit && editEnd >= ymOf(edit.year, edit.month))]]);
+  // meses seguidos, depois deste, que já têm o mesmo limite: é até aí que ele vai
+  const chain = (b: Budget): Budget[] => {
+    const out: Budget[] = [];
+    for (let y = b.year, m = b.month; ;) {
+      m++; if (m > 12) { m = 1; y++; }
+      const next = (d?.budgets ?? []).filter((x) => x.categoryId === b.categoryId && x.year === y && x.month === m);
+      if (!next.length) return out;
+      out.push(...next);
+    }
+  };
+  const openEdit = (b: Budget) => {
+    const last = chain(b).pop();
+    setEdit(b); setEditAmt((b.limitCents / 100).toFixed(2).replace('.', ',')); setEditHas(!!last); setEditEnd(last ? ymOf(last.year, last.month) : '');
+  };
+  const saveEdit = async () => {
+    const cents = parseMoneyToCents(editAmt);
+    if (!edit || !missEdit.check() || !cents) return;
+    const end = editHas ? editEnd : ymOf(edit.year, edit.month);
+    for (let y = edit.year, m = edit.month; ymOf(y, m) <= end;) { await setBudget(db, edit.categoryId, Math.abs(cents), y, m); m++; if (m > 12) { m = 1; y++; } }
+    const t2 = new Date().toISOString(); // os meses para lá da data deixam de ter este limite
+    for (const x of chain(edit)) if (ymOf(x.year, x.month) > end) await db.budgets.update(x.id, { deletedAt: t2, updatedAt: t2 });
+    setEdit(null); missEdit.reset(); reload();
+  };
   const closeForm = () => { setForm(false); miss.reset(); };
   const create = async () => {
     const cents = parseMoneyToCents(amt);
@@ -238,7 +263,7 @@ export function SimpleLimits() {
       {rows.length > 0 && <div className="gl-grid" key={prefix + 'g'}>
         {rows.map(({ b, u, r, left: l, c }, i) => (
           <button type="button" key={b.id} className="mv-card gl-card lm-card" style={{ ['--i' as string]: i }}
-            onClick={() => { setEdit(b); setEditAmt((b.limitCents / 100).toFixed(2).replace('.', ',')); }} aria-label={`${L('Alterar limite')}: ${c ? catLabel(t, c) : ''}`}>
+            onClick={() => openEdit(b)} aria-label={`${L('Alterar limite')}: ${c ? catLabel(t, c) : ''}`}>
             <GoalRing r={Math.min(1, r)} size={86} tone={toneOf(r)}><CatIcon cat={c ?? {}} size={52} /></GoalRing>
             <span className="gl-main">
               <b className="gl-name">{c ? catLabel(t, c) : '—'}</b>
@@ -256,7 +281,10 @@ export function SimpleLimits() {
             {missEdit.note}
             <div className="lim-editcat"><CatIcon cat={c ?? {}} size={40} /><b>{c ? catLabel(t, c) : '—'}</b></div>
             <AmountField value={editAmt} onChange={setEditAmt} currency={s.currency} label={L('Máximo por mês')} cls={missEdit.cls('amount')} />
-            <button type="button" className="tx-addbtn" onClick={async () => { const cents = parseMoneyToCents(editAmt); if (!missEdit.check() || !cents) return; await setBudget(db, edit.categoryId, Math.abs(cents), edit.year, edit.month); setEdit(null); reload(); }}>{L('Guardar')}</button>
+            <div className="tx-rows">
+              <SwitchRow icon={FI.date} cls={missEdit.cls('end')} label={editHas ? L('Até ao mês') : L('Tem data limite?')} sub={editHas ? undefined : L('Se não ativares, fica só para este mês')} on={editHas} onChange={setEditHas}><DatePicker value={editEnd ? editEnd + '-01' : ''} onChange={(v) => setEditEnd(v.slice(0, 7))} className="fx-input tx-val" /></SwitchRow>
+            </div>
+            <button type="button" className="tx-addbtn" onClick={saveEdit}>{L('Guardar')}</button>
             <button type="button" className="gx-rm lm-del" onClick={async () => {
               // 1.º toque pede confirmação no próprio botão (sem janelas do sistema); 2.º apaga todos os registos deste limite neste mês
               if (!delConfirm) { setDelConfirm(true); return; }
