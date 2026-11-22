@@ -3,7 +3,8 @@ import { beforePayments, goalValueCents, joinDesc, payoff, planInfo, splitDesc }
 import { AccountPlanBox, endText as planEnd, fill } from '../ui/AccountPlan';
 import { NewAccount } from './NewAccount';
 import { NewGoal } from './NewGoal';
-import { GoalCard, GoalView, type GoalInfo } from './GoalView';
+import { GoalCard, GoalRing, GoalView, type GoalInfo } from './GoalView';
+import { GTile } from './Split';
 import { cmpShort } from '../core/compare';
 import { useMissing } from '../ui/missing';
 import { useEffect, useRef, useState } from 'react';
@@ -208,47 +209,47 @@ export function SimpleLimits() {
   };
   const label = new Date(cur.y, cur.m, 1).toLocaleDateString(s.language, { month: 'long', year: 'numeric' });
 
+  const total = limits.reduce((a, b) => a + b.limitCents, 0), used = limits.reduce((a, b) => a + spentIn(b.categoryId), 0), left = total - used;
+  const ratio = total > 0 ? used / total : 0, toneOf = (r: number) => (r > 1 ? 'over' : r > 0.85 ? 'warn' : '');
+  const isNow = cur.y === now.getFullYear() && cur.m === now.getMonth(), daysLeft = new Date(cur.y, cur.m + 1, 0).getDate() - now.getDate() + 1; // hoje conta
+  const rows = limits.map((b) => { const u = spentIn(b.categoryId); return { b, u, r: b.limitCents > 0 ? u / b.limitCents : 0, left: b.limitCents - u, c: catOf(b.categoryId) }; }).sort((a, b) => b.r - a.r); // primeiro os que estão mais perto do fim
+
   return (
-    <div className="fx-page mv sh">
+    <div className="fx-page mv sh lm-page">
       <header className="mv-head"><h1 className="sh-title">{L('Limites do mês')}</h1><Link to="/orcamentos-completo" className="mv-sq lim-adv" aria-label={L('Mais opções')}><Ic d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4" size={18} /></Link></header>
-      <section className="mv-hero sh-hero">
+      <section className={'mv-hero sh-hero lm-hero' + (limits.length ? '' : ' none')}>
         <div className="mv-hero-top">
           <button type="button" className="mv-chev" onClick={() => shift(-1)} aria-label={L('Mês anterior')}><Ic d={ICON.left} size={18} /></button>
           <span className="mv-month">{label}</span>
           <button type="button" className="mv-chev" onClick={() => shift(1)} aria-label={L('Mês seguinte')}><Ic d={ICON.right} size={18} /></button>
         </div>
-        {limits.length === 0 ? <p className="lim-empty">{L('Ainda não tens limites este mês.')}</p> : (() => {
-          // tudo num só número, em linguagem simples: quanto ainda posso gastar dentro dos meus limites
-          const total = limits.reduce((a2, b) => a2 + b.limitCents, 0);
-          const used = limits.reduce((a2, b) => a2 + spentIn(b.categoryId), 0);
-          const left = total - used, r = total > 0 ? Math.min(1, used / total) : 0;
-          return (<>
-            <small className="mv-hero-label">{left >= 0 ? L('Ainda podes gastar') : L('Passaste os limites em')}</small>
-            <div className="sh-valrow"><span className={'sh-big ' + (left >= 0 ? 'fx-pos' : 'fx-neg')}>{money(Math.abs(left))}</span></div>
-            <div className={'sh-bar' + (left < 0 ? ' over' : r > 0.85 ? ' warn' : '')} aria-hidden="true"><i style={{ width: `${r * 100}%` }} /></div>
-            <p className="lim-line">{L('Já gastaste')} <b>{money(used)}</b> {L('dos')} <b>{money(total)}</b> {L('que planeaste para este mês.')}</p>
-          </>);
-        })()}
+        {limits.length > 0 && <div className="gl-hero lm-sum" key={prefix}>
+          <GoalRing r={Math.min(1, ratio)} size={176} tone={toneOf(ratio)}><b>{Math.round(ratio * 100)}%</b><small>{L('gasto')}</small></GoalRing>
+          <div className="gl-have"><small>{left >= 0 ? L('Ainda podes gastar') : L('Passaste os limites em')}</small><b className={left >= 0 ? 'fx-pos' : 'fx-neg'}>{money(Math.abs(left))}</b>
+            {isNow && left > 0 && <small>{fill(L('cerca de {m} por dia'), { m: money(Math.floor(left / daysLeft)) })}</small>}</div>
+        </div>}
       </section>
-
-      <section className="mv-card">
-        <div className="mv-card-head"><h2>{L('Por categoria')}</h2></div>
-        {limits.length === 0 && <EmptyState icon="M12 3a9 9 0 1 0 9 9h-9zM15 3.5V9h5.5A9 9 0 0 0 15 3.5z" title={L('Sem limites este mês')} text={L('Define quanto queres gastar no máximo numa categoria. A app avisa quando estiveres perto.')} examples={['🛒 Supermercado', '⛽ Combustível', '🍽️ Restaurantes']} />}
-        <div className="sh-limits">
-          {limits.map((b) => {
-            const c = catOf(b.categoryId), used = spentIn(b.categoryId), r = b.limitCents > 0 ? used / b.limitCents : 0, left = b.limitCents - used;
-            return (
-              <button type="button" key={b.id} className={'sh-limit' + (r > 1 ? ' over' : r > 0.85 ? ' warn' : '')} style={{ ['--p' as string]: Math.min(1, r) }}
-                onClick={() => { setEdit(b); setEditAmt((b.limitCents / 100).toFixed(2).replace('.', ',')); }} aria-label={`${L('Alterar limite')}: ${c ? catLabel(t, c) : ''}`}>
-                <span className="sh-ring"><CatIcon cat={c ?? {}} size={44} /></span>
-                <b>{c ? catLabel(t, c) : '—'}</b>
-                <small className={left < 0 ? 'fx-neg' : ''}>{left >= 0 ? `${L('Podes gastar')} ${money(left)}` : `${L('Passaste')} ${money(-left)}`}</small>
-                <em className="lim-of">{money(used)} / {money(b.limitCents)}</em>
-              </button>
-            );
-          })}
-        </div>
-<button type="button" className="sh-btn out sm" onClick={() => setForm(true)}><Ic d={ICON.plus} size={18} />{L('Novo limite')}</button>
+      {limits.length > 0 && <div className="gx-tiles lm-tiles">
+        <GTile d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6" label={L('Limite total')} value={money(total)} />
+        <GTile d="M12 19V5M5 12l7-7 7 7" tone={left < 0 ? 'neg' : ''} label={L('Já gastaste')} value={money(used)} />
+        <GTile d="M12 3a9 9 0 1 0 9 9h-9zM15 3.5V9h5.5A9 9 0 0 0 15 3.5z" label={L('Limites')} value={String(limits.length)} />
+      </div>}
+      {d && limits.length === 0 && <EmptyState icon="M12 3a9 9 0 1 0 9 9h-9zM15 3.5V9h5.5A9 9 0 0 0 15 3.5z" title={L('Sem limites este mês')} text={L('Define quanto queres gastar no máximo numa categoria. A app avisa quando estiveres perto.')} examples={['🛒 Supermercado', '⛽ Combustível', '🍽️ Restaurantes']} />}
+      {rows.length > 0 && <div className="gl-grid" key={prefix + 'g'}>
+        {rows.map(({ b, u, r, left: l, c }, i) => (
+          <button type="button" key={b.id} className="mv-card gl-card lm-card" style={{ ['--i' as string]: i }}
+            onClick={() => { setEdit(b); setEditAmt((b.limitCents / 100).toFixed(2).replace('.', ',')); }} aria-label={`${L('Alterar limite')}: ${c ? catLabel(t, c) : ''}`}>
+            <GoalRing r={Math.min(1, r)} size={86} tone={toneOf(r)}><CatIcon cat={c ?? {}} size={52} /></GoalRing>
+            <span className="gl-main">
+              <b className="gl-name">{c ? catLabel(t, c) : '—'}</b>
+              <span className="lm-left"><small>{l >= 0 ? L('Podes gastar') : L('Passaste')}</small> <b className={l < 0 ? 'fx-neg' : r > 0.85 ? 'lm-warn' : 'fx-pos'}>{money(Math.abs(l))}</b></span>
+              <span className="gl-money">{money(u)} {L('de')} {money(b.limitCents)}</span>
+            </span>
+            <span className={'lm-tag ' + (toneOf(r) || 'ok')}>{Math.round(r * 100)}%</span>
+          </button>
+        ))}
+      </div>}
+      <button type="button" className="sh-pill" onClick={() => setForm(true)}><Ic d={ICON.plus} size={16} />{L('Novo limite')}</button>
       {edit && (() => { const c = catOf(edit.categoryId); return (
         <BottomSheet title={L('Alterar limite')} onClose={() => { setEdit(null); setDelConfirm(false); missEdit.reset(); }}>
           <div className="acc-form">
@@ -256,7 +257,7 @@ export function SimpleLimits() {
             <div className="lim-editcat"><CatIcon cat={c ?? {}} size={40} /><b>{c ? catLabel(t, c) : '—'}</b></div>
             <AmountField value={editAmt} onChange={setEditAmt} currency={s.currency} label={L('Máximo por mês')} cls={missEdit.cls('amount')} />
             <button type="button" className="tx-addbtn" onClick={async () => { const cents = parseMoneyToCents(editAmt); if (!missEdit.check() || !cents) return; await setBudget(db, edit.categoryId, Math.abs(cents), edit.year, edit.month); setEdit(null); reload(); }}>{L('Guardar')}</button>
-            <button type="button" className="sh-danger" onClick={async () => {
+            <button type="button" className="gx-rm lm-del" onClick={async () => {
               // 1.º toque pede confirmação no próprio botão (sem janelas do sistema); 2.º apaga todos os registos deste limite neste mês
               if (!delConfirm) { setDelConfirm(true); return; }
               const t2 = new Date().toISOString();
@@ -278,7 +279,6 @@ export function SimpleLimits() {
           </div>
         
       </BottomSheet>}
-      </section>
     </div>
   );
 }

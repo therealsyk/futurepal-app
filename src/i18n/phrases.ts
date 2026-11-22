@@ -903,6 +903,8 @@ export const PHRASES: Record<string, Tr> = {
   'Hotel': ['Hotel', 'Hotel', 'Hôtel'],
   'Gasolina': ['Petrol', 'Gasolina', 'Essence'],
   'Compras': ['Groceries', 'Compras', 'Courses'],
+  'cerca de {m} por dia': ['about {m} per day', 'unos {m} al día', 'environ {m} par jour'],
+  'Limite total': ['Total limit', 'Límite total', 'Limite totale'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */
