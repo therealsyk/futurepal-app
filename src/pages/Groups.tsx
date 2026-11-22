@@ -13,7 +13,9 @@ import { loadSettings } from '../core/settings';
 import { linkedGroupId, SPLIT_CHANGED, splitIdOf } from '../core/groupLink';
 import { CatIcon, Ic, ICON } from '../ui/fx';
 import { EmptyState } from '../ui/EmptyState';
-import { FI, TextRow } from '../ui/formFields';
+import { FI, InviteRow, SwitchRow, TextRow } from '../ui/formFields';
+import { parseContact } from '../core/split';
+import { usePlan } from './Premium';
 import { useMissing } from '../ui/missing';
 import { IS_DEMO } from '../demo/demo';
 import { BottomSheet } from './SimplePages';
@@ -34,9 +36,13 @@ export function Groups() {
   const [txs, setTxs] = useState<Transaction[]>([]);
   const [cats, setCats] = useState<Category[]>([]);
   const [name, setName] = useState('');
-  const [adding, setAdding] = useState(false);
+  const [adding, setAdding] = useState<'new' | Group | null>(null); // grupo novo, ou um que já existe e passa a ser dividido
+  const [split, setSplit] = useState(false);
+  const [people, setPeople] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+  const { has } = usePlan();
   const missing = useMissing();
-  const miss = missing([['name', L('o nome'), !!name.trim()]]);
+  const miss = missing([['name', L('o nome'), !!name.trim()], ['people', L('quem queres convidar'), !split || people.length > 0]]);
 
   const load = async () => {
     setGroups((await db.groups.toArray()).filter((g) => g.deletedAt === null).sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
@@ -67,11 +73,31 @@ export function Groups() {
   const of = (g: string) => txs.filter((x) => x.groupId === g);
   const total = (g: string) => of(g).reduce((a, x) => a + (x.type === 'expense' ? x.amountCents : -x.amountCents), 0);
   const count = (n: number) => `${n} ${n === 1 ? L('movimento') : L('movimentos')}`;
-  const close = () => { setAdding(false); setName(''); miss.reset(); };
+  const close = () => { setAdding(null); setName(''); setSplit(false); setPeople([]); miss.reset(); };
+  // cria o grupo da divisão e envia os convites; devolve o id
+  const startSplit = async (): Promise<string | null> => {
+    const sb = getSupabase();
+    if (!sb || !auth.user) return null;
+    const m = (auth.user.user_metadata ?? {}) as { full_name?: string; name?: string };
+    const g = await sb.rpc('create_split_group', { p_name: name.trim(), p_display_name: m.full_name || m.name || (auth.user.email ?? '').split('@')[0], p_currency: s.currency });
+    if (g.error) { await appConfirm(g.error.message, { ok: 'OK' }); return null; }
+    const bad: string[] = [];
+    for (const raw of people) { const c = parseContact(raw)!; const r = await sb.rpc('invite_to_split', { p_group: String(g.data), p_email: c.email, p_phone: c.phone }); if (r.error) bad.push(`${raw}: ${r.error.message}`); }
+    if (bad.length) await appConfirm(`${L('O grupo foi criado, mas estes convites falharam:')} ${bad.join('; ')}`, { ok: 'OK' });
+    return String(g.data);
+  };
   const create = async () => {
-    if (!miss.check()) return;
-    const g = await addGroup(db, name.trim(), COLORS[groups.length % COLORS.length]);
-    close(); await load(); navigate(`/grupos/${g.id}`);
+    if (!miss.check() || busy) return;
+    setBusy(true);
+    try {
+      const sid = split ? await startSplit() : null;
+      if (split && !sid) return;
+      if (adding && adding !== 'new') { const g = adding; close(); if (sid) await link(g, sid); return; }
+      let gid: string;
+      if (sid) { gid = linkedGroupId(sid, me); const n = new Date().toISOString(); await db.groups.put({ id: gid, name: name.trim(), color: COLORS[groups.length % COLORS.length], createdAt: n, updatedAt: n, deletedAt: null }); }
+      else gid = (await addGroup(db, name.trim(), COLORS[groups.length % COLORS.length])).id;
+      close(); await load(); navigate(`/grupos/${gid}`);
+    } finally { setBusy(false); }
   };
   const remove = async (g: Group) => {
     const split = splitIdOf(g.id);
@@ -93,6 +119,22 @@ export function Groups() {
     await load(); navigate(`/grupos/${gid}`, { replace: true });
   };
 
+  const sheet = adding && (
+    <BottomSheet title={adding === 'new' ? L('Novo grupo') : adding.name} onClose={close}>
+      <div className="acc-form">
+        {miss.note}
+        <div className="tx-rows">
+          {adding === 'new' && <TextRow icon={FI.name} label={L('Nome')} value={name} onChange={setName} placeholder={L('Ex.: Férias de verão')} cls={miss.cls('name')} />}
+          {!IS_DEMO && adding === 'new' && <SwitchRow icon="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M22 19v-1a4 4 0 0 0-3-3.9M16 4.1a3 3 0 0 1 0 5.8" label={L('Dividir despesas com outras pessoas?')} sub={split ? undefined : L('Cada um paga a sua parte e vê quem já pagou')} on={split} onChange={setSplit} />}
+          {split && (me && has('split') ? <InviteRow value={people} onChange={setPeople} cls={miss.cls('people')} /> : null)}
+        </div>
+        {split && me && has('split') && <p className="grp-hint">{L('Usa o email ou o número de telemóvel da conta da pessoa no FuturePal.')}</p>}
+        {split && !(me && has('split')) && <div className="mv-card sp-start"><p>{me ? L('Criar grupos para dividir despesas faz parte do Plus e do Pro.') : L('Inicia sessão para convidares pessoas e dividires as despesas deste grupo.')}</p><Link to={me ? '/plus' : '/definicoes'} className="sh-btn out sm">{me ? L('Ver planos') : L('Iniciar sessão')}</Link></div>}
+        <button type="button" className="tx-addbtn" disabled={busy || (split && !(me && has('split')))} onClick={create}>{adding === 'new' ? L('Criar grupo') : L('Convidar')}</button>
+      </div>
+    </BottomSheet>
+  );
+
   const open = groups.find((g) => g.id === id);
   if (open) {
     const list = of(open.id).sort((a, b) => b.date.localeCompare(a.date));
@@ -111,11 +153,13 @@ export function Groups() {
             return <div key={x.id} className="sh-tx"><CatIcon cat={c ?? {}} size={36} /><span className="sh-tx-main"><b>{x.description || '—'}</b><small>{day(x.date)}</small></span><b className={x.type === 'income' ? 'fx-pos' : ''}>{x.type === 'income' ? '+' : '−'}{money(x.amountCents)}</b></div>;
           })}
         </section>
-        {!IS_DEMO && <section className="grp-split">
-          <h2>{L('Dividir com outras pessoas')}</h2>
+        {!IS_DEMO && splitIdOf(open.id) && <section className="grp-split">
+          <h2>{L('Despesas divididas')}</h2>
           <SplitPage key={open.id} embed={{ splitId: splitIdOf(open.id), name: open.name, groupId: open.id, onLinked: (sid) => link(open, sid), onAdded: () => { load().catch(() => {}); } }} />
         </section>}
+        {!IS_DEMO && !splitIdOf(open.id) && <button type="button" className="fx-link grp-start" onClick={() => { setName(open.name); setSplit(true); setAdding(open); }}>{L('Dividir este grupo com outras pessoas')}</button>}
         <button type="button" className="sh-danger" onClick={() => remove(open)}>{L('Apagar grupo')}</button>
+        {sheet}
       </div>
     );
   }
@@ -133,14 +177,8 @@ export function Groups() {
           </Link>
         ))}
       </div>
-      <button type="button" className="sh-btn in" onClick={() => setAdding(true)}><Ic d={ICON.plus} size={20} />{L('Novo grupo')}</button>
-      {adding && <BottomSheet title={L('Novo grupo')} onClose={close}>
-        <div className="acc-form">
-          {miss.note}
-          <div className="tx-rows"><TextRow icon={FI.name} label={L('Nome')} value={name} onChange={setName} placeholder={L('Ex.: Férias de verão')} cls={miss.cls('name')} /></div>
-          <button type="button" className="tx-addbtn" onClick={create}>{L('Criar grupo')}</button>
-        </div>
-      </BottomSheet>}
+      <button type="button" className="sh-btn in" onClick={() => setAdding('new')}><Ic d={ICON.plus} size={20} />{L('Novo grupo')}</button>
+      {sheet}
     </div>
   );
 }

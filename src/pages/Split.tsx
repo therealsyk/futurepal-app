@@ -237,7 +237,7 @@ export function SplitPage({ embed }: { embed: SplitEmbed }) {
       {error && <p className="fx-error">{error}</p>}
       {info && <p className="fx-muted">{info}</p>}
 
-      {invites.length > 0 && (
+      {embed.invitesOnly && invites.length > 0 && (
         <div className="fx-card sp-invites">
           <h3>{t('split.invitesTitle')}</h3>
           {invites.map((i) => (
@@ -252,6 +252,7 @@ export function SplitPage({ embed }: { embed: SplitEmbed }) {
 
       {embed.invitesOnly ? null : !embed.splitId ? <div className="mv-card sp-start"><p>{L('Convida pessoas para este grupo e divide as despesas em partes iguais. Vês logo quem já pagou.')}</p>{canCreate ? <button type="button" className="sh-btn in sm" onClick={openBill}><Ic d={ICON.plus} size={16} />{L('Convidar e dividir uma despesa')}</button> : <Link to="/plus" className="sh-btn out sm">{t('split.createNeedsFamily')}</Link>}</div> : (
         <>
+          <div className="sp-who">{members.map((m) => <span key={m.userId}><Face m={m} small />{m.userId === me ? t('family.you') : m.displayName}</span>)}{allInv.map((i) => <span key={i.id} className={i.status === 'declined' ? 'no' : 'wait'}>{i.email ?? '+' + i.phone} · {i.status === 'declined' ? L('Rejeitou') : L('Pendente')}</span>)}</div>
           <div className="sp-bar"><button type="button" className="sh-btn in sm" onClick={openBill}><Ic d={ICON.plus} size={16} />{L('Dividir uma despesa')}</button>
             <form className="sp-more" onSubmit={(e) => { e.preventDefault(); inviteMore(); }}><input value={more} onChange={(e) => setMore(e.target.value)} placeholder={t('split.invitePh')} aria-label={L('Convidar mais alguém')} /><button type="submit" className="sh-btn out sm" disabled={!parseContact(more)}>{L('Convidar')}</button></form></div>
           {group && (

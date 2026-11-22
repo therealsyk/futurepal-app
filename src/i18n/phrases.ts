@@ -777,6 +777,15 @@ export const PHRASES: Record<string, Tr> = {
   'todas': ['all', 'todas', 'toutes'],
   'já está no Resumo': ['already on the Summary', 'ya está en el Resumen', 'déjà dans le Résumé'],
   'Esta conta já não existe.': ['This account no longer exists.', 'Esta cuenta ya no existe.', 'Ce compte n’existe plus.'],
+  'quem queres convidar': ['who to invite', 'a quién invitar', 'qui inviter'],
+  'O grupo foi criado, mas estes convites falharam:': ['The group was created, but these invites failed:', 'El grupo se creó, pero estas invitaciones fallaron:', 'Le groupe a été créé, mais ces invitations ont échoué :'],
+  'Dividir despesas com outras pessoas?': ['Split expenses with other people?', '¿Dividir gastos con otras personas?', 'Partager les dépenses avec d’autres personnes ?'],
+  'Cada um paga a sua parte e vê quem já pagou': ['Everyone pays their share and sees who has paid', 'Cada uno paga su parte y ve quién ha pagado', 'Chacun paie sa part et voit qui a payé'],
+  'Usa o email ou o número de telemóvel da conta da pessoa no FuturePal.': ['Use the email or phone number of the person’s FuturePal account.', 'Usa el correo o el número de móvil de la cuenta de la persona en FuturePal.', 'Utilisez l’e-mail ou le numéro de téléphone du compte FuturePal de la personne.'],
+  'Criar grupos para dividir despesas faz parte do Plus e do Pro.': ['Creating groups to split expenses is part of Plus and Pro.', 'Crear grupos para dividir gastos es parte de Plus y Pro.', 'Créer des groupes pour partager les dépenses fait partie de Plus et Pro.'],
+  'Ver planos': ['See plans', 'Ver planes', 'Voir les offres'],
+  'Despesas divididas': ['Split expenses', 'Gastos divididos', 'Dépenses partagées'],
+  'Dividir este grupo com outras pessoas': ['Split this group with other people', 'Dividir este grupo con otras personas', 'Partager ce groupe avec d’autres personnes'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */

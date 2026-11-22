@@ -200,7 +200,7 @@ export const Salaries = () => {
       <Sheet open={open} onClose={() => { setOpen(false); miss.reset(); }} title={t('salaries.addExtra')}
         footer={<button type="button" className="tx-addbtn" onClick={addExtra}>{t('salaries.addExtra')}</button>}>
         {miss.note ?? (error && <FormError text={error} />)}
-        <AmountField value={eAmount} onChange={setEAmount} currency={s.currency} cls={miss.cls('amount')} autoFocus />
+        <AmountField kind="income" value={eAmount} onChange={setEAmount} currency={s.currency} cls={miss.cls('amount')} autoFocus />
         <div className="tx-rows">
           <div className="tx-row"><span><Ic d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" size={18} />{t('transactions.category')}</span>
             <CategorySelect cats={cats} kind="income" value={eCat} onChange={setECat} ariaLabel={t('transactions.category')} className="fx-input tx-val" /></div>

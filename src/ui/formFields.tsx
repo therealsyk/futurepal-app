@@ -1,6 +1,7 @@
 // Campos comuns dos formulários (valor, descrição, conta, data, recorrência, interruptores).
 // Todos os formulários usam estes: mudar aqui muda em todo o lado (Transações, Extras, Contas, Metas, Grupos).
-import { type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
+import { parseContact } from '../core/split';
 import { useTranslation } from 'react-i18next';
 import { RECURRING_FREQUENCIES } from '../core/finance';
 import type { RecurringFrequency } from '../db/database';
@@ -15,12 +16,12 @@ export const FI = {
 };
 export const onlyDigits = (v: string) => v.replace(/[^\d.,]/g, '');
 
-/** Valor grande, sempre branco, com a moeda por baixo. minus: mostra "−" (despesa: sai da conta); o valor guardado não muda. */
-export function AmountField({ value, onChange, currency, label, cls = '', autoFocus, minus }: { value: string; onChange: (v: string) => void; currency: string; label?: string; cls?: string; autoFocus?: boolean; minus?: boolean }) {
+/** Valor grande com a moeda por baixo. Numa transação: despesa a vermelho e com "−", rendimento a verde (o valor guardado não muda). */
+export function AmountField({ value, onChange, currency, label, cls = '', autoFocus, kind }: { value: string; onChange: (v: string) => void; currency: string; label?: string; cls?: string; autoFocus?: boolean; kind?: 'expense' | 'income' }) {
   const { t } = useTranslation();
   return (
     <>
-      <input className={'tx-amt' + cls} autoFocus={autoFocus} inputMode="decimal" value={minus && value ? '−' + value : value} placeholder="0" onChange={(e) => onChange(onlyDigits(e.target.value))} aria-label={label ?? t('transactions.amount')} />
+      <input className={'tx-amt' + (kind ? ' k-' + kind : '') + cls} autoFocus={autoFocus} inputMode="decimal" value={kind === 'expense' && value ? '−' + value : value} placeholder="0" onChange={(e) => onChange(onlyDigits(e.target.value))} aria-label={label ?? t('transactions.amount')} />
       <span className="tx-cur">{label ? `${label} · ${currency}` : currency}</span>
     </>
   );
@@ -74,5 +75,21 @@ export function RepeatRows({ label = L('Recorrente'), on, setOn, freq, setFreq, 
         <div className="tx-row tx-sub"><span>{L('Termina em')}</span><DatePicker value={end} onChange={setEnd} allowEmpty ariaLabel={L('Termina em')} /></div>
       </>}
     </>
+  );
+}
+
+/** Convidar por email ou telemóvel: cada contacto vira uma etiqueta (Enter, vírgula ou sair do campo). */
+export function InviteRow({ value, onChange, cls = '' }: { value: string[]; onChange: (v: string[]) => void; cls?: string }) {
+  const { t } = useTranslation();
+  const [draft, setDraft] = useState('');
+  const commit = () => { const v = draft.trim().replace(/,$/, ''); if (!v || !parseContact(v)) return; if (!value.includes(v)) onChange([...value, v]); setDraft(''); };
+  return (
+    <div className={'tx-row sp-invrow' + cls}><span><Ic d="M4 6h16v12H4zM4 7l8 6 8-6" size={18} />{L('Convidar')}</span>
+      <div className="sp-chips">
+        {value.map((c) => <span key={c} className="sp-chip">{c}<button type="button" aria-label={t('common.delete')} onClick={() => onChange(value.filter((x) => x !== c))}>×</button></span>)}
+        <input className={'tx-val sp-chipin' + (draft.trim() && !parseContact(draft) ? ' bad' : '')} value={draft} inputMode="email" placeholder={value.length ? L('Adicionar outro') : t('split.invitePh')} aria-label={t('split.inviteLabel')}
+          onChange={(e) => setDraft(e.target.value)} onBlur={commit}
+          onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ',') && draft.trim()) { e.preventDefault(); commit(); } else if (e.key === 'Backspace' && !draft) onChange(value.slice(0, -1)); }} />
+      </div></div>
   );
 }
