@@ -10,7 +10,7 @@ import type { Category, Group, Transaction } from '../db/database';
 import { addGroup } from '../core/finance';
 import { formatMoney } from '../core/money';
 import { loadSettings } from '../core/settings';
-import { linkedGroupId, splitIdOf } from '../core/groupLink';
+import { linkedGroupId, SPLIT_CHANGED, splitIdOf } from '../core/groupLink';
 import { CatIcon, Ic, ICON } from '../ui/fx';
 import { EmptyState } from '../ui/EmptyState';
 import { FI, TextRow } from '../ui/formFields';
@@ -48,7 +48,7 @@ export function Groups() {
     const sb = getSupabase();
     if (!sb || !me || IS_DEMO) return;
     // divisões em que já estou (ou que aceitei): cada uma aparece como um grupo, uma só vez
-    (async () => {
+    const pull = async () => {
       const { data } = await sb.from('split_groups').select('id, name, created_at');
       const have = new Set((await db.groups.toArray()).map((g) => g.id)); // inclui os apagados: não voltam
       let n = have.size;
@@ -57,7 +57,11 @@ export function Groups() {
         if (!have.has(gid)) await db.groups.put({ id: gid, name: g.name, color: COLORS[n++ % COLORS.length], createdAt: g.created_at, updatedAt: new Date().toISOString(), deletedAt: null });
       }
       await load();
-    })().catch(() => {});
+    };
+    const on = () => { pull().catch(() => {}); };
+    on();
+    window.addEventListener(SPLIT_CHANGED, on);
+    return () => window.removeEventListener(SPLIT_CHANGED, on);
   }, [me]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const of = (g: string) => txs.filter((x) => x.groupId === g);

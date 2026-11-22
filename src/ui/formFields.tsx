@@ -15,12 +15,12 @@ export const FI = {
 };
 export const onlyDigits = (v: string) => v.replace(/[^\d.,]/g, '');
 
-/** Valor grande, sempre branco, com a moeda por baixo. */
-export function AmountField({ value, onChange, currency, label, cls = '', autoFocus }: { value: string; onChange: (v: string) => void; currency: string; label?: string; cls?: string; autoFocus?: boolean }) {
+/** Valor grande, sempre branco, com a moeda por baixo. minus: mostra "−" (despesa: sai da conta); o valor guardado não muda. */
+export function AmountField({ value, onChange, currency, label, cls = '', autoFocus, minus }: { value: string; onChange: (v: string) => void; currency: string; label?: string; cls?: string; autoFocus?: boolean; minus?: boolean }) {
   const { t } = useTranslation();
   return (
     <>
-      <input className={'tx-amt' + cls} autoFocus={autoFocus} inputMode="decimal" value={value} placeholder="0" onChange={(e) => onChange(onlyDigits(e.target.value))} aria-label={label ?? t('transactions.amount')} />
+      <input className={'tx-amt' + cls} autoFocus={autoFocus} inputMode="decimal" value={minus && value ? '−' + value : value} placeholder="0" onChange={(e) => onChange(onlyDigits(e.target.value))} aria-label={label ?? t('transactions.amount')} />
       <span className="tx-cur">{label ? `${label} · ${currency}` : currency}</span>
     </>
   );

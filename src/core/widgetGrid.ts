@@ -75,12 +75,12 @@ export function fromOrder(order: string[]): Cell[] {
   });
 }
 
-/** Disposição guardada: só vale se for toda válida e sem sobreposições. */
+/** Disposição guardada ("plan:<conta>" = widget de uma só poupança/dívida): só vale se for toda válida e sem sobreposições. */
 export function validLayout(v: unknown, ids: readonly string[]): Cell[] | null {
   if (!Array.isArray(v) || !v.length) return null;
   const out: Cell[] = [];
   for (const c of v as Cell[]) {
-    if (!c || !ids.includes(c.id) || out.some((o) => o.id === c.id) || ![c.x, c.y, c.w, c.h].every(Number.isInteger)) return null;
+    if (!c || !(ids.includes(c.id) || /^plan:./.test(String(c.id))) || out.some((o) => o.id === c.id) || ![c.x, c.y, c.w, c.h].every(Number.isInteger)) return null;
     const k = clampCell(c);
     if (out.some((o) => hit(o, k))) return null;
     out.push(k);

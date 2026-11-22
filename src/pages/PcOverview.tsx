@@ -14,7 +14,7 @@ import { PeriodFilter, initialPeriod, periodRange, previousRange, type Period } 
 import { OverviewChart } from './Dashboard';
 import { SimpleHome } from './SimpleHome';
 import { SimpleOverview } from './SimplePages';
-import { AccountsWidget, AssistantWidget, LimitsWidget, PlansWidget } from './PcWidgets';
+import { AccountsWidget, AssistantWidget, LimitsWidget, PlansWidget, PlanWidget, usePlans } from './PcWidgets';
 import { FreeGrid } from '../ui/FreeGrid';
 import { addCell, fromOrder, validLayout, type Cell } from '../core/widgetGrid';
 import { L } from '../i18n/phrases';
@@ -130,6 +130,7 @@ export function PcOverview() {
   const [per, setPer] = useState<Period>(() => initialPeriod(now));
   const [txs, setTxs] = useState<Transaction[]>([]);
   const [cells, setCells] = useState<Cell[]>(loadLayout);
+  const plans = usePlans();
   const [editing, setEditing] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   useEffect(() => { db.transactions.toArray().then((r) => setTxs(r.filter((x) => x.deletedAt === null))).catch(() => {}); }, []);
@@ -196,12 +197,16 @@ export function PcOverview() {
     limits: <LimitsWidget money={money} y={em.y} m={em.m} />,
     accounts: <AccountsWidget money={money} />,
     assistant: <AssistantWidget />,
-    plans: <PlansWidget money={money} />,
+    plans: <PlansWidget rows={plans ?? []} money={money} />,
   };
 
   const save = (next: Cell[]) => { setCells(next); try { localStorage.setItem(LAYOUT_KEY, JSON.stringify(next)); } catch { /* sem storage */ } };
   const reset = () => { setCells(fromOrder(DEFAULT_ORDER)); try { localStorage.removeItem(LAYOUT_KEY); localStorage.removeItem(ORDER_KEY); } catch { /* sem storage */ } };
-  const hidden = ALL_WIDGETS.filter((w) => !cells.some((c) => c.id === w));
+  const has = (id: string) => cells.some((c) => c.id === id);
+  const hidden = ALL_WIDGETS.filter((w) => w !== 'plans' && !has(w));
+  const planOf = (id: string) => (plans ?? []).find((r) => 'plan:' + r.a.id === id);
+  const nameOf = (id: string) => planOf(id)?.a.name ?? L(WNAME[id as WidgetId] ?? 'Conta');
+  const addW = (id: string, h?: number) => { save(addCell(cells, id, 8, h)); setAddOpen(false); };
 
   return (
     <div className="fx-page pco">
@@ -212,9 +217,11 @@ export function PcOverview() {
         <div className="pco-right">
           {editing && <>
             <div className="pco-addw">
-              <button type="button" className="pf-chip on" onClick={() => setAddOpen(!addOpen)} disabled={hidden.length === 0}>+ {L('Adicionar widget')}</button>
+              <button type="button" className="pf-chip on" onClick={() => setAddOpen(!addOpen)}>+ {L('Adicionar widget')}</button>
               {addOpen && <div className="pf-menu pco-addmenu" role="menu">
-                {hidden.map((w) => <button key={w} type="button" role="menuitem" onClick={() => { save(addCell(cells, w)); setAddOpen(false); }}>{L(WNAME[w])}</button>)}
+                {hidden.map((w) => <button key={w} type="button" role="menuitem" onClick={() => addW(w)}>{L(WNAME[w])}</button>)}
+                <div className="pco-addsub"><button type="button" role="menuitem" disabled={has('plans')} onClick={() => addW('plans')}>{L('Poupanças e dívidas')} <small>{has('plans') ? L('já está no Resumo') : L('todas')}</small></button>
+                  {(plans ?? []).map(({ a }) => <button key={a.id} type="button" role="menuitem" className="sub" disabled={has('plan:' + a.id)} onClick={() => addW('plan:' + a.id, 9)}>{a.name} <small>{has('plan:' + a.id) ? L('já está no Resumo') : a.type === 'debt' ? L('Dívida') : L('Poupança')}</small></button>)}</div>
               </div>}
             </div>
             <button type="button" className="pf-chip" onClick={reset}>{t('pco.reset')}</button>
@@ -227,7 +234,7 @@ export function PcOverview() {
       </header>
       {editing && <p className="pco-hint">{t('pco.dragHint')}</p>}
 
-      <FreeGrid cells={cells} editing={editing} names={(id) => L(WNAME[id as WidgetId])} render={(id) => blocks[id as WidgetId]} onChange={save} onRemove={(id) => save(cells.filter((c) => c.id !== id))} />
+      <FreeGrid cells={cells} editing={editing} names={nameOf} render={(id) => (id.startsWith('plan:') ? plans && <PlanWidget row={planOf(id)} money={money} /> : blocks[id as WidgetId])} onChange={save} onRemove={(id) => save(cells.filter((c) => c.id !== id))} />
     </div>
   );
 }

@@ -338,7 +338,7 @@ export function Transactions() {
         {SIMPLE_UI && isMobile ? (<>
           {/* Formulário (telemóvel): valor grande e linhas com ícone */}
           <div className="tx-seg"><Seg value={type} onChange={setType} label={t('transactions.type')} options={[{ id: 'expense', label: t('transactions.typeExpense') }, { id: 'income', label: t('transactions.typeIncome') }]} /></div>
-          <AmountField value={amount} onChange={setAmount} currency={settings.currency} cls={miss.cls('amount')} autoFocus />
+          <AmountField value={amount} onChange={setAmount} currency={settings.currency} cls={miss.cls('amount')} autoFocus minus={type === 'expense' && !toAccount} />
           <div className="tx-rows">
             <TextRow label={t('transactions.description')} value={description} onChange={setDescription} />
             <div className={'tx-row' + miss.cls('cat')}><span><Ic d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" size={18} />{t('transactions.category')}</span>

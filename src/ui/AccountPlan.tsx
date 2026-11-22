@@ -60,3 +60,19 @@ export function PlanLine({ a, p, money, lang }: { a: Account; p: PlanInfo; money
     </Link>
   );
 }
+
+/** Widget de uma só conta: barra grande, quanto falta e quando termina. */
+export function PlanOne({ a, p, money, lang }: { a: Account; p: PlanInfo; money: (c: number) => string; lang: string }) {
+  const debt = a.type === 'debt';
+  if (!p.total) return <div className="pl-one"><div className="pl-tile"><small>{L('Já tens')}</small><b>{money(p.done)}</b></div></div>;
+  return (
+    <div className={'pl-one ' + a.type}>
+      <div className="pl-bar"><i style={{ width: `${Math.max(2, p.ratio * 100)}%` }} /><span>{pct(p.ratio)}%</span></div>
+      <div className="pl-tiles">
+        <div className="pl-tile"><small>{debt ? L('Já abateste') : L('Já tens')}</small><b className="fx-pos">{money(p.done)}</b></div>
+        <div className="pl-tile"><small>{debt ? L('Falta abater') : L('Falta juntar')}</small><b className={debt ? 'fx-neg' : ''}>{money(p.left)}</b></div>
+        <div className="pl-tile wide"><small>{debt ? L('Termina em') : L('Chegas lá em')}</small><b>{p.left === 0 ? L('Feito ✓') : p.months === null ? '—' : endDate(p.months, lang)}</b>{p.months === null && p.left > 0 && <em>{L('Define o valor por mês')}</em>}</div>
+      </div>
+    </div>
+  );
+}

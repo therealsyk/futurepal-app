@@ -6,7 +6,7 @@ import { db } from '../db/app-db';
 import type { Account, Budget, Category, Transfer } from '../db/database';
 import { accountBalanceCents } from '../core/accounts';
 import { planInfo, splitDesc, type PlanInfo } from '../core/debtPlan';
-import { PlanLine } from '../ui/AccountPlan';
+import { PlanLine, PlanOne } from '../ui/AccountPlan';
 import { loadSettings } from '../core/settings';
 import { Ic, CatIcon, catLabel } from '../ui/fx';
 import { L } from '../i18n/phrases';
@@ -103,10 +103,10 @@ export function AssistantWidget() {
   );
 }
 
-/** Poupanças e dívidas em curso: barra de progresso e data em que deve terminar. */
-export function PlansWidget({ money }: { money: (c: number) => string }) {
-  const { t } = useTranslation();
-  const [rows, setRows] = useState<Array<{ a: Account; p: PlanInfo }>>([]);
+type PlanRow = { a: Account; p: PlanInfo };
+/** Contas de poupança e de dívida, com o progresso de cada uma. */
+export function usePlans(): PlanRow[] | null {
+  const [rows, setRows] = useState<PlanRow[] | null>(null);
   useEffect(() => {
     (async () => {
       const accs = live(await db.accounts.toArray()), txs = live(await db.transactions.toArray()), goals = live(await db.goals.toArray());
@@ -116,13 +116,29 @@ export function PlansWidget({ money }: { money: (c: number) => string }) {
         .sort((x, y) => Number(x.p.total === 0) - Number(y.p.total === 0)));
     })().catch(() => {});
   }, []);
+  return rows;
+}
+
+const PLAN_IC = 'M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM8 13l3 3 5-6';
+/** Todas as poupanças e dívidas: barra de progresso e data em que devem terminar. */
+export function PlansWidget({ rows, money }: { rows: PlanRow[]; money: (c: number) => string }) {
+  const { t } = useTranslation();
   return (
     <section className="mv-card pco-w">
-      <Head icon="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM8 13l3 3 5-6" title={L('Poupanças e dívidas')} to="/contas" link={t('blk.seeAll')} />
+      <Head icon={PLAN_IC} title={L('Poupanças e dívidas')} to="/contas" link={t('blk.seeAll')} />
       <div className="pco-wlist">
         {rows.length === 0 && <p className="fx-muted">{L('Cria uma conta de poupança ou de dívida para a acompanhares aqui.')}</p>}
         {rows.map(({ a, p }) => <PlanLine key={a.id} a={a} p={p} money={money} lang={loadSettings().language} />)}
       </div>
+    </section>
+  );
+}
+/** Uma só poupança ou dívida. */
+export function PlanWidget({ row, money }: { row: PlanRow | undefined; money: (c: number) => string }) {
+  return (
+    <section className="mv-card pco-w">
+      <Head icon={PLAN_IC} title={row?.a.name ?? L('Conta')} to="/contas" link={L('Abrir')} />
+      {row ? <PlanOne a={row.a} p={row.p} money={money} lang={loadSettings().language} /> : <p className="fx-muted">{L('Esta conta já não existe.')}</p>}
     </section>
   );
 }

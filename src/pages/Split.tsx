@@ -1,5 +1,5 @@
 import { AccountRow, AmountField, DateRow, TextRow } from '../ui/formFields';
-import { linkedGroupId } from '../core/groupLink';
+import { linkedGroupId, SPLIT_CHANGED } from '../core/groupLink';
 import { FormError, useMissing } from '../ui/missing';
 import { createPortal } from 'react-dom';
 import { appConfirm } from '../ui/confirm';
@@ -44,7 +44,7 @@ export function SplitPage({ embed }: { embed: SplitEmbed }) {
   const me = auth.user?.id ?? '';
   const s = loadSettings();
   const [groups, setGroups] = useState<Group[]>([]);
-  const [sel, setSel] = useState<string>(embed.splitId ?? '');
+  const sel = embed.splitId ?? '';
   const [members, setMembers] = useState<Member[]>([]);
   const [bills, setBills] = useState<SplitBill[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
@@ -105,6 +105,7 @@ export function SplitPage({ embed }: { embed: SplitEmbed }) {
     setAllInv(invs); setOutInv(invs.filter((x) => x.status !== 'declined'));
   }, []);
 
+  useEffect(() => { const on = () => { loadList().catch(() => {}); }; window.addEventListener(SPLIT_CHANGED, on); return () => window.removeEventListener(SPLIT_CHANGED, on); }, [loadList]);
   useEffect(() => { loadList().catch((e) => setError(errText(e))); activeCategories(db).then(setCats).catch(() => {}); }, [loadList]);
   // Partilha a minha foto com os grupos (RPC idempotente; se a migração ainda não correu, ignora em silêncio).
   const myAvatar = avatarUrl(auth.user);
@@ -142,7 +143,7 @@ export function SplitPage({ embed }: { embed: SplitEmbed }) {
   };
   const answer = async (inv: Invite, accept: boolean) => {
     if (accept && !myName.trim()) return;
-    if (await rpc('answer_split_invite', { p_invite: inv.id, p_accept: accept, p_display_name: myName })) { await loadList(); if (accept) setSel(inv.group_id); }
+    if (await rpc('answer_split_invite', { p_invite: inv.id, p_accept: accept, p_display_name: myName })) { await loadList(); window.dispatchEvent(new Event(SPLIT_CHANGED)); }
   };
   
   // o que falta preencher na nova conta (para avisar em vez de não fazer nada)

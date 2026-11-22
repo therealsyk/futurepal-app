@@ -774,6 +774,9 @@ export const PHRASES: Record<string, Tr> = {
   'Convite enviado.': ['Invite sent.', 'Invitación enviada.', 'Invitation envoyée.'],
   'Inicia sessão para convidares pessoas e dividires as despesas deste grupo.': ['Sign in to invite people and split this group’s expenses.', 'Inicia sesión para invitar a personas y dividir los gastos de este grupo.', 'Connectez-vous pour inviter des personnes et partager les dépenses de ce groupe.'],
   'Iniciar sessão': ['Sign in', 'Iniciar sesión', 'Se connecter'],
+  'todas': ['all', 'todas', 'toutes'],
+  'já está no Resumo': ['already on the Summary', 'ya está en el Resumen', 'déjà dans le Résumé'],
+  'Esta conta já não existe.': ['This account no longer exists.', 'Esta cuenta ya no existe.', 'Ce compte n’existe plus.'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */

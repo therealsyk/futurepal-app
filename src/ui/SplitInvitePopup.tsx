@@ -1,4 +1,5 @@
 // Convite para dividir despesas: aparece numa janela ao abrir a app, com quem convidou, o grupo e Aceitar / Rejeitar.
+import { SPLIT_CHANGED } from '../core/groupLink';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { getSupabase } from '../auth/supabase';
@@ -29,6 +30,7 @@ export function SplitInvitePopup() {
       setBusy(true);
       await getSupabase()?.rpc('answer_split_invite', { p_invite: inv.id, p_accept: accept, p_display_name: myName });
       setBusy(false);
+      window.dispatchEvent(new Event(SPLIT_CHANGED));
       if (accept) window.location.hash = '#/grupos';
     } else {
       try { const seen = JSON.parse(sessionStorage.getItem('wallet.invSeen') || '[]'); sessionStorage.setItem('wallet.invSeen', JSON.stringify([...seen, inv.id])); } catch { /* */ }
