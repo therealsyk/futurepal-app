@@ -1,3 +1,5 @@
+import { PC_MOBILE } from '../core/uiMode';
+import { openTutorial } from '../ui/MobileTutorial';
 import { useRef, useState, type ChangeEvent, type ReactNode, useEffect } from 'react';
 import { L } from '../i18n/phrases';
 import { CI_ENABLED } from '../core/ciFlag';
@@ -259,6 +261,7 @@ export function Settings() {
       <h2 className="st-section">{t('updates.about')}</h2>
       <div className="st-group">
         <Row icon={I.sync} title={t('updates.version', { version: APP_VERSION })} sub={updMsg || t('updates.checkSub')} onClick={updBusy ? undefined : onCheckUpdates} testId="check-updates" />
+        {!PC_MOBILE && <Row icon="M9.1 9a3 3 0 1 1 4.2 2.7c-.8.4-1.3 1.1-1.3 2v.3M12 17.5h.01M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18z" title={L('Ver a visita guiada')} sub={L('Mostra onde está cada coisa na app')} onClick={openTutorial} />}
         <Row icon={I.chat} title={t('feedback.row')} sub={t('feedback.rowSub')} onClick={() => setFeedbackOpen(true)} testId="feedback-row" />
         <Row icon={I.sheet} title={t('settings2.licenses')} sub={t('settings2.licensesSub')} onClick={openNotices} testId="licenses" />
       </div>

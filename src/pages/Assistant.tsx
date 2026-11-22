@@ -197,8 +197,8 @@ function AssistantChat({ own, cfg, onCfg, allowed }: { own: boolean; cfg: AiConf
   const modelName = own ? cfg.model : L('IA do FuturePal');
 
   let blocked: ReactNode = null;
-  if (!allowed) blocked = <LockedPreview kind="chat" title={t('plus.lockedTitle')} text={t('plus.feat_assistant')} action={<><Link to="/plus" className="fx-btn primary">{t('plus.seePlans')}</Link><button type="button" className="fx-btn" onClick={() => setModels(true)}>{L('Usar a minha chave API')}</button></>} />;
-  else if (!ready) blocked = <LockedPreview kind="chat" title={t('assistant.needLogin')} text={L('Pergunta em português sobre os teus gastos e recebe respostas e dicas para poupar.')} action={<><Link to="/definicoes" className="fx-btn primary">{t('family.goLogin')}</Link><button type="button" className="fx-btn" onClick={() => setModels(true)}>{L('Usar a minha chave API')}</button></>} />;
+  if (!allowed) blocked = <LockedPreview kind="chat" title={t('plus.lockedTitle')} text={t('plus.feat_assistant')} action={<><Link to="/plus" className="fx-btn primary">{t('plus.seePlans')}</Link><button type="button" className="fx-btn" onClick={() => setModels(true)}>{L('Já tenho outra IA (avançado)')}</button></>} />;
+  else if (!ready) blocked = <LockedPreview kind="chat" title={t('assistant.needLogin')} text={L('Pergunta em português sobre os teus gastos e recebe respostas e dicas para poupar.')} action={<><Link to="/definicoes" className="fx-btn primary">{t('family.goLogin')}</Link><button type="button" className="fx-btn" onClick={() => setModels(true)}>{L('Já tenho outra IA (avançado)')}</button></>} />;
 
   return (
     <div className="fx-page ai-page">

@@ -289,12 +289,13 @@ function AccountStep({ currency, language, existing, onCreated }: {
         <span className="ob-pill static">{currencyFlagUrl(currency) ? <img className="ob-coin sm ob-flag" src={currencyFlagUrl(currency)!} alt="" /> : <span className="ob-coin sm">{currencySymbol(currency, language)}</span>}{currency}</span>
       </div>
       <hr className="ob-hr" />
+      <details className="ob-more"><summary>{L('Mais opções')}</summary>
       <div className="ob-switches">
       <SwitchRow on={positive} onChange={setPositive} title={t('onboard.positive')} hint={t('onboard.positiveHint')} />
       <SwitchRow on={netWorth} onChange={setNetWorth} title={t('onboard.netWorth')} hint={t('onboard.netWorthHint')} />
       <SwitchRow on={isDefault} onChange={setIsDefault} title={t('onboard.default')} hint={t('onboard.defaultHint')} />
       <SwitchRow on={showHome} onChange={setShowHome} title={t('onboard.showHome')} hint={t('onboard.showHomeHint')} />
-      </div>
+      </div></details>
       {error && <p className="ob-error" role="alert">{error}</p>}
       <div className="ob-foot inline">
         <button type="button" className="ob-cta" disabled={!name.trim()} onClick={() => create()} data-testid="ob-account-create">{t('onboard.createAccount')}</button>

@@ -1,3 +1,4 @@
+import { joinDesc, splitDesc } from '../core/debtPlan';
 import { L } from '../i18n/phrases';
 import { FormError, useMissing } from '../ui/missing';
 import { useEffect, useMemo, useState } from 'react';
@@ -61,7 +62,7 @@ export function Accounts() {
   const openNew = () => { setError(null); setDraft({ id: null, name: '', description: '', type: tab, currency: settings.currency, initial: '', includeInNetWorth: true, isDefault: false, showOnHome: true }); };
   const openEdit = (a: Account) => {
     setError(null);
-    setDraft({ id: a.id, name: a.name, description: a.description, type: a.type, currency: a.currency, initial: (a.initialBalanceCents / 100).toString().replace('.', ','), includeInNetWorth: a.includeInNetWorth, isDefault: a.isDefault, showOnHome: a.showOnHome });
+    setDraft({ id: a.id, name: a.name, description: splitDesc(a.description).text, type: a.type, currency: a.currency, initial: (a.initialBalanceCents / 100).toString().replace('.', ','), includeInNetWorth: a.includeInNetWorth, isDefault: a.isDefault, showOnHome: a.showOnHome });
   };
 
   const miss = missing([['name', L('o nome'), !!draft?.name.trim()]]);
@@ -75,7 +76,7 @@ export function Accounts() {
     const initial = draft.initial.trim() === '' ? 0 : parseMoneyToCents(draft.initial.replace('-', ''));
     if (initial === null) { setError(t('accounts.balanceInvalid')); return; }
     const sign = draft.initial.trim().startsWith('-') ? -1 : 1;
-    const payload = { name: draft.name, description: draft.description, type: draft.type, currency: draft.currency, initialBalanceCents: sign * initial, includeInNetWorth: draft.includeInNetWorth, isDefault: draft.isDefault, showOnHome: draft.showOnHome };
+    const payload = { name: draft.name, description: joinDesc(draft.description, splitDesc(accounts.find((a) => a.id === draft.id)?.description).plan), type: draft.type, currency: draft.currency, initialBalanceCents: sign * initial, includeInNetWorth: draft.includeInNetWorth, isDefault: draft.isDefault, showOnHome: draft.showOnHome };
     if (draft.id) await updateAccount(db, draft.id, payload);
     else {
       if (!withinFreeLimit('accounts', accounts.length)) { setError(t('plus.limitAccounts', { n: FREE_LIMITS.accounts })); return; }
@@ -161,7 +162,7 @@ export function Accounts() {
                 <div className="fx-acc-ic" style={{ background: TYPE_COLOR[a.type] }}><Ic d={TYPE_ICON[a.type]} size={20} /></div>
                 <div className="fx-acc-name">
                   <b>{a.name}</b>
-                  <span>{a.description || a.currency}</span>
+                  <span>{splitDesc(a.description).text || a.currency}</span>
                 </div>
                 <button type="button" className="fx-round" onClick={() => openEdit(a)} aria-label={t('common.edit')}><Ic d={ICON.edit} size={16} /></button>
               </div>

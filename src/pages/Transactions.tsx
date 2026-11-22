@@ -129,6 +129,8 @@ export function Transactions() {
       openNew();
       setType(params.get('tipo') === 'income' ? 'income' : 'expense'); // "Recebi" abre já como rendimento
       if (params.get('grupo')) setGroupId(params.get('grupo')!); // vindo de um grupo
+      const para = accounts.find((a) => a.id === params.get('para')); // abater uma dívida: abre já como transferência
+      if (para) { setToAccount(para.id); const from = accounts.find((a) => a.isDefault && a.id !== para.id) ?? accounts.find((a) => a.type !== 'debt' && a.id !== para.id); if (from) setAccountId(from.id); }
       setParams({}, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

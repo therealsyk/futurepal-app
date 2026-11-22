@@ -157,7 +157,7 @@ export const Salaries = () => {
         <Metric icon={IC.saved} tone="sav" title={t('salaries.annualSavings')} value={fmt(saved)} valueClass={saved < 0 ? 'fx-neg' : 'fx-pos'} delta={dl(saved, prevSaved)} deltaGoodUp {...cmp}
           sub={avg(saved)} bar={income > 0 ? Math.max(0, saved) / income : 0} />
         <Metric icon={IC.pct} tone="sav" title={L('Taxa de poupança')} value={income > 0 ? `${Math.round((saved / income) * 100)}%` : '—'} delta={prev.income > 0 && income > 0 ? dl(rate, prevRate) : null} deltaGoodUp {...cmp}
-          bar={income > 0 ? Math.max(0, saved) / income : 0} />
+          sub={L('do que recebeste ficou guardado')} bar={income > 0 ? Math.max(0, saved) / income : 0} />
       </div>
 
       <div className="fx-card">

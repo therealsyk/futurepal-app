@@ -1,3 +1,4 @@
+import { L } from '../i18n/phrases';
 import { useCallback, useEffect, useLayoutEffect, useState, type CSSProperties } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -9,16 +10,15 @@ export const TUTORIAL_KEY = 'wallet.tutorialSeen';
 export const TUTORIAL_EVENT = 'wallet:tutorial';
 export const openTutorial = () => window.dispatchEvent(new Event(TUTORIAL_EVENT));
 
-const STEPS: Array<{ id: string; target?: string }> = [
-  { id: 'welcome' },
-  { id: 'month', target: 'month' },
-  { id: 'add', target: 'add' },
-  { id: 'quick', target: 'quick' },
-  { id: 'map', target: 'map' },
-  { id: 'accounts', target: 'accounts' },
-  { id: 'goals', target: 'goals' },
-  { id: 'more', target: 'more' },
-  { id: 'help', target: 'help' },
+const STEPS: Array<{ target?: string; title: string; text: string }> = [
+  { title: 'Vamos dar uma volta rápida', text: 'Mostramos-te onde está cada coisa. Leva menos de um minuto.' },
+  { target: 'month', title: 'O dinheiro deste mês', text: 'O número grande é o que ainda tens para gastar.' },
+  { target: 'quick', title: 'Gastaste ou recebeste?', text: 'Toca em Gastei ou em Recebi, escreve o valor e já está.' },
+  { target: 'accounts', title: 'As tuas contas', text: 'Aqui vês quanto tens em cada conta.' },
+  { target: 'tx', title: 'Transações', text: 'A lista de tudo o que gastaste e recebeste.' },
+  { target: 'limits', title: 'Limites', text: 'Escolhe quanto queres gastar no máximo em cada coisa, por exemplo no supermercado.' },
+  { target: 'menu', title: 'Menu', text: 'As metas, o resumo, o calendário, os salários e tudo o resto estão aqui.' },
+  { target: 'settings', title: 'Precisas de ajuda?', text: 'Nas Definições podes voltar a ver esta visita quando quiseres.' },
 ];
 const PAD = 8;
 
@@ -77,15 +77,15 @@ export function MobileTutorial({ enabled }: { enabled: boolean }) {
       {rect
         ? <div className="tu-spot" style={{ top: rect.top - PAD, left: rect.left - PAD, width: rect.width + PAD * 2, height: rect.height + PAD * 2 }} />
         : <div className="tu-dim" />}
-      <div className={'tu-bubble' + (rect ? '' : ' center')} style={bubbleStyle} key={step.id}>
+      <div className={'tu-bubble' + (rect ? '' : ' center')} style={bubbleStyle} key={step.title}>
         <div className="tu-top">
           <small>{t('tutorial.stepOf', { n: i + 1, total: STEPS.length })}</small>
           {!last && <button type="button" className="tu-skip" onClick={close}>{t('tutorial.skip')}</button>}
         </div>
-        <h2>{t(`tutorial.${step.id}Title`)}</h2>
-        <p>{t(`tutorial.${step.id}Text`)}</p>
+        <h2>{L(step.title)}</h2>
+        <p>{L(step.text)}</p>
         <div className="tu-actions">
-          <div className="tu-dots" aria-hidden="true">{STEPS.map((x, k) => <i key={x.id} className={k === i ? 'on' : ''} />)}</div>
+          <div className="tu-dots" aria-hidden="true">{STEPS.map((x, k) => <i key={x.title} className={k === i ? 'on' : ''} />)}</div>
           {i > 0 && <button type="button" className="tu-btn ghost" onClick={() => setI(i - 1)}>{t('tutorial.back')}</button>}
           <button type="button" className="tu-btn" onClick={() => (last ? close() : setI(i + 1))} data-testid="tu-next">
             {last ? t('tutorial.start') : t('tutorial.next')}

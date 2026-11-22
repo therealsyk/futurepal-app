@@ -62,7 +62,7 @@ export default function MobileNav() {
                 <Ic d={ICON.plus} size={26} />
               </button>
             )}
-            <NavLink to={it.path} end={it.path === '/'} data-tour={it.path === '/metas' ? 'goals' : undefined} className={({ isActive }) => 'mb-tab' + (isActive ? ' active' : '')}>
+            <NavLink to={it.path} end={it.path === '/'} data-tour={it.path === '/transacoes' ? 'tx' : it.path === '/orcamentos' ? 'limits' : undefined} className={({ isActive }) => 'mb-tab' + (isActive ? ' active' : '')}>
               <Ic d={it.d} size={22} />
               <span>{t(it.key)}</span>
             </NavLink>

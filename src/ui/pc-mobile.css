@@ -1290,3 +1290,32 @@ html:not(.pcm)::-webkit-scrollbar, html:not(.pcm) body::-webkit-scrollbar, html:
 .sh-accrow.t-savings .sh-accic { background: color-mix(in srgb, var(--pos) 16%, var(--card-2)); color: var(--pos); } .sh-accrow.t-debt .sh-accic { background: color-mix(in srgb, var(--red) 16%, var(--card-2)); color: var(--red); }
 .sh-acctotal { padding-bottom: 2px; }
 .sh-sumseg { margin-bottom: 12px; }
+
+/* ---- Telemóvel mais fácil de perceber */
+.mv-menu { display: inline-flex; align-items: center; gap: 7px; width: auto !important; padding: 0 14px; font: inherit; font-size: 14.5px; font-weight: 700; }
+html:not(.pcm) .txs-stats .fx-chip, html:not(.pcm) .lim-adv { display: none; }
+html:not(.pcm) .pco-metrics-row .pco-delta.same { display: none; }
+html:not(.pcm) .pco-metrics-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+html:not(.pcm) .pco-metrics-row .pco-metric { padding: 14px !important; min-width: 0; }
+html:not(.pcm) .pco-metrics-row .pco-mhead { flex-wrap: wrap; gap: 8px; } html:not(.pcm) .pco-metrics-row .pco-delta { max-width: 100%; text-align: left; }
+html:not(.pcm) .pco-metrics-row .pco-value { font-size: 21px; }
+html:not(.pcm) .fx-card-head { flex-wrap: wrap; row-gap: 2px; }
+.fx-cal.big .fx-cal-d b, .fx-cal.big .fx-cal-d.today b, .fx-cal.big .fx-cal-d.today span { color: var(--text); }
+@media (max-width: 768px) {
+  .st-row:has(.fx-pick) { flex-wrap: wrap; } .st-row:has(.fx-pick) .st-text { flex: 1 1 calc(100% - 60px); }
+  .st-row .fx-pick, .st-row .fx-pick > .fx-btn { width: 100%; max-width: none; }
+  .ai-title h1 { font-size: 17px; } .ai-title small { display: none; }
+}
+.ob-more > summary { padding: 12px 4px; color: var(--muted); font-weight: 650; cursor: pointer; }
+
+/* ---- Contas: tipo no formulário, descrição e dívidas como metas */
+.bs-body .sh-form > .acc-kind { order: -2; margin-bottom: 10px; }
+.acc-desc { margin: 0 4px; color: var(--muted); font-size: 14px; }
+.debt-plan { display: flex; flex-direction: column; gap: 9px; margin: 0; }
+.debt-plan .sh-row { display: flex; justify-content: space-between; gap: 12px; } .debt-plan small { color: var(--muted); font-size: 13px; }
+.debt-month { display: flex; justify-content: space-between; gap: 12px; padding: 11px 14px; border-radius: 14px; background: var(--card-2); font-variant-numeric: tabular-nums; }
+.debt-month.ok b { color: var(--pos); }
+.debt-end, .debt-done { margin: 0; line-height: 1.45; } .debt-done { color: var(--pos); font-weight: 750; text-align: center; }
+.debt-btns { display: flex; gap: 10px; margin-top: 4px; } .debt-btns > * { flex: 1; max-width: 240px; margin: 0 !important; text-decoration: none; }
+.debt-prev { margin: 12px 0 0; text-align: center; color: var(--pos); font-size: 14px; font-weight: 650; }
+@media (max-width: 768px) { .st-row:has(.fx-seg) .st-text { flex: 1 1 calc(100% - 60px); } .st-row:has(.fx-seg) .fx-seg { width: 100%; } }

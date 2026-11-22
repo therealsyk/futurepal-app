@@ -1,5 +1,6 @@
 // Início simplificado — só o essencial, para qualquer pessoa.
 //  1. Quanto ainda tenho este mês  2. Adicionar gasto / dinheiro recebido  3. A minha poupança  4. Últimos movimentos
+import { cmpText, refText } from '../core/compare';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -64,17 +65,18 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
   const name = meta.full_name || meta.name || auth.user?.email?.split('@')[0] || '';
 
   const heroEl = (<>
-      <section className="mv-hero sh-hero">
+      <section className="mv-hero sh-hero" data-tour={embed ? undefined : 'month'}>
         {(() => {
           const pct = received > 0 ? Math.round((spent / received) * 100) : null;
           // cor do quanto já se gastou do rendimento: sem cor até 50% (normal), amarelo até 80%, vermelho a partir daí
           const tone = (p: number) => (p >= 80 ? 'bad' : p >= 50 ? 'warn' : 'neutral');
           const dlt = prevSpent > 0 && spent > 0 ? Math.round(((spent - prevSpent) / prevSpent) * 100) : null;
-          const cmp = dlt === null ? null : <small className={'sh-cmp ' + (dlt > 0 ? 'fx-neg' : 'fx-pos')}>{dlt > 0 ? '↑' : '↓'} {Math.abs(dlt)}% vs {ranged ? L('período anterior') : mode === 'month' ? L('mês anterior') : L('ano anterior')}</small>;
+          const ref = refText(t, s.language, ranged ? { kind: 'preset', preset: per.preset } : { kind: mode === 'month' ? 'prevMonth' : 'prevYear' });
+          const cmp = dlt === null ? null : <small className={'sh-cmp ' + (dlt > 0 ? 'fx-neg' : 'fx-pos')}>{dlt === 0 ? cmpText(t, dlt, ref) : `${L('Gastaste')} ${cmpText(t, dlt, ref)}`}</small>;
           return mode === 'month' ? (
             <>
               <small className="mv-hero-label">{L('Ainda tens para gastar')}</small>
-              <div className="sh-valrow"><span className={'sh-big ' + (left < 0 ? 'fx-neg' : 'fx-pos')}>{money(left)}</span>{pct !== null && <span className={'fx-chip ' + tone(pct)} title={L('do rendimento já gasto')}>{pct}%</span>}</div>
+              <div className="sh-valrow"><span className={'sh-big ' + (left < 0 ? 'fx-neg' : 'fx-pos')}>{money(left)}</span>{pct !== null && <span className={'fx-chip ' + tone(pct)} title={L('do rendimento já gasto')}>{pct}% {L('gasto')}</span>}</div>
               <div className="sh-bar" aria-hidden="true"><i style={{ width: `${ratio * 100}%` }} /></div>
               {cmp}
             </>
@@ -95,13 +97,13 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
       <Link to={ranged && pr ? `/transacoes?de=${pr.from}&ate=${pr.to}` : mode === 'month' ? '/visao-mensal' : `/resumo-ano?ano=${cur.y}`} className="sh-link">{ranged ? L('Ver movimentos do período') : mode === 'month' ? L('Ver resumo do mês') : L('Ver resumo do ano')} <Ic d={ICON.right} size={14} /></Link>
 
       {/* 2. As duas ações (só no mês; no ano o foco é o balanço) */}
-      {mode === 'month' && !embed && <div className="sh-actions">
+      {mode === 'month' && !embed && <div className="sh-actions" data-tour="quick">
         <Link to="/transacoes?nova=1" className="sh-btn out"><Ic d="M5 12h14" size={22} />{L('Gastei')}</Link>
         <Link to="/transacoes?nova=1&tipo=income" className="sh-btn in"><Ic d="M12 5v14M5 12h14" size={22} />{L('Recebi')}</Link>
       </div>}
 
       {/* 3. As contas da pessoa e quanto tem em cada uma */}
-      {!embed && accRows.length > 0 && <section className="mv-card sh-accs">
+      {!embed && accRows.length > 0 && <section className="mv-card sh-accs" data-tour="accounts">
         <div className="mv-card-head"><h2>{L('As tuas contas')}</h2><Link to="/contas" className="mv-link">{L('Ver todas')}</Link></div>
         {accRows.map(({ a, bal }) => (
           <Link key={a.id} to="/contas" className={'sh-accrow t-' + a.type}>
@@ -154,7 +156,7 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
             <div key={g.id} className="sh-goal">
               <div className="sh-row"><b>{g.name}</b><b>{Math.round(r * 100)}%</b></div>
               <div className="sh-bar"><i style={{ width: `${r * 100}%` }} /></div>
-              <div className="sh-row"><small>{money(g.currentCents)} {L('guardados')}</small><small>faltam {money(Math.max(0, g.targetCents - g.currentCents))}</small></div>
+              <div className="sh-row"><small>{money(g.currentCents)} {L('guardados')}</small><small>{L('faltam')} {money(Math.max(0, g.targetCents - g.currentCents))}</small></div>
             </div>
           );
         })}
@@ -170,8 +172,8 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
           <UserAvatar user={auth.user} name={name || '?'} className="ab-initials mv-avatar" />
           <div className="mv-hello-txt">{name && <small>{L('Olá,')}</small>}<h1>{name ? name.split(' ')[0] + '!' : L('Olá!')}</h1></div>
         </div>
-        <button type="button" className="mv-sq" onClick={() => window.dispatchEvent(new Event('wallet:open-more'))} aria-label={L('Mais funções')}><Ic d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" size={19} /></button>
-        <button type="button" className="mv-sq" onClick={() => navigate('/definicoes')} aria-label={t('nav.settings')}><Ic d={GEAR} size={20} /></button>
+        <button type="button" className="mv-sq mv-menu" data-tour="menu" onClick={() => window.dispatchEvent(new Event('wallet:open-more'))} aria-label={L('Mais funções')}><Ic d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" size={19} /><span>{L('Menu')}</span></button>
+        <button type="button" className="mv-sq" data-tour="settings" onClick={() => navigate('/definicoes')} aria-label={t('nav.settings')}><Ic d={GEAR} size={20} /></button>
       </header>
 
       {/* 1. A pergunta principal, com uma escolha clara: este mês ou o ano todo */}

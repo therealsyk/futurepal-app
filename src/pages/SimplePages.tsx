@@ -1,4 +1,6 @@
 // Contas e Limites, organizados como no vídeo de referência, no estilo FuturePal.
+import { debtStatus, joinDesc, splitDesc } from '../core/debtPlan';
+import { cmpShort } from '../core/compare';
 import { useMissing } from '../ui/missing';
 import { useEffect, useState } from 'react';
 import { appConfirm } from '../ui/confirm';
@@ -41,6 +43,7 @@ async function loadAll(): Promise<Data> {
     transfers: live(await db.transfers.toArray()), salaries: live(await db.salaries.toArray()), budgets: live(await db.budgets.toArray()),
   };
 }
+const fill = (txt: string, v: Record<string, string>) => txt.replace(/\{(\w)\}/g, (_, x: string) => v[x] ?? ''); // "chegas lá em {d}"
 const useMoney = () => { const s = loadSettings(); return (c: number) => formatMoney(c, s.currency, s.language); };
 
 // ── Contas: total no topo, separadores Gastos / Poupança / Dívidas, um cartão por conta
@@ -58,7 +61,13 @@ export function SimpleAccounts() {
   const [edit, setEdit] = useState<string | null>(null);
   const [eName, setEName] = useState('');
   const missing = useMissing();
+  const missingE = useMissing();
   const [eBal, setEBal] = useState('');
+  const [eDesc, setEDesc] = useState('');
+  const [eMonthly, setEMonthly] = useState('');
+  const [kind, setKind] = useState<Account['type']>('spending');
+  const [desc, setDesc] = useState('');
+  const [monthly, setMonthly] = useState('');
   const reload = () => loadAll().then(setD).catch(() => {});
   useEffect(() => { reload(); }, []);
 
@@ -68,21 +77,45 @@ export function SimpleAccounts() {
   // Mesma conta que o Início: dinheiro nas contas (sem dívidas) e, à parte, quanto se deve
   const money_ = (d?.accounts ?? []).filter((a) => a.type !== 'debt').reduce((sum, a) => sum + balOf(a), 0);
   const debts = (d?.accounts ?? []).filter((a) => a.type === 'debt').reduce((sum, a) => sum + balOf(a), 0);
-  const openEdit = (a: Account) => { setEdit(edit === a.id ? null : a.id); setEName(a.name); setEBal((balOf(a) / 100).toFixed(2).replace('.', ',')); };
-  const saveEdit = async (a: Account) => {
-    const v = parseMoneyToCents(eBal || '0') ?? 0;
-    await updateAccount(db, a.id, { name: eName.trim() || a.name, initialBalanceCents: a.initialBalanceCents + (v - balOf(a)) });
-    setEdit(null); reload();
+  const num = (c: number) => (c / 100).toFixed(2).replace('.', ',');
+  const openEdit = (a: Account) => {
+    const { text, plan } = splitDesc(a.description);
+    setEdit(a.id); setEName(a.name); setEBal(num(balOf(a))); setEDesc(text); setEMonthly(plan?.monthlyCents ? num(plan.monthlyCents) : '');
   };
-  const delAcc = async (a: Account) => { if (await appConfirm(`${L('Apagar conta')} "${a.name}"?`)) { await removeAccount(db, a.id); setEdit(null); reload(); } };
+  const missE = missingE([['name', L('o nome'), !!eName.trim()]]);
+  const closeEdit = () => { setEdit(null); missE.reset(); };
+  const saveEdit = async (a: Account) => {
+    if (!missE.check()) return;
+    const v = parseMoneyToCents(eBal || '0') ?? 0, m = parseMoneyToCents(eMonthly || '0') ?? 0;
+    const before = balOf(a), old = splitDesc(a.description).plan;
+    // dívida: o que devia no início não muda quando a pessoa corrige quanto deve agora (a não ser que deva mais)
+    const plan = a.type === 'debt' ? { monthlyCents: Math.max(0, m), startCents: Math.max(v, old?.startCents ?? Math.max(a.initialBalanceCents, before)) } : null;
+    await updateAccount(db, a.id, { name: eName.trim(), description: joinDesc(eDesc, plan), initialBalanceCents: a.initialBalanceCents + (v - before) });
+    closeEdit(); reload();
+  };
+  const delAcc = async (a: Account) => { if (await appConfirm(`${L('Apagar conta')} "${a.name}"?`)) { await removeAccount(db, a.id); closeEdit(); reload(); } };
   const list = (d?.accounts ?? []).filter((a) => a.type === tab).sort((a, b) => a.order - b.order);
   const miss = missing([['name', L('o nome'), !!name.trim()]]);
   const closeForm = () => { setForm(false); miss.reset(); };
+  const openNew = () => { setKind(tab); setForm(true); };
   const create = async () => {
     if (!miss.check()) return;
-    await addAccount(db, { name: name.trim(), description: '', type: tab, currency: s.currency, initialBalanceCents: Math.abs(parseMoneyToCents(bal || '0') ?? 0), includeInNetWorth: true, isDefault: false, showOnHome: true });
-    setName(''); setBal(''); setForm(false); reload();
+    const start = Math.abs(parseMoneyToCents(bal || '0') ?? 0), m = Math.abs(parseMoneyToCents(monthly || '0') ?? 0);
+    await addAccount(db, { name: name.trim(), description: joinDesc(desc, kind === 'debt' ? { monthlyCents: m, startCents: start } : null), type: kind, currency: s.currency, initialBalanceCents: start, includeInNetWorth: true, isDefault: false, showOnHome: true });
+    setName(''); setBal(''); setDesc(''); setMonthly(''); closeForm(); setTab(kind); reload();
   };
+  // "Acabas em março de 2037 (10 anos e 4 meses)"
+  const endText = (months: number) => {
+    const d2 = new Date(now.getFullYear(), now.getMonth() + months, 1).toLocaleDateString(s.language, { month: 'long', year: 'numeric' });
+    const y = Math.floor(months / 12), mo = months % 12;
+    const parts = [y ? `${y} ${y === 1 ? L('ano') : L('anos')}` : '', mo ? `${mo} ${mo === 1 ? L('mês') : L('meses')}` : ''].filter(Boolean).join(` ${L('e')} `);
+    return fill(L('Acabas em {d} (faltam {m})'), { d: d2, m: parts });
+  };
+  const previewEnd = (debt: string, per: string) => {
+    const b = parseMoneyToCents(debt || '0') ?? 0, m = parseMoneyToCents(per || '0') ?? 0;
+    return b > 0 && m > 0 ? <p className="debt-prev">{endText(Math.ceil(b / m))}</p> : null;
+  };
+  const editing = (d?.accounts ?? []).find((a) => a.id === edit);
 
   return (
     <div className="fx-page mv sh">
@@ -98,29 +131,60 @@ export function SimpleAccounts() {
       {list.length === 0 && <EmptyState icon="M3 7a2 2 0 0 1 2-2h13v4M3 7v11a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1H5a2 2 0 0 1-2-2zM16 14.5h.01" title={tab === 'debt' ? L('Sem dívidas registadas') : tab === 'savings' ? L('Sem contas de poupança') : L('Sem contas de gastos')} text={tab === 'debt' ? L('Regista um empréstimo para acompanhares quanto ainda falta pagar.') : L('Cria uma conta para veres o teu saldo sempre atualizado.')} examples={tab === 'debt' ? ['🏠 Crédito habitação', '🚗 Crédito auto'] : tab === 'savings' ? ['🐷 Poupanças', '🛟 Fundo de emergência'] : ['🏦 Conta do banco', '💶 Dinheiro']} />}
       {list.map((a) => (
         <div key={a.id} className="sh-accwrap">
-          <button type="button" className={'acc-card sh-acc t-' + a.type} onClick={() => openEdit(a)} aria-expanded={edit === a.id}>
-            <div className="acc-card-top"><span className="acc-card-ic"><Ic d={TYPE_IC[a.type]} size={16} /></span><b>{a.name}</b>{a.isDefault && <small>{L('Principal')}</small>}</div>
+          <button type="button" className={'acc-card sh-acc t-' + a.type} onClick={() => openEdit(a)} aria-label={`${L('Alterar conta')}: ${a.name}`}>
+            <div className="acc-card-top"><span className="acc-card-ic"><Ic d={TYPE_IC[a.type]} size={16} /></span><b>{a.name}</b>{a.isDefault && a.name !== L('Principal') && <small>{L('Principal')}</small>}</div>
             <div className={'acc-card-val' + (balOf(a) < 0 ? ' neg' : '')}>{money(balOf(a))}</div>
           </button>
-          {edit === a.id && (
-            <section className="mv-card sh-form">
-              <label>{L('Nome')}<input value={eName} onChange={(e) => setEName(e.target.value)} /></label>
-              <label>{a.type === 'debt' ? L('Quanto deves agora') : L('Quanto tem agora')}<input inputMode="decimal" value={eBal} onChange={(e) => setEBal(e.target.value)} /></label>
-              <button type="button" className="sh-btn in sm" onClick={() => saveEdit(a)}>{L('Guardar')}</button>
-              {!a.isDefault && <button type="button" className="sh-danger" onClick={() => delAcc(a)}>{L('Apagar conta')}</button>}
-            </section>
-          )}
+          {splitDesc(a.description).text && <p className="acc-desc">{splitDesc(a.description).text}</p>}
+          {a.type === 'debt' && (() => {
+            const st = debtStatus(a, balOf(a), d?.transfers ?? [], now);
+            return (
+              <section className="mv-card debt-plan">
+                {st.left === 0 ? <p className="debt-done">{L('Dívida paga! 🎉')}</p> : <>
+                  <div className="sh-row"><b>{fill(L('Já abateste {m}'), { m: money(st.paid) })}</b><b>{Math.floor(st.ratio * 100)}%</b></div>
+                  <div className="sh-bar"><i style={{ width: `${Math.max(1, st.ratio * 100)}%` }} /></div>
+                  <div className="sh-row"><small>{fill(L('Falta {m} de {t}'), { m: money(st.left), t: money(st.start) })}</small></div>
+                  {st.monthly > 0 ? <>
+                    <div className={'debt-month' + (st.paidThisMonth >= st.monthly ? ' ok' : '')}><span>{L('Este mês')}</span><b>{money(st.paidThisMonth)} / {money(st.monthly)}</b></div>
+                    <p className="debt-end">{fill(L('A abater {m} por mês:'), { m: money(st.monthly) })} <b>{endText(st.months!)}</b></p>
+                    <small className="fx-muted">{L('Previsão sem contar com juros.')}</small>
+                  </> : <p className="fx-muted debt-end">{L('Diz quanto contas abater por mês para veres quando acabas.')}</p>}
+                  <div className="debt-btns">
+                    <button type="button" className="sh-btn out sm" onClick={() => openEdit(a)}>{st.monthly > 0 ? L('Alterar') : L('Definir valor mensal')}</button>
+                    <Link to={`/transacoes?nova=1&para=${a.id}`} className="sh-btn in sm">{L('Abater')}</Link>
+                  </div>
+                </>}
+              </section>
+            );
+          })()}
         </div>
       ))}
-<button type="button" className="sh-btn in" onClick={() => setForm(true)}><Ic d={ICON.plus} size={20} />{L('Criar conta')}</button>
+<button type="button" className="sh-btn in" onClick={openNew}><Ic d={ICON.plus} size={20} />{L('Criar conta')}</button>
       {form && <BottomSheet title={L('Nova conta')} onClose={closeForm}>
         {miss.note}
         <section className="mv-card sh-form">
-          <label className={miss.cls('name')}>{L('Nome da conta')}<input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder={tab === 'debt' ? L('Ex.: Empréstimo da casa') : tab === 'savings' ? L('Ex.: Poupanças') : L('Ex.: Conta do banco')} /></label>
-          <label className="bs-amount"><small>{tab === 'debt' ? L('Quanto deves') : L('Quanto tem agora')}</small><input className="tx-amt" inputMode="decimal" value={bal} onChange={(e) => setBal(e.target.value.replace(/[^\d.,]/g, ''))} placeholder="0" /><span className="tx-cur">{loadSettings().currency}</span></label>
+          <div className="sh-seg small acc-kind" role="radiogroup" aria-label={L('Tipo de conta')}>
+            {TYPES.map((x) => <button key={x.id} type="button" role="radio" aria-checked={kind === x.id} className={kind === x.id ? 'on' : ''} onClick={() => setKind(x.id)}>{x.label}</button>)}
+          </div>
+          <label className="bs-amount"><small>{kind === 'debt' ? L('Quanto deves') : L('Saldo inicial')}</small><input className="tx-amt" inputMode="decimal" value={bal} onChange={(e) => setBal(e.target.value.replace(/[^\d.,]/g, ''))} placeholder="0" /><span className="tx-cur">{s.currency}</span></label>
+          <label className={miss.cls('name')}>{L('Nome da conta')}<input value={name} onChange={(e) => setName(e.target.value)} placeholder={kind === 'debt' ? L('Ex.: Empréstimo da casa') : kind === 'savings' ? L('Ex.: Poupanças') : L('Ex.: Conta do banco')} /></label>
+          <label>{L('Descrição')}<input value={desc} maxLength={120} onChange={(e) => setDesc(e.target.value)} placeholder={L('Opcional')} /></label>
+          {kind === 'debt' && <label>{L('Abater por mês')}<input inputMode="decimal" value={monthly} onChange={(e) => setMonthly(e.target.value.replace(/[^\d.,]/g, ''))} placeholder={L('Ex.: 500')} /></label>}
+          {kind === 'debt' && previewEnd(bal, monthly)}
           <button type="button" className="sh-btn in sm" onClick={create}>{L('Criar conta')}</button>
         </section>
-      
+      </BottomSheet>}
+      {editing && <BottomSheet title={L('Alterar conta')} onClose={closeEdit}>
+        {missE.note}
+        <section className="mv-card sh-form">
+          <label className="bs-amount"><small>{editing.type === 'debt' ? L('Quanto deves agora') : L('Quanto tem agora')}</small><input className="tx-amt" inputMode="decimal" value={eBal} onChange={(e) => setEBal(e.target.value.replace(/[^\d.,-]/g, ''))} placeholder="0" /><span className="tx-cur">{editing.currency}</span></label>
+          <label className={missE.cls('name')}>{L('Nome da conta')}<input value={eName} onChange={(e) => setEName(e.target.value)} /></label>
+          <label>{L('Descrição')}<input value={eDesc} maxLength={120} onChange={(e) => setEDesc(e.target.value)} placeholder={L('Opcional')} /></label>
+          {editing.type === 'debt' && <label>{L('Abater por mês')}<input inputMode="decimal" value={eMonthly} onChange={(e) => setEMonthly(e.target.value.replace(/[^\d.,]/g, ''))} placeholder={L('Ex.: 500')} /></label>}
+          {editing.type === 'debt' && previewEnd(eBal, eMonthly)}
+          <button type="button" className="sh-btn in sm" onClick={() => saveEdit(editing)}>{L('Guardar')}</button>
+          {!editing.isDefault && <button type="button" className="sh-danger" onClick={() => delAcc(editing)}>{L('Apagar conta')}</button>}
+        </section>
       </BottomSheet>}
     </div>
   );
@@ -171,7 +235,7 @@ export function SimpleLimits() {
 
   return (
     <div className="fx-page mv sh">
-      <header className="mv-head"><h1 className="sh-title">{L('Limites do mês')}</h1><Link to="/orcamentos-completo" className="mv-sq" aria-label={L('Mais opções')}><Ic d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4" size={18} /></Link></header>
+      <header className="mv-head"><h1 className="sh-title">{L('Limites do mês')}</h1><Link to="/orcamentos-completo" className="mv-sq lim-adv" aria-label={L('Mais opções')}><Ic d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4" size={18} /></Link></header>
       <section className="mv-hero sh-hero">
         <div className="mv-hero-top">
           <button type="button" className="mv-chev" onClick={() => shift(-1)} aria-label={L('Mês anterior')}><Ic d={ICON.left} size={18} /></button>
@@ -307,25 +371,23 @@ export function SimpleGoals() {
     const late = f.etaMonths === null || f.etaMonths > monthsLeft;
     const tight = surplus < need;
     const until = end.toLocaleDateString(s.language, { day: 'numeric', month: 'long', year: 'numeric' });
-    if (!late) return { ok: true, short: `No bom caminho para ${until}`, long: `Estás no bom caminho: a este ritmo chegas antes de ${until}.` };
-    return { ok: false, short: `⚠ A este ritmo não chegas até ${until}`,
-      long: `A este ritmo não chegas até ${until}. Precisas de juntar cerca de ${money(need)} por mês.` + (tight ? ` Com os teus gastos atuais sobram-te cerca de ${money(Math.max(0, surplus))} por mês, por isso terias de gastar menos ou adiar a data.` : ` Pelo que te costuma sobrar (${money(surplus)}/mês), consegues, se juntares mais à meta.`) };
+    if (!late) return { ok: true, short: fill(L('Vais a tempo: {d}'), { d: until }), long: fill(L('Estás no bom caminho: a este ritmo chegas antes de {d}.'), { d: until }) };
+    return { ok: false, short: fill(L('⚠ A este ritmo não chegas até {d}'), { d: until }),
+      long: fill(L('A este ritmo não chegas até {d}. Precisas de juntar cerca de {m} por mês.'), { d: until, m: money(need) }) + ' ' + (tight ? fill(L('Com os teus gastos atuais sobram-te cerca de {m} por mês, por isso terias de gastar menos ou adiar a data.'), { m: money(Math.max(0, surplus)) }) : fill(L('Costuma sobrar-te cerca de {m} por mês: consegues, se juntares mais à meta.'), { m: money(surplus) })) };
   };
   const forecast = (g: Goal, cur: number) => {
     const f = fc(g, cur);
-    if (f.etaMonths === 0) return 'Objetivo atingido 🎉';
-    if (f.etaMonths === null) return 'Previsão: ainda sem dados suficientes';
-    const arrow = f.trend === 'up' ? ' ↑' : f.trend === 'down' ? ' ↓' : '';
-    return `Previsão: ${etaLabel(f)} (≈ ${money(f.perMonthCents)}/mês${arrow})`;
+    if (f.etaMonths === 0) return L('Objetivo atingido 🎉');
+    if (f.etaMonths === null) return L('Ainda não dá para prever');
+    return fill(L('Chegas lá em {d}, a juntar cerca de {m} por mês'), { d: etaLabel(f), m: money(f.perMonthCents) });
   };
   const forecastLong = (g: Goal, cur: number) => {
     const f = fc(g, cur);
-    if (f.etaMonths === 0) return 'Parabéns, chegaste ao objetivo! 🎉';
-    if (f.etaMonths === null) return 'Ainda não há dados suficientes. Junta dinheiro durante um ou dois meses e a previsão aparece aqui.';
-    const when = `chegas lá em ${etaLabel(f)} (daqui a ${f.etaMonths} ${f.etaMonths === 1 ? 'mês' : 'meses'})`;
-    if (f.trend === 'up') return `Estás a juntar mais do que antes: cerca de ${money(f.perMonthCents)} por mês (antes eram ${money(f.usualCents)}). A previsão adiantou: ${when}.`;
-    if (f.trend === 'down') return `Nos últimos meses juntaste menos: cerca de ${money(f.perMonthCents)} por mês (antes eram ${money(f.usualCents)}). A este ritmo, ${when}.`;
-    return `Costumas juntar cerca de ${money(f.perMonthCents)} por mês. A este ritmo, ${when}.`;
+    if (f.etaMonths === 0) return L('Parabéns, chegaste ao objetivo! 🎉');
+    if (f.etaMonths === null) return L('Ainda não há dados suficientes. Junta dinheiro durante um ou dois meses e a previsão aparece aqui.');
+    const v = { m: money(f.perMonthCents), u: money(f.usualCents) };
+    const how = f.trend === 'up' ? fill(L('Estás a juntar mais do que antes: cerca de {m} por mês (antes eram {u}).'), v) : f.trend === 'down' ? fill(L('Nos últimos meses juntaste menos: cerca de {m} por mês (antes eram {u}).'), v) : fill(L('Costumas juntar cerca de {m} por mês.'), v);
+    return how + ' ' + fill(L('A este ritmo, chegas lá em {d}.'), { d: etaLabel(f) });
   };
   const date = (iso: string) => new Date(iso).toLocaleDateString(s.language, { day: 'numeric', month: 'short', year: 'numeric' });
   const miss = missing([['amount', L('o valor'), (parseMoneyToCents(target) ?? 0) > 0], ['name', L('o nome'), !!name.trim()], ['end', L('a data limite'), !hasDeadline || !!deadline], ['accs', L('as contas'), how !== 'accounts' || accs.length > 0]]);
@@ -383,7 +445,7 @@ export function SimpleGoals() {
             <div className="sh-bar"><i style={{ width: `${r * 100}%` }} /></div>
             <small className="sh-eta">{forecast(x, cur)}</small>
             {(() => { const di = deadlineInfo(x, cur); return di ? <small className={'sh-deadline ' + (di.ok ? 'fx-pos' : 'fx-neg')}>{di.short}</small> : null; })()}
-            <div className="sh-row"><small className="sh-pct">Criada a {date(x.createdAt)}</small><Ic d={ICON.right} size={16} /></div>
+            <div className="sh-row"><small className="sh-pct">{L('Criada a')} {date(x.createdAt)}</small><Ic d={ICON.right} size={16} /></div>
           </button>
         );
       })}
@@ -462,12 +524,12 @@ export function SimpleOverview({ yearly = false, embed }: { yearly?: boolean; em
     if (before === 0) return null;
     const pctv = Math.round(((now_ - before) / Math.abs(before)) * 100);
     const tone = pctv === 0 ? 'same' : (pctv > 0) === upIsGood ? 'good' : 'bad';
-    const label = `Em comparação com ${prevName}`;
+    const label = `${L('Em comparação com')} ${prevName}`;
     return (
       <span className="sh-trend-box">
         <button type="button" className={'sh-trend ' + tone} aria-label={`${pctv > 0 ? L('Mais') : pctv < 0 ? L('Menos') : L('Igual')} ${Math.abs(pctv)}%. ${label}`}
           onClick={(e) => { e.stopPropagation(); setTip(tip === id ? null : id); }}>
-          {pctv > 0 ? '▲' : pctv < 0 ? '▼' : '●'} {Math.abs(pctv)}%
+          {cmpShort(t, pctv)}
         </button>
         {tip === id && <span className="sh-tip" role="status">{label}</span>}
       </span>
