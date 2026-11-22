@@ -503,6 +503,23 @@ export async function contributeToGoal(db: WalletDB, goalId: string, amountCents
   return (await db.goals.get(goalId))!;
 }
 
+/** Tirar dinheiro de uma meta: fica no histórico como valor negativo. */
+export async function withdrawFromGoal(db: WalletDB, goalId: string, amountCents: number): Promise<void> {
+  assertCents(amountCents);
+  const goal = await db.goals.get(goalId);
+  if (!goal || goal.deletedAt) throw new Error('Meta nao encontrada');
+  if (amountCents <= 0 || amountCents > goal.currentCents) throw new Error('Valor invalido');
+  const now = new Date().toISOString();
+  await db.goals.update(goalId, { currentCents: goal.currentCents - amountCents, contributions: [...(goal.contributions ?? []), { date: now.slice(0, 10), cents: -amountCents }], updatedAt: now });
+}
+
+/** Apagar um registo do histórico desfaz o que ele fez ao valor da meta. */
+export async function removeGoalEntry(db: WalletDB, goalId: string, index: number): Promise<void> {
+  const goal = await db.goals.get(goalId), entry = goal?.contributions?.[index];
+  if (!goal || !entry) return;
+  await db.goals.update(goalId, { currentCents: Math.max(0, goal.currentCents - entry.cents), contributions: goal.contributions!.filter((_, i) => i !== index), updatedAt: new Date().toISOString() });
+}
+
 export async function listGoals(db: WalletDB): Promise<Goal[]> {
   return (await db.goals.toArray()).filter((g) => g.deletedAt === null);
 }
