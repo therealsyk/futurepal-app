@@ -1,5 +1,6 @@
 // Início simplificado — só o essencial, para qualquer pessoa.
 //  1. Quanto ainda tenho este mês  2. Adicionar gasto / dinheiro recebido  3. A minha poupança  4. Últimos movimentos
+import { goalValueCents } from '../core/debtPlan';
 import { cmpText, refText } from '../core/compare';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -151,12 +152,13 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
       <section className="mv-card">
         <div className="mv-card-head"><h2>{L('Metas')}</h2><Link to="/metas" className="mv-link">{(data?.goals.length ?? 0) > 0 ? L('Ver todas') : L('Criar meta')}</Link></div>
         <div className="sh-scroll">{(data?.goals ?? []).slice(0, embed ? 20 : 1).map((g) => {
-          const r = g.targetCents > 0 ? Math.min(1, g.currentCents / g.targetCents) : 0;
+          const gc = g.accountIds?.length ? accRows.filter((x) => g.accountIds!.includes(x.a.id)).reduce((x, y) => x + goalValueCents(y.a, y.bal), 0) : g.currentCents; // ligada a contas: o valor vem delas
+          const r = g.targetCents > 0 ? Math.max(0, Math.min(1, gc / g.targetCents)) : 0;
           return (
             <div key={g.id} className="sh-goal">
               <div className="sh-row"><b>{g.name}</b><b>{Math.round(r * 100)}%</b></div>
               <div className="sh-bar"><i style={{ width: `${r * 100}%` }} /></div>
-              <div className="sh-row"><small>{money(g.currentCents)} {L('guardados')}</small><small>{L('faltam')} {money(Math.max(0, g.targetCents - g.currentCents))}</small></div>
+              <div className="sh-row"><small>{money(gc)} {L('guardados')}</small><small>{L('faltam')} {money(Math.max(0, g.targetCents - gc))}</small></div>
             </div>
           );
         })}

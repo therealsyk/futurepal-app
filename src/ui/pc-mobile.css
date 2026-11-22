@@ -1319,3 +1319,12 @@ html:not(.pcm) .fx-card-head { flex-wrap: wrap; row-gap: 2px; }
 .debt-btns { display: flex; gap: 10px; margin-top: 4px; } .debt-btns > * { flex: 1; max-width: 240px; margin: 0 !important; text-decoration: none; }
 .debt-prev { margin: 12px 0 0; text-align: center; color: var(--pos); font-size: 14px; font-weight: 650; }
 @media (max-width: 768px) { .st-row:has(.fx-seg) .st-text { flex: 1 1 calc(100% - 60px); } .st-row:has(.fx-seg) .fx-seg { width: 100%; } }
+
+/* Nova conta: tipo em cima (como Despesa/Rendimento) e campos conforme o tipo */
+.acc-kind .fx-seg { grid-template-columns: repeat(3, 1fr) !important; }
+.acc-form > .acc-tog { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 52px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 15px; font-weight: 600; }
+.acc-form > .acc-tog > span { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; color: var(--text); } .acc-form > .acc-tog small { color: var(--muted); font-size: 12.5px; font-weight: 500; }
+.debt-sum { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; padding: 12px 14px; border-radius: 16px; background: var(--card-2); }
+.debt-plan .debt-sum { margin-top: 0; }
+.debt-sum p { display: flex; justify-content: space-between; gap: 12px; margin: 0; } .debt-sum b { font-variant-numeric: tabular-nums; white-space: nowrap; } .debt-sum .debt-prev { display: block; margin-top: 4px; }
+.debt-prev.bad { color: var(--red); }

@@ -1,3 +1,4 @@
+import { goalValueCents } from '../core/debtPlan';
 import { L } from '../i18n/phrases';
 import { FormError, useMissing } from '../ui/missing';
 import { useEffect, useState } from 'react';
@@ -89,7 +90,7 @@ export function Goals() {
   };
   useEffect(() => { refresh().catch((e) => setError(String(e))); }, []);
 
-  const selectedValue = (ids: string[]) => accounts.filter((a) => ids.includes(a.id)).reduce((s, a) => s + accountBalanceCents(a, txs, accounts, salaryCents, transfers), 0);
+  const selectedValue = (ids: string[]) => accounts.filter((a) => ids.includes(a.id)).reduce((s, a) => s + goalValueCents(a, accountBalanceCents(a, txs, accounts, salaryCents, transfers)), 0);
   const currentOf = (g: Goal) => (g.accountIds && g.accountIds.length ? selectedValue(g.accountIds) : g.currentCents);
 
   const missing = useMissing();

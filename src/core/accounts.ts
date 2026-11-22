@@ -1,3 +1,4 @@
+import { afterPayments, splitDesc } from './debtPlan';
 import type { WalletDB, Account, AccountType, Transaction, Transfer } from '../db/database';
 import { stampNew } from '../db/database';
 
@@ -102,12 +103,15 @@ export function accountBalanceCents(acc: Account, txs: Transaction[], accounts: 
     bal += t.type === 'income' ? t.amountCents : -t.amountCents;
   }
   const sign = acc.type === 'debt' ? -1 : 1;
+  // dívida com juros: parte de cada prestação é juro e não baixa o que se deve
+  const dp = acc.type === 'debt' ? splitDesc(acc.description).plan : null, plan = dp?.rate && dp.monthlyCents > 0 ? dp : null;
+  let paid = 0;
   for (const tr of transfers) {
     if (tr.deletedAt !== null) continue;
-    if (tr.toAccountId === acc.id) bal += sign * tr.amountCents;
+    if (tr.toAccountId === acc.id) { if (plan) paid += tr.amountCents; else bal += sign * tr.amountCents; }
     if (tr.fromAccountId === acc.id) bal -= sign * tr.amountCents;
   }
-  return bal;
+  return plan ? afterPayments(bal, paid, plan) : bal;
 }
 
 // Património líquido: dívidas contam como negativo.

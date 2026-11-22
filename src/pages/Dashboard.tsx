@@ -1,3 +1,4 @@
+import { goalValueCents } from '../core/debtPlan';
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -584,7 +585,7 @@ export function Dashboard() {
   const salaryToDate = salariesUntil(salaries, parseInt(asOf.slice(0, 4), 10), parseInt(asOf.slice(5, 7), 10));
   const balOf = (a: Account) => accountBalanceCents(a, txsAsOf, accounts, salaryToDate, transfersAsOf);
   const currentOf = (g: Goal) => (g.accountIds && g.accountIds.length
-    ? accounts.filter((a) => g.accountIds!.includes(a.id)).reduce((sum, a) => sum + balOf(a), 0)
+    ? accounts.filter((a) => g.accountIds!.includes(a.id)).reduce((sum, a) => sum + goalValueCents(a, balOf(a)), 0)
     : g.currentCents);
   const defId = defaultAccountId(accounts);
   const seeAll = (to: string, label: string) => <Link to={to} className="fx-link" aria-label={label}><Ic d={ARROW} size={14} /></Link>;
