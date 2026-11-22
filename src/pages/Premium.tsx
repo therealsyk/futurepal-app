@@ -12,7 +12,7 @@ import { newId, stampNew, type Category, type Transaction, type Warranty } from 
 import { activeCategories } from '../core/finance';
 import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
-import { activePlan, hasFeature, loadPlan, PLAN_EVENT, PRICES, savePlan, type Feature, type PlanId } from '../core/plan';
+import { activePlan, hasFeature, loadPlan, PLAN_EVENT, PRICES, type Feature, type PlanId } from '../core/plan';
 import {
   businessCsv, businessQuarters, CHALLENGE_DEFS, efaturaDeadline, evaluateChallenge, irsSummary,
   warrantyDaysLeft, warrantyEnd, yearReview, type Challenge, type ChallengeType,
@@ -73,17 +73,6 @@ export function Locked({ feature, children }: { feature: Feature; children: Reac
 }
 
 // ---------------------------------------------------------------- planos + atalhos
-const FEATURE_PAGES: Array<{ f: Feature; path: string; d: string }> = [
-  { f: 'assistant', path: '/assistente', d: 'M4 5h16v11H9l-5 4zM9 10h.01M12 10h.01M15 10h.01' },
-  { f: 'irs', path: '/irs', d: 'M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h7' },
-  { f: 'subscriptions', path: '/subscricoes', d: 'M4 9h13l-3-3M20 15H7l3 3' },
-  { f: 'yearReview', path: '/ano', d: 'M4 20V10M10 20V4M16 20v-7M22 20H2' },
-  { f: 'challenges', path: '/desafios', d: 'M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3' },
-  { f: 'warranties', path: '/garantias', d: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4' },
-  { f: 'shared', path: '/casa', d: 'M3 11l9-7 9 7M5 10v10h14V10M9 20v-6h6v6' },
-  { f: 'split', path: '/grupos', d: 'M12 3v18M5 8h7M12 16h7M4 21h16' },
-  { f: 'freelance', path: '/independentes', d: 'M4 8h16v11H4zM9 8V5h6v3M4 13h16' },
-];
 const PLAN_ICON: Record<PlanId, string> = { free: 'M3 7h18v12H3zM3 7l3-4h12l3 4M16 13h2', plus: 'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z', pro: 'M3 18h18M4 15l-1-9 5 4 4-6 4 6 5-4-1 9z' };
 // Os 3 planos: cada um tem tudo o do anterior. Preço sempre por mês; no anual, o equivalente mensal.
 const PLANS: Array<{ id: PlanId; features: string[] }> = [
@@ -94,7 +83,7 @@ const PLANS: Array<{ id: PlanId; features: string[] }> = [
 export function PlusPage() {
   const auth = useAuth();
   const { t } = useTranslation();
-  const { state, plan } = usePlan();
+  const { plan } = usePlan();
   const { money } = useMoney();
   const [yearly, setYearly] = useState(false);
   const priceOf = (id: PlanId) => {
@@ -151,26 +140,6 @@ export function PlusPage() {
             </section>
           );
         })}
-      </div>
-      {import.meta.env.DEV && (
-        <div className="pm-dev">
-          <b>DEV</b>
-          {(['free', 'plus', 'pro'] as PlanId[]).map((id) => (
-            <button key={id} type="button" className={'fx-btn' + (state.plan === id ? ' primary' : '')} onClick={() => savePlan({ ...state, plan: id })}>{id}</button>
-          ))}
-          <button type="button" className="fx-btn" onClick={() => savePlan({ plan: 'free', trialEndsAt: null, trialUsed: false })}>reset</button>
-        </div>
-      )}
-      <h2 className="pm-h2 pl-h2">{t('plus.toolsTitle')}</h2>
-      <div className="pm-tools">
-        {FEATURE_PAGES.map((x) => (
-          <Link key={x.path} to={x.path} className="pm-tool">
-            <span><Ic d={x.d} size={22} /></span>
-            <b>{t('plus.short_' + x.f)}</b>
-            <small>{t('plus.feat_' + x.f)}</small>
-            {!hasFeature(x.f, state) && <i className="pm-mini-lock"><Ic d={LOCK} size={14} /></i>}
-          </Link>
-        ))}
       </div>
     </div>
   );
