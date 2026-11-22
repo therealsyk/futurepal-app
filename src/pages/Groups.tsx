@@ -20,6 +20,7 @@ import { parseContact } from '../core/split';
 import { usePlan } from './Premium';
 import { FormError, useMissing } from '../ui/missing';
 import { squareImage } from '../core/assistant';
+import { listenSplit, tellSplit } from '../core/splitLive';
 import { IS_DEMO } from '../demo/demo';
 import { BottomSheet } from './SimplePages';
 import { Face, SplitGroup, type Member } from './Split';
@@ -67,6 +68,21 @@ export function Groups() {
   const pickPhoto = async (f?: File) => { if (!f) return; try { setImage(await squareImage(f)); setPicErr(''); } catch { setPicErr(L('Não foi possível abrir esta foto. Experimenta outra (JPG ou PNG).')); } };
   const missing = useMissing(), emissing = useMissing();
   const emiss = emissing([['name', L('o nome'), !!name.trim()]]);
+  const [allow, setAllow] = useState(false); // os outros podem adicionar transações
+  // grupo partilhado: o servidor guarda e todos passam a ver o mesmo
+  const pushGroup = async (sid: string, f: { name: string; color: string; image?: string }, add: boolean): Promise<string | null> => {
+    const { error } = await getSupabase()!.rpc('update_split_group', { p_group: sid, p_name: f.name, p_color: f.color, p_image: f.image ?? '', p_members_can_add: add });
+    if (!error) tellSplit(sid);
+    return error ? (/update_split_group|schema cache/i.test(error.message) ? L('O servidor ainda não está atualizado. Tenta mais tarde.') : error.message) : null;
+  };
+  const saveEdit = async () => {
+    if (!edit || !emiss.check()) return;
+    const f = { name: name.trim(), color, image }, sid = splitOf(edit.id);
+    if (sid) { const e = await pushGroup(sid, f, allow); if (e) { setPicErr(e); return; } }
+    await db.groups.update(edit.id, { ...f, updatedAt: new Date().toISOString() });
+    closeEdit(); await load();
+    if (sid) window.dispatchEvent(new Event(SPLIT_CHANGED));
+  };
   const closeEdit = () => { setEdit(null); setName(''); emiss.reset(); };
   const miss = missing([['name', L('o nome'), !!name.trim()], ['people', L('quem queres convidar'), !split || people.length > 0]]);
 
@@ -81,7 +97,7 @@ export function Groups() {
     if (!sb || !me || IS_DEMO) return;
     // divisões em que já estou (ou que aceitei): cada uma aparece como um grupo, uma só vez
     const pull = async () => {
-      const { data } = await sb.from('split_groups').select('id, name, created_at');
+      const { data } = await sb.from('split_groups').select('*');
       const bl = await sb.from('split_bills').select('id, group_id, amount_cents').is('deleted_at', null);
       const sum: Record<string, { cents: number; n: number }> = {};
       for (const b of (bl.data ?? []) as Array<{ group_id: string; amount_cents: number }>) { const k = (sum[b.group_id] ??= { cents: 0, n: 0 }); k.cents += Number(b.amount_cents); k.n++; }
@@ -100,9 +116,13 @@ export function Groups() {
       setCrew(ppl);
       const have = new Set((await db.groups.toArray()).map((g) => g.id)); // inclui os apagados: não voltam
       let n = have.size;
-      for (const g of (data ?? []) as Array<{ id: string; name: string; created_at: string }>) {
-        const gid = linkedGroupId(g.id, me);
-        if (!have.has(gid)) await db.groups.put({ id: gid, name: g.name, color: COLORS[n++ % COLORS.length], createdAt: g.created_at, updatedAt: new Date().toISOString(), deletedAt: null });
+      for (const g of (data ?? []) as Array<{ id: string; name: string; created_at: string; color?: string | null; image?: string | null }>) {
+        const gid = linkedGroupId(g.id, me), old = await db.groups.get(gid);
+        if (old && old.deletedAt === null) { // nome, cor e foto são os que o criador escolheu
+          const now = { name: g.name, color: g.color ?? old.color, image: g.image ?? old.image };
+          if (now.name !== old.name || now.color !== old.color || (now.image ?? '') !== (old.image ?? '')) await db.groups.update(gid, { ...now, updatedAt: new Date().toISOString() });
+        }
+        if (!have.has(gid)) await db.groups.put({ id: gid, name: g.name, color: g.color ?? COLORS[n++ % COLORS.length], image: g.image ?? undefined, createdAt: g.created_at, updatedAt: new Date().toISOString(), deletedAt: null });
       }
       await load();
     };
@@ -113,6 +133,9 @@ export function Groups() {
   }, [me, id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useTxSaved(() => { load().catch(() => {}); });
+  // em direto: uma transação, um nome ou uma foto nova aparecem logo a todos
+  const liveIds = alive ? [...alive].sort().join(',') : '';
+  useEffect(() => listenSplit(liveIds ? liveIds.split(',') : []), [liveIds]);
   const of = (g: string) => txs.filter((x) => x.groupId === g);
   const total = (g: string) => of(g).reduce((a, x) => a + (x.type === 'expense' ? x.amountCents : -x.amountCents), 0);
   const splitOf = (gid: string) => { const k = splitIdOf(gid); return k && (!alive || alive.has(k)) ? k : null; }; // divisão apagada: volta a ser um grupo normal
@@ -139,7 +162,7 @@ export function Groups() {
       if (split && !sid) return;
       if (adding && adding !== 'new') { const g = adding; close(); if (sid) await link(g, sid); return; }
       let gid: string;
-      if (sid) { gid = linkedGroupId(sid, me); const n = new Date().toISOString(); await db.groups.put({ id: gid, name: name.trim(), color: COLORS[groups.length % COLORS.length], createdAt: n, updatedAt: n, deletedAt: null }); }
+      if (sid) { gid = linkedGroupId(sid, me); const n = new Date().toISOString(), color = COLORS[groups.length % COLORS.length]; await pushGroup(sid, { name: name.trim(), color }, false); await db.groups.put({ id: gid, name: name.trim(), color, createdAt: n, updatedAt: n, deletedAt: null }); }
       else gid = (await addGroup(db, name.trim(), COLORS[groups.length % COLORS.length])).id;
       close(); await load(); navigate(`/grupos/${gid}`);
     } finally { setBusy(false); }
@@ -167,6 +190,7 @@ export function Groups() {
       await putMyShare(db, r.billId, me, { date: x.date, type: 'expense', categoryId: x.categoryId, description: desc, amountCents: r.share, currency: x.currency, accountId: x.accountId, groupId: gid });
       await db.transactions.update(x.id, { deletedAt: now, updatedAt: now, groupId: undefined });
     }
+    await pushGroup(splitId, g, false);
     await load(); navigate(`/grupos/${gid}`, { replace: true });
   };
 
@@ -180,7 +204,6 @@ export function Groups() {
           {split && (me && has('split') ? <InviteRow value={people} onChange={setPeople} cls={miss.cls('people')} /> : null)}
         </div>
         {split && adding !== 'new' && of(adding.id).length > 0 && <p className="grp-hint">{L('As despesas que já estão neste grupo passam a ser divididas por todos.')}</p>}
-        {split && me && has('split') && <p className="grp-hint">{L('Usa o email ou o número de telemóvel da conta da pessoa no FuturePal.')}</p>}
         {split && !(me && has('split')) && <div className="mv-card sp-start"><p>{me ? L('Criar grupos para dividir despesas faz parte do Plus e do Pro.') : L('Inicia sessão para convidares pessoas e dividires as despesas deste grupo.')}</p><Link to={me ? '/plus' : '/definicoes'} className="sh-btn out sm">{me ? L('Ver planos') : L('Iniciar sessão')}</Link></div>}
         <button type="button" className="tx-addbtn" disabled={busy || (split && !(me && has('split')))} onClick={create}>{adding === 'new' ? L('Criar grupo') : L('Convidar')}</button>
       </div>
@@ -194,14 +217,14 @@ export function Groups() {
     return (
       <div className="fx-page mv sh grp gl-page">
         <header className="mv-head"><Link to="/grupos" className="mv-sq" aria-label={L('Voltar')}><Ic d={ICON.left} size={20} /></Link><h1 className="sh-title">{open.name}</h1></header>
-        {splitOf(open.id) && !IS_DEMO ? <SplitGroup key={open.id} splitId={splitIdOf(open.id)!} groupId={open.id} createdAt={open.createdAt} color={open.color} pic={<GroupPic name={open.name} image={open.image} big />} onEdit={startEdit} local={list} cats={cats} onChanged={() => { load().catch(() => {}); }} onGone={() => drop(open)} /> : <>
+        {splitOf(open.id) && !IS_DEMO ? <SplitGroup key={open.id} splitId={splitIdOf(open.id)!} groupId={open.id} createdAt={open.createdAt} color={open.color} pic={<GroupPic name={open.name} image={open.image} big />} onEdit={(add) => { setAllow(add); startEdit(); }} local={list} cats={cats} onChanged={() => { load().catch(() => {}); }} onGone={() => drop(open)} /> : <>
         <section className="mv-hero sh-hero gl-hero gg-hero" style={{ '--g': open.color } as CSSProperties}>
           <GroupPic name={open.name} image={open.image} big />
           <div className="gl-sum">
             <div className="gl-have"><small>{L('Total do grupo')}</small><b>{money(total(open.id))}</b><small>{count(list.length)}</small></div>
             <div className="gl-acts">
               <button type="button" className="gl-act main" onClick={() => openTxForm({ type: 'expense', groupId: open.id })}><Ic d={ICON.plus} size={18} />{L('Adicionar')}</button>
-              {!IS_DEMO && <button type="button" className="gl-act" onClick={() => { setName(open.name); setSplit(true); setAdding(open); }}><Ic d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M19 8v6M16 11h6" size={18} />{L('Dividir')}</button>}
+              {!IS_DEMO && <button type="button" className="gl-act" onClick={() => { setName(open.name); setSplit(true); setAdding(open); }}><Ic d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M19 8v6M16 11h6" size={18} />{L('Convidar')}</button>}
               <button type="button" className="gl-act" onClick={startEdit}><Ic d="M4 20h4L19 9l-4-4L4 16zM13 7l4 4" size={18} />{L('Alterar')}</button>
             </div>
           </div>
@@ -235,8 +258,11 @@ export function Groups() {
           <div className="gg-photo-acts"><span>{image ? L('Toca na foto para a trocar') : L('Toca para escolher uma foto')}</span>{image && <button type="button" onClick={() => setImage('')}>{L('Tirar a foto')}</button>}</div>
           <div className="tx-rows"><TextRow icon={FI.name} label={L('Nome')} value={name} onChange={setName} placeholder={L('Ex.: Férias de verão')} cls={emiss.cls('name')} /></div>
           <div className="gg-colors" role="radiogroup" aria-label={L('Cor')}>{COLORS.map((c) => <button key={c} type="button" role="radio" aria-checked={c === color} aria-label={c} className={c === color ? 'on' : ''} style={{ background: c }} onClick={() => setColor(c)} />)}</div>
-          {splitOf(edit.id) && <p className="gl-hint">{L('Só muda para ti: as outras pessoas continuam a ver o grupo como estava.')}</p>}
-          <button type="button" className="tx-addbtn" onClick={async () => { if (!emiss.check()) return; await db.groups.update(edit.id, { name: name.trim(), color, image, updatedAt: new Date().toISOString() }); closeEdit(); await load(); }}>{L('Guardar')}</button>
+          {splitOf(edit.id) && <>
+            <div className="tx-rows"><SwitchRow icon="M12 5v14M5 12h14" label={L('Deixar os outros adicionar transações')} sub={allow ? L('Todas as pessoas do grupo podem adicionar') : L('Só tu podes adicionar')} on={allow} onChange={setAllow} /></div>
+            <p className="gl-hint">{L('O nome, a foto e a cor mudam para todas as pessoas do grupo.')}</p>
+          </>}
+          <button type="button" className="tx-addbtn" onClick={saveEdit}>{L('Guardar')}</button>
         </div></BottomSheet>}
       </div>
     );
