@@ -1276,3 +1276,5 @@ html.is-electron.pcm .fx-page.pco { height: calc(100vh - 34px); }
   @media (min-width: 769px) { .app-main::after { content: ''; position: sticky; bottom: 0; z-index: 30; display: block; flex: none; height: 46px; margin-top: -46px; pointer-events: none; opacity: 0; background: linear-gradient(transparent, var(--bg)); animation: sf-hide linear both; animation-timeline: scroll(nearest block); } }
 }
 @media (prefers-reduced-motion: reduce) { html, .fx-sheet-body, .bs-body, .ai-list, .stm { scroll-behavior: auto; } }
+/* telemóvel: nome e data/categoria em linhas separadas */
+.sh-tx-main { display: flex !important; flex-direction: column; }
