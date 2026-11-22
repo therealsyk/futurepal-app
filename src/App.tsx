@@ -28,7 +28,7 @@ import { useIsMobile } from './ui/useIsMobile';
 import { DemoPage } from './ui/components';
 import SetupWizard, { ONBOARDED_FLAG } from './pages/SetupWizard';
 import { db, activateDatabaseFor, guestDataCount, moveGuestDataIntoCurrent, DB_CHANGED_EVENT, currentDbName, userDbName } from './db/app-db';
-import { Sheet } from './ui/fx';
+import { Ic, ICON, Sheet } from './ui/fx';
 import { ensureDefaultCategories, addMissingCatalogCategories } from './core/finance';
 import { loadSettings, setTheme, type AppSettings } from './core/settings';
 import { useAuth } from './auth/AuthContext';
@@ -226,7 +226,7 @@ export default function App() {
         {PC_MOBILE && settingsOpen && (
           <div className="stm-backdrop" onClick={() => setSettingsOpen(false)}>
             <div className="stm" role="dialog" aria-modal="true" aria-label={L('Definições')} onClick={(e) => e.stopPropagation()}>
-              <button type="button" className="stm-close" onClick={() => setSettingsOpen(false)} aria-label={L('Fechar')}>✕</button>
+              <header className="bs-head stm-head"><button type="button" className="bs-back" onClick={() => setSettingsOpen(false)}><Ic d={ICON.left} size={18} />{L('Voltar')}</button><h2>{L('Definições')}</h2><span /></header>
               <Settings />
             </div>
           </div>

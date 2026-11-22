@@ -1,4 +1,4 @@
-import { AccountRow, AmountField, DateRow, FI, RepeatRows, TextRow } from '../ui/formFields';
+import { AccountRow, AmountField, CategoryRow, DateRow, FI, RepeatRows, Row, TextRow } from '../ui/formFields';
 import { FormError, useMissing } from '../ui/missing';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { appConfirm } from '../ui/confirm';
@@ -341,9 +341,8 @@ export function Transactions() {
           <AmountField value={amount} onChange={setAmount} currency={settings.currency} cls={miss.cls('amount')} autoFocus kind={toAccount ? undefined : type} />
           <div className="tx-rows">
             <TextRow label={t('transactions.description')} value={description} onChange={setDescription} />
-            <div className={'tx-row' + miss.cls('cat')}><span><Ic d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" size={18} />{t('transactions.category')}</span>
-              {toAccount ? <span className="tx-muted">{L('Transferência')}</span> : <CategorySelect cats={cats} kind={type} value={categoryId} onChange={setCategoryId} ariaLabel={t('transactions.category')} className="fx-input tx-val" />}</div>
-            <AccountRow label={toAccount ? L('Da conta') : t('accounts.account')} value={accountId} options={accounts.map((a) => ({ id: a.id, name: a.name, sub: bals[a.id] !== undefined ? money(bals[a.id]) : undefined }))} balance={bals[accountId] !== undefined ? money(bals[accountId]) : undefined} onChange={(v) => { setAccountId(v); if (v === toAccount) setToAccount(''); }} />
+            {toAccount ? <Row div icon={FI.cat} label={t('transactions.category')}><span className="tx-muted">{L('Transferência')}</span></Row> : <CategoryRow cats={cats} kind={type} value={categoryId} onChange={setCategoryId} cls={miss.cls('cat')} />}
+            <AccountRow label={toAccount ? L('Da conta') : t('accounts.account')} value={accountId} options={accounts.map((a) => ({ id: a.id, name: a.name, right: bals[a.id] !== undefined ? money(bals[a.id]) : undefined }))} balance={bals[accountId] !== undefined ? money(bals[accountId]) : undefined} onChange={(v) => { setAccountId(v); if (v === toAccount) setToAccount(''); }} />
             {!toAccount && <button type="button" className="tx-row tx-swaprow" onClick={() => (accounts.length > 1 ? setToAccount(accounts.find((a) => a.id !== accountId)?.id ?? '') : setError(L('Para transferir, cria primeiro outra conta (ex.: Poupanças) em Contas.')))}><span><Ic d="M4 7h13l-3-3M20 17H7l3 3" size={18} />{L('Transferir para outra conta')}</span><Ic d={ICON.right} size={16} /></button>}
             {toAccount && <AccountRow icon={FI.swap} label={L('Para a conta')} value={toAccount} options={accounts.filter((a) => a.id !== accountId).map((a) => ({ id: a.id, name: a.name }))} owed={accounts.find((a) => a.id === toAccount)?.type === 'debt'} balance={bals[toAccount] !== undefined ? money(bals[toAccount]) : undefined} onChange={setToAccount}>
               <button type="button" className="tx-swap off" onClick={() => setToAccount('')} aria-label={L('Cancelar transferência')}><Ic d={ICON.close} size={16} /></button></AccountRow>}

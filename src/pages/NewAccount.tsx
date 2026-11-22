@@ -108,7 +108,7 @@ export function NewAccount({ initial, accounts, balOf, money, endText, onClose, 
     <h3 className="acc-how">{debt ? L('Como queres pagar?') : L('Como queres juntar?')}</h3>
     <div className="tx-seg"><Seg value={how} onChange={setHow} label={debt ? L('Como queres pagar?') : L('Como queres juntar?')} options={[{ id: 'hand', label: L('À mão') }, { id: 'transfer', label: L('Transferir de outra conta') }]} /></div>
     {transfer && <div className="tx-rows">
-      <AccountRow label={L('Da conta')} cls={miss.cls('from')} value={src} options={sources.map((a) => ({ id: a.id, name: a.name, sub: `${a.type === 'savings' ? L('Poupança') : L('Gastos')} · ${money(balOf(a))}` }))} balance={src2 && money(balOf(src2))} onChange={setFrom} />
+      <AccountRow label={L('Da conta')} cls={miss.cls('from')} value={src} options={sources.map((a) => ({ id: a.id, name: a.name, sub: a.type === 'savings' ? L('Poupança') : L('Gastos'), right: money(balOf(a)) }))} balance={src2 && money(balOf(src2))} onChange={setFrom} />
       <TextRow icon={FI.money} money label={L('Valor a transferir')} value={amt} onChange={setAmount} placeholder="0" cls={miss.cls('amount')} />
       <DateRow label={recurring ? L('A primeira em') : L('Data')} value={date} onChange={setDate} />
       <SwitchRow icon={FI.month} label={L('Repetir todos os meses')} on={recurring} onChange={setRecurring} />

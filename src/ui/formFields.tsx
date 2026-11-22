@@ -4,9 +4,9 @@ import { useState, type ReactNode } from 'react';
 import { parseContact } from '../core/split';
 import { useTranslation } from 'react-i18next';
 import { RECURRING_FREQUENCIES } from '../core/finance';
-import type { RecurringFrequency } from '../db/database';
+import type { Category, RecurringFrequency } from '../db/database';
 import { DatePicker } from './DatePicker';
-import { Ic, ICON, PickMenu } from './fx';
+import { CategorySelect, Ic, ICON, PickMenu } from './fx';
 import { L } from '../i18n/phrases';
 
 export const FI = {
@@ -17,11 +17,11 @@ export const FI = {
 export const onlyDigits = (v: string) => v.replace(/[^\d.,]/g, '');
 
 /** Valor grande com a moeda por baixo. Numa transação: despesa a vermelho e com "−", rendimento a verde (o valor guardado não muda). */
-export function AmountField({ value, onChange, currency, label, cls = '', autoFocus, kind }: { value: string; onChange: (v: string) => void; currency: string; label?: string; cls?: string; autoFocus?: boolean; kind?: 'expense' | 'income' }) {
+export function AmountField({ value, onChange, currency, label, cls = '', autoFocus, kind, signed }: { value: string; onChange: (v: string) => void; currency: string; label?: string; cls?: string; autoFocus?: boolean; kind?: 'expense' | 'income'; signed?: boolean }) {
   const { t } = useTranslation();
   return (
     <>
-      <input className={'tx-amt' + (kind ? ' k-' + kind : '') + cls} autoFocus={autoFocus} inputMode="decimal" value={kind === 'expense' && value ? '−' + value : value} placeholder="0" onChange={(e) => onChange(onlyDigits(e.target.value))} aria-label={label ?? t('transactions.amount')} />
+      <input className={'tx-amt' + (kind ? ' k-' + kind : '') + cls} autoFocus={autoFocus} inputMode="decimal" value={kind === 'expense' && value ? '−' + value : value} placeholder="0" onChange={(e) => onChange(signed ? e.target.value.replace(/[^\d.,-]/g, '') : onlyDigits(e.target.value))} aria-label={label ?? t('transactions.amount')} />
       <span className="tx-cur">{label ? `${label} · ${currency}` : currency}</span>
     </>
   );
@@ -43,12 +43,12 @@ export function DateRow({ label, value, onChange, allowEmpty, cls, testId }: { l
 
 /** Conta e saldo numa só peça. */
 export function AccountRow({ icon = ICON.wallet, label, value, options, balance, owed, onChange, cls = '', children }: {
-  icon?: string; label: string; value: string; options: Array<{ id: string; name: string; sub?: string }>; balance?: string; owed?: boolean; onChange: (id: string) => void; cls?: string; children?: ReactNode;
+  icon?: string; label: string; value: string; options: Array<{ id: string; name: string; sub?: string; right?: string }>; balance?: string; owed?: boolean; onChange: (id: string) => void; cls?: string; children?: ReactNode;
 }) {
   return (
     <Row div icon={icon} label={label} cls={' tx-acc' + cls}>
       <span className="tx-accval"><span className="tx-accpick">
-        <PickMenu compact label={label} value={value} options={options.map((a) => ({ value: a.id, label: a.name, sub: a.sub }))} onChange={(v) => onChange(String(v))} />
+        <PickMenu compact label={label} value={value} options={options.map((a) => ({ value: a.id, label: a.name, sub: a.sub, right: a.right }))} onChange={(v) => onChange(String(v))} />
         {balance !== undefined && <small className={owed || balance.startsWith('-') || balance.startsWith('−') ? 'fx-neg' : 'fx-pos'}>{balance}</small>}
       </span>{children}</span>
     </Row>
@@ -92,4 +92,10 @@ export function InviteRow({ value, onChange, cls = '' }: { value: string[]; onCh
           onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ',') && draft.trim()) { e.preventDefault(); commit(); } else if (e.key === 'Backspace' && !draft) onChange(value.slice(0, -1)); }} />
       </div></div>
   );
+}
+
+/** Categoria: a mesma linha e a mesma lista em todo o lado. Vazia, mostra "Escolher…". */
+export function CategoryRow({ cats, kind, value, onChange, cls, required }: { cats: Category[]; kind: 'expense' | 'income'; value: string; onChange: (v: string) => void; cls?: string; required?: boolean }) {
+  const { t } = useTranslation();
+  return <Row div icon={FI.cat} label={t('transactions.category')} cls={cls}><CategorySelect cats={cats} kind={kind} value={value} onChange={onChange} ariaLabel={t('transactions.category')} emptyLabel={required ? L('Escolher…') : undefined} className="fx-input tx-val" /></Row>;
 }

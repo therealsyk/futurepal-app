@@ -1,4 +1,4 @@
-import { AccountRow, AmountField, DateRow, RepeatRows, TextRow } from '../ui/formFields';
+import { AccountRow, AmountField, CategoryRow, DateRow, RepeatRows, TextRow } from '../ui/formFields';
 import { FormError, useMissing } from '../ui/missing';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -8,7 +8,7 @@ import { stampNew } from '../db/database';
 import type { Account, Category, Transaction, RecurringFrequency } from '../db/database';
 import { parseMoneyToCents, formatMoney } from '../core/money';
 import { loadSettings } from '../core/settings';
-import { PageHead, Sheet, MonthNav, EmptyState, Ic, ICON, CategorySelect } from '../ui/fx';
+import { PageHead, Sheet, MonthNav, EmptyState, Ic, ICON } from '../ui/fx';
 import { todayISO } from '../core/dates';
 import { isSalaryTx, syncSalaryTransactions } from '../core/salaryTx';
 import { defaultAccountId } from '../core/accounts';
@@ -202,8 +202,7 @@ export const Salaries = () => {
         {miss.note ?? (error && <FormError text={error} />)}
         <AmountField kind="income" value={eAmount} onChange={setEAmount} currency={s.currency} cls={miss.cls('amount')} autoFocus />
         <div className="tx-rows">
-          <div className="tx-row"><span><Ic d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" size={18} />{t('transactions.category')}</span>
-            <CategorySelect cats={cats} kind="income" value={eCat} onChange={setECat} ariaLabel={t('transactions.category')} className="fx-input tx-val" /></div>
+          <CategoryRow cats={cats} kind="income" value={eCat} onChange={setECat} />
           <TextRow label={t('salaries.extraName')} value={eName} onChange={setEName} placeholder={L('Ex.: Prémio, horas extra, venda')} />
           {accounts.length > 0 && <AccountRow label={t('accounts.account')} value={eAcc} options={accounts.filter((a) => a.type !== 'debt').map((a) => ({ id: a.id, name: a.name }))} onChange={setEAcc} />}
           <DateRow label={t('transactions.date')} value={eDate} onChange={setEDate} cls={miss.cls('date')} />

@@ -1,3 +1,4 @@
+import { L } from '../i18n/phrases';
 import { useFitSheet } from './useFitSheet';
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
@@ -97,7 +98,6 @@ export function MonthNav({ label, onPrev, onNext }: { label: string; onPrev: () 
 
 // Janela modal centrada (no telemóvel seria uma folha por baixo).
 export function Sheet({ title, open, onClose, children, footer, wide }: { title: string; open: boolean; onClose: () => void; children: ReactNode; footer?: ReactNode; wide?: boolean }) {
-  const { t } = useTranslation();
   const body = useRef<HTMLDivElement>(null);
   useFitSheet(body, open);
   useEffect(() => {
@@ -111,10 +111,8 @@ export function Sheet({ title, open, onClose, children, footer, wide }: { title:
   return createPortal(
     <div className="fx-backdrop" onMouseDown={onClose}>
       <div className={'fx-sheet' + (wide ? ' wide' : '')} role="dialog" aria-modal="true" aria-label={title} onMouseDown={(e) => e.stopPropagation()}>
-        <div className="fx-sheet-head">
-          <h2>{title}</h2>
-          <button type="button" className="fx-round" onClick={onClose} aria-label={t('common.close')}><Ic d={ICON.close} /></button>
-        </div>
+        <span className="bs-grab" aria-hidden="true" />
+        <header className="fx-sheet-head bs-head"><button type="button" className="bs-back" onClick={onClose}><Ic d={ICON.left} size={18} />{L('Voltar')}</button><h2>{title}</h2><span /></header>
         <div className="fx-sheet-body" ref={body}>{children}</div>
         {footer ? <div className="fx-sheet-foot">{footer}</div> : null}
       </div>
@@ -203,6 +201,7 @@ export function CategorySelect({ cats: all, value, onChange, className = 'fx-inp
   const btnRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const listEmpty = emptyLabel !== undefined && emptyLabel !== L('Escolher…'); // "Escolher…" é só o aviso de que falta: não é uma opção
   const groups = GROUP_ORDER.map((g) => ({
     g,
     items: cats.filter((c) => groupOf(c) === g && (!q || norm(catLabel(t, c)).includes(norm(q)) || norm(t('categoryGroups.' + g)).includes(norm(q))))
@@ -210,7 +209,7 @@ export function CategorySelect({ cats: all, value, onChange, className = 'fx-inp
   })).filter((x) => x.items.length > 0);
   // lista plana (para o teclado): [vazio?, ...categorias por grupo]
   const flat: Array<{ v: string; label: string }> = [
-    ...(emptyLabel !== undefined && !q ? [{ v: '', label: emptyLabel }] : []),
+    ...(listEmpty && !q ? [{ v: '', label: emptyLabel! }] : []),
     ...groups.flatMap((x) => x.items.map((c) => ({ v: val(c), label: catLabel(t, c) }))),
   ];
   const current = value === '' && emptyLabel !== undefined ? emptyLabel : (() => { const c = all.find((x) => val(x) === value); return c ? catLabel(t, c) : ''; })();
@@ -238,7 +237,7 @@ export function CategorySelect({ cats: all, value, onChange, className = 'fx-inp
           <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onKey} placeholder={t('transactions.searchCategory')} aria-label={t('transactions.searchCategory')} />
         </div>
         <div className="fx-pop-list" role="listbox" aria-label={ariaLabel} ref={listRef}>
-          {emptyLabel !== undefined && !q && (() => { n++; const i = n; return (
+          {listEmpty && !q && (() => { n++; const i = n; return (
             <button type="button" role="option" aria-selected={value === ''} data-hi={hi === i ? '1' : undefined} className={(value === '' ? 'on' : '') + (hi === i ? ' hi' : '')}
               onMouseEnter={() => setHi(i)} onClick={() => pick('')}>{emptyLabel}</button>
           ); })()}
@@ -314,7 +313,7 @@ export function Popover({ anchor, open, onClose, children, minWidth = 220, class
 
 // Menu de escolha com o mesmo visual do seletor de contas (substitui o <select> nativo, que abre com o estilo do sistema).
 export function PickMenu<T extends string | number>({ value, options, onChange, label, testId, compact }: {
-  value: T; options: Array<{ value: T; label: string; sub?: string }>; onChange: (v: T) => void; label: string; testId?: string; compact?: boolean;
+  value: T; options: Array<{ value: T; label: string; sub?: string; right?: string }>; onChange: (v: T) => void; label: string; testId?: string; compact?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -350,11 +349,11 @@ export function PickMenu<T extends string | number>({ value, options, onChange, 
         <Ic d={ICON.down} size={14} />
       </button>
       {open && (
-        <Popover anchor={btn} open onClose={() => setOpen(false)} minWidth={200} className="fx-pick-pop"><div className="fx-pick-list" role="listbox" aria-label={label} ref={listRef}>
+        <Popover anchor={btn} open onClose={() => setOpen(false)} minWidth={options.some((o) => o.right) ? 280 : 200} className="fx-pick-pop"><div className="fx-pick-list" role="listbox" aria-label={label} ref={listRef}>
           {options.map((o) => (
             <button key={String(o.value)} type="button" role="option" aria-selected={o.value === value} className={o.value === value ? 'on' : ''} onClick={() => pick(o.value)}>
-              <span>{o.label}</span>
-              {o.sub ? <small>{o.sub}</small> : null}
+              <span className="fx-pick-txt">{o.label}{o.sub ? <small>{o.sub}</small> : null}</span>
+              {o.right ? <b className={/^[-−]/.test(o.right) ? 'fx-neg' : ''}>{o.right}</b> : null}
             </button>
           ))}
         </div></Popover>

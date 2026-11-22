@@ -63,7 +63,7 @@ export function NewGoal({ accounts, balOf, money, onClose, onDone }: { accounts:
           {pool.map((a) => <SwitchRow key={a.id} icon="M3 7h18v12H3zM3 7l3-4h12l3 4M16 13h2" label={a.name} sub={money(balOf(a))} on={accs.includes(a.id)} onChange={(v) => setAccs(v ? [...accs, a.id] : accs.filter((x) => x !== a.id))} />)}
           {accs.length > 0 && sources.length > 0 && <SwitchRow icon={FI.month} label={L('Transferir todos os meses?')} sub={repeat ? undefined : L('O dinheiro passa sozinho para esta conta')} on={repeat} onChange={setRepeat} />}
           {rep && sources.length > 0 && <>
-            <AccountRow label={L('Da conta')} cls={miss.cls('from')} value={src} options={sources.map((a) => ({ id: a.id, name: a.name, sub: money(balOf(a)) }))} balance={srcAcc && money(balOf(srcAcc))} onChange={setFrom} />
+            <AccountRow label={L('Da conta')} cls={miss.cls('from')} value={src} options={sources.map((a) => ({ id: a.id, name: a.name, sub: a.type === 'savings' ? L('Poupança') : L('Gastos'), right: money(balOf(a)) }))} balance={srcAcc && money(balOf(srcAcc))} onChange={setFrom} />
             <TextRow icon={FI.money} money label={L('Valor a transferir')} value={amt} onChange={setAmount} placeholder="0" cls={miss.cls('rep')} />
             <DateRow label={L('A primeira em')} value={date} onChange={setDate} />
           </>}

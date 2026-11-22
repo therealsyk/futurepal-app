@@ -1,4 +1,4 @@
-import { AccountRow, AmountField, DateRow, TextRow } from '../ui/formFields';
+import { AccountRow, AmountField, CategoryRow, DateRow, TextRow } from '../ui/formFields';
 import { linkedGroupId, SPLIT_CHANGED } from '../core/groupLink';
 import { FormError, useMissing } from '../ui/missing';
 import { createPortal } from 'react-dom';
@@ -16,7 +16,7 @@ import { loadSettings } from '../core/settings';
 
 import { billProgress, groupSummary, parseContact, toBills, type SplitBill } from '../core/split';
 import { avatarUrl } from '../core/avatar';
-import { catFitsKind, catLabel, CategorySelect, Ic, ICON, Sheet } from '../ui/fx';
+import { catFitsKind, catLabel, Ic, ICON, Sheet } from '../ui/fx';
 import { usePlan } from './Premium';
 import { L } from '../i18n/phrases';
 import { accountBalanceCents, defaultAccountId } from '../core/accounts';
@@ -343,8 +343,7 @@ export function SplitPage({ embed }: { embed: SplitEmbed }) {
           {(() => { const c = parseMoneyToCents(bill.amount) ?? 0; const n = bill.withGroup ? members.filter((m) => !bill.out.includes(m.userId)).length : 1 + contactsOf(bill.invites).length; return c > 0 && n > 0 ? <p className="sp-each">{t('split.eachPays', { amount: money(Math.ceil(c / n)) })}</p> : null; })()}
           <div className="tx-rows">
             <TextRow label={t('transactions.description')} value={bill.description} onChange={(v) => setBill({ ...bill, description: v })} placeholder={t('split.billPh')} cls={miss.cls('description')} />
-            <div className={'tx-row' + miss.cls('category')}><span><Ic d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" size={18} />{t('transactions.category')}</span>
-              <CategorySelect cats={expCats} kind="expense" value={bill.categoryId} onChange={(v) => setBill({ ...bill, categoryId: v })} ariaLabel={t('transactions.category')} emptyLabel={L('Escolher…')} className="fx-input tx-val" /></div>
+            <CategoryRow required cats={expCats} kind="expense" value={bill.categoryId} onChange={(v) => setBill({ ...bill, categoryId: v })} cls={miss.cls('category')} />
             <DateRow label={t('transactions.date')} value={bill.date} onChange={(v) => setBill({ ...bill, date: v })} />
             {bill.withGroup ? members.map((m) => (
               <div key={m.userId} className="tx-row tx-sub"><span className="sp-toggle-who"><Face m={m} small />{m.userId === me ? t('family.you') : m.displayName}</span>
@@ -381,9 +380,8 @@ export function SplitPage({ embed }: { embed: SplitEmbed }) {
           <span className="tx-cur">{group?.currency ?? s.currency}</span>
           <div className="tx-rows">
             <TextRow label={t('transactions.description')} value={personal.description} onChange={(v) => setPersonal({ ...personal, description: v })} />
-            <div className={'tx-row' + missP.cls('category')}><span><Ic d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" size={18} />{t('transactions.category')}</span>
-              <CategorySelect cats={expCats} kind="expense" value={personal.categoryId} onChange={(v) => setPersonal({ ...personal, categoryId: v })} ariaLabel={t('transactions.category')} emptyLabel={L('Escolher…')} className="fx-input tx-val" /></div>
-            {accs.length > 0 && (() => { const aid = personal.accountId || defaultAccountId(accs) || ''; return <AccountRow label={t('accounts.account')} value={aid} options={accs.map((a2) => ({ id: a2.id, name: a2.name, sub: bals[a2.id] !== undefined ? money(bals[a2.id]) : undefined }))} balance={bals[aid] !== undefined ? money(bals[aid]) : undefined} onChange={(v) => setPersonal({ ...personal, accountId: v })} />; })()}
+            <CategoryRow required cats={expCats} kind="expense" value={personal.categoryId} onChange={(v) => setPersonal({ ...personal, categoryId: v })} cls={missP.cls('category')} />
+            {accs.length > 0 && (() => { const aid = personal.accountId || defaultAccountId(accs) || ''; return <AccountRow label={t('accounts.account')} value={aid} options={accs.map((a2) => ({ id: a2.id, name: a2.name, right: bals[a2.id] !== undefined ? money(bals[a2.id]) : undefined }))} balance={bals[aid] !== undefined ? money(bals[aid]) : undefined} onChange={(v) => setPersonal({ ...personal, accountId: v })} />; })()}
             <DateRow label={t('transactions.date')} value={personal.date} onChange={(v) => setPersonal({ ...personal, date: v })} />
           </div>
         </>}

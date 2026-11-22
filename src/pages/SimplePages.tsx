@@ -19,7 +19,8 @@ import { contributeToGoal, setBudget } from '../core/finance';
 import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
 import { forecastGoal, type GoalForecast } from '../core/goalForecast';
-import { Ic, ICON, CatIcon, catLabel, CategorySelect } from '../ui/fx';
+import { Ic, ICON, CatIcon, catLabel } from '../ui/fx';
+import { AmountField, CategoryRow, FI, SwitchRow, TextRow } from '../ui/formFields';
 import { EmptyState } from '../ui/EmptyState';
 import { L } from '../i18n/phrases';
 import { DatePicker } from '../ui/DatePicker';
@@ -145,17 +146,19 @@ export function SimpleAccounts() {
 <button type="button" className="sh-btn in" onClick={() => setForm(true)}><Ic d={ICON.plus} size={20} />{L('Criar conta')}</button>
       {form && <NewAccount initial={tab} accounts={d?.accounts ?? []} balOf={balOf} money={money} endText={endText} onClose={() => setForm(false)} onDone={(k) => { setForm(false); setTab(k); reload(); }} />}
       {editing && <BottomSheet title={L('Alterar conta')} onClose={closeEdit}>
-        {missE.note}
-        <section className="mv-card sh-form">
-          <label className="bs-amount"><small>{editing.type === 'debt' ? L('Quanto deves agora') : L('Quanto tem agora')}</small><input className="tx-amt" inputMode="decimal" value={eBal} onChange={(e) => setEBal(e.target.value.replace(/[^\d.,-]/g, ''))} placeholder="0" /><span className="tx-cur">{editing.currency}</span></label>
-          <label className={missE.cls('name')}>{L('Nome da conta')}<input value={eName} onChange={(e) => setEName(e.target.value)} /></label>
-          <label>{L('Descrição')}<input value={eDesc} maxLength={120} onChange={(e) => setEDesc(e.target.value)} placeholder={L('Opcional')} /></label>
-          {editing.type !== 'spending' && <label>{editing.type === 'debt' ? L('Abater por mês') : L('Juntar por mês')}<input inputMode="decimal" value={eMonthly} onChange={(e) => setEMonthly(e.target.value.replace(/[^\d.,]/g, ''))} placeholder={L('Opcional')} /></label>}
-          {editing.type === 'debt' && <label>{L('Juros por ano (%)')}<input inputMode="decimal" value={eRate} onChange={(e) => setERate(e.target.value.replace(/[^\d.,]/g, ''))} placeholder={L('Sem juros')} /></label>}
+        <div className="acc-form">
+          {missE.note}
+          <AmountField signed value={eBal} onChange={setEBal} currency={editing.currency} label={editing.type === 'debt' ? L('Quanto deves agora') : L('Quanto tem agora')} />
+          <div className="tx-rows">
+            <TextRow icon={FI.name} label={L('Nome da conta')} value={eName} onChange={setEName} cls={missE.cls('name')} />
+            <TextRow label={L('Descrição')} value={eDesc} onChange={setEDesc} />
+            {editing.type !== 'spending' && <TextRow icon={FI.month} money label={editing.type === 'debt' ? L('Abater por mês') : L('Juntar por mês')} value={eMonthly} onChange={setEMonthly} />}
+            {editing.type === 'debt' && <TextRow icon={FI.pct} money label={L('Juros por ano (%)')} value={eRate} onChange={setERate} placeholder={L('Sem juros')} />}
+          </div>
           {editing.type === 'debt' && previewEnd(eBal, eMonthly, eRate)}
-          <button type="button" className="sh-btn in sm" onClick={() => saveEdit(editing)}>{L('Guardar')}</button>
+          <button type="button" className="tx-addbtn" onClick={() => saveEdit(editing)}>{L('Guardar')}</button>
           {!editing.isDefault && <button type="button" className="sh-danger" onClick={() => delAcc(editing)}>{L('Apagar conta')}</button>}
-        </section>
+        </div>
       </BottomSheet>}
     </div>
   );
@@ -247,11 +250,11 @@ export function SimpleLimits() {
 <button type="button" className="sh-btn out sm" onClick={() => setForm(true)}><Ic d={ICON.plus} size={18} />{L('Novo limite')}</button>
       {edit && (() => { const c = catOf(edit.categoryId); return (
         <BottomSheet title={L('Alterar limite')} onClose={() => { setEdit(null); setDelConfirm(false); missEdit.reset(); }}>
-          {missEdit.note}
-          <div className="sh-form">
+          <div className="acc-form">
+            {missEdit.note}
             <div className="lim-editcat"><CatIcon cat={c ?? {}} size={40} /><b>{c ? catLabel(t, c) : '—'}</b></div>
-            <label className={'bs-amount' + missEdit.cls('amount')}><small>{L('Máximo por mês')}</small><input className="tx-amt" inputMode="decimal" value={editAmt} onChange={(e) => setEditAmt(e.target.value.replace(/[^\d.,]/g, ''))} placeholder="0" /><span className="tx-cur">{loadSettings().currency}</span></label>
-            <button type="button" className="sh-btn in sm" onClick={async () => { const cents = parseMoneyToCents(editAmt); if (!missEdit.check() || !cents) return; await setBudget(db, edit.categoryId, Math.abs(cents), edit.year, edit.month); setEdit(null); reload(); }}>{L('Guardar')}</button>
+            <AmountField value={editAmt} onChange={setEditAmt} currency={s.currency} label={L('Máximo por mês')} cls={missEdit.cls('amount')} />
+            <button type="button" className="tx-addbtn" onClick={async () => { const cents = parseMoneyToCents(editAmt); if (!missEdit.check() || !cents) return; await setBudget(db, edit.categoryId, Math.abs(cents), edit.year, edit.month); setEdit(null); reload(); }}>{L('Guardar')}</button>
             <button type="button" className="sh-danger" onClick={async () => {
               // 1.º toque pede confirmação no próprio botão (sem janelas do sistema); 2.º apaga todos os registos deste limite neste mês
               if (!delConfirm) { setDelConfirm(true); return; }
@@ -263,13 +266,14 @@ export function SimpleLimits() {
           </div>
         </BottomSheet>); })()}
       {form && <BottomSheet title={L('Novo limite')} onClose={closeForm}>
-          {miss.note}
-          <div className="sh-form">
-            <label className={miss.cls('cat')}>{L('Categoria')}<CategorySelect cats={expenseCats} kind="expense" value={cat} onChange={setCat} ariaLabel={L('Categoria')} emptyLabel={L('Escolher…')} className="fx-input tx-val" /></label>
-            <label className={'bs-amount' + miss.cls('amount')}><small>{L('Máximo por mês')}</small><input className="tx-amt" inputMode="decimal" value={amt} onChange={(e) => setAmt(e.target.value.replace(/[^\d.,]/g, ''))} placeholder="0" /><span className="tx-cur">{loadSettings().currency}</span></label>
-            <label className="sh-toggle"><span><b>{L('Tem data limite?')}</b><small>{L('Se não ativares, fica só para este mês')}</small></span><input type="checkbox" checked={hasEnd} onChange={(e) => setHasEnd(e.target.checked)} /></label>
-            {hasEnd && <label className={miss.cls('end')}>{L('Até ao mês')}<DatePicker value={endM ? endM + '-01' : ''} onChange={(v) => setEndM(v.slice(0, 7))} className="fx-input tx-val" /></label>}
-            <button type="button" className="sh-btn in sm" onClick={create}>{L('Guardar limite')}</button>
+          <div className="acc-form">
+            {miss.note}
+            <AmountField value={amt} onChange={setAmt} currency={s.currency} label={L('Máximo por mês')} cls={miss.cls('amount')} />
+            <div className="tx-rows">
+              <CategoryRow required cats={expenseCats} kind="expense" value={cat} onChange={setCat} cls={miss.cls('cat')} />
+              <SwitchRow icon={FI.date} cls={miss.cls('end')} label={hasEnd ? L('Até ao mês') : L('Tem data limite?')} sub={hasEnd ? undefined : L('Se não ativares, fica só para este mês')} on={hasEnd} onChange={setHasEnd}><DatePicker value={endM ? endM + '-01' : ''} onChange={(v) => setEndM(v.slice(0, 7))} className="fx-input tx-val" /></SwitchRow>
+            </div>
+            <button type="button" className="tx-addbtn" onClick={create}>{L('Guardar limite')}</button>
           </div>
         
       </BottomSheet>}
