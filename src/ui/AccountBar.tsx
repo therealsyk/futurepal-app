@@ -1,6 +1,6 @@
+import { InviteCard, type InviteInfo } from './InviteCard';
 import { answerSplitInvite } from '../core/splitInvite';
 import { SPLIT_CHANGED } from '../core/groupLink';
-import { L } from '../i18n/phrases';
 import { useEffect, useRef, useState } from 'react';
 import { UserAvatar } from './UserAvatar';
 import { AccountSwitcher } from './AccountSwitcher';
@@ -29,7 +29,7 @@ const ITEMS = {
   swap: 'M16 3l4 4-4 4M20 7H9M8 21l-4-4 4-4M4 17h11',
 };
 
-type Note = { id: string; text: string; to: string; kind: 'invite' | 'plan' | 'sub' | 'warranty' | 'tax'; invite?: { id: string; by: string; group: string } };
+type Note = { id: string; text: string; to: string; kind: 'invite' | 'plan' | 'sub' | 'warranty' | 'tax'; invite?: InviteInfo };
 const NOTE_IC: Record<Note['kind'], string> = {
   invite: 'M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M19 8v6M22 11h-6', plan: 'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z',
   sub: 'M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3', warranty: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4', tax: 'M7 3h10v18l-5-3-5 3zM10 8h4M10 12h4',
@@ -102,15 +102,7 @@ export function NotificationBell() {
           <header className="nt-head"><span className="nt-bell"><Ic d={BELL} size={18} /></span><h4>{t('acct.notifications')}</h4>{notes.length > 0 && <em>{notes.length}</em>}</header>
           {noteErr && <p className="fx-error">{noteErr}</p>}
           {notes.length === 0 ? <div className="nt-empty"><span><Ic d={BELL} size={26} /></span><p>{t('acct.noNotes')}</p></div> : <div className="nt-list">{notes.map((n) => n.invite ? (
-            <div key={n.id} className="nt-card invite">
-              <span className="nt-ic"><Ic d={NOTE_IC.invite} size={18} /></span>
-              <div className="nt-body">
-                <small>{L('Convite para dividir despesas')}</small>
-                <b>{n.invite.group}</b>
-                <p>{L('Convidado por')} {n.invite.by}</p>
-                <div className="nt-btns"><button type="button" className="no" disabled={busy === n.invite.id} onClick={() => answer(n.invite!.id, false)}>{L('Rejeitar')}</button><button type="button" className="yes" disabled={busy === n.invite.id} onClick={() => answer(n.invite!.id, true)}>{L('Aceitar')}</button></div>
-              </div>
-            </div>
+            <InviteCard key={n.id} inv={n.invite} busy={busy === n.invite.id} onAnswer={(a) => answer(n.invite!.id, a)} />
           ) : (
             <button key={n.id} type="button" className={'nt-card ' + n.kind} onClick={() => go(n.to)}><span className="nt-ic"><Ic d={NOTE_IC[n.kind]} size={18} /></span><span className="nt-body">{n.text}</span><Ic d="M9 6l6 6-6 6" size={16} /></button>
           ))}</div>}

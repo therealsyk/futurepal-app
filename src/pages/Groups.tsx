@@ -19,7 +19,7 @@ import { usePlan } from './Premium';
 import { useMissing } from '../ui/missing';
 import { IS_DEMO } from '../demo/demo';
 import { BottomSheet } from './SimplePages';
-import { SplitPage } from './Split';
+import { SplitGroup } from './Split';
 import { L } from '../i18n/phrases';
 
 const COLORS = ['#17c3c9', '#8b5cf6', '#f59e0b', '#ef4444', '#22c55e', '#3b82f6', '#ec4899'];
@@ -35,6 +35,7 @@ export function Groups() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [txs, setTxs] = useState<Transaction[]>([]);
   const [cats, setCats] = useState<Category[]>([]);
+  const [shared, setShared] = useState<Record<string, { cents: number; n: number }>>({}); // total e número de transações de cada grupo dividido
   const [name, setName] = useState('');
   const [adding, setAdding] = useState<'new' | Group | null>(null); // grupo novo, ou um que já existe e passa a ser dividido
   const [split, setSplit] = useState(false);
@@ -56,6 +57,10 @@ export function Groups() {
     // divisões em que já estou (ou que aceitei): cada uma aparece como um grupo, uma só vez
     const pull = async () => {
       const { data } = await sb.from('split_groups').select('id, name, created_at');
+      const bl = await sb.from('split_bills').select('group_id, amount_cents').is('deleted_at', null);
+      const sum: Record<string, { cents: number; n: number }> = {};
+      for (const b of (bl.data ?? []) as Array<{ group_id: string; amount_cents: number }>) { const k = (sum[b.group_id] ??= { cents: 0, n: 0 }); k.cents += Number(b.amount_cents); k.n++; }
+      setShared(sum);
       const have = new Set((await db.groups.toArray()).map((g) => g.id)); // inclui os apagados: não voltam
       let n = have.size;
       for (const g of (data ?? []) as Array<{ id: string; name: string; created_at: string }>) {
@@ -68,10 +73,11 @@ export function Groups() {
     on();
     window.addEventListener(SPLIT_CHANGED, on);
     return () => window.removeEventListener(SPLIT_CHANGED, on);
-  }, [me]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [me, id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const of = (g: string) => txs.filter((x) => x.groupId === g);
   const total = (g: string) => of(g).reduce((a, x) => a + (x.type === 'expense' ? x.amountCents : -x.amountCents), 0);
+  const sharedOf = (id2: string) => { const k = splitIdOf(id2); return k ? shared[k] : undefined; };
   const count = (n: number) => `${n} ${n === 1 ? L('movimento') : L('movimentos')}`;
   const close = () => { setAdding(null); setName(''); setSplit(false); setPeople([]); miss.reset(); };
   // cria o grupo da divisão e envia os convites; devolve o id
@@ -141,6 +147,7 @@ export function Groups() {
     return (
       <div className="fx-page mv sh grp">
         <header className="mv-head"><Link to="/grupos" className="mv-sq" aria-label={L('Voltar')}><Ic d={ICON.left} size={20} /></Link><h1 className="sh-title">{open.name}</h1></header>
+        {splitIdOf(open.id) && !IS_DEMO ? <SplitGroup key={open.id} splitId={splitIdOf(open.id)!} groupId={open.id} createdAt={open.createdAt} local={list} cats={cats} onChanged={() => { load().catch(() => {}); }} /> : <>
         <section className="mv-hero sh-hero grp-total">
           <small className="mv-hero-label">{L('Total')}</small>
           <div className="sh-big">{money(total(open.id))}</div>
@@ -153,10 +160,7 @@ export function Groups() {
             return <div key={x.id} className="sh-tx"><CatIcon cat={c ?? {}} size={36} /><span className="sh-tx-main"><b>{x.description || '—'}</b><small>{day(x.date)}</small></span><b className={x.type === 'income' ? 'fx-pos' : ''}>{x.type === 'income' ? '+' : '−'}{money(x.amountCents)}</b></div>;
           })}
         </section>
-        {!IS_DEMO && splitIdOf(open.id) && <section className="grp-split">
-          <h2>{L('Despesas divididas')}</h2>
-          <SplitPage key={open.id} embed={{ splitId: splitIdOf(open.id), name: open.name, groupId: open.id, onLinked: (sid) => link(open, sid), onAdded: () => { load().catch(() => {}); } }} />
-        </section>}
+        </>}
         {!IS_DEMO && !splitIdOf(open.id) && <button type="button" className="fx-link grp-start" onClick={() => { setName(open.name); setSplit(true); setAdding(open); }}>{L('Dividir este grupo com outras pessoas')}</button>}
         <button type="button" className="sh-danger" onClick={() => remove(open)}>{L('Apagar grupo')}</button>
         {sheet}
@@ -168,12 +172,11 @@ export function Groups() {
     <div className="fx-page mv sh">
       <header className="mv-head"><h1 className="sh-title">{L('Grupos')}</h1></header>
       <p className="fx-muted" style={{ margin: 0 }}>{L('Junta as transações de uma coisa só (férias, obras, jantares), vê o total e divide com quem quiseres.')}</p>
-      {!IS_DEMO && <SplitPage embed={{ splitId: null, name: '', groupId: '', invitesOnly: true, onLinked: async () => {}, onAdded: () => { load().catch(() => {}); } }} />}
       {groups.length === 0 && <EmptyState icon="M4 6h16M4 12h16M4 18h10" title={L('Ainda não tens grupos')} text={L('Junta despesas de uma coisa só e vê quanto custou no total.')} examples={['✈️ Viagem', '🔨 Obras', '🎄 Natal']} />}
       <div className="sh-groups-grid">
         {groups.map((g) => (
           <Link key={g.id} to={`/grupos/${g.id}`} className="sh-group" style={{ ['--g' as string]: g.color }}>
-            <b>{g.name}</b><span>{money(total(g.id))}</span><small>{count(of(g.id).length)}{splitIdOf(g.id) ? ` · ${L('Dividido')}` : ''}</small>
+            <b>{g.name}</b><span>{money(sharedOf(g.id)?.cents ?? total(g.id))}</span><small>{count(sharedOf(g.id)?.n ?? of(g.id).length)}{splitIdOf(g.id) ? ` · ${L('Dividido')}` : ''}</small>
           </Link>
         ))}
       </div>

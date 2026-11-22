@@ -1,55 +1,51 @@
-// Convite para dividir despesas: aparece numa janela ao abrir a app, com quem convidou, o grupo e Aceitar / Rejeitar.
-import { SPLIT_CHANGED } from '../core/groupLink';
+// Convites por responder: aviso num canto, com o mesmo cartão das notificações. Na página Grupos aparece sempre.
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useLocation } from 'react-router-dom';
 import { getSupabase } from '../auth/supabase';
 import { useAuth } from '../auth/AuthContext';
+import { answerSplitInvite } from '../core/splitInvite';
+import { SPLIT_CHANGED } from '../core/groupLink';
+import { Ic } from './fx';
+import { InviteCard, INVITE_IC } from './InviteCard';
 import { L } from '../i18n/phrases';
 
-type Inv = { id: string; group_id: string; group_name: string; invited_by_name: string };
+type Inv = { id: string; group_name: string; invited_by_name: string };
+const SEEN = 'wallet.invSeen';
+const seenIds = (): string[] => { try { return JSON.parse(sessionStorage.getItem(SEEN) || '[]'); } catch { return []; } };
 
 export function SplitInvitePopup() {
   const auth = useAuth();
+  const { pathname } = useLocation();
+  const groups = pathname === '/grupos';
   const [list, setList] = useState<Inv[]>([]);
+  const [seen, setSeen] = useState<string[]>(seenIds);
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
   useEffect(() => {
     const sb = getSupabase();
     if (!sb || !auth.user) { setList([]); return; }
-    sb.rpc('my_split_invites').then(({ data }) => {
-      let seen: string[] = [];
-      try { seen = JSON.parse(sessionStorage.getItem('wallet.invSeen') || '[]'); } catch { /* sem storage */ }
-      setList(((data ?? []) as Inv[]).filter((i) => !seen.includes(i.id)));
-    }, () => {});
-  }, [auth.user]);
-  const inv = list[0];
-  if (!inv) return null;
-  const meta = (auth.user?.user_metadata ?? {}) as { full_name?: string; name?: string };
-  const myName = meta.full_name || meta.name || (auth.user?.email ?? '').split('@')[0];
-  const answer = async (accept: boolean | null) => {
-    if (accept !== null) {
-      setBusy(true);
-      await getSupabase()?.rpc('answer_split_invite', { p_invite: inv.id, p_accept: accept, p_display_name: myName });
-      setBusy(false);
-      window.dispatchEvent(new Event(SPLIT_CHANGED));
-      if (accept) window.location.hash = '#/grupos';
-    } else {
-      try { const seen = JSON.parse(sessionStorage.getItem('wallet.invSeen') || '[]'); sessionStorage.setItem('wallet.invSeen', JSON.stringify([...seen, inv.id])); } catch { /* */ }
-    }
-    setList(list.slice(1));
+    const read = () => { sb.rpc('my_split_invites').then(({ data }) => setList((data ?? []) as Inv[]), () => {}); };
+    read();
+    window.addEventListener(SPLIT_CHANGED, read);
+    return () => window.removeEventListener(SPLIT_CHANGED, read);
+  }, [auth.user, groups]);
+  const show = groups ? list : list.filter((i) => !seen.includes(i.id));
+  if (show.length === 0) return null;
+  const answer = async (id: string, accept: boolean) => {
+    setBusy(true);
+    const e = await answerSplitInvite(auth.user, id, accept);
+    setBusy(false); setErr(e);
+    if (!e && accept) window.location.hash = '#/grupos';
   };
-  const initial = (inv.invited_by_name || '?').trim().charAt(0).toUpperCase();
+  const later = () => { const ids = [...new Set([...seen, ...list.map((i) => i.id)])]; setSeen(ids); try { sessionStorage.setItem(SEEN, JSON.stringify(ids)); } catch { /* sem storage */ } };
   return createPortal(
-    <div className="spi-back" onMouseDown={(e) => { if (e.target === e.currentTarget) answer(null); }}>
-      <div className="spi-card" role="dialog" aria-modal="true">
-        <span className="spi-face">{initial}</span>
-        <p className="spi-text"><b>{inv.invited_by_name}</b> {L('convidou-te para dividir as despesas de')} <b>{inv.group_name}</b>.</p>
-        <div className="spi-btns">
-          <button type="button" className="spi-btn no" disabled={busy} onClick={() => answer(false)}>{L('Rejeitar')}</button>
-          <button type="button" className="spi-btn yes" disabled={busy} onClick={() => answer(true)}>{L('Aceitar')}</button>
-        </div>
-        <button type="button" className="spi-later" onClick={() => answer(null)}>{L('Decidir mais tarde')}</button>
-      </div>
-    </div>,
+    <aside className={'nt-pop' + (groups ? ' in-groups' : '')} role="dialog" aria-label={L('Convites por responder')}>
+      <header className="nt-head"><span className="nt-bell"><Ic d={INVITE_IC} size={18} /></span><h4>{L('Convites por responder')}</h4><em>{show.length}</em></header>
+      {err && <p className="fx-error">{err}</p>}
+      <div className="nt-list">{show.map((i) => <InviteCard key={i.id} inv={{ id: i.id, by: i.invited_by_name, group: i.group_name }} busy={busy} onAnswer={(a) => answer(i.id, a)} />)}</div>
+      {!groups && <button type="button" className="spi-later" onClick={later}>{L('Decidir mais tarde')}</button>}
+    </aside>,
     document.body,
   );
 }
