@@ -99,7 +99,7 @@ function TxForm({ o, d, onClose, onKind }: { o: TxFormOptions; d: FormData; onCl
   const [endDate, setEndDate] = useState('');
   const [moreOpts, setMoreOpts] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [noAdd, setNoAdd] = useState(false); // grupo onde só quem o criou adiciona
+  const [noAdd, setNoAdd] = useState(false); // grupo onde não tenho permissão para adicionar
   const [splitInfo, setSplitInfo] = useState(0); // por quantas pessoas se divide o grupo escolhido
   useEffect(() => {
     const id = splitIdOf(groupId);
@@ -185,7 +185,7 @@ function TxForm({ o, d, onClose, onKind }: { o: TxFormOptions; d: FormData; onCl
             <DateRow label={t('transactions.date')} value={date} onChange={setDate} testId="tx-date" />
             {!toAccount && groups.length > 0 && <label className="tx-row"><span><Ic d="M4 6h16M4 12h16M4 18h10" size={18} />{L('Grupo')}</span>
               <PickMenu compact label={L('Grupo')} value={groupId} options={[{ value: '', label: L('Nenhum') }, ...groups.map((g) => ({ value: g.id, label: g.name }))]} onChange={(v) => setGroupId(String(v))} /></label>}
-            {noAdd && !toAccount && <p className="gx-hint no">{L('Neste grupo só quem o criou pode adicionar transações.')}</p>}
+            {noAdd && !toAccount && <p className="gx-hint no">{L('Não tens permissão para adicionar transações neste grupo.')}</p>}
             {splitInfo > 0 && type === 'expense' && !toAccount && <p className="gx-hint"><Ic d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6" size={16} />{L('Dividida por')} {splitInfo} {splitInfo === 1 ? L('pessoa') : L('pessoas')}{(parseMoneyToCents(amount) ?? 0) > 0 ? `: ${L('a tua parte é')} ${money(Math.ceil(parseMoneyToCents(amount)! / splitInfo))}` : ''}</p>}
             <RepeatRows label={toAccount ? L('Repetir todos os meses') : undefined} on={recurring} setOn={setRecurring} freq={freq} setFreq={setFreq} end={endDate} setEnd={setEndDate} />
           </div>

@@ -21,7 +21,6 @@ import { AccountRow, CategoryRow, DateRow, InviteRow } from '../ui/formFields';
 import { FormError, useMissing } from '../ui/missing';
 import { tellSplit } from '../core/splitLive';
 import { openTxForm, useTxSaved } from '../ui/TxForm';
-import { fill } from '../ui/AccountPlan';
 import { L } from '../i18n/phrases';
 import { BottomSheet } from './SimplePages';
 
@@ -32,7 +31,7 @@ const today = () => new Date().toLocaleDateString('sv-SE');
 const errText = (e: unknown) => (e as { message?: string })?.message ?? String(e);
 const HOURGLASS = 'M6 3h12M6 21h12M7 3v3.5c0 2 5 4 5 5.5s-5 3.5-5 5.5V21M17 3v3.5c0 2-5 4-5 5.5s5 3.5 5 5.5V21';
 const FRIEND = 'M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M19 8v6M16 11h6';
-const LEAVE = 'M15 4h4v16h-4M10 16l-4-4 4-4M6 12h10';
+const LEAVE = 'M10 4H5v16h5M15 8l4 4-4 4M19 12H9';
 const CLOCK = 'M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 7v5l3 2', CHECK = 'M20 6 9 17l-5-5';
 
 export const CALENDAR = 'M5 5h14v15H5zM5 10h14M8 3v4M16 3v4';
@@ -47,13 +46,16 @@ function Who({ m, name, paid, wait }: { m: Member; name: string; paid?: boolean;
   return <span className={'gx-who' + (wait ? ' inv' : '')} title={name}><Face m={m} /><i className={paid ? 'ok' : 'wait'}><Ic d={paid ? CHECK : CLOCK} size={9} /></i></span>;
 }
 
-export function SplitGroup({ splitId, groupId, createdAt, color, pic, local, cats, onEdit, onChanged, onGone }: { color: string; pic: ReactNode; onEdit: (membersAdd: boolean) => void; splitId: string; groupId: string; createdAt: string; local: Transaction[]; cats: Category[]; onChanged: () => void; onGone: () => void }) {
+/** O que a janela Alterar precisa de saber de um grupo partilhado. */
+export interface SplitEditInfo { owner: boolean; people: Member[]; editors: string[]; remove: () => void }
+
+export function SplitGroup({ splitId, groupId, createdAt, color, pic, local, cats, onEdit, onChanged, onGone }: { color: string; pic: ReactNode; onEdit: (info: SplitEditInfo) => void; splitId: string; groupId: string; createdAt: string; local: Transaction[]; cats: Category[]; onChanged: () => void; onGone: () => void }) {
   const { t } = useTranslation();
   const auth = useAuth();
   const me = auth.user?.id ?? '';
   const s = loadSettings();
   const [currency, setCurrency] = useState(s.currency);
-  const [owner, setOwner] = useState(''), [membersAdd, setMembersAdd] = useState(false); // os outros também podem adicionar?
+  const [owner, setOwner] = useState(''), [editors, setEditors] = useState<string[]>([]); // participantes que o criador deixa alterar o grupo
   const [members, setMembers] = useState<Member[]>([]);
   const [bills, setBills] = useState<SplitBill[]>([]);
   const [invs, setInvs] = useState<PendingOut[]>([]);
@@ -82,8 +84,9 @@ export function SplitGroup({ splitId, groupId, createdAt, color, pic, local, cat
     const sh = ids.length ? await sb.from('split_shares').select('*').in('bill_id', ids) : { data: [], error: null };
     const e = m.error || b.error || i.error || sh.error;
     setError(e ? errText(e) : null);
-    if (g.data) { setCurrency((g.data as { currency: string }).currency); setOwner((g.data as { owner_id: string }).owner_id); setMembersAdd((g.data as { members_can_add?: boolean }).members_can_add === true); }
+    if (g.data) { setCurrency((g.data as { currency: string }).currency); setOwner((g.data as { owner_id: string }).owner_id); }
     setMembers((m.data ?? []).map((r: any) => ({ userId: r.user_id, displayName: r.display_name, avatarUrl: r.avatar_url ?? null })));
+    setEditors((m.data ?? []).filter((r: any) => r.can_edit === true).map((r: any) => r.user_id as string));
     setBills(toBills(b.data ?? [], sh.data ?? [])); setLoaded(!e);
     setInvs((i.data ?? []) as PendingOut[]);
   }, [splitId]);
@@ -128,7 +131,7 @@ export function SplitGroup({ splitId, groupId, createdAt, color, pic, local, cat
   const shareOf = (b: SplitBill, uid: string) => eachOf(b) || (b.shares.find((x) => x.userId === uid)?.shareCents ?? 0);
   // a minha parte registada nas minhas transações, para não aparecer duas vezes
   const mineOf = (b: SplitBill) => local.find((x) => billOfTx(x.id) === b.id) ?? local.find((x) => !billOfTx(x.id) && x.type === 'expense' && x.description === b.description && Math.abs(x.amountCents - shareOf(b, me)) <= 1);
-  const canAdd = owner === me || membersAdd;
+  const canEdit = owner === me || editors.includes(me);
   const crowd: Array<Member & { wait?: boolean }> = [...members, ...pending.map((i) => ({ userId: i.id, displayName: i.email ?? '+' + i.phone, avatarUrl: null, wait: true }))]; // quem aparece no botão de convidar
   const nameOf = (id: string) => (id === me ? L('Tu') : members.find((m) => m.userId === id)?.displayName ?? '?');
   const memberOf = (id: string): Member => members.find((m) => m.userId === id) ?? { userId: id, displayName: nameOf(id), avatarUrl: null };
@@ -167,7 +170,7 @@ export function SplitGroup({ splitId, groupId, createdAt, color, pic, local, cat
   };
   const removeBill = async (b: SplitBill) => {
     const { data, error: e } = await getSupabase()!.from('split_bills').update({ deleted_at: new Date().toISOString() }).eq('id', b.id).select('id');
-    if (e || !data?.length) { setError(e ? errText(e) : L('Só quem criou o grupo pode apagar transações.')); return; }
+    if (e || !data?.length) { setError(e ? errText(e) : L('Não tens permissão para apagar transações neste grupo.')); return; }
     tellSplit(splitId);
     const mine = mineOf(b);
     if (mine) await softDelete(db, 'transactions', mine.id); // a minha parte sai também das minhas transações
@@ -181,16 +184,17 @@ export function SplitGroup({ splitId, groupId, createdAt, color, pic, local, cat
   return (
     <>
       <section className="mv-hero sh-hero grp-total gl-hero gg-hero gg-shared" style={{ '--g': color } as CSSProperties}>
+        <button type="button" className="gx-leave" onClick={leave} aria-label={L('Sair do grupo')}><Ic d={LEAVE} size={17} /><span>{L('Sair')}</span></button>
         {pic}
         <div className="gl-sum">
           <div className="gl-have"><small>{L('Total do grupo')}</small><b>{money(total)}</b><small>{bills.length} {bills.length === 1 ? L('transação') : L('transações')}</small></div>
           <div className="gl-acts">
-            {canAdd && <button type="button" className="gl-act main" onClick={() => openTxForm({ type: 'expense', groupId })}><Ic d={ICON.plus} size={18} />{L('Adicionar')}</button>}
+            {canEdit && <button type="button" className="gl-act main" onClick={() => openTxForm({ type: 'expense', groupId })}><Ic d={ICON.plus} size={18} />{L('Adicionar')}</button>}
             <button type="button" className={'gl-act' + (crowd.length > 1 ? ' gx-inv' : '')} onClick={() => setInviting([])} aria-label={L('Convidar mais pessoas')} title={L('Convidar mais pessoas')}>
               <Ic d={FRIEND} size={18} />
               {crowd.length > 1 ? <><span className="gg-faces">{crowd.slice(0, 4).map((m) => <span key={m.userId} className={m.wait ? 'wait' : ''} title={m.displayName}><Face m={m} /></span>)}{crowd.length > 4 && <i>+{crowd.length - 4}</i>}</span><span className="gx-plus" aria-hidden="true"><Ic d={ICON.plus} size={17} /></span></> : L('Convidar')}
             </button>
-            {owner === me && <button type="button" className="gl-act" onClick={() => onEdit(membersAdd)}><Ic d="M4 20h4L19 9l-4-4L4 16zM13 7l4 4" size={18} />{L('Alterar')}</button>}
+            {canEdit && <button type="button" className="gl-act" onClick={() => onEdit({ owner: owner === me, people: members.filter((m) => m.userId !== me), editors, remove: removeGroup })}><Ic d="M4 20h4L19 9l-4-4L4 16zM13 7l4 4" size={18} />{L('Alterar')}</button>}
           </div>
         </div>
       </section>
@@ -204,8 +208,7 @@ export function SplitGroup({ splitId, groupId, createdAt, color, pic, local, cat
 
       <section className="mv-card gl-sec">
         <h2>{L('Transações')}</h2>
-        {loaded && !canAdd && <p className="gl-sub">{fill(L('Só {d} pode adicionar transações.'), { d: nameOf(owner) })}</p>}
-        {bills.length === 0 && <p className="fx-muted">{canAdd ? L('Tudo o que adicionares aqui é dividido por todos.') : L('Ainda não há transações neste grupo.')}</p>}
+        {bills.length === 0 && <p className="fx-muted">{canEdit ? L('Tudo o que adicionares aqui é dividido por todos.') : L('Ainda não há transações neste grupo.')}</p>}
         {bills.map((b) => {
           const pr = billProgress(b), mine = mineOf(b), ex = open === b.id;
           const left = leftOf(b);
@@ -242,7 +245,7 @@ export function SplitGroup({ splitId, groupId, createdAt, color, pic, local, cat
                   })}
                   {pending.map((i) => <div key={i.id} className="sp-row inv"><span className="sp-face-ph"><Ic d={CLOCK} size={17} /></span><span className="sp-row-main"><span className="sp-row-top"><b>{i.email ?? '+' + i.phone}</b></span><small>{L('Vai pagar')} <b>{money(eachOf(b))}</b> {L('quando aceitar')}</small></span><span className="sp-badge wait">{L('Pendente')}</span></div>)}
                 </div>
-                {owner === me && <button type="button" className="gx-rm" onClick={() => setClosing(b)}><Ic d={ICON.trash} size={17} />{L('Apagar transação')}</button>}
+                {canEdit && <button type="button" className="gx-rm" onClick={() => setClosing(b)}><Ic d={ICON.trash} size={17} />{L('Apagar transação')}</button>}
               </div></div></div>
             </div>
           );
@@ -292,10 +295,6 @@ export function SplitGroup({ splitId, groupId, createdAt, color, pic, local, cat
             </div>
           </div>, document.body);
       })()}
-      <div className="gx-end gx-ends">
-        {owner === me && <button type="button" className="gx-rm" onClick={removeGroup}><Ic d={ICON.trash} size={18} />{L('Apagar grupo')}</button>}
-        <button type="button" className="gx-rm" onClick={leave}><Ic d={LEAVE} size={18} />{L('Sair do grupo')}</button>
-      </div>
     </>
   );
 }
