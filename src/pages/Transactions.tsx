@@ -10,7 +10,7 @@ import { SIMPLE_UI } from '../core/uiMode';
 import { EmptyState as EmptyHero } from '../ui/EmptyState';
 import { accountBalanceCents as balOfAcc, addTransfer, salariesUntil } from '../core/accounts';
 import { useIsMobile } from '../ui/useIsMobile';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { db } from '../db/app-db';
 import type { Transaction, Transfer, Category, Group, RecurringFrequency } from '../db/database';
 import { addTransaction, addRecurring, materializeDueRecurrings, RECURRING_FREQUENCIES, softDelete, activeCategories, filterTransactions, listGroups } from '../core/finance';
@@ -28,7 +28,12 @@ import { L } from '../i18n/phrases';
 
 const COLORS = ['#8b7cf6', '#5fd4c4', '#e58fd3', '#f5b85a', '#60a5fa', '#4ade9b', '#f87171'];
 
-export function Transactions() {
+/** O que já estava escrito no formulário, para continuar noutra página. */
+export interface TxDraft { amount: string; description: string; date: string; accountId: string }
+/** Só o formulário "Nova transação", aberto noutra página (ex.: Salários). `n` muda de cada vez que se carrega no botão. */
+export interface TxEmbed { n: number; onExpense: (draft: TxDraft) => void; onSaved: () => void; check?: (cents: number, date: string) => Promise<string | null> }
+
+export function Transactions({ embed }: { embed?: TxEmbed } = {}) {
   const { t } = useTranslation();
   const settings = loadSettings();
   const now = new Date();
@@ -78,7 +83,7 @@ export function Transactions() {
     setCats(cs);
     setGroups(await listGroups(db));
     setTransfers(await loadTransfers(db));
-    setCategoryId((cur) => cur || cs[0]?.id || '');
+    if (!embed) setCategoryId((cur) => cur || cs[0]?.id || '');
   };
   useEffect(() => { refresh().catch((e) => setError(String(e))); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [range.from, range.to, filterCat, filterText]);
 
@@ -137,10 +142,19 @@ export function Transactions() {
 
   // O botão "+" do telemóvel abre esta página com ?nova=1 -> abre logo o formulário.
   const [params, setParams] = useSearchParams();
+  const draft = (useLocation().state as { draft?: TxDraft } | null)?.draft;
   useEffect(() => {
-    if (params.get('nova') && accounts.length > 0) {
+    if (!embed || accounts.length === 0) return;
+    openNew();
+    setType('income'); setCategoryId(''); setDate(todayISO()); setRecurring(false);
+    refresh().catch(() => {}); // categorias acabadas de criar
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [embed?.n, accounts.length > 0]);
+  useEffect(() => {
+    if (!embed && params.get('nova') && accounts.length > 0) {
       openNew();
       setType(params.get('tipo') === 'income' ? 'income' : 'expense'); // "Recebi" abre já como rendimento
+      if (draft) { setAmount(draft.amount); setDescription(draft.description); setDate(draft.date); if (draft.accountId) setAccountId(draft.accountId); } // vindo de Salários
       if (params.get('grupo')) setGroupId(params.get('grupo')!); // vindo de um grupo
       const para = accounts.find((a) => a.id === params.get('para')); // abater uma dívida: abre já como transferência
       if (para) { setToAccount(para.id); const from = accounts.find((a) => a.isDefault && a.id !== para.id) ?? accounts.find((a) => a.type !== 'debt' && a.id !== para.id); if (from) setAccountId(from.id); }
@@ -166,6 +180,7 @@ export function Transactions() {
     const cents = parseMoneyToCents(amount);
     setError(null);
     if (!miss.check() || cents === null) return;
+    if (embed?.check && type === 'income' && !toAccount) { const msg = await embed.check(cents, date); if (msg) { setError(msg); return; } }
     // grupo dividido: a transação é dividida por todos e nas minhas fica só a minha parte
     const splitId = !toAccount ? splitIdOf(groupId) : null;
     let mine = cents, billId = '';
@@ -187,7 +202,7 @@ export function Transactions() {
         } else {
           await addTransfer(db, { fromAccountId: accountId, toAccountId: toAccount, amountCents: cents, date, note: description.trim(), categoryId: null });
         }
-        setToAccount(''); setAmount(''); setDescription(''); setOpen(false); await refresh();
+        setToAccount(''); setAmount(''); setDescription(''); setOpen(false); await refresh(); embed?.onSaved();
       } catch (e) { setError(String(e)); }
       return;
     }
@@ -205,6 +220,7 @@ export function Transactions() {
       setRecurring(false); setEndDate(''); setAmount(''); setDescription('');
       setOpen(false);
       await refresh();
+      embed?.onSaved();
     } catch (e) { setError(String(e)); }
   };
 
@@ -220,6 +236,71 @@ export function Transactions() {
   }, [range.from, range.to, kind, active, accounts]);  // eslint-disable-line react-hooks/exhaustive-deps
   const [dayOnly, setDayOnly] = useState<string | null>(new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('dia'));
   const simple = SIMPLE_UI && isMobile;
+
+  // noutra página, escolher Despesa leva para as Transações com o formulário aberto e o que já estava escrito
+  const pickType = (v: 'expense' | 'income') => { if (embed && v === 'expense') { setOpen(false); embed.onExpense({ amount, description, date, accountId }); } else setType(v); };
+  const sheet = (
+      <Sheet open={open} onClose={() => { setOpen(false); setToAccount(''); miss.reset(); }} title={toAccount ? L('Transferência') : t('transactions.addTransaction')}
+        footer={SIMPLE_UI && isMobile
+          ? <><button type="button" className="tx-addbtn" onClick={submit}>{toAccount ? L('Transferir') : type === 'expense' ? L('Adicionar despesa') : L('Adicionar rendimento')}</button><CalculatorButton value={amount} lang={settings.language} onUse={setAmount} /></>
+          : <><span style={{ flex: 1 }} /><button type="button" className="fx-btn" onClick={() => { setOpen(false); miss.reset(); }}>{t('common.cancel')}</button><button type="button" className="fx-btn primary" onClick={submit}>{t('common.add')}</button><CalculatorButton value={amount} lang={settings.language} onUse={setAmount} /></>}>
+        {miss.note ?? (error && <FormError text={error} />)}
+        {SIMPLE_UI && isMobile ? (<>
+          {/* Formulário (telemóvel): valor grande e linhas com ícone */}
+          <div className="tx-seg"><Seg value={type} onChange={pickType} label={t('transactions.type')} options={[{ id: 'expense', label: t('transactions.typeExpense') }, { id: 'income', label: t('transactions.typeIncome') }]} /></div>
+          <AmountField value={amount} onChange={setAmount} currency={settings.currency} cls={miss.cls('amount')} autoFocus kind={toAccount ? undefined : type} />
+          <div className="tx-rows">
+            <TextRow label={t('transactions.description')} value={description} onChange={setDescription} />
+            {toAccount ? <Row div icon={FI.cat} label={t('transactions.category')}><span className="tx-muted">{L('Transferência')}</span></Row> : <CategoryRow cats={cats} kind={type} value={categoryId} onChange={setCategoryId} cls={miss.cls('cat')} required={!!embed} />}
+            <AccountRow label={toAccount ? L('Da conta') : t('accounts.account')} value={accountId} options={accounts.map((a) => ({ id: a.id, name: a.name, right: bals[a.id] !== undefined ? money(bals[a.id]) : undefined }))} balance={bals[accountId] !== undefined ? money(bals[accountId]) : undefined} onChange={(v) => { setAccountId(v); if (v === toAccount) setToAccount(''); }} />
+            {!toAccount && <button type="button" className="tx-row tx-swaprow" onClick={() => (accounts.length > 1 ? setToAccount(accounts.find((a) => a.id !== accountId)?.id ?? '') : setError(L('Para transferir, cria primeiro outra conta (ex.: Poupanças) em Contas.')))}><span><Ic d="M4 7h13l-3-3M20 17H7l3 3" size={18} />{L('Transferir para outra conta')}</span><Ic d={ICON.right} size={16} /></button>}
+            {toAccount && <AccountRow icon={FI.swap} label={L('Para a conta')} value={toAccount} options={accounts.filter((a) => a.id !== accountId).map((a) => ({ id: a.id, name: a.name }))} owed={accounts.find((a) => a.id === toAccount)?.type === 'debt'} balance={bals[toAccount] !== undefined ? money(bals[toAccount]) : undefined} onChange={setToAccount}>
+              <button type="button" className="tx-swap off" onClick={() => setToAccount('')} aria-label={L('Cancelar transferência')}><Ic d={ICON.close} size={16} /></button></AccountRow>}
+            <DateRow label={t('transactions.date')} value={date} onChange={setDate} testId="tx-date" />
+            {!toAccount && groups.length > 0 && <label className="tx-row"><span><Ic d="M4 6h16M4 12h16M4 18h10" size={18} />{L('Grupo')}</span>
+              <PickMenu compact label={L('Grupo')} value={groupId} options={[{ value: '', label: L('Nenhum') }, ...groups.map((g) => ({ value: g.id, label: g.name }))]} onChange={(v) => setGroupId(String(v))} /></label>}
+            {splitInfo > 0 && type === 'expense' && !toAccount && <p className="gx-hint"><Ic d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6" size={16} />{L('Dividida por')} {splitInfo} {splitInfo === 1 ? L('pessoa') : L('pessoas')}{(parseMoneyToCents(amount) ?? 0) > 0 ? `: ${L('a tua parte é')} ${money(Math.ceil(parseMoneyToCents(amount)! / splitInfo))}` : ''}</p>}
+            <RepeatRows label={toAccount ? L('Repetir todos os meses') : undefined} on={recurring} setOn={setRecurring} freq={freq} setFreq={setFreq} end={endDate} setEnd={setEndDate} />
+          </div>
+        </>) : (<>
+        <Seg value={type} onChange={pickType} label={t('transactions.type')} options={[{ id: 'expense', label: t('transactions.typeExpense') }, { id: 'income', label: t('transactions.typeIncome') }]} />
+        <Field label={t('transactions.amount')} miss={miss.cls('amount')}><input className="fx-input big" autoFocus inputMode="decimal" value={amount} placeholder="0,00" onChange={(e) => setAmount(e.target.value)} /></Field>
+        <Field label={t('transactions.description')}><input className="fx-input" value={description} placeholder={t('transactions.descriptionPlaceholder')} onChange={(e) => setDescription(e.target.value)} /></Field>
+        <div className="fx-two">
+          <Field label={t('transactions.category')}>
+            <CategorySelect cats={cats} kind={type} value={categoryId} onChange={setCategoryId} ariaLabel={t('transactions.category')} emptyLabel={embed ? L('Escolher…') : undefined} />
+          </Field>
+          <Field label={t('transactions.date')}><DatePicker value={date} onChange={setDate} ariaLabel={t('transactions.date')} testId="tx-date" /></Field>
+        </div>
+        {isMobile && !moreOpts ? (
+          <button type="button" className="tx-moreopts" onClick={() => setMoreOpts(true)}>+ {t('mobile.moreOptions')}</button>
+        ) : (<>
+          <div className="fx-two">
+            <Field label={t('accounts.account')}>
+              <select className="fx-input" value={accountId} onChange={(e) => setAccountId(e.target.value)}>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
+            </Field>
+            <Field label={t('goals.groupName')}>
+              <select className="fx-input" value={groupId} onChange={(e) => setGroupId(e.target.value)}><option value="">—</option>{groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}</select>
+            </Field>
+          </div>
+          <Toggle on={recurring} onChange={setRecurring} label={t('transactions.recurring')} hint={t('transactions.recurringHint')} />
+          {recurring && (
+            <div className="fx-two">
+              <Field label={t('goals.frequency')}>
+                <select className="fx-input" value={freq} onChange={(e) => setFreq(e.target.value as RecurringFrequency)}>
+                  {RECURRING_FREQUENCIES.map((f) => <option key={f} value={f}>{t('goals.' + f)}</option>)}
+                </select>
+              </Field>
+              <Field label={t('transactions.recurringEnd')}>
+                <DatePicker value={endDate} onChange={setEndDate} allowEmpty ariaLabel={t('transactions.recurringEnd')} />
+              </Field>
+            </div>
+          )}
+        </>)}
+        </>)}
+      </Sheet>
+  );
+  if (embed) return sheet;
 
   return (
     <div className={'fx-page' + (simple ? ' tx-simple' : '')}>
@@ -354,65 +435,7 @@ export function Transactions() {
         </div>
       )}
 
-      <Sheet open={open} onClose={() => { setOpen(false); setToAccount(''); miss.reset(); }} title={toAccount ? L('Transferência') : t('transactions.addTransaction')}
-        footer={SIMPLE_UI && isMobile
-          ? <><button type="button" className="tx-addbtn" onClick={submit}>{toAccount ? L('Transferir') : type === 'expense' ? L('Adicionar despesa') : L('Adicionar rendimento')}</button><CalculatorButton value={amount} lang={settings.language} onUse={setAmount} /></>
-          : <><span style={{ flex: 1 }} /><button type="button" className="fx-btn" onClick={() => { setOpen(false); miss.reset(); }}>{t('common.cancel')}</button><button type="button" className="fx-btn primary" onClick={submit}>{t('common.add')}</button><CalculatorButton value={amount} lang={settings.language} onUse={setAmount} /></>}>
-        {miss.note ?? (error && <FormError text={error} />)}
-        {SIMPLE_UI && isMobile ? (<>
-          {/* Formulário (telemóvel): valor grande e linhas com ícone */}
-          <div className="tx-seg"><Seg value={type} onChange={setType} label={t('transactions.type')} options={[{ id: 'expense', label: t('transactions.typeExpense') }, { id: 'income', label: t('transactions.typeIncome') }]} /></div>
-          <AmountField value={amount} onChange={setAmount} currency={settings.currency} cls={miss.cls('amount')} autoFocus kind={toAccount ? undefined : type} />
-          <div className="tx-rows">
-            <TextRow label={t('transactions.description')} value={description} onChange={setDescription} />
-            {toAccount ? <Row div icon={FI.cat} label={t('transactions.category')}><span className="tx-muted">{L('Transferência')}</span></Row> : <CategoryRow cats={cats} kind={type} value={categoryId} onChange={setCategoryId} cls={miss.cls('cat')} />}
-            <AccountRow label={toAccount ? L('Da conta') : t('accounts.account')} value={accountId} options={accounts.map((a) => ({ id: a.id, name: a.name, right: bals[a.id] !== undefined ? money(bals[a.id]) : undefined }))} balance={bals[accountId] !== undefined ? money(bals[accountId]) : undefined} onChange={(v) => { setAccountId(v); if (v === toAccount) setToAccount(''); }} />
-            {!toAccount && <button type="button" className="tx-row tx-swaprow" onClick={() => (accounts.length > 1 ? setToAccount(accounts.find((a) => a.id !== accountId)?.id ?? '') : setError(L('Para transferir, cria primeiro outra conta (ex.: Poupanças) em Contas.')))}><span><Ic d="M4 7h13l-3-3M20 17H7l3 3" size={18} />{L('Transferir para outra conta')}</span><Ic d={ICON.right} size={16} /></button>}
-            {toAccount && <AccountRow icon={FI.swap} label={L('Para a conta')} value={toAccount} options={accounts.filter((a) => a.id !== accountId).map((a) => ({ id: a.id, name: a.name }))} owed={accounts.find((a) => a.id === toAccount)?.type === 'debt'} balance={bals[toAccount] !== undefined ? money(bals[toAccount]) : undefined} onChange={setToAccount}>
-              <button type="button" className="tx-swap off" onClick={() => setToAccount('')} aria-label={L('Cancelar transferência')}><Ic d={ICON.close} size={16} /></button></AccountRow>}
-            <DateRow label={t('transactions.date')} value={date} onChange={setDate} testId="tx-date" />
-            {!toAccount && groups.length > 0 && <label className="tx-row"><span><Ic d="M4 6h16M4 12h16M4 18h10" size={18} />{L('Grupo')}</span>
-              <PickMenu compact label={L('Grupo')} value={groupId} options={[{ value: '', label: L('Nenhum') }, ...groups.map((g) => ({ value: g.id, label: g.name }))]} onChange={(v) => setGroupId(String(v))} /></label>}
-            {splitInfo > 0 && type === 'expense' && !toAccount && <p className="gx-hint"><Ic d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6" size={16} />{L('Dividida por')} {splitInfo} {splitInfo === 1 ? L('pessoa') : L('pessoas')}{(parseMoneyToCents(amount) ?? 0) > 0 ? `: ${L('a tua parte é')} ${money(Math.ceil(parseMoneyToCents(amount)! / splitInfo))}` : ''}</p>}
-            <RepeatRows label={toAccount ? L('Repetir todos os meses') : undefined} on={recurring} setOn={setRecurring} freq={freq} setFreq={setFreq} end={endDate} setEnd={setEndDate} />
-          </div>
-        </>) : (<>
-        <Seg value={type} onChange={setType} label={t('transactions.type')} options={[{ id: 'expense', label: t('transactions.typeExpense') }, { id: 'income', label: t('transactions.typeIncome') }]} />
-        <Field label={t('transactions.amount')} miss={miss.cls('amount')}><input className="fx-input big" autoFocus inputMode="decimal" value={amount} placeholder="0,00" onChange={(e) => setAmount(e.target.value)} /></Field>
-        <Field label={t('transactions.description')}><input className="fx-input" value={description} placeholder={t('transactions.descriptionPlaceholder')} onChange={(e) => setDescription(e.target.value)} /></Field>
-        <div className="fx-two">
-          <Field label={t('transactions.category')}>
-            <CategorySelect cats={cats} kind={type} value={categoryId} onChange={setCategoryId} ariaLabel={t('transactions.category')} />
-          </Field>
-          <Field label={t('transactions.date')}><DatePicker value={date} onChange={setDate} ariaLabel={t('transactions.date')} testId="tx-date" /></Field>
-        </div>
-        {isMobile && !moreOpts ? (
-          <button type="button" className="tx-moreopts" onClick={() => setMoreOpts(true)}>+ {t('mobile.moreOptions')}</button>
-        ) : (<>
-          <div className="fx-two">
-            <Field label={t('accounts.account')}>
-              <select className="fx-input" value={accountId} onChange={(e) => setAccountId(e.target.value)}>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
-            </Field>
-            <Field label={t('goals.groupName')}>
-              <select className="fx-input" value={groupId} onChange={(e) => setGroupId(e.target.value)}><option value="">—</option>{groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}</select>
-            </Field>
-          </div>
-          <Toggle on={recurring} onChange={setRecurring} label={t('transactions.recurring')} hint={t('transactions.recurringHint')} />
-          {recurring && (
-            <div className="fx-two">
-              <Field label={t('goals.frequency')}>
-                <select className="fx-input" value={freq} onChange={(e) => setFreq(e.target.value as RecurringFrequency)}>
-                  {RECURRING_FREQUENCIES.map((f) => <option key={f} value={f}>{t('goals.' + f)}</option>)}
-                </select>
-              </Field>
-              <Field label={t('transactions.recurringEnd')}>
-                <DatePicker value={endDate} onChange={setEndDate} allowEmpty ariaLabel={t('transactions.recurringEnd')} />
-              </Field>
-            </div>
-          )}
-        </>)}
-        </>)}
-      </Sheet>
+      {sheet}
     </div>
   );
 }

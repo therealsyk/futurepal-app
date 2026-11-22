@@ -1499,3 +1499,7 @@ html:not(.pcm) .mv-menu { padding: 0 11px; } html:not(.pcm) .mv-menu svg { displ
 @media (max-width: 768px) { .gl-hero { flex-direction: column !important; gap: 18px; padding: 22px 16px !important; } .gl-sum { width: 100%; align-items: center; text-align: center; gap: 16px; } .gl-acts { width: 100%; flex-wrap: nowrap; gap: 8px; } .gl-act { flex: 1; padding: 0 8px; } .gl-plans { grid-template-columns: 1fr 1fr; } .gl-card { gap: 14px; } .gl-go { display: none; } }
 @media (prefers-reduced-motion: reduce) { .gl-card, .gl-page > :not(.bs-backdrop), .gl-ring, .gl-ring circle.on { animation: none; } }
 .gl-total .mv-balance { display: block; font-size: clamp(30px, 4vw, 40px); line-height: 1.2; }
+/* menus diretos numa linha (ex.: Grupo): alinhados à direita como os outros campos */
+.tx-row > .fx-pick > .fx-btn, .tx-row > .fx-pick.compact > .fx-btn { padding: 0; font-size: 15.5px; font-weight: 600; } .tx-row > .fx-pick > .fx-btn:hover { background: none; color: var(--mv); }
+html.keep-sheet :is(.fx-sheet, .fx-backdrop) { animation: none !important; }
+.sal-add { width: max-content; white-space: nowrap; padding-left: 20px; padding-right: 22px; }

@@ -1,17 +1,15 @@
-import { AccountRow, AmountField, CategoryRow, DateRow, RepeatRows, TextRow } from '../ui/formFields';
-import { FormError, useMissing } from '../ui/missing';
+import { Transactions, type TxDraft } from './Transactions';
+import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
-import { salaryGrid, salaryYearSummary, setSalary, addTransaction, softDelete, addRecurring, materializeDueRecurrings, activeCategories } from '../core/finance';
+import { salaryGrid, salaryYearSummary, setSalary, softDelete } from '../core/finance';
 import { stampNew } from '../db/database';
-import type { Account, Category, Transaction, RecurringFrequency } from '../db/database';
+import type { Category, Transaction } from '../db/database';
 import { parseMoneyToCents, formatMoney } from '../core/money';
 import { loadSettings } from '../core/settings';
-import { PageHead, Sheet, MonthNav, EmptyState, Ic, ICON } from '../ui/fx';
-import { todayISO } from '../core/dates';
+import { PageHead, MonthNav, catLabel, EmptyState, Ic, ICON } from '../ui/fx';
 import { isSalaryTx, syncSalaryTransactions } from '../core/salaryTx';
-import { defaultAccountId } from '../core/accounts';
 import { Metric } from './PcOverview';
 import { L } from '../i18n/phrases';
 
@@ -34,20 +32,10 @@ export const Salaries = () => {
   const [extras, setExtras] = useState<Transaction[]>([]);
   const [prev, setPrev] = useState({ salary: 0, expense: 0, income: 0 });
   const [salaryCats, setSalaryCats] = useState<Set<string>>(new Set());
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [drafts, setDrafts] = useState<Record<number, string>>({});
-  const [open, setOpen] = useState(false);
-  const [eName, setEName] = useState('');
-  const missing = useMissing();
-  const [eDate, setEDate] = useState(todayISO());
-  const [eAmount, setEAmount] = useState('');
-  const [eAcc, setEAcc] = useState('');
-  const [eCat, setECat] = useState('');
   const [cats, setCats] = useState<Category[]>([]);
-  const [eRec, setERec] = useState(false);
-  const [eFreq, setEFreq] = useState<RecurringFrequency>('monthly');
-  const [eEnd, setEEnd] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<Record<number, string>>({});
+  const [formN, setFormN] = useState(0);
+  const navigate = useNavigate();
 
   const fmt = (c: number) => formatMoney(c, s.currency, s.language);
   const monthNames = t('calendar.monthNames', { returnObjects: true }) as string[];
@@ -59,17 +47,15 @@ export const Salaries = () => {
     // ano anterior, para as comparações (salário, despesas, poupança e taxa)
     const ps = await salaryYearSummary(db, year - 1);
     const pAll = (await db.transactions.toArray()).filter((tx) => tx.deletedAt === null && tx.type === 'income' && !isSalaryTx(tx) && tx.date.startsWith(String(year - 1)));
-    const salCats = new Set((await db.categories.toArray()).filter((c) => c.nameKey === 'catSalary' || c.nameKey === 'catPension').map((c) => c.id));
-    const pExtras = pAll.filter((tx) => !salCats.has(tx.categoryId)).reduce((a, x) => a + x.amountCents, 0);
+    const pExtras = pAll.reduce((a, x) => a + x.amountCents, 0);
     setPrev({ salary: ps.salaryCents, expense: ps.expenseCents, income: ps.salaryCents + pExtras });
     const cats = (await db.categories.toArray()).filter((c) => c.deletedAt === null);
     const sal = new Set(cats.filter((c) => c.nameKey === 'catSalary' || c.nameKey === 'catPension').map((c) => c.id));
     setSalaryCats(sal);
-    const accs = (await db.accounts.toArray()).filter((a) => a.deletedAt === null);
-    setAccounts(accs);
-    // extras = todos os rendimentos do ano que não são o salário (os que vêm das Transações também aparecem aqui)
+    setCats(cats);
+    // extras = todos os rendimentos do ano que não estão na grelha (incluindo um 2.º salário no mesmo mês) (os que vêm das Transações também aparecem aqui)
     setExtras((await db.transactions.toArray())
-      .filter((tx) => tx.deletedAt === null && tx.type === 'income' && !isSalaryTx(tx) && !sal.has(tx.categoryId) && tx.date.startsWith(String(year)))
+      .filter((tx) => tx.deletedAt === null && tx.type === 'income' && !isSalaryTx(tx) && tx.date.startsWith(String(year)))
       .sort((a, b) => b.date.localeCompare(a.date)));
     setDrafts({});
   };
@@ -108,34 +94,18 @@ export const Salaries = () => {
     await db.categories.add(row);
     return row.id;
   };
-  const openExtra = async () => {
-    setError(null); setEName(''); setEAmount(''); setEDate(todayISO()); setERec(false); setEEnd(''); setEFreq('monthly');
-    const id = await extrasCat();
-    setCats(await activeCategories(db)); setECat(id);
-    setEAcc(defaultAccountId(accounts) ?? accounts[0]?.id ?? '');
-    setOpen(true);
-  };
-
-  const miss = missing([['amount', L('o valor'), (parseMoneyToCents(eAmount) ?? 0) > 0], ['date', L('a data'), !!eDate]]);
-  const addExtra = async () => {
-    const cents = parseMoneyToCents(eAmount);
-    setError(null);
-    if (!miss.check() || cents === null) return;
-    // já existe? (mesmo valor a 3 dias ou menos, registado aqui ou nas Transações)
+  const openNew = async () => { await extrasCat(); setFormN((n) => n + 1); };
+  // já existe? (mesmo valor a 3 dias ou menos, registado aqui ou nas Transações)
+  const checkDouble = async (cents: number, date: string) => {
     const day = (d: string) => new Date(d + 'T00:00:00').getTime() / 864e5;
     const all = (await db.transactions.toArray()).filter((x) => x.deletedAt === null && x.type === 'income');
-    if (all.some((x) => x.amountCents === cents && Math.abs(day(x.date) - day(eDate)) <= 3)) { setError(L('Já existe um rendimento com este valor nesta data.')); return; }
-    const id = eCat || await extrasCat();
-    const description = eName.trim() || t('salaries.addExtra');
-    if (eRec) {
-      if (eEnd && eEnd < eDate) { setError(t('transactions.endBeforeStart')); return; }
-      await addRecurring(db, { type: 'income', categoryId: id, description, amountCents: cents, currency: s.currency, frequency: eFreq, nextDate: eDate, endDate: eEnd || null, accountId: eAcc || undefined });
-      await materializeDueRecurrings(db, todayISO());
-    } else {
-      await addTransaction(db, { date: eDate, description, amountCents: cents, type: 'income', categoryId: id, currency: s.currency, accountId: eAcc || undefined });
-    }
-    setOpen(false);
-    await load();
+    return all.some((x) => x.amountCents === cents && Math.abs(day(x.date) - day(date)) <= 3) ? L('Já existe um rendimento com este valor nesta data.') : null;
+  };
+  const goExpense = (draft: TxDraft) => {
+    // a janela continua aberta na página Transações: não repete a animação de entrada
+    const root = document.documentElement.classList;
+    root.add('keep-sheet'); setTimeout(() => root.remove('keep-sheet'), 900);
+    navigate('/transacoes?nova=1', { state: { draft } });
   };
 
   const today = new Date();
@@ -186,7 +156,7 @@ export const Salaries = () => {
             {extras.map((x) => (
               <div className="fx-item" key={x.id}>
                 <div className="fx-avatar" style={{ background: 'var(--teal)', color: '#fff' }}><Ic d={ICON.plus} size={16} /></div>
-                <div className="fx-item-main"><b>{x.description}</b><span>{new Date(x.date + 'T00:00:00').toLocaleDateString(s.language, { day: 'numeric', month: 'short', year: 'numeric' })}</span></div>
+                <div className="fx-item-main"><b>{x.description || catLabel(t, cats.find((c) => c.id === x.categoryId) ?? { name: '' })}</b><span>{new Date(x.date + 'T00:00:00').toLocaleDateString(s.language, { day: 'numeric', month: 'short', year: 'numeric' })}</span></div>
                 <span className="fx-num fx-pos">+{fmt(x.amountCents)}</span>
                 <button type="button" className="fx-round sm" aria-label={t('common.delete')} onClick={async () => { await softDelete(db, 'transactions', x.id); await load(); }}><Ic d={ICON.trash} size={15} /></button>
               </div>
@@ -194,21 +164,8 @@ export const Salaries = () => {
           </div>
         )}
       </div>
-      <button type="button" className="sal-add floating" onClick={() => { openExtra().catch(() => {}); }}><Ic d={ICON.plus} size={16} />{t('salaries.addExtra')}</button>
-
-      {/* Adicionar extra: mesmo formulário das transações (valor grande e linhas com ícone) */}
-      <Sheet open={open} onClose={() => { setOpen(false); miss.reset(); }} title={t('salaries.addExtra')}
-        footer={<button type="button" className="tx-addbtn" onClick={addExtra}>{t('salaries.addExtra')}</button>}>
-        {miss.note ?? (error && <FormError text={error} />)}
-        <AmountField kind="income" value={eAmount} onChange={setEAmount} currency={s.currency} cls={miss.cls('amount')} autoFocus />
-        <div className="tx-rows">
-          <CategoryRow cats={cats} kind="income" value={eCat} onChange={setECat} />
-          <TextRow label={t('salaries.extraName')} value={eName} onChange={setEName} placeholder={L('Ex.: Prémio, horas extra, venda')} />
-          {accounts.length > 0 && <AccountRow label={t('accounts.account')} value={eAcc} options={accounts.filter((a) => a.type !== 'debt').map((a) => ({ id: a.id, name: a.name }))} onChange={setEAcc} />}
-          <DateRow label={t('transactions.date')} value={eDate} onChange={setEDate} cls={miss.cls('date')} />
-          <RepeatRows on={eRec} setOn={setERec} freq={eFreq} setFreq={setEFreq} end={eEnd} setEnd={setEEnd} />
-        </div>
-      </Sheet>
+      <button type="button" className="sal-add floating" onClick={() => { openNew().catch(() => {}); }}><Ic d={ICON.plus} size={16} />{L('Adicionar salário ou extra')}</button>
+      {formN > 0 && <Transactions embed={{ n: formN, check: checkDouble, onExpense: goExpense, onSaved: () => { load().catch(() => {}); } }} />}
     </div>
   );
 };

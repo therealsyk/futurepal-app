@@ -864,6 +864,7 @@ export const PHRASES: Record<string, Tr> = {
   'concluída': ['completed', 'completada', 'terminé'],
   'concluídas': ['completed', 'completadas', 'terminés'],
   'Alterar meta': ['Edit goal', 'Editar meta', 'Modifier l’objectif'],
+  'Adicionar salário ou extra': ['Add salary or extra', 'Añadir salario o extra', 'Ajouter un salaire ou un extra'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */
