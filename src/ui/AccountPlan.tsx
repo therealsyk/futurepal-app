@@ -24,32 +24,31 @@ export const endText = (months: number, lang: string) => fill(L('Acabas em {d} (
 
 export function AccountPlanBox({ a, p, money, lang, onEdit, children, more }: { children?: ReactNode; more?: ReactNode; a: Account; p: PlanInfo; money: (c: number) => string; lang: string; onEdit: () => void }) {
   const debt = a.type === 'debt', text = splitDesc(a.description).text, left = p.left, monthLeft = Math.max(0, p.monthly - p.inMonth);
-  const tile = (label: string, value: string, sub?: string, cls = '') => <div className="pl-tile"><small>{label}</small><b className={cls}>{value}</b>{sub && <em>{sub}</em>}</div>;
+  // caixa simples: ícone, o que é e o valor (como nos grupos e nos limites)
+  const tile = (d: string, label: string, value: ReactNode, tone = '') => <div className={'gx-tile ' + tone}><span aria-hidden="true"><Ic d={d} size={20} /></span><div><small>{label}</small><b>{value}</b></div></div>;
+  const FLAG = 'M6 21V4h11l-2 4 2 4H6', CAL = 'M5 5h14v15H5zM5 10h14M8 3v4M16 3v4', PCT = 'M19 5L5 19M7 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM17 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4z';
   return (
-    <section className="mv-card debt-plan">
+    <section className="mv-card debt-plan ap-box">
       {text && <p className="acc-desc">{text}</p>}
       {p.total > 0 && left === 0 ? <p className="debt-done">{debt ? L('Dívida paga! 🎉') : L('Objetivo atingido 🎉')}</p> : <>
-        {p.total > 0 && <>
-          <div className="pl-bar"><i style={{ width: `${Math.max(2, p.ratio * 100)}%` }} /><span>{pct(p.ratio)}%</span></div>
-          <div className="pl-tiles">
-            {tile(debt ? L('Valor total da dívida') : L('Objetivo'), money(p.total))}
-            {tile(debt ? L('Já abateste') : L('Já tens'), money(p.done), undefined, 'fx-pos')}
-            {tile(debt ? L('Falta abater') : L('Falta juntar'), money(left), p.payable !== null && p.rate > 0 ? fill(L('{m} com juros'), { m: money(p.payable) }) : undefined, debt ? 'fx-neg' : '')}
-            {tile(debt ? L('Termina em') : L('Chegas lá em'), p.months === null ? '—' : endDate(p.months, lang), p.months === null ? (p.monthly > 0 ? L('O valor só dá para os juros') : undefined) : fill(L('faltam {m}'), { m: duration(p.months) }))}
-          </div>
-        </>}
-        {p.monthly > 0 && <div className={'pl-month' + (monthLeft === 0 ? ' ok' : '')}>
-          <span><b>{L('Este mês')}</b><small>{monthLeft === 0 ? L('Feito ✓') : fill(debt ? L('Falta abater {m}') : L('Falta juntar {m}'), { m: money(monthLeft) })}</small></span>
-          <b>{money(p.inMonth)} <small>/ {money(p.monthly)}</small></b>
+        {p.total > 0 && <div className="ap-top">
+          <GoalRing r={p.ratio} size={128} debt={debt}><b>{pct(p.ratio)}%</b><small>{debt ? L('pago') : L('completo')}</small></GoalRing>
+          <div className="gl-have"><small>{debt ? L('Falta pagar') : L('Falta juntar')}</small><b className={debt ? 'fx-neg' : ''}><CountMoney cents={left} money={money} /></b><small>{L('de')} {money(p.total)}</small></div>
         </div>}
-        {p.rate > 0 && p.payable !== null && <p className="pl-note">{fill(L('Juros de {r}% por ano: ainda vais pagar {m} só de juros.'), { r: String(p.rate).replace('.', ','), m: money(p.payable - left) })}</p>}
-        {p.deadline && <p className={'pl-note ' + (p.onTime === null ? '' : p.onTime ? 'fx-pos' : 'fx-neg')}>{p.onTime === null ? `${L('Data limite')}: ` : ''}{p.onTime === null ? new Date(p.deadline + 'T00:00:00').toLocaleDateString(lang, { day: 'numeric', month: 'long', year: 'numeric' }) : fill(p.onTime ? L('Vais a tempo: {d}') : L('⚠ A este ritmo não chegas até {d}'), { d: new Date(p.deadline + 'T00:00:00').toLocaleDateString(lang, { day: 'numeric', month: 'long', year: 'numeric' }) })}</p>}
+        <div className="gx-tiles ap-tiles">
+          {tile('M20 6 9 17l-5-5', debt ? L('Já pagaste') : L('Já tens'), <CountMoney cents={p.done} money={money} />, 'pos')}
+          {p.total > 0 && tile(FLAG, debt ? L('Acabas em') : L('Chegas lá em'), p.months === null ? '—' : endDate(p.months, lang))}
+          {p.monthly > 0 && tile(CAL, L('Este mês'), monthLeft === 0 ? L('Feito ✓') : `${money(p.inMonth)} / ${money(p.monthly)}`, monthLeft === 0 ? 'pos' : '')}
+          {p.rate > 0 && p.payable !== null && tile(PCT, L('Juros que faltam'), money(p.payable - left))}
+        </div>
+        {p.monthly > 0 && p.months === null && debt && <p className="pl-note fx-neg">{L('O valor só dá para os juros')}</p>}
+        {p.deadline && <p className={'pl-note ' + (p.onTime === null ? '' : p.onTime ? 'fx-pos' : 'fx-neg')}>{L('Data limite')}: {new Date(p.deadline + 'T00:00:00').toLocaleDateString(lang, { day: 'numeric', month: 'long', year: 'numeric' })}{p.onTime === null ? '' : ' · ' + (p.onTime ? L('A tempo') : L('Atrasada'))}</p>}
       </>}
       {children}
-      {more}
-      <div className="debt-btns">
-        <button type="button" className="sh-btn out sm" onClick={onEdit}>{L('Alterar')}</button>
-        <Link to={`/transacoes?nova=1&para=${a.id}`} className="sh-btn in sm">{debt ? L('Abater') : L('Juntar')}</Link>
+      <div className="ap-acts">
+        <Link to={`/transacoes?nova=1&para=${a.id}`} className="gl-act main"><Ic d="M7 7h12l-3-3M17 17H5l3 3" size={18} />{debt ? L('Abater') : L('Juntar')}</Link>
+        {more}
+        <button type="button" className="gl-act" onClick={onEdit}><Ic d="M4 20h4L19 9l-4-4L4 16zM13 7l4 4" size={18} />{L('Alterar')}</button>
       </div>
     </section>
   );

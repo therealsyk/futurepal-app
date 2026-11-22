@@ -996,6 +996,9 @@ export const PHRASES: Record<string, Tr> = {
   'Cuidado: pode faltar-te dinheiro para as contas.': ['Careful: you may run short for your bills.', 'Cuidado: puede faltarte dinero para las facturas.', 'Attention : vous pourriez manquer pour vos factures.'],
   'Agora pagas': ['You pay now', 'Ahora pagas', 'Vous payez'],
   'Poupas {m}': ['You save {m}', 'Ahorras {m}', 'Vous gagnez {m}'],
+  'pago': ['paid', 'pagado', 'payé'],
+  'Falta pagar': ['Left to pay', 'Falta pagar', 'Reste à payer'],
+  'Juros que faltam': ['Interest left', 'Intereses restantes', 'Intérêts restants'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */
