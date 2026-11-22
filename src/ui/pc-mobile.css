@@ -1232,21 +1232,21 @@ html.pcm .fx-page.pco { height: 100vh; height: 100dvh; overflow: hidden; }
 /* ---- Scroll em toda a app: barra quase invisível, deslizar suave e conteúdo que se desvanece onde há mais para ver */
 @property --sf-t { syntax: '<length>'; inherits: false; initial-value: 0px; }
 @property --sf-b { syntax: '<length>'; inherits: false; initial-value: 0px; }
-@keyframes sf-both { 0% { --sf-t: 0px; --sf-b: 30px; } 10%, 90% { --sf-t: 30px; --sf-b: 30px; } 100% { --sf-t: 30px; --sf-b: 0px; } }
-@keyframes sf-end { 0%, 90% { --sf-b: 30px; } 100% { --sf-b: 0px; } }
+@keyframes sf-both { 0% { --sf-t: 0px; --sf-b: 48px; } 10%, 90% { --sf-t: 48px; --sf-b: 48px; } 100% { --sf-t: 48px; --sf-b: 0px; } }
+@keyframes sf-end { 0%, 90% { --sf-b: 48px; } 100% { --sf-b: 0px; } }
 @keyframes sf-hide { 0%, 92% { opacity: 1; } 100% { opacity: 0; } }
 html, .fx-sheet-body, .bs-body, .ct-icons, .st-notices, .as-chat, .ai-list, .stm, .pf-modal, .adm-content, .pco-wlist, .pco-acc-list, .pco-cell .sh-scroll, .pco-cell .sh-catlist, .pco-scroll:not(.editing) { scroll-behavior: smooth; }
 .fx-sheet-body, .bs-body, .ct-icons, .st-notices, .as-chat, .ai-list, .stm, .pf-modal, .fx-pick-menu, .fx-pop-list { overscroll-behavior: contain; }
 
-/* barra: 5 px, sem setas nem fundo; nota-se um pouco mais com o rato por cima */
+/* barra: um fio de 3 px, sem setas nem fundo; nota-se um pouco mais com o rato por cima */
 html, html.is-electron, html.is-electron body, body, .app-main, html.is-electron .app-main,
 :is(.fx-sheet-body, .bs-body, .fx-pop-list, .fx-pick-menu, .fx-datepop, .ct-icons, .im-table, .st-notices, .as-chat, .ai-list, .ab-pop, .stm, .pf-modal, .sw-layer, .ad-table-wrap, .adm-side, .adm-content, .pco-scroll, .pco-acc-list, .pco-wlist, .sh-catlist, .sh-scroll) { scrollbar-width: auto !important; scrollbar-color: auto !important; }
-html::-webkit-scrollbar, html.is-electron::-webkit-scrollbar, .app-main::-webkit-scrollbar, html.is-electron .app-main::-webkit-scrollbar, :is(.fx-sheet-body, .bs-body, .fx-pop-list, .fx-pick-menu, .fx-datepop, .ct-icons, .im-table, .st-notices, .as-chat, .ai-list, .ab-pop, .stm, .pf-modal, .sw-layer, .ad-table-wrap, .adm-side, .adm-content, .pco-scroll, .pco-acc-list, .pco-wlist, .sh-catlist, .sh-scroll)::-webkit-scrollbar { display: block !important; width: 5px; height: 5px; background: transparent; }
+html::-webkit-scrollbar, html.is-electron::-webkit-scrollbar, .app-main::-webkit-scrollbar, html.is-electron .app-main::-webkit-scrollbar, :is(.fx-sheet-body, .bs-body, .fx-pop-list, .fx-pick-menu, .fx-datepop, .ct-icons, .im-table, .st-notices, .as-chat, .ai-list, .ab-pop, .stm, .pf-modal, .sw-layer, .ad-table-wrap, .adm-side, .adm-content, .pco-scroll, .pco-acc-list, .pco-wlist, .sh-catlist, .sh-scroll)::-webkit-scrollbar { display: block !important; width: 3px; height: 3px; background: transparent; }
 *::-webkit-scrollbar-button, *::-webkit-scrollbar-corner { display: none; width: 0; height: 0; }
 *::-webkit-scrollbar-track { background: transparent; }
-*::-webkit-scrollbar-thumb { border: 0; border-radius: 99px; background: color-mix(in srgb, var(--text) 10%, transparent); }
-*:hover::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--text) 16%, transparent); }
-*::-webkit-scrollbar-thumb:hover, *::-webkit-scrollbar-thumb:active { background: color-mix(in srgb, var(--text) 34%, transparent); }
+*::-webkit-scrollbar-thumb { border: 0; border-radius: 99px; background: color-mix(in srgb, var(--text) 5%, transparent); }
+*:hover::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--text) 8%, transparent); }
+*::-webkit-scrollbar-thumb:hover, *::-webkit-scrollbar-thumb:active { background: color-mix(in srgb, var(--text) 22%, transparent); }
 
 /* janela que sobe: cabeçalho fixo, só o conteúdo desliza */
 .bs-sheet { display: flex; flex-direction: column; overflow: hidden; }
@@ -1263,8 +1263,8 @@ html.is-electron.pcm .fx-page.pco { height: calc(100vh - 34px); }
 
 @supports (animation-timeline: scroll()) {
   .fx-sheet-body, .bs-body, .ct-icons, .st-notices, .as-chat, .ai-list, .pco-scroll, .pco-acc-list, .pco-wlist, .pco-cell .sh-catlist, .pco-cell .sh-scroll, .fx-pop-list {
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--sf-t), #000 calc(100% - var(--sf-b)), transparent 100%);
-    mask-image: linear-gradient(to bottom, transparent 0, #000 var(--sf-t), #000 calc(100% - var(--sf-b)), transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, rgba(0,0,0,.2) calc(var(--sf-t) * .25), rgba(0,0,0,.75) calc(var(--sf-t) * .65), #000 var(--sf-t), #000 calc(100% - var(--sf-b)), rgba(0,0,0,.75) calc(100% - var(--sf-b) * .65), rgba(0,0,0,.2) calc(100% - var(--sf-b) * .25), transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0, rgba(0,0,0,.2) calc(var(--sf-t) * .25), rgba(0,0,0,.75) calc(var(--sf-t) * .65), #000 var(--sf-t), #000 calc(100% - var(--sf-b)), rgba(0,0,0,.75) calc(100% - var(--sf-b) * .65), rgba(0,0,0,.2) calc(100% - var(--sf-b) * .25), transparent 100%);
     animation: sf-both linear both; animation-timeline: scroll(self block);
   }
   .fx-pop-list { animation-name: sf-end; } /* o título do grupo fica nítido no topo */
@@ -1278,3 +1278,6 @@ html.is-electron.pcm .fx-page.pco { height: calc(100vh - 34px); }
 @media (prefers-reduced-motion: reduce) { html, .fx-sheet-body, .bs-body, .ai-list, .stm { scroll-behavior: auto; } }
 /* telemóvel: nome e data/categoria em linhas separadas */
 .sh-tx-main { display: flex !important; flex-direction: column; }
+/* telemóvel (APK): nenhuma barra de scroll à vista; o desvanecer mostra que há mais */
+html:not(.pcm), html:not(.pcm) body, html:not(.pcm) * { scrollbar-width: none !important; }
+html:not(.pcm)::-webkit-scrollbar, html:not(.pcm) body::-webkit-scrollbar, html:not(.pcm) *::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
