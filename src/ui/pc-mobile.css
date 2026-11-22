@@ -1735,3 +1735,4 @@ html.pcm .fx-rail { width: 96px; overflow-y: auto; scrollbar-width: none; } html
 .hp-tour { align-self: center; max-width: 420px; width: 100%; margin: 12px auto 0 !important; }
 @media (prefers-reduced-motion: reduce) { .ctf *, .dzx *, .ai-soon *, .sal-start, .fx-rail-btn svg { animation: none !important; transition: none !important; } }
 html[data-theme="light"] .tx-seg .fx-seg { background: color-mix(in srgb, var(--text) 7%, var(--card)) !important; }
+@media (max-width: 768px) { .ct-page > .fx-head > *:last-child { display: flex; justify-content: center; width: 100%; } }
