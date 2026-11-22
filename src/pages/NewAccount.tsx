@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { db } from '../db/app-db';
 import type { Account, Goal } from '../db/database';
-import { addAccount, addTransfer, updateAccount } from '../core/accounts';
+import { addTransfer, createAccount, updateAccount } from '../core/accounts';
 import { activeCategories, addGoal, addRecurring, materializeDueRecurrings } from '../core/finance';
 import { joinDesc, payoff, splitDesc, type DebtPlan } from '../core/debtPlan';
 import { parseMoneyToCents } from '../core/money';
@@ -73,7 +73,7 @@ export function NewAccount({ initial, accounts, balOf, money, endText, onClose, 
       if (edit) { await edit.onSave({ balCents: parseMoneyToCents(bal || '0') ?? 0, name: name.trim(), desc, monthlyCents: m, rate: r, goal, end: hasEnd && end ? end : null, targetCents: goalCents }); return; }
       const p: DebtPlan | null = plan ? { monthlyCents: m, startCents: start, rate: r || undefined } : null;
       milestone('account');
-      const acc = await addAccount(db, { name: name.trim(), description: joinDesc(desc, p), type: kind, currency: s.currency, initialBalanceCents: start, includeInNetWorth: true, isDefault: false, showOnHome: true });
+      const acc = await createAccount(db, { name: name.trim(), description: joinDesc(desc, p), type: kind, currency: s.currency, initialBalanceCents: start, includeInNetWorth: true, isDefault: false, showOnHome: true });
       if (goal && p) { // a meta de sempre, ligada à conta: o valor vem do saldo (na dívida, do que já foi abatido)
         const g = await addGoal(db, name.trim(), goalCents, todayISO(), e ? end : null);
         await db.goals.update(g.id, { notes: desc.trim() || undefined, accountIds: [acc.id] });

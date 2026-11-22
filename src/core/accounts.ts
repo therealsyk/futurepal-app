@@ -55,6 +55,21 @@ export async function addAccount(db: WalletDB, input: NewAccount): Promise<Accou
   return acc;
 }
 
+/** Só existe a conta automática, que ninguém criou nem mexeu (ou nem essa): falta criar a primeira conta. */
+export async function needsFirstAccount(db: WalletDB): Promise<boolean> {
+  const live = await listAccounts(db);
+  return live.length === 0 || (live.length === 1 && live[0].id === DEFAULT_ACCOUNT_ID && live[0].updatedAt === PLACEHOLDER_AT);
+}
+/** Cria a conta; a primeira conta de gastos fica no lugar da automática, para não sobrar uma que ninguém criou. */
+export async function createAccount(db: WalletDB, input: NewAccount): Promise<Account> {
+  const live = await listAccounts(db);
+  if (input.type === 'spending' && live.length === 1 && await needsFirstAccount(db)) {
+    const used = (await db.transactions.toArray()).some((x) => x.deletedAt === null) || (await db.transfers.toArray()).some((x) => x.deletedAt === null);
+    if (!used) { await updateAccount(db, live[0].id, { ...input, name: input.name.trim(), isDefault: true }); return (await db.accounts.get(live[0].id))!; }
+  }
+  return addAccount(db, input);
+}
+
 export async function updateAccount(db: WalletDB, id: string, patch: Partial<NewAccount>): Promise<void> {
   if (patch.isDefault) {
     for (const a of await listAccounts(db)) if (a.isDefault && a.id !== id) await db.accounts.update(a.id, { isDefault: false, updatedAt: new Date().toISOString() });

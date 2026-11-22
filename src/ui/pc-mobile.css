@@ -1691,3 +1691,4 @@ html:not(.pcm) .ap-tiles .gx-tile b, html:not(.pcm) .gx-tiles.even .gx-tile b { 
 @media (prefers-reduced-motion: reduce) { .on-feats > div, .gd-ask .spi-card, .gd-ring, .gd-ring::after, .gd-card, .gd-card *, .gd-hand, .gd-hand * { animation: none; } }
 .gd-in p strong { color: var(--text); font-weight: 800; }
 html.guiding .nt-pop, html.guiding .spi-back:not(.gd-ask):not(:has([role="alertdialog"])) { display: none !important; }
+.fa-top { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; } .fa-top p { margin: 0 auto; max-width: 380px; color: var(--muted); font-size: 15px; line-height: 1.45; } .fa-q { margin: 14px 0 -6px; text-align: center; font-size: 15px; font-weight: 700; }

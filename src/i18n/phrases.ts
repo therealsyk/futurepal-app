@@ -1152,6 +1152,11 @@ export const PHRASES: Record<string, Tr> = {
   'Nova categoria': ['New category', 'Nueva categoría', 'Nouvelle catégorie'],
   'Mensal': ['Monthly', 'Mensual', 'Mensuel'],
   'Anual': ['Yearly', 'Anual', 'Annuel'],
+  'Primeiro, cria a tua conta': ['First, create your account', 'Primero, crea tu cuenta', 'D’abord, créez votre compte'],
+  'É de onde sai o dinheiro: o teu banco, um cartão ou a carteira. A seguir adicionas a transação.': ['It’s where the money comes from: your bank, a card or your wallet. Then you add the transaction.', 'Es de donde sale el dinero: tu banco, una tarjeta o la cartera. Después añades la transacción.', 'C’est d’où vient l’argent : banque, carte ou portefeuille. Ensuite, vous ajoutez l’opération.'],
+  'Quanto tens nesta conta?': ['How much do you have in it?', '¿Cuánto tienes en ella?', 'Combien avez-vous dessus ?'],
+  'Criar conta e continuar': ['Create account and continue', 'Crear cuenta y continuar', 'Créer le compte et continuer'],
+  'Aqui vês quanto tens em cada conta e crias contas novas.': ['See what’s in each account and create new ones here.', 'Aquí ves cuánto tienes en cada cuenta y creas nuevas.', 'Ici, voyez chaque compte et créez-en d’autres.'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */

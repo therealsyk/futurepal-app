@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { hasSupabaseConfig } from '../auth/supabase';
 import { track } from '../core/onboarding';
+import { needsFirstAccount } from '../core/accounts';
 import { db } from '../db/app-db';
 import { L } from '../i18n/phrases';
 import { LoginForm } from '../pages/Login';
@@ -68,6 +69,8 @@ const MORE = (): StepDef[] => [
 ];
 const REST = (): StepDef[] => [
   { path: '/', sel: '.sh-hero, .pco-metric', t: () => L('Início'), d: I.home, text: () => L('No Início vês quanto tens, quanto gastaste e quanto sobra.') },
+  nav('/contas', 'nav.accounts'),
+  { path: '/contas', sel: '.fx-page > .sh-btn.in', t: () => L('Contas'), d: ICON.wallet, text: () => L('Aqui vês quanto tens em cada conta e crias contas novas.') },
   ...(pc() ? [] : MENU),
   nav('/metas', 'nav.goals'),
   { path: '/metas', sel: '.fx-page > .sh-pill', t: () => L('Metas'), d: I.goal, text: () => after(L('Metas: diz quanto queres juntar e a app mostra quando lá chegas.')) },
@@ -97,6 +100,7 @@ function Ask({ d, title, text, yes, no, onYes, onNo }: { d: string; title: strin
 function Coach({ steps: def, host, onEnd }: { steps: StepDef[] | (() => StepDef[]); host?: string; onEnd: (closed: boolean) => void }) {
   const navigate = useNavigate();
   const [steps] = useState<StepDef[]>(def);
+  const [up, setUp] = useState(!host); // com janela: só aparece quando ela abre
   const [i, setI] = useState(0), [r, setR] = useState<DOMRect | null>(null);
   const s = steps[i];
   useEffect(() => { if (s.path) navigate(s.path); window.dispatchEvent(s.menu ? new CustomEvent('wallet:open-more', { detail: s.menu }) : new Event('wallet:close-more')); }, [i]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -104,7 +108,7 @@ function Coach({ steps: def, host, onEnd }: { steps: StepDef[] | (() => StepDef[
     let seen = false, n = 0, moved = false;
     const id = setInterval(() => {
       n++;
-      if (host) { const up = !!document.querySelector(host); if (up) seen = true; if ((seen && !up) || (!seen && n > 40)) { clearInterval(id); onEnd(true); return; } }
+      if (host) { const is = !!document.querySelector(host); if (is) { seen = true; setUp(true); } else if (!seen && document.querySelector('.fa-form')) n = 0; if ((seen && !is) || (!seen && n > 40)) { clearInterval(id); onEnd(true); return; } }
       const el = document.querySelector<HTMLElement>(s.sel);
       if (el && !moved) { moved = true; el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
       const b = el?.getBoundingClientRect();
@@ -135,6 +139,7 @@ function Coach({ steps: def, host, onEnd }: { steps: StepDef[] | (() => StepDef[
     return () => document.removeEventListener('click', on, true);
   }, [i]); // eslint-disable-line react-hooks/exhaustive-deps
   const next = () => (last ? onEnd(true) : setI(i + 1)), canNext = !last || !host;
+  if (!up) return null;
   return createPortal(<>
     {r ? <i className="gd-ring" aria-hidden="true" style={{ left: r.left - 6, top: r.top - 6, width: r.width + 12, height: r.height + 12 }} /> : <i className="gd-dim" aria-hidden="true" />}
     {r && s.tap && <span key={'h' + i} className="gd-hand" aria-hidden="true" style={{ left: Math.min(r.left + Math.min(r.width * 0.72, r.width - 20), vw - 50), top: Math.min(r.top + r.height / 2, vh - 46) }}><i /><svg viewBox="0 0 24 24" width="34" height="34"><path d={HAND} /></svg></span>}
@@ -163,10 +168,22 @@ export function Guide() {
   useEffect(() => { document.documentElement.classList.toggle('guiding', st !== null); }, [st]); // os outros avisos esperam
   const go = (s: Stage | null) => { track('tip_guide_' + (s ?? 'end').toLowerCase()); setGuide(s); };
   const W = ICON.wallet, R = 'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6', S = 'M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z';
+  // o que já foi feito no setup não se volta a pedir
+  const [ok, setOk] = useState<Stage | null>(null);
+  useEffect(() => {
+    if (st !== 'acc' && st !== 'askExp') return;
+    let on = true;
+    (st === 'acc' ? needsFirstAccount(db).then((x) => !x) : db.transactions.filter((x) => x.deletedAt === null).count().then((n) => n > 0)).catch(() => false).then((has) => {
+      if (!on) return;
+      if (!has) setOk(st); else if (st === 'acc') go('askExp'); else { setList(true); go('exp'); }
+    });
+    return () => { on = false; };
+  }, [st]); // eslint-disable-line react-hooks/exhaustive-deps
+  if ((st === 'acc' || st === 'askExp') && ok !== st) return null;
   if (st === 'acc') return <Ask d={W} title={L('Vamos criar a primeira conta?')} text={L('Pode ser o teu banco, um cartão ou dinheiro. Assim sabes sempre quanto tens.')} yes={L('Vamos criar')} no={L('Fica para mais tarde')} onNo={() => go('askExp')}
     onYes={() => go('accnav')} />;
   // espera pela janela que a pessoa possa ter acabado de abrir; só a abre se ainda não estiver aberta
-  const then = (sel: string, open: () => void, s: Stage) => { setTimeout(() => { if (!document.querySelector(sel)) open(); go(s); }, 450); };
+  const then = (sel: string, open: () => void, s: Stage) => { setTimeout(() => { if (!document.querySelector(sel) && !document.querySelector('.fa-form')) open(); go(s); }, 450); };
   if (st === 'accnav') return <Coach key="accnav" steps={ACCNAV} onEnd={(ok) => (ok ? then('.bs-sheet', () => document.querySelector<HTMLElement>('.fx-page > .sh-btn.in')?.click(), 'acc1') : go('askExp'))} />;
   if (st === 'expnav') return <Coach key="expnav" steps={EXPNAV} onEnd={(ok) => (ok ? then('.fx-sheet', () => openTxForm({ type: 'expense' }), 'exp') : go('askMore'))} />;
   if (st === 'acc1') return <Coach key="acc" steps={ACC} host=".bs-sheet" onEnd={() => go('askExp')} />;

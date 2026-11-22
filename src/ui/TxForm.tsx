@@ -8,7 +8,7 @@ import { useAuth } from '../auth/AuthContext';
 import { db } from '../db/app-db';
 import { stampNew } from '../db/database';
 import type { Account, Category, Group, RecurringFrequency } from '../db/database';
-import { accountBalanceCents as balOfAcc, addTransfer, defaultAccountId, ensureDefaultAccount, listAccounts, salariesUntil } from '../core/accounts';
+import { accountBalanceCents as balOfAcc, addTransfer, defaultAccountId, ensureDefaultAccount, listAccounts, needsFirstAccount, salariesUntil } from '../core/accounts';
 import { activeCategories, addRecurring, addTransaction, listGroups, materializeDueRecurrings, RECURRING_FREQUENCIES } from '../core/finance';
 import { todayISO } from '../core/dates';
 import { milestone } from '../core/onboarding';
@@ -22,6 +22,7 @@ import { L } from '../i18n/phrases';
 import { CalculatorButton } from './Calculator';
 import { appConfirm } from './confirm';
 import { DatePicker } from './DatePicker';
+import { FirstAccount } from './FirstAccount';
 import { AccountRow, AmountField, CategoryRow, DateRow, FI, RepeatRows, Row, TextRow } from './formFields';
 import { catLabel, CategorySelect, Field, Ic, ICON, PickMenu, Seg, Sheet, Toggle } from './fx';
 import { FormError, useMissing } from './missing';
@@ -67,14 +68,22 @@ export function TxFormHost() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [form, setForm] = useState<{ n: number; o: TxFormOptions; d: FormData } | null>(null);
+  const [first, setFirst] = useState<TxFormOptions | null>(null); // ainda sem conta: cria-se primeiro
   const at = useRef(pathname); // página onde a janela deve estar
   useEffect(() => {
-    const h = (e: Event) => { e.preventDefault(); const o = (e as CustomEvent<TxFormOptions>).detail; loadData(o.type).then((d) => { at.current = window.location.hash.replace(/^#/, '').split('?')[0] || '/'; setForm({ n: Date.now(), o, d }); }).catch(() => {}); };
+    const h = (e: Event) => { e.preventDefault(); const o = (e as CustomEvent<TxFormOptions>).detail; show(o).catch(() => {}); };
     window.addEventListener(OPEN, h);
     if (waiting) { const o = waiting; waiting = null; openTxForm(o); }
     return () => { window.removeEventListener(OPEN, h); };
   }, []);
-  useEffect(() => { if (pathname !== at.current) { at.current = pathname; setForm(null); } }, [pathname]); // saiu da página (ex.: botão Voltar do telemóvel)
+  const show = async (o: TxFormOptions) => {
+    // no setup pede-se sempre; depois, só a quem ainda não tem movimentos
+    if (await needsFirstAccount(db) && (o.first || (await db.transactions.filter((x) => x.deletedAt === null).count()) === 0)) { setFirst(o); return; }
+    open(o);
+  };
+  const open = (o: TxFormOptions) => { loadData(o.type).then((d) => { at.current = window.location.hash.replace(/^#/, '').split('?')[0] || '/'; setForm({ n: Date.now(), o, d }); }).catch(() => {}); };
+  useEffect(() => { if (pathname !== at.current) { at.current = pathname; setForm(null); setFirst(null); } }, [pathname]); // saiu da página (ex.: botão Voltar do telemóvel)
+  if (first) return <FirstAccount currency={first.currency ?? loadSettings().currency} onClose={() => setFirst(null)} onDone={() => { const o = first; setFirst(null); open(o); }} />;
   if (!form) return null;
   const goto = (to: string) => { if (at.current === to) return; at.current = to; startTransition(() => navigate(to, { replace: true })); };
   return <TxForm key={form.n} o={form.o} d={form.d} onClose={() => setForm(null)} onKind={(k) => { if (['/transacoes', '/salarios'].includes(at.current)) goto(k === 'income' ? '/salarios' : '/transacoes'); }} />;
