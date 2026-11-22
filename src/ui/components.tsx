@@ -129,13 +129,20 @@ export function LineChart({ rows, currency, language, incomeLabel = 'Income', ex
                   stroke="rgba(255,255,255,.3)" strokeDasharray="4 4"/>
             <circle cx={x(hover)} cy={y(rows[hover].income)} r={5} fill="#ec6a8f"
                     stroke="#fff" strokeWidth="1.5"/>
+            {rows[hover].expense > 0 && (
+              <circle cx={x(hover)} cy={y(rows[hover].expense)} r={5} fill="#4aa8ff"
+                      stroke="#fff" strokeWidth="1.5"/>
+            )}
             <foreignObject x={Math.min(Math.max(x(hover) - 95, 4), W - 194)} y={20} width={190} height={120}>
               <div className="chart-tip">
                 <span className="tip-label">{rows[hover].label}</span>
                 <p><i className="dot pink"/> {incomeLabel}</p>
                 <strong>{formatMoney(rows[hover].income, currency, language)}</strong>
                 {rows[hover].expense > 0 && (
-                  <p><i className="dot blue"/> {expenseLabel}</p>
+                  <>
+                    <p><i className="dot blue"/> {expenseLabel}</p>
+                    <strong>{formatMoney(rows[hover].expense, currency, language)}</strong>
+                  </>
                 )}
                 {hover > 0 && rows[hover - 1].income > 0 && (
                   <em className={`delta ${rows[hover].income >= rows[hover - 1].income ? 'up' : 'down'}`}>
