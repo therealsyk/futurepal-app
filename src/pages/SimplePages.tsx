@@ -64,7 +64,9 @@ export function SimpleAccounts() {
   const [eDesc, setEDesc] = useState('');
   const [eMonthly, setEMonthly] = useState('');
   const [eRate, setERate] = useState('');
-  const reload = () => loadAll().then(setD).catch(() => {});
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [openAcc, setOpenAcc] = useState<string | null>(null); // poupança/dívida aberta na lista
+  const reload = () => { loadAll().then(setD).catch(() => {}); db.goals.toArray().then((g) => setGoals(live(g))).catch(() => {}); };
   useEffect(() => { reload(); }, []);
 
   const now = new Date();
@@ -96,7 +98,7 @@ export function SimpleAccounts() {
   };
   const delAcc = async (a: Account) => {
     const gid = splitDesc(a.description).plan?.goalId;
-    if (!(await appConfirm(`${L('Apagar conta')} "${a.name}"?` + (gid ? ' ' + L('A meta ligada a esta conta também é apagada.') : '')))) return;
+    if (!(await appConfirm(`${L('Apagar conta')} "${a.name}"?` + (gid ? ' ' + L('O acompanhamento desta conta também é apagado.') : '')))) return;
     const t2 = new Date().toISOString();
     if (gid) await db.goals.update(gid, { deletedAt: t2, updatedAt: t2 });
     for (const x of await db.recurrings.toArray()) if (x.toAccountId === a.id && x.deletedAt === null) await db.recurrings.update(x.id, { deletedAt: t2, updatedAt: t2 }); // sem transferências para uma conta que já não existe
@@ -114,17 +116,34 @@ export function SimpleAccounts() {
     const b = parseMoneyToCents(debt || '0') ?? 0, m = parseMoneyToCents(per || '0') ?? 0, p = payoff(b, m, Number(pct.replace(',', '.')) || 0);
     return b > 0 && m > 0 ? <p className={'debt-prev' + (p ? '' : ' bad')}>{p ? endText(p.months) : L('Com este valor não chegas a abater: só dá para os juros.')}</p> : null;
   };
+  // data limite da conta: quanto tempo falta e se, a este ritmo, dá tempo
+  const deadlineRow = (g: Goal | undefined, months: number | null) => {
+    if (!g?.targetDate) return null;
+    const e2 = new Date(g.targetDate + 'T00:00:00'), lim = Math.max(0, (e2.getFullYear() - now.getFullYear()) * 12 + e2.getMonth() - now.getMonth());
+    const ds = e2.toLocaleDateString(s.language, { day: 'numeric', month: 'long', year: 'numeric' });
+    return months === null ? <p className="debt-end">{L('Data limite')}: <b>{ds}</b></p>
+      : <p className={'debt-end ' + (months <= lim ? 'fx-pos' : 'fx-neg')}>{fill(months <= lim ? L('Vais a tempo: {d}') : L('⚠ A este ritmo não chegas até {d}'), { d: ds })}</p>;
+  };
   const planRows = (a: Account) => {
     const { plan } = splitDesc(a.description);
-    if (a.type !== 'savings' || !plan || (!plan.monthlyCents && !plan.goalId)) return null;
-    const got = inThisMonth(a, d?.transfers ?? [], now);
+    const g = goals.find((x) => x.id === plan?.goalId);
+    if (a.type !== 'savings') return null;
+    const monthly = plan?.monthlyCents ?? 0;
+    const got = inThisMonth(a, d?.transfers ?? [], now), cur = balOf(a), left = g ? Math.max(0, g.targetCents - cur) : 0;
+    const months = g ? (left === 0 ? 0 : monthly > 0 ? Math.ceil(left / monthly) : null) : null;
+    const ratio = g ? Math.max(0, Math.min(1, cur / g.targetCents)) : 0;
     return (
       <section className="mv-card debt-plan">
-        {plan.monthlyCents > 0 && <div className={'debt-month' + (got >= plan.monthlyCents ? ' ok' : '')}><span>{L('Este mês')}</span><b>{money(got)} / {money(plan.monthlyCents)}</b></div>}
-        <div className="debt-btns">
-          {plan.goalId && <Link to="/metas" className="sh-btn out sm">{L('Ver meta')}</Link>}
-          <Link to={`/transacoes?nova=1&para=${a.id}`} className="sh-btn in sm">{L('Juntar')}</Link>
-        </div>
+        {splitDesc(a.description).text && <p className="acc-desc">{splitDesc(a.description).text}</p>}
+        {g && (left === 0 ? <p className="debt-done">{L('Objetivo atingido 🎉')}</p> : <>
+          <div className="sh-row"><b>{fill(L('Já tens {m} de {t}'), { m: money(cur), t: money(g.targetCents) })}</b><b>{Math.floor(ratio * 100)}%</b></div>
+          <div className="sh-bar"><i style={{ width: `${Math.max(1, ratio * 100)}%` }} /></div>
+          <div className="sh-row"><small>{fill(L('Faltam {m}'), { m: money(left) })}</small></div>
+        </>)}
+        {monthly > 0 && <div className={'debt-month' + (got >= monthly ? ' ok' : '')}><span>{L('Este mês')}</span><b>{money(got)} / {money(monthly)}</b></div>}
+        {g && months !== null && months > 0 && <p className="debt-end">{fill(L('A juntar {m} por mês:'), { m: money(monthly) })} <b>{endText(months)}</b></p>}
+        {left > 0 && deadlineRow(g, months)}
+        <div className="debt-btns"><button type="button" className="sh-btn out sm" onClick={() => openEdit(a)}>{L('Alterar')}</button><Link to={`/transacoes?nova=1&para=${a.id}`} className="sh-btn in sm">{L('Juntar')}</Link></div>
       </section>
     );
   };
@@ -144,16 +163,19 @@ export function SimpleAccounts() {
       {list.length === 0 && <EmptyState icon="M3 7a2 2 0 0 1 2-2h13v4M3 7v11a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1H5a2 2 0 0 1-2-2zM16 14.5h.01" title={tab === 'debt' ? L('Sem dívidas registadas') : tab === 'savings' ? L('Sem contas de poupança') : L('Sem contas de gastos')} text={tab === 'debt' ? L('Regista um empréstimo para acompanhares quanto ainda falta pagar.') : L('Cria uma conta para veres o teu saldo sempre atualizado.')} examples={tab === 'debt' ? ['🏠 Crédito habitação', '🚗 Crédito auto'] : tab === 'savings' ? ['🐷 Poupanças', '🛟 Fundo de emergência'] : ['🏦 Conta do banco', '💶 Dinheiro']} />}
       {list.map((a) => (
         <div key={a.id} className="sh-accwrap">
-          <button type="button" className={'acc-card sh-acc t-' + a.type} onClick={() => openEdit(a)} aria-label={`${L('Alterar conta')}: ${a.name}`}>
+          <button type="button" className={'acc-card sh-acc t-' + a.type} onClick={() => (a.type === 'spending' ? openEdit(a) : setOpenAcc(openAcc === a.id ? null : a.id))} aria-expanded={a.type === 'spending' ? undefined : openAcc === a.id} aria-label={a.type === 'spending' ? `${L('Alterar conta')}: ${a.name}` : a.name}>
+            {a.type !== 'spending' && <span className="acc-chev"><Ic d={ICON.down} size={18} /></span>}
             <div className="acc-card-top"><span className="acc-card-ic"><Ic d={TYPE_IC[a.type]} size={16} /></span><b>{a.name}</b>{a.isDefault && a.name !== L('Principal') && <small>{L('Principal')}</small>}</div>
             <div className={'acc-card-val' + (balOf(a) < 0 ? ' neg' : '')}>{money(balOf(a))}</div>
           </button>
-          {splitDesc(a.description).text && <p className="acc-desc">{splitDesc(a.description).text}</p>}
+          {a.type === 'spending' ? splitDesc(a.description).text && <p className="acc-desc">{splitDesc(a.description).text}</p> : (
+            <div className={'acc-exp' + (openAcc === a.id ? ' open' : '')} aria-hidden={openAcc !== a.id} inert={openAcc !== a.id}><div>
           {planRows(a)}
           {a.type === 'debt' && (() => {
             const st = debtStatus(a, balOf(a), d?.transfers ?? [], now);
             return (
               <section className="mv-card debt-plan">
+                {splitDesc(a.description).text && <p className="acc-desc">{splitDesc(a.description).text}</p>}
                 {st.left === 0 ? <p className="debt-done">{L('Dívida paga! 🎉')}</p> : <>
                   <div className="sh-row"><b>{fill(L('Já abateste {m}'), { m: money(st.paid) })}</b><b>{Math.floor(st.ratio * 100)}%</b></div>
                   <div className="sh-bar"><i style={{ width: `${Math.max(1, st.ratio * 100)}%` }} /></div>
@@ -167,19 +189,21 @@ export function SimpleAccounts() {
                     </div>}
                     <p className="debt-end">{fill(L('A abater {m} por mês:'), { m: money(st.monthly) })} <b>{st.months === null ? L('Com este valor não chegas a abater: só dá para os juros.') : endText(st.months)}</b></p>
                   </> : <p className="fx-muted debt-end">{L('Diz quanto contas abater por mês para veres quando acabas.')}</p>}
+                  {deadlineRow(goals.find((x) => x.id === splitDesc(a.description).plan?.goalId), st.months)}
                   <div className="debt-btns">
                     <button type="button" className="sh-btn out sm" onClick={() => openEdit(a)}>{st.monthly > 0 ? L('Alterar') : L('Definir valor mensal')}</button>
-                    {splitDesc(a.description).plan?.goalId && <Link to="/metas" className="sh-btn out sm">{L('Ver meta')}</Link>}
                     <Link to={`/transacoes?nova=1&para=${a.id}`} className="sh-btn in sm">{L('Abater')}</Link>
                   </div>
                 </>}
               </section>
             );
           })()}
+            </div></div>
+          )}
         </div>
       ))}
 <button type="button" className="sh-btn in" onClick={() => setForm(true)}><Ic d={ICON.plus} size={20} />{L('Criar conta')}</button>
-      {form && <NewAccount initial={tab} accounts={d?.accounts ?? []} money={money} endText={endText} onClose={() => setForm(false)} onDone={(k) => { setForm(false); setTab(k); reload(); }} />}
+      {form && <NewAccount initial={tab} accounts={d?.accounts ?? []} balOf={balOf} money={money} endText={endText} onClose={() => setForm(false)} onDone={(k) => { setForm(false); setTab(k); reload(); }} />}
       {editing && <BottomSheet title={L('Alterar conta')} onClose={closeEdit}>
         {missE.note}
         <section className="mv-card sh-form">
@@ -316,6 +340,7 @@ export function SimpleLimits() {
 
 // ── Metas (como no vídeo): lista de cartões; tocar abre o detalhe; "Criar meta" com valor, notas e contas que contam
 export function SimpleGoals() {
+  const navigate = useNavigate();
   const money = useMoney();
   const s = loadSettings();
   const [d, setD] = useState<(Data & { goals: Goal[] }) | null>(null);
@@ -391,11 +416,11 @@ export function SimpleGoals() {
     return { ok: false, short: fill(L('⚠ A este ritmo não chegas até {d}'), { d: until }),
       long: fill(L('A este ritmo não chegas até {d}. Precisas de juntar cerca de {m} por mês.'), { d: until, m: money(need) }) + ' ' + (tight ? fill(L('Com os teus gastos atuais sobram-te cerca de {m} por mês, por isso terias de gastar menos ou adiar a data.'), { m: money(Math.max(0, surplus)) }) : fill(L('Costuma sobrar-te cerca de {m} por mês: consegues, se juntares mais à meta.'), { m: money(surplus) })) };
   };
-  const forecast = (g: Goal, cur: number) => {
+  const forecast = (g: Goal, cur: number, debt = false) => {
     const f = fc(g, cur);
     if (f.etaMonths === 0) return L('Objetivo atingido 🎉');
     if (f.etaMonths === null) return L('Ainda não dá para prever');
-    return fill(L('Chegas lá em {d}, a juntar cerca de {m} por mês'), { d: etaLabel(f), m: money(f.perMonthCents) });
+    return fill(debt ? L('Acabas em {d}, a abater cerca de {m} por mês') : L('Chegas lá em {d}, a juntar cerca de {m} por mês'), { d: etaLabel(f), m: money(f.perMonthCents) });
   };
   const forecastLong = (g: Goal, cur: number) => {
     const f = fc(g, cur);
@@ -416,6 +441,23 @@ export function SimpleGoals() {
     setName(''); setTarget(''); setNotes(''); setAccs([]); setHasDeadline(false); setDeadline(''); setHow('hand'); setForm(false); reload();
   };
 
+  // metas criadas à parte e, separadas, as que pertencem a uma conta
+  const accGoals = (d?.goals ?? []).flatMap((x) => { const acc = (d?.accounts ?? []).find((a) => splitDesc(a.description).plan?.goalId === x.id); return acc ? [{ g: x, acc }] : []; });
+  const ownGoals = (d?.goals ?? []).filter((x) => !accGoals.some((y) => y.g.id === x.id));
+  const goalCard = (x: Goal, acc?: Account) => {
+        const cur = currentOf(x), r = x.targetCents > 0 ? Math.max(0, Math.min(1, cur / x.targetCents)) : 0;
+        return (
+          <button key={x.id} type="button" className="mv-card sh-goalcard" onClick={() => (acc ? navigate('/contas') : setOpen(x.id))}>
+            {acc && <span className={'goal-acc t-' + acc.type}><Ic d={TYPE_IC[acc.type]} size={14} />{acc.type === 'debt' ? L('Conta de dívida') : L('Conta de poupança')}</span>}
+            <div className="sh-row"><b>{x.name}</b><b>{Math.round(r * 100)}%</b></div>
+            <div className="sh-row"><span className="sh-pct">{money(cur)} / {money(x.targetCents)}</span></div>
+            <div className="sh-bar"><i style={{ width: `${r * 100}%` }} /></div>
+            <small className="sh-eta">{forecast(x, cur, acc?.type === 'debt')}</small>
+            {(() => { const di = deadlineInfo(x, cur); return di ? <small className={'sh-deadline ' + (di.ok ? 'fx-pos' : 'fx-neg')}>{di.short}</small> : null; })()}
+            <div className="sh-row"><small className="sh-pct">{L('Criada a')} {date(x.createdAt)}</small><Ic d={ICON.right} size={16} /></div>
+          </button>
+        );
+  };
   const g = d?.goals.find((x) => x.id === open);
   if (g) {
     const cur = currentOf(g), r = g.targetCents > 0 ? Math.max(0, Math.min(1, cur / g.targetCents)) : 0;
@@ -451,20 +493,10 @@ export function SimpleGoals() {
   return (
     <div className="fx-page mv sh">
       <header className="mv-head"><h1 className="sh-title">{L('Metas')}</h1></header>
-      {(d?.goals ?? []).length === 0 && <EmptyState icon="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zM12 12h.01" title={L('Ainda não tens metas')} text={L('Uma meta é um objetivo para juntar dinheiro. A app mostra quanto falta e quando lá chegas.')} examples={['🏖️ Férias', '🚗 Carro', '🛟 Emergências', '🏠 Casa']} />}
-      {(d?.goals ?? []).map((x) => {
-        const cur = currentOf(x), r = x.targetCents > 0 ? Math.max(0, Math.min(1, cur / x.targetCents)) : 0;
-        return (
-          <button key={x.id} type="button" className="mv-card sh-goalcard" onClick={() => setOpen(x.id)}>
-            <div className="sh-row"><b>{x.name}</b><b>{Math.round(r * 100)}%</b></div>
-            <div className="sh-row"><span className="sh-pct">{money(cur)} / {money(x.targetCents)}</span></div>
-            <div className="sh-bar"><i style={{ width: `${r * 100}%` }} /></div>
-            <small className="sh-eta">{forecast(x, cur)}</small>
-            {(() => { const di = deadlineInfo(x, cur); return di ? <small className={'sh-deadline ' + (di.ok ? 'fx-pos' : 'fx-neg')}>{di.short}</small> : null; })()}
-            <div className="sh-row"><small className="sh-pct">{L('Criada a')} {date(x.createdAt)}</small><Ic d={ICON.right} size={16} /></div>
-          </button>
-        );
-      })}
+      {ownGoals.length === 0 && <EmptyState icon="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zM12 12h.01" title={L('Ainda não tens metas')} text={L('Uma meta é um objetivo para juntar dinheiro. A app mostra quanto falta e quando lá chegas.')} examples={['🏖️ Férias', '🚗 Carro', '🛟 Emergências', '🏠 Casa']} />}
+      {ownGoals.map((x) => goalCard(x))}
+      {accGoals.length > 0 && <div className="goal-sec"><h2>{L('Das tuas contas')}</h2><p>{L('Fazem parte das contas de poupança e de dívidas. Mudam sozinhas com o saldo e gerem-se na página Contas.')}</p></div>}
+      {accGoals.map(({ g: x, acc }) => goalCard(x, acc))}
 <button type="button" className="sh-pill" onClick={() => setForm(true)}><Ic d={ICON.plus} size={16} />{L('Criar meta')}</button>
       {form && <BottomSheet title={L('Nova meta')} onClose={closeForm}>
         {miss.note}

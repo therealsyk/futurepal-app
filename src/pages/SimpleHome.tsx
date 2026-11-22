@@ -1,6 +1,6 @@
 // Início simplificado — só o essencial, para qualquer pessoa.
 //  1. Quanto ainda tenho este mês  2. Adicionar gasto / dinheiro recebido  3. A minha poupança  4. Últimos movimentos
-import { goalValueCents } from '../core/debtPlan';
+import { goalValueCents, splitDesc } from '../core/debtPlan';
 import { cmpText, refText } from '../core/compare';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -18,6 +18,11 @@ import { PeriodFilter, initialPeriod, periodRange, previousRange, type Period } 
 
 const GEAR = 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z';
 
+// só as metas criadas à parte: as das contas acompanham-se na própria conta
+async function ownGoals(): Promise<Goal[]> {
+  const mine = new Set((await db.accounts.toArray()).filter((a) => a.deletedAt === null).map((a) => splitDesc(a.description).plan?.goalId).filter(Boolean));
+  return (await db.goals.toArray()).filter((g) => g.deletedAt === null && !mine.has(g.id));
+}
 const ACC_IC: Record<string, string> = { spending: ICON.wallet, savings: 'M19 7a3 3 0 0 0-3-2H9a6 6 0 0 0-6 6c0 2 1 3.5 2 4.5V19h3v-2h5v2h3v-3a6 6 0 0 0 2-3h2V9h-2z', debt: 'M3 10l9-6 9 6M5 10v9h14v-9M9 19v-5h6v5' };
 export type HomePart = 'hero' | 'latest' | 'groups' | 'goals';
 /** embed: mostra só um bloco, com o período escolhido fora (Painel do PC). */
@@ -35,7 +40,7 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
       setData({
         txs: live(await db.transactions.toArray()), cats: live(await db.categories.toArray()), accounts: live(await db.accounts.toArray()),
         transfers: live(await db.transfers.toArray()), salaries: live(await db.salaries.toArray()),
-        groups: live(await db.groups.toArray()), goals: live(await db.goals.toArray()),
+        groups: live(await db.groups.toArray()), goals: await ownGoals(),
       });
     })().catch(() => {});
   }, []);

@@ -9,23 +9,28 @@ import { parseMoneyToCents } from '../core/money';
 import { todayISO } from '../core/dates';
 import { loadSettings } from '../core/settings';
 import { DatePicker } from '../ui/DatePicker';
-import { PickMenu, Seg } from '../ui/fx';
-import { useMissing } from '../ui/missing';
+import { Ic, ICON, PickMenu, Seg } from '../ui/fx';
+import { PC_MOBILE } from '../core/uiMode';
+import { useMissing, type MissRule } from '../ui/missing';
 import { L } from '../i18n/phrases';
 import { BottomSheet, fill } from './SimplePages';
 
 const digits = (v: string) => v.replace(/[^\d.,]/g, '');
 const cents = (v: string) => Math.abs(parseMoneyToCents(v || '0') ?? 0);
 
-function Tog({ label, sub, on, set }: { label: string; sub?: string; on: boolean; set: (v: boolean) => void }) {
+const I = {
+  name: 'M4 7h16v12H4zM4 7l3-3h10l3 3', desc: 'M4 20h4L19 9l-4-4L4 16z', month: 'M4 12a8 8 0 0 1 14-5l2-2v6h-6l2-2a5 5 0 1 0 1 6', pct: 'M19 5L5 19M7.5 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM16.5 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
+  date: 'M5 5h14v15H5zM5 10h14M9 3v4M15 3v4', track: 'M4 20V10M10 20V4M16 20v-7M22 20H2', target: 'M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8z', swap: 'M4 7h13l-3-3M20 17H7l3 3', money: 'M3 7h18v10H3zM12 14.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z',
+};
+function Tog({ icon, label, sub, on, set }: { icon: string; label: string; sub?: string; on: boolean; set: (v: boolean) => void }) {
   return (
-    <div className="tx-row acc-tog"><span>{label}{sub && <small>{sub}</small>}</span>
+    <div className="tx-row"><span><Ic d={icon} size={18} /><span className="acc-lbl">{label}{sub && <small>{sub}</small>}</span></span>
       <button type="button" role="switch" aria-checked={on} aria-label={label} className={'ob-toggle' + (on ? ' on' : '')} onClick={() => set(!on)}><i /></button></div>
   );
 }
 
-export function NewAccount({ initial, accounts, money, endText, onClose, onDone }: {
-  initial: Account['type']; accounts: Account[]; money: (c: number) => string; endText: (months: number) => string;
+export function NewAccount({ initial, accounts, balOf, money, endText, onClose, onDone }: {
+  initial: Account['type']; accounts: Account[]; balOf: (a: Account) => number; money: (c: number) => string; endText: (months: number) => string;
   onClose: () => void; onDone: (kind: Account['type']) => void;
 }) {
   const s = loadSettings();
@@ -38,6 +43,7 @@ export function NewAccount({ initial, accounts, money, endText, onClose, onDone 
   const [how, setHow] = useState<'hand' | 'transfer'>('hand');
   const [from, setFrom] = useState(''), [amount, setAmount] = useState<string | null>(null), [date, setDate] = useState(todayISO()), [recurring, setRecurring] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [step, setStep] = useState(1); // telemóvel: duas páginas curtas em vez de uma comprida
 
   const debt = kind === 'debt', plan = kind !== 'spending', start = cents(bal);
   const m = plan && hasMonthly ? cents(monthly) : 0, r = debt && hasRate ? Number(rate.replace(',', '.')) || 0 : 0;
@@ -51,14 +57,19 @@ export function NewAccount({ initial, accounts, money, endText, onClose, onDone 
   const amt = amount ?? monthly, po = debt ? payoff(start, m, r) : null;
 
   const missing = useMissing();
-  const miss = missing([
+  const two = plan && !PC_MOBILE;
+  const first: MissRule[] = [
     ['bal', debt ? L('quanto deves') : '', !debt || start > 0], ['name', L('o nome'), !!name.trim()],
     ['monthly', debt ? L('quanto abater por mês') : L('quanto juntar por mês'), !plan || (!hasMonthly && !r) || m > 0],
     ['rate', L('os juros'), !debt || !hasRate || r > 0],
     ['low', L('um valor por mês maior do que os juros'), !debt || !r || !m || !!po],
+  ];
+  const second: MissRule[] = [
     ['end', L('a data limite'), !plan || !hasEnd || !!end], ['target', L('quanto queres juntar no total'), !goal || goalCents > 0],
     ['from', L('a conta de onde sai o dinheiro'), !transfer || !!src], ['amount', L('quanto transferir'), !transfer || cents(amt) > 0],
-  ]);
+  ];
+  const miss = missing(two ? (step === 1 ? first : second) : [...first, ...second]);
+  const pickKind = (k: Account['type']) => { setKind(k); setStep(1); miss.reset(); };
 
   const create = async () => {
     if (!miss.check() || busy) return;
@@ -84,46 +95,62 @@ export function NewAccount({ initial, accounts, money, endText, onClose, onDone 
     } finally { setBusy(false); }
   };
 
-  const row = (key: string, label: string, input: ReactNode) => <label className={miss.cls(key)}>{label}{input}</label>;
-  const numIn = (v: string, set: (v: string) => void, ph: string) => <input inputMode="decimal" value={v} placeholder={ph} onChange={(x) => set(digits(x.target.value))} />;
+  const row = (key: string, icon: string, label: string, input: ReactNode) => <label className={'tx-row' + miss.cls(key)}><span><Ic d={icon} size={18} />{label}</span>{input}</label>;
+  const numIn = (v: string, set: (v: string) => void, hint: string) => <input className="tx-val" inputMode="decimal" value={v} placeholder={hint} onChange={(x) => set(digits(x.target.value))} />;
+  const src2 = accounts.find((a) => a.id === src);
+  const need = !hasMonthly && e && goalCents > 0 ? Math.ceil(Math.max(0, goalCents - (debt ? 0 : start)) / monthsLeft) : 0;
+
+  const partA = <>
+    <input className={'tx-amt' + miss.cls('bal')} autoFocus={PC_MOBILE} inputMode="decimal" value={bal} onChange={(x) => setBal(digits(x.target.value))} placeholder="0" aria-label={debt ? L('Quanto deves') : L('Saldo inicial')} />
+    <span className="tx-cur">{debt ? L('Quanto deves') : L('Saldo inicial')} · {s.currency}</span>
+    <div className="tx-rows">
+      {row('name', I.name, L('Nome da conta'), <input className="tx-val" value={name} onChange={(x) => setName(x.target.value)} placeholder={debt ? L('Ex.: Empréstimo da casa') : kind === 'savings' ? L('Ex.: Poupanças') : L('Ex.: Conta do banco')} />)}
+      {row('desc', I.desc, L('Descrição'), <input className="tx-val" value={desc} maxLength={120} onChange={(x) => setDesc(x.target.value)} placeholder={L('Opcional')} />)}
+      {plan && <>
+        <Tog icon={I.month} label={debt ? L('Abater um valor certo por mês?') : L('Juntar um valor certo por mês?')} sub={hasMonthly ? undefined : debt ? L('Se não, vais abatendo quando puderes') : L('Se não, vais juntando quando puderes')} on={hasMonthly} set={setHasMonthly} />
+        {(hasMonthly || (debt && hasRate)) && row(miss.cls('low') ? 'low' : 'monthly', I.money, debt ? L('Abater por mês') : L('Juntar por mês'), numIn(monthly, (v) => { setMonthly(v); setHasMonthly(true); }, L('Ex.: 500')))}
+        {debt && <Tog icon={I.pct} label={L('Tem juros?')} on={hasRate} set={(v) => { setHasRate(v); if (v) setHasMonthly(true); }} />}
+        {debt && hasRate && row('rate', I.pct, L('Juros por ano (%)'), numIn(rate, setRate, L('Ex.: 3,5')))}
+      </>}
+    </div>
+  </>;
+  const partB = plan && <>
+    <div className="tx-rows">
+      <Tog icon={I.date} label={L('Tem data limite?')} sub={L('Esta conta passa a mostrar se vais a tempo')} on={hasEnd} set={setHasEnd} />
+      {hasEnd && row('end', I.date, L('Até quando'), <DatePicker value={end} onChange={setEnd} className="fx-input tx-val" />)}
+      {!hasEnd && <Tog icon={I.track} label={debt ? L('Acompanhar esta dívida?') : L('Acompanhar esta poupança?')} sub={L('Mostra quanto falta, dentro da própria conta')} on={wantGoal} set={setWantGoal} />}
+      {goal && !debt && row('target', I.target, L('Quanto queres juntar no total'), numIn(target, setTarget, auto ? money(auto) : L('Ex.: 5000')))}
+    </div>
+    <h3 className="acc-how">{debt ? L('Como queres pagar?') : L('Como queres juntar?')}</h3>
+    <div className="tx-seg"><Seg value={how} onChange={setHow} label={debt ? L('Como queres pagar?') : L('Como queres juntar?')} options={[{ id: 'hand', label: L('À mão') }, { id: 'transfer', label: L('Transferir de outra conta') }]} /></div>
+    {transfer && <div className="tx-rows">
+      <div className={'tx-row tx-acc' + miss.cls('from')}><span><Ic d={ICON.wallet} size={18} />{L('Da conta')}</span>
+        <span className="tx-accval"><span className="tx-accpick">
+          <PickMenu compact label={L('Da conta')} value={src} options={sources.map((a) => ({ value: a.id, label: a.name, sub: `${a.type === 'savings' ? L('Poupança') : L('Gastos')} · ${money(balOf(a))}` }))} onChange={(v) => setFrom(String(v))} />
+          {src2 && <small className={balOf(src2) < 0 ? 'fx-neg' : 'fx-pos'}>{money(balOf(src2))}</small>}
+        </span></span></div>
+      {row('amount', I.money, L('Valor a transferir'), numIn(amt, setAmount, '0'))}
+      <div className="tx-row"><span><Ic d={I.date} size={18} />{recurring ? L('A primeira em') : L('Data')}</span><DatePicker value={date} onChange={setDate} ariaLabel={L('Data')} /></div>
+      <Tog icon={I.month} label={L('Repetir todos os meses')} on={recurring} set={setRecurring} />
+    </div>}
+    {debt && po && m > 0 && start > 0 && <div className="debt-sum">
+      <p><span>{L('Sem juros')}</span><b>{money(start)}</b></p>
+      {r > 0 && <p><span>{L('Com juros')}</span><b>{money(po.totalCents)}</b></p>}
+      {r > 0 && <p><span>{L('Só de juros')}</span><b className="fx-neg">{money(po.totalCents - start)}</b></p>}
+      <p className="debt-prev">{endText(po.months)}</p>
+    </div>}
+    {need > 0 && <p className="debt-prev">{fill(debt ? L('Para acabar a tempo precisas de abater cerca de {m} por mês') : L('Para lá chegares a tempo precisas de juntar cerca de {m} por mês'), { m: money(need) })}</p>}
+  </>;
   return (
-    <BottomSheet title={L('Nova conta')} onClose={onClose}>
-      {miss.note}
-      <section className="mv-card sh-form acc-form">
-        <div className="tx-seg acc-kind"><Seg value={kind} onChange={setKind} label={L('Tipo de conta')} options={[{ id: 'spending', label: L('Gastos') }, { id: 'savings', label: L('Poupança') }, { id: 'debt', label: L('Dívidas') }]} /></div>
-        <label className={'bs-amount' + miss.cls('bal')}><small>{debt ? L('Quanto deves') : L('Saldo inicial')}</small><input className="tx-amt" inputMode="decimal" value={bal} onChange={(x) => setBal(digits(x.target.value))} placeholder="0" /><span className="tx-cur">{s.currency}</span></label>
-        {row('name', L('Nome da conta'), <input value={name} onChange={(x) => setName(x.target.value)} placeholder={debt ? L('Ex.: Empréstimo da casa') : kind === 'savings' ? L('Ex.: Poupanças') : L('Ex.: Conta do banco')} />)}
-        {row('desc', L('Descrição'), <input value={desc} maxLength={120} onChange={(x) => setDesc(x.target.value)} placeholder={L('Opcional')} />)}
-        {plan && <>
-          <Tog label={debt ? L('Abater um valor certo por mês?') : L('Juntar um valor certo por mês?')} sub={hasMonthly ? undefined : debt ? L('Se não, vais abatendo quando puderes') : L('Se não, vais juntando quando puderes')} on={hasMonthly} set={setHasMonthly} />
-          {(hasMonthly || (debt && hasRate)) && row(miss.cls('low') ? 'low' : 'monthly', debt ? L('Abater por mês') : L('Juntar por mês'), numIn(monthly, (v) => { setMonthly(v); setHasMonthly(true); }, L('Ex.: 500')))}
-          {debt && <Tog label={L('Tem juros?')} on={hasRate} set={(v) => { setHasRate(v); if (v) setHasMonthly(true); }} />}
-          {debt && hasRate && row('rate', L('Juros por ano (%)'), numIn(rate, setRate, L('Ex.: 3,5')))}
-          <Tog label={L('Tem data limite?')} sub={L('Com data, é criada uma meta ligada a esta conta')} on={hasEnd} set={setHasEnd} />
-          {hasEnd && row('end', L('Até quando'), <DatePicker value={end} onChange={setEnd} className="fx-input tx-val" />)}
-          {!hasEnd && <Tog label={L('Criar uma meta?')} on={wantGoal} set={setWantGoal} />}
-          {goal && !debt && row('target', L('Quanto queres juntar no total'), numIn(target, setTarget, auto ? money(auto) : L('Ex.: 5000')))}
-          <div className="sh-accpick"><small>{debt ? L('Como queres pagar?') : L('Como queres juntar?')}</small>
-            <div className="sh-seg small">
-              <button type="button" className={how === 'hand' ? 'on' : ''} onClick={() => setHow('hand')}>{debt ? L('À mão') : L('Vou juntando à mão')}</button>
-              <button type="button" className={how === 'transfer' ? 'on' : ''} onClick={() => setHow('transfer')}>{L('Transferir de outra conta')}</button>
-            </div></div>
-          {transfer && <>
-            {row('from', L('Da conta'), <PickMenu compact label={L('Da conta')} value={src} options={sources.map((a) => ({ value: a.id, label: a.name }))} onChange={(v) => setFrom(String(v))} />)}
-            {row('amount', L('Valor a transferir'), numIn(amt, setAmount, '0'))}
-            {row('date', recurring ? L('A primeira em') : L('Data'), <DatePicker value={date} onChange={setDate} className="fx-input tx-val" />)}
-            <Tog label={L('Recorrente')} sub={recurring ? L('Repete todos os meses') : undefined} on={recurring} set={setRecurring} />
-          </>}
-          {debt && po && m > 0 && start > 0 && <div className="debt-sum">
-            <p><span>{L('Sem juros')}</span><b>{money(start)}</b></p>
-            {r > 0 && <p><span>{L('Com juros')}</span><b>{money(po.totalCents)}</b></p>}
-            {r > 0 && <p><span>{L('Só de juros')}</span><b className="fx-neg">{money(po.totalCents - start)}</b></p>}
-            <p className="debt-prev">{endText(po.months)}</p>
-          </div>}
-          {!hasMonthly && e && goalCents > 0 && <p className="debt-prev">{fill(debt ? L('Para acabar a tempo precisas de abater cerca de {m} por mês') : L('Para lá chegares a tempo precisas de juntar cerca de {m} por mês'), { m: money(Math.ceil(Math.max(0, goalCents - (debt ? 0 : start)) / monthsLeft)) })}</p>}
-        </>}
-        <button type="button" className="sh-btn in sm" disabled={busy} onClick={create}>{L('Criar conta')}</button>
-      </section>
+    <BottomSheet title={L('Nova conta')} onClose={two && step === 2 ? () => { setStep(1); miss.reset(); } : onClose}>
+      <div className={'acc-form' + (plan && PC_MOBILE ? ' wide' : '')}>
+        {miss.note}
+        {!(two && step === 2) && <div className="tx-seg acc-kind"><Seg value={kind} onChange={pickKind} label={L('Tipo de conta')} options={[{ id: 'spending', label: L('Gastos') }, { id: 'savings', label: L('Poupança') }, { id: 'debt', label: L('Dívidas') }]} /></div>}
+        {two ? <div>{step === 1 ? partA : partB}</div> : <div className="acc-cols"><div>{partA}</div>{plan && <div>{partB}</div>}</div>}
+        {two && step === 1
+          ? <button type="button" className="tx-addbtn" onClick={() => { if (miss.check()) setStep(2); }}>{L('Seguinte')}</button>
+          : <button type="button" className="tx-addbtn" disabled={busy} onClick={create}>{L('Criar conta')}</button>}
+      </div>
     </BottomSheet>
   );
 }
