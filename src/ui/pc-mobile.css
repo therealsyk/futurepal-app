@@ -1089,3 +1089,7 @@ button.sp-row { cursor: pointer; } button.sp-row:hover { background: color-mix(i
 .ci-k { margin-left: auto; color: var(--muted); font-size: 12.5px; }
 .ci-xlabels { display: flex; justify-content: space-between; gap: 4px; color: var(--muted); font-size: 11px; margin-top: 4px; overflow: hidden; }
 @media print { .adm-side, .adm-top, .ci-filters, .ad-filters { display: none !important; } .adm { position: static; } .adm-content { overflow: visible; } }
+
+/* Contas principais repetidas */
+.acc-dup { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.acc-dup p { margin: 0; flex: 1 1 240px; }

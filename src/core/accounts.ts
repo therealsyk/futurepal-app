@@ -22,6 +22,8 @@ export async function listAccounts(db: WalletDB): Promise<Account[]> {
 
 // Transação: evita duas contas "Principal" quando várias páginas chamam isto ao mesmo tempo.
 export const DEFAULT_ACCOUNT_ID = 'acc-default';
+// Data antiga de propósito: a conta automática nunca ganha, na sincronização, à que já existe na nuvem.
+export const PLACEHOLDER_AT = '1970-01-01T00:00:00.000Z';
 
 export async function ensureDefaultAccount(db: WalletDB, currency: string, name: string): Promise<void> {
   await db.transaction('rw', db.accounts, async () => {
@@ -30,7 +32,7 @@ export async function ensureDefaultAccount(db: WalletDB, currency: string, name:
     // id fixo: os aparelhos da mesma conta criam a mesma conta "Principal" (a sincronização não a duplica)
     await db.accounts.put({
       ...stampNew<Account>({ name, description: '', type: 'spending', currency, initialBalanceCents: 0, includeInNetWorth: true, isDefault: true, showOnHome: true, order: 0 }),
-      id: DEFAULT_ACCOUNT_ID,
+      id: DEFAULT_ACCOUNT_ID, createdAt: PLACEHOLDER_AT, updatedAt: PLACEHOLDER_AT,
     });
   });
 }
@@ -54,7 +56,7 @@ export async function addAccount(db: WalletDB, input: NewAccount): Promise<Accou
 
 export async function updateAccount(db: WalletDB, id: string, patch: Partial<NewAccount>): Promise<void> {
   if (patch.isDefault) {
-    for (const a of await listAccounts(db)) if (a.isDefault && a.id !== id) await db.accounts.update(a.id, { isDefault: false });
+    for (const a of await listAccounts(db)) if (a.isDefault && a.id !== id) await db.accounts.update(a.id, { isDefault: false, updatedAt: new Date().toISOString() });
   }
   await db.accounts.update(id, { ...patch, updatedAt: new Date().toISOString() });
 }
@@ -66,7 +68,7 @@ export async function removeAccount(db: WalletDB, id: string): Promise<void> {
   await db.accounts.update(id, { deletedAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
   if (target?.isDefault) {
     const next = all.find((a) => a.id !== id);
-    if (next) await db.accounts.update(next.id, { isDefault: true });
+    if (next) await db.accounts.update(next.id, { isDefault: true, updatedAt: new Date().toISOString() });
   }
 }
 

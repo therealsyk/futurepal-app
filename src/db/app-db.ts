@@ -1,3 +1,4 @@
+import { PLACEHOLDER_AT } from '../core/accounts';
 import { createDatabase, type WalletDB } from './database';
 
 // Uma base de dados local POR CONTA, para os dados de uma conta nunca passarem para outra:
@@ -103,7 +104,7 @@ export async function moveGuestDataIntoCurrent(): Promise<number> {
         const autoUsed = auto ? await current.transactions.filter((x) => x.accountId === 'acc-default').count() : 0;
         if (auto && guestHasDefault && autoUsed === 0) await current.accounts.delete('acc-default');
       }
-      await current.table(t).bulkPut(rows.map((r: object) => ({ ...r, updatedAt: now }))); // updatedAt novo -> sobem na próxima sincronização
+      await current.table(t).bulkPut(rows.map((r: object) => ((r as { updatedAt?: string }).updatedAt === PLACEHOLDER_AT ? r : { ...r, updatedAt: now }))); // updatedAt novo -> sobem na próxima sincronização
       moved += rows.length;
     }
     // categorias referidas nas transações/orçamentos/recorrências

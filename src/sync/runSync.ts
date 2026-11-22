@@ -4,6 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import i18n from 'i18next';
 import type { WalletDB } from '../db/database';
 import { syncNow, type SyncResult } from './supabase-sync';
+import { repointMerged } from '../core/mergeAccounts';
 import { getLastSync, remoteSettingsIfNewer } from '../core/settingsSync';
 import { loadSettings, saveSettings, setTheme, type AppSettings } from '../core/settings';
 import { currentDbName, userDbName } from '../db/app-db';
@@ -16,6 +17,7 @@ export async function runSync(client: SupabaseClient, db: WalletDB, userId: stri
   const result = await syncNow(client, db, userId, await getLastSync(db));
   let settings: AppSettings | null = null;
   if (!result.error) {
+    await repointMerged(db).catch(() => {});
     settings = await remoteSettingsIfNewer(db, loadSettings());
     if (settings) {
       saveSettings(settings, { silent: true });

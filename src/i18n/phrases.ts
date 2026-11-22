@@ -623,6 +623,10 @@ export const PHRASES: Record<string, Tr> = {
   'Os teus dados entram só em totais de 10 ou mais pessoas, nunca de forma individual.': ['Your data only counts in totals of 10 or more people, never individually.', 'Tus datos solo cuentan en totales de 10 o más personas, nunca de forma individual.', 'Vos données ne comptent que dans des totaux de 10 personnes ou plus, jamais individuellement.'],
   'Últimos 3 meses': ['Last 3 months', 'Últimos 3 meses', '3 derniers mois'],
   'Últimos 6 meses': ['Last 6 months', 'Últimos 6 meses', '6 derniers mois'],
+  'Juntar as contas principais numa só?': ['Merge the main accounts into one?', '¿Unir las cuentas principales en una sola?', 'Fusionner les comptes principaux en un seul ?'],
+  'Juntar contas': ['Merge accounts', 'Unir cuentas', 'Fusionner les comptes'],
+  'Não foi possível juntar sem mudar o saldo. Nada foi alterado.': ['Could not merge without changing the balance. Nothing was changed.', 'No se pudo unir sin cambiar el saldo. No se cambió nada.', 'Impossible de fusionner sans changer le solde. Rien n’a été modifié.'],
+  'Tens duas contas principais. Junta-as numa só: o saldo total fica igual e nenhum movimento é apagado.': ['You have two main accounts. Merge them into one: the total stays the same and no transaction is deleted.', 'Tienes dos cuentas principales. Únelas en una: el total no cambia y no se elimina ningún movimiento.', 'Vous avez deux comptes principaux. Fusionnez-les : le total ne change pas et aucune opération n’est supprimée.'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */

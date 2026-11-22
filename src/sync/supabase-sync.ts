@@ -1,5 +1,6 @@
 // Phase 13 — Supabase sync (SPEC §2 local-first, §6.9).
 // Push dirty local rows, pull remote rows newer than the last sync, merge by updatedAt.
+import { DEFAULT_ACCOUNT_ID, PLACEHOLDER_AT } from '../core/accounts';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { WalletDB } from '../db/database';
 import { applyRemote, type SyncableRow, type SyncTable } from '../core/sync';
@@ -78,7 +79,7 @@ export async function syncNow(client: SupabaseClient, db: WalletDB, userId: stri
 
   for (const table of TABLES) {
     const localTable = db[table as keyof WalletDB] as any;
-    const local: SyncableRow[] = (await localTable.toArray()).map((r: SyncableRow) => ({ ...r, updatedAt: iso(r.updatedAt) }));
+    let local: SyncableRow[] = (await localTable.toArray()).map((r: SyncableRow) => ({ ...r, updatedAt: iso(r.updatedAt) }));
 
     // 1) Tudo o que o servidor tem desta conta
     const remote: SyncableRow[] = [];
@@ -96,6 +97,15 @@ export async function syncNow(client: SupabaseClient, db: WalletDB, userId: stri
       if (rows.length < PAGE) break;
     }
     const remoteById = new Map(remote.map((r) => [r.id, r]));
+
+    // Conta automática deste aparelho, nunca usada, quando a nuvem já tem contas: sai (senão ficavam duas principais)
+    if (table === 'accounts' && !remoteById.has(DEFAULT_ACCOUNT_ID) && remote.some((r) => r.deletedAt === null)) {
+      const auto = local.find((r) => r.id === DEFAULT_ACCOUNT_ID && r.updatedAt === PLACEHOLDER_AT);
+      const used = auto && (await db.transactions.filter((x) => x.accountId === DEFAULT_ACCOUNT_ID).count()
+        + await db.transfers.filter((x) => x.fromAccountId === DEFAULT_ACCOUNT_ID || x.toAccountId === DEFAULT_ACCOUNT_ID).count()
+        + await db.recurrings.filter((x) => x.accountId === DEFAULT_ACCOUNT_ID || x.toAccountId === DEFAULT_ACCOUNT_ID).count());
+      if (auto && !used) { await db.accounts.delete(DEFAULT_ACCOUNT_ID); local = local.filter((r) => r !== auto); }
+    }
 
     // 2) Juntar: por id ganha o mais recente; empate fica o local
     const merged = remote.length > 0 ? applyRemote(local, remote) : local;
