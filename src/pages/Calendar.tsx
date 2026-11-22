@@ -88,7 +88,7 @@ export default function Calendar() {
 
   return (
     <div className="fx-page">
-      <PageHead title={t('calendar.title')} sub={t('calendar.subtitle')}>
+      <PageHead title={t('calendar.title')}>
         <PeriodFilter value={per} onChange={setPer} />
       </PageHead>
       {period === 'year' ? (

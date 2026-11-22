@@ -869,6 +869,7 @@ export const PHRASES: Record<string, Tr> = {
   'Com': ['With', 'Con', 'Avec'],
   'À espera de resposta': ['Waiting for a reply', 'Esperando respuesta', 'En attente de réponse'],
   'Só tu, por agora': ['Just you, for now', 'Solo tú, por ahora', 'Juste vous, pour l’instant'],
+  'Disponível': ['Available', 'Disponible', 'Disponible'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */

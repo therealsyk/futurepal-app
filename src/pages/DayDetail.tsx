@@ -31,7 +31,7 @@ export default function DayDetail() {
 
   return (
     <div className="fx-page">
-      <PageHead title={dayLabel} sub={t('calendar.dayDetailTitle')}>
+      <PageHead title={dayLabel}>
         <button type="button" className="fx-btn" onClick={() => navigate('/calendario')}><Ic d={ICON.left} size={16} />{t('calendar.backToCalendar')}</button>
       </PageHead>
       <div className="fx-kpis" style={{ gridTemplateColumns: 'repeat(3, minmax(0,1fr))' }} data-day-kpis="1">

@@ -455,7 +455,7 @@ export function AdminShell({ tab, onTab, onRefresh, role, children }: { tab: Adm
           <button type="button" className="adm-tbtn" onClick={onRefresh} title={L('Atualizar')}>↻ <span>{L('Atualizar')}</span></button>
         </header>
         <div className="adm-content">
-          <div className="adm-title"><h1>{L(cur.label)}</h1><p>{L(cur.desc)}</p></div>
+          <div className="adm-title"><h1>{L(cur.label)}</h1></div>
           {children}
         </div>
       </div>

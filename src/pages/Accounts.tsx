@@ -119,7 +119,7 @@ export function Accounts() {
 
   return (
     <div className="fx-page">
-      <PageHead title={t('accounts.title')} sub={t('accounts.subtitle')}>
+      <PageHead title={t('accounts.title')}>
         {accounts.length > 1 && <button type="button" className="fx-btn" onClick={() => openTransfer()}><Ic d={ICON.repeat} size={16} />{t('accounts.transfer')}</button>}
         <button type="button" className="fx-btn primary" onClick={openNew}><Ic d={ICON.plus} size={16} />{t('accounts.create')}</button>
       </PageHead>

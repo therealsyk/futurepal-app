@@ -180,7 +180,7 @@ export function Transactions() {
           </section>
         </div>
       )}
-      <PageHead title={t('transactions.title')} sub={t('transactions.subtitle')}>
+      <PageHead title={t('transactions.title')}>
         <AccountSwitch accounts={accounts} active={active} onChange={setActive} />
         <button type="button" className="fx-btn primary" onClick={openNew}><Ic d={ICON.plus} size={16} />{t('transactions.new')}</button>
       </PageHead>

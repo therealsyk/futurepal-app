@@ -79,7 +79,7 @@ export function Categories() {
 
   return (
     <div className="fx-page ct-page">
-      <PageHead title={t('panel.categoriesTitle')} sub={t('categories.subtitle', { count: cats.length })}>
+      <PageHead title={t('panel.categoriesTitle')}>
         <button type="button" className="fx-btn primary" onClick={() => startNew('custom')}><Ic d={ICON.plus} size={16} />{t('panel.newCategory')}</button>
       </PageHead>
 

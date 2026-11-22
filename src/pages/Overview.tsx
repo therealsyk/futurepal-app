@@ -82,7 +82,7 @@ export function Overview() {
 
   return (
     <div className="fx-page">
-      <PageHead title={t('overview.title')} sub={t('overview.subtitle')}>
+      <PageHead title={t('overview.title')}>
         <AccountSwitch accounts={accounts} active={active} onChange={setActive} />
         <Link to="/transacoes" className="fx-btn primary"><Ic d={ICON.plus} size={16} />{t('transactions.new')}</Link>
       </PageHead>

@@ -91,7 +91,7 @@ export const Salaries = () => {
 
   return (
     <div className="fx-page sal-page">
-      <PageHead title={t('salaries.title')} sub={t('salaries.subtitle')}>
+      <PageHead title={t('salaries.title')}>
         <MonthNav label={String(year)} onPrev={() => setYear(year - 1)} onNext={() => setYear(year + 1)} />
       </PageHead>
 

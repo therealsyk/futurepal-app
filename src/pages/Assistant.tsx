@@ -204,7 +204,7 @@ function AssistantChat({ own, cfg, onCfg, allowed }: { own: boolean; cfg: AiConf
     <div className="fx-page ai-page">
       <header className="ai-top">
         <span className="ai-logo"><Ic d={SPARK} size={22} /></span>
-        <div className="ai-title"><h1>{t('assistant.title')}</h1><small><i className="ai-online" />{busy ? L('A pensar…') : t('assistant.sub')}</small></div>
+        <div className="ai-title"><h1>{t('assistant.title')}</h1><small><i className="ai-online" />{busy ? L('A pensar…') : L('Disponível')}</small></div>
         <button type="button" className="ai-model" onClick={() => setModels(true)} title={L('Modelo de IA')}><Ic d={CHIP} size={17} /><span>{modelName}</span><Ic d="M6 9l6 6 6-6" size={14} /></button>
         {msgs.length > 0 && <button type="button" className="ai-new" onClick={() => { setMsgs([]); setDraft(null); }} title={L('Novo chat')} aria-label={L('Novo chat')}><Ic d={NEW} size={18} /></button>}
       </header>

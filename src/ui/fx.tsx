@@ -47,12 +47,11 @@ export function Ic({ d, size = 18 }: { d: string; size?: number }) {
   );
 }
 
-export function PageHead({ title, sub, children }: { title: string; sub?: string; children?: ReactNode }) {
+export function PageHead({ title, children }: { title: string; children?: ReactNode }) {
   return (
     <header className="fx-head">
       <div>
         <h1>{title}</h1>
-        {sub ? <p>{sub}</p> : null}
       </div>
       {children ? <div className="fx-head-actions">{children}</div> : null}
     </header>

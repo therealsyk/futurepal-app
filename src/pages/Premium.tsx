@@ -119,7 +119,7 @@ export function PlusPage() {
   };
   return (
     <div className="fx-page">
-      <PageHead title={t('plus.title')} sub={t('plus.sub')} />
+      <PageHead title={t('plus.title')} />
       {state.plan === 'free' && days > 0 && <p className="pm-banner">{t('plus.trialLeft', { count: days })}</p>}
       <div className="pm-billing" role="group" aria-label={t('plus.billing')}>
         <button type="button" className={!yearly ? 'on' : ''} aria-pressed={!yearly} onClick={() => setYearly(false)}>{t('plus.monthly')}</button>
@@ -190,7 +190,7 @@ export function IrsPage() {
   const deadline = efaturaDeadline(year).split('-').reverse().join('/');
   return (
     <div className="fx-page">
-      <PageHead title={t('plus.irsTitle')} sub={t('plus.irsSub')} />
+      <PageHead title={t('plus.irsTitle')} />
       <Locked feature="irs">
         <div className="pm-row">
           <button type="button" className="fx-btn" onClick={() => setYear(year - 1)}><Ic d={ICON.left} /></button>
@@ -229,7 +229,7 @@ export function SubscriptionsPage() {
   const total = subs.reduce((s, x) => s + x.annualCents, 0);
   return (
     <div className="fx-page">
-      <PageHead title={t('plus.subsTitle')} sub={t('plus.subsSub')} />
+      <PageHead title={t('plus.subsTitle')} />
       <Locked feature="subscriptions">
         <div className="pm-hero"><small>{t('plus.subsYear')}</small><strong>{money(total)}</strong><span>{t('plus.subsCount', { count: subs.length })}</span></div>
         {subs.length === 0 ? <EmptyState icon={ICON.repeat} title={t('plus.subsEmpty')} sub={t('plus.subsEmptySub')} /> : (
@@ -276,7 +276,7 @@ export function YearPage() {
   };
   return (
     <div className="fx-page">
-      <PageHead title={t('plus.yrTitle', { year })} sub={t('plus.yrSub')}>
+      <PageHead title={t('plus.yrTitle', { year })}>
         <button type="button" className="fx-btn" onClick={() => setYear(year - 1)}><Ic d={ICON.left} /></button>
         <button type="button" className="fx-btn" onClick={() => setYear(year + 1)}><Ic d={ICON.right} /></button>
       </PageHead>
@@ -307,7 +307,7 @@ export function ChallengesPage() {
   const types = Object.keys(CHALLENGE_DEFS) as ChallengeType[];
   return (
     <div className="fx-page">
-      <PageHead title={t('plus.chTitle')} sub={t('plus.chSub')} />
+      <PageHead title={t('plus.chTitle')} />
       <Locked feature="challenges">
         <div className="pm-tools">
           {types.map((ty) => (
@@ -359,7 +359,7 @@ export function WarrantiesPage() {
   const remove = async (id: string) => { await db.warranties.update(id, { deletedAt: new Date().toISOString() }); await refresh(); };
   return (
     <div className="fx-page">
-      <PageHead title={t('plus.wTitle')} sub={t('plus.wSub')}>
+      <PageHead title={t('plus.wTitle')}>
         {hasFeature('warranties') && <button type="button" className="fx-btn primary" onClick={() => setOpen(true)}><Ic d={ICON.plus} /> {t('plus.wAdd')}</button>}
       </PageHead>
       <Locked feature="warranties">
@@ -422,7 +422,7 @@ export function FreelancePage() {
   };
   return (
     <div className="fx-page">
-      <PageHead title={t('plus.fTitle')} sub={t('plus.fSub')}>
+      <PageHead title={t('plus.fTitle')}>
         {hasFeature('freelance') && <button type="button" className="fx-btn" onClick={exportCsv}>{t('plus.fExport')}</button>}
       </PageHead>
       <Locked feature="freelance">

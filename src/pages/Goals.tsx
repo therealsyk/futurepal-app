@@ -138,7 +138,7 @@ export function Goals() {
 
   return (
     <div className="fx-page">
-      <PageHead title={t('goals.title')} sub={t('goals.subtitle')}>
+      <PageHead title={t('goals.title')}>
         <button type="button" className="fx-btn primary" onClick={() => { setError(null); setOpen(true); }}><Ic d={ICON.plus} size={16} />{t('goals.createGoal')}</button>
       </PageHead>
       {error && !open && <p className="fx-error">{error}</p>}

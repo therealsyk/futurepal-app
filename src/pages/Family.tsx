@@ -27,7 +27,7 @@ export function FamilyPage() {
   const { t } = useTranslation();
   return (
     <div className="fx-page">
-      <PageHead title={t('family.title')} sub={t('family.sub')} />
+      <PageHead title={t('family.title')} />
       <Locked feature="shared"><FamilyInner /></Locked>
     </div>
   );

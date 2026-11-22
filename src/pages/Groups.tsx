@@ -204,7 +204,6 @@ export function Groups() {
   return (
     <div className="fx-page mv sh">
       <header className="mv-head"><h1 className="sh-title">{L('Grupos')}</h1></header>
-      <p className="fx-muted" style={{ margin: 0 }}>{L('Junta as transações de uma coisa só (férias, obras, jantares), vê o total e divide com quem quiseres.')}</p>
       {groups.length === 0 && <EmptyState icon="M4 6h16M4 12h16M4 18h10" title={L('Ainda não tens grupos')} text={L('Junta despesas de uma coisa só e vê quanto custou no total.')} examples={['✈️ Viagem', '🔨 Obras', '🎄 Natal']} />}
       <div className="gl-grid">
         {groups.map((g, i) => {

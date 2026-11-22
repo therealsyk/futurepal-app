@@ -104,7 +104,7 @@ export function Budgets() {
 
   return (
     <div className="fx-page">
-      <PageHead title={t('budgets.title')} sub={t('budgets.subtitle')}>
+      <PageHead title={t('budgets.title')}>
         <div className="fx-seg" role="group" aria-label={t('panel.period')}>
           <button type="button" className={period === 'month' ? 'on' : ''} aria-pressed={period === 'month'} onClick={() => setPeriod('month')}>{t('panel.periodMonth')}</button>
           <button type="button" className={period === 'year' ? 'on' : ''} aria-pressed={period === 'year'} onClick={() => setPeriod('year')}>{t('panel.periodYear')}</button>
