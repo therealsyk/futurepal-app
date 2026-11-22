@@ -1,6 +1,7 @@
 import { AdminLive } from './AdminLive';
 import { AdminDashboard, AdminMoreMetrics } from './AdminDash';
 import { AdminCI, type CIPage } from './AdminCI';
+import { CI_ENABLED } from '../core/ciFlag';
 import { PcOverview } from './PcOverview';
 import { AdminLogin, AdminPhase1, AdminShell, allowedTab, isUnlocked, useAdminRole, type AdminTab } from './AdminPhase1';
 import { useEffect, useState } from 'react';
@@ -140,7 +141,7 @@ export function AdminPage() {
     <AdminShell tab={shown} onTab={setTab} onRefresh={() => load()} role={role}>
       {error && <p className="fx-error">{error}</p>}
       {shown === 'overview' && <AdminDashboard />}
-      {shown.startsWith('ci_') && <AdminCI page={shown as CIPage} />}
+      {CI_ENABLED && shown.startsWith('ci_') && <AdminCI page={shown as CIPage} />}
       {shown === 'engagement' && <><AdminMoreMetrics section="engagement" /><AdminDashboard part="audience" /></>}
       {(shown === 'health' || shown === 'safety' || shown === 'money') && <AdminMoreMetrics section={shown} />}
       {shown === 'live' && <AdminLive />}
