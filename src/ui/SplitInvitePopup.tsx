@@ -29,7 +29,7 @@ export function SplitInvitePopup() {
       setBusy(true);
       await getSupabase()?.rpc('answer_split_invite', { p_invite: inv.id, p_accept: accept, p_display_name: myName });
       setBusy(false);
-      if (accept) window.location.hash = '#/dividir';
+      if (accept) window.location.hash = '#/grupos';
     } else {
       try { const seen = JSON.parse(sessionStorage.getItem('wallet.invSeen') || '[]'); sessionStorage.setItem('wallet.invSeen', JSON.stringify([...seen, inv.id])); } catch { /* */ }
     }

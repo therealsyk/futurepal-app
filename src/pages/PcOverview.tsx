@@ -14,7 +14,7 @@ import { PeriodFilter, initialPeriod, periodRange, previousRange, type Period } 
 import { OverviewChart } from './Dashboard';
 import { SimpleHome } from './SimpleHome';
 import { SimpleOverview } from './SimplePages';
-import { AccountsWidget, AssistantWidget, LimitsWidget } from './PcWidgets';
+import { AccountsWidget, AssistantWidget, LimitsWidget, PlansWidget } from './PcWidgets';
 import { FreeGrid } from '../ui/FreeGrid';
 import { addCell, fromOrder, validLayout, type Cell } from '../core/widgetGrid';
 import { L } from '../i18n/phrases';
@@ -56,8 +56,8 @@ export function Metric({ icon, tone, title, value, valueClass, delta, deltaGoodU
   );
 }
 
-type WidgetId = 'chart' | 'metrics' | 'latest' | 'cats' | 'cal' | 'goals' | 'limits' | 'accounts' | 'groups' | 'assistant';
-const ALL_WIDGETS: WidgetId[] = ['chart', 'metrics', 'latest', 'cats', 'cal', 'goals', 'limits', 'accounts', 'groups', 'assistant'];
+type WidgetId = 'chart' | 'metrics' | 'latest' | 'cats' | 'cal' | 'goals' | 'limits' | 'accounts' | 'groups' | 'assistant' | 'plans';
+const ALL_WIDGETS: WidgetId[] = ['chart', 'metrics', 'latest', 'cats', 'cal', 'goals', 'limits', 'accounts', 'groups', 'assistant', 'plans'];
 const DEFAULT_ORDER: WidgetId[] = ['chart', 'metrics', 'latest', 'cats', 'cal'];
 const ORDER_KEY = 'wallet.pcoOrder.v3'; // disposição antiga (só a ordem)
 const LAYOUT_KEY = 'wallet.pcoLayout.v4';
@@ -73,7 +73,7 @@ function loadLayout(): Cell[] {
 const SLIDERS = 'M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M16 4v4M10 10v4M18 16v4';
 const WNAME: Record<WidgetId, string> = {
   chart: 'Gráfico de rendimentos', metrics: 'Rendimento, gastos e poupança', latest: 'Últimos movimentos', cats: 'Categorias',
-  cal: 'Calendário de gastos', goals: 'Metas', limits: 'Limites do mês', accounts: 'Contas', groups: 'Grupos', assistant: 'Assistente IA',
+  cal: 'Calendário de gastos', goals: 'Metas', limits: 'Limites do mês', accounts: 'Contas', groups: 'Grupos', assistant: 'Assistente IA', plans: 'Poupanças e dívidas',
 };
 
 /** Contas, de forma discreta: um botão no topo com o total; ao carregar mostra cada conta. */
@@ -196,6 +196,7 @@ export function PcOverview() {
     limits: <LimitsWidget money={money} y={em.y} m={em.m} />,
     accounts: <AccountsWidget money={money} />,
     assistant: <AssistantWidget />,
+    plans: <PlansWidget money={money} />,
   };
 
   const save = (next: Cell[]) => { setCells(next); try { localStorage.setItem(LAYOUT_KEY, JSON.stringify(next)); } catch { /* sem storage */ } };

@@ -54,7 +54,7 @@ function useNotifications(): Note[] {
       if (sb && (await sb.auth.getSession()).data.session) {
         const { data } = await sb.rpc('my_split_invites');
         for (const i of (data ?? []) as Array<{ id: string; group_name: string; invited_by_name: string }>)
-          out.unshift({ id: 'inv' + i.id, text: t('acct.nSplitInvite', { name: i.invited_by_name, group: i.group_name }), to: '/dividir' });
+          out.unshift({ id: 'inv' + i.id, text: t('acct.nSplitInvite', { name: i.invited_by_name, group: i.group_name }), to: '/grupos' });
       }
       setNotes(out);
     })().catch(() => {});

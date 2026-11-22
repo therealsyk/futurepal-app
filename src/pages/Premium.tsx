@@ -79,7 +79,7 @@ const FEATURE_PAGES: Array<{ f: Feature; path: string; d: string }> = [
   { f: 'challenges', path: '/desafios', d: 'M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3' },
   { f: 'warranties', path: '/garantias', d: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4' },
   { f: 'shared', path: '/casa', d: 'M3 11l9-7 9 7M5 10v10h14V10M9 20v-6h6v6' },
-  { f: 'split', path: '/dividir', d: 'M12 3v18M5 8h7M12 16h7M4 21h16' },
+  { f: 'split', path: '/grupos', d: 'M12 3v18M5 8h7M12 16h7M4 21h16' },
   { f: 'freelance', path: '/independentes', d: 'M4 8h16v11H4zM9 8V5h6v3M4 13h16' },
 ];
 // Os 3 planos: cada um tem tudo o do anterior. Preço sempre por mês; no anual, o equivalente mensal.

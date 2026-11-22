@@ -1,4 +1,4 @@
-import { goalValueCents } from '../core/debtPlan';
+import { goalValueCents, splitDesc } from '../core/debtPlan';
 import { L } from '../i18n/phrases';
 import { FormError, useMissing } from '../ui/missing';
 import { useEffect, useState } from 'react';
@@ -167,7 +167,7 @@ export function Goals() {
                   <button type="button" className="fx-round sm fx-goal-del" onClick={() => setToDelete({ table: 'goals', id: g.id, name: g.name })} aria-label={t('goals.deleteGoal', { name: g.name })} data-testid="goal-delete"><Ic d={ICON.trash} size={15} /></button>
                 </div>
                 {est && <p className="fx-muted fx-small">{est.months === null ? t('goals.estimateNone') : `${t('goals.estimateLabel')} ${est.months} · ${t('goals.estimateDate')}: ${est.date}`}</p>}
-                {g.notes && <p className="fx-muted fx-small">{g.notes}</p>}
+                {splitDesc(g.notes).text && <p className="fx-muted fx-small">{splitDesc(g.notes).text}</p>}
                 {linked ? <p className="fx-small fx-muted">{t('goals.linkedTo', { count: g.accountIds!.length })}</p> : (
                   <div className="fx-inline">
                     <input className="fx-input" inputMode="decimal" placeholder={t('goals.amount')} value={contrib[g.id] ?? ''} onChange={(e) => setContrib({ ...contrib, [g.id]: e.target.value })} aria-label={t('goals.amount')} />

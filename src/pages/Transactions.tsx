@@ -1,3 +1,4 @@
+import { AccountRow, AmountField, DateRow, FI, RepeatRows, TextRow } from '../ui/formFields';
 import { FormError, useMissing } from '../ui/missing';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { appConfirm } from '../ui/confirm';
@@ -337,43 +338,19 @@ export function Transactions() {
         {SIMPLE_UI && isMobile ? (<>
           {/* Formulário (telemóvel): valor grande e linhas com ícone */}
           <div className="tx-seg"><Seg value={type} onChange={setType} label={t('transactions.type')} options={[{ id: 'expense', label: t('transactions.typeExpense') }, { id: 'income', label: t('transactions.typeIncome') }]} /></div>
-          <input className={'tx-amt ' + (type === 'expense' ? 'exp' : 'inc') + miss.cls('amount')} autoFocus inputMode="decimal" value={amount} placeholder="0" onChange={(e) => setAmount(e.target.value)} aria-label={t('transactions.amount')} />
-          <span className="tx-cur">{settings.currency}</span>
+          <AmountField value={amount} onChange={setAmount} currency={settings.currency} cls={miss.cls('amount')} autoFocus />
           <div className="tx-rows">
-            <label className="tx-row"><span><Ic d="M4 20h4L19 9l-4-4L4 16z" size={18} />{t('transactions.description')}</span>
-              <input className="tx-val" value={description} placeholder={L('Opcional')} onChange={(e) => setDescription(e.target.value)} /></label>
+            <TextRow label={t('transactions.description')} value={description} onChange={setDescription} />
             <div className={'tx-row' + miss.cls('cat')}><span><Ic d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" size={18} />{t('transactions.category')}</span>
               {toAccount ? <span className="tx-muted">{L('Transferência')}</span> : <CategorySelect cats={cats} kind={type} value={categoryId} onChange={setCategoryId} ariaLabel={t('transactions.category')} className="fx-input tx-val" />}</div>
-            <div className="tx-row tx-acc"><span><Ic d={ICON.wallet} size={18} />{toAccount ? L('Da conta') : t('accounts.account')}</span>
-              <span className="tx-accval">
-                <span className="tx-accpick">
-                  <PickMenu compact label={t('accounts.account')} value={accountId} options={accounts.map((a) => ({ value: a.id, label: a.name, sub: bals[a.id] !== undefined ? money(bals[a.id]) : undefined }))} onChange={(v) => { setAccountId(String(v)); if (String(v) === toAccount) setToAccount(''); }} />
-                  {bals[accountId] !== undefined && <small className={bals[accountId] < 0 ? 'fx-neg' : 'fx-pos'}>{money(bals[accountId])}</small>}
-                </span>
-              </span></div>
+            <AccountRow label={toAccount ? L('Da conta') : t('accounts.account')} value={accountId} options={accounts.map((a) => ({ id: a.id, name: a.name, sub: bals[a.id] !== undefined ? money(bals[a.id]) : undefined }))} balance={bals[accountId] !== undefined ? money(bals[accountId]) : undefined} onChange={(v) => { setAccountId(v); if (v === toAccount) setToAccount(''); }} />
             {!toAccount && <button type="button" className="tx-row tx-swaprow" onClick={() => (accounts.length > 1 ? setToAccount(accounts.find((a) => a.id !== accountId)?.id ?? '') : setError(L('Para transferir, cria primeiro outra conta (ex.: Poupanças) em Contas.')))}><span><Ic d="M4 7h13l-3-3M20 17H7l3 3" size={18} />{L('Transferir para outra conta')}</span><Ic d={ICON.right} size={16} /></button>}
-            {toAccount && (
-              <div className="tx-row tx-acc"><span><Ic d="M4 7h13l-3-3M20 17H7l3 3" size={18} />{L('Para a conta')}</span>
-                <span className="tx-accval">
-                  <span className="tx-accpick">
-                    <PickMenu compact label={L('Para a conta')} value={toAccount} options={accounts.filter((a) => a.id !== accountId).map((a) => ({ value: a.id, label: a.name }))} onChange={(v) => setToAccount(String(v))} />
-                    {bals[toAccount] !== undefined && <small className={bals[toAccount] < 0 ? 'fx-neg' : 'fx-pos'}>{money(bals[toAccount])}</small>}
-                  </span>
-                  <button type="button" className="tx-swap off" onClick={() => setToAccount('')} aria-label={L('Cancelar transferência')}><Ic d={ICON.close} size={16} /></button>
-                </span></div>
-            )}
-            <div className="tx-row"><span><Ic d="M5 5h14v15H5zM5 10h14M9 3v4M15 3v4" size={18} />{t('transactions.date')}</span>
-              <DatePicker value={date} onChange={setDate} ariaLabel={t('transactions.date')} testId="tx-date" /></div>
+            {toAccount && <AccountRow icon={FI.swap} label={L('Para a conta')} value={toAccount} options={accounts.filter((a) => a.id !== accountId).map((a) => ({ id: a.id, name: a.name }))} owed={accounts.find((a) => a.id === toAccount)?.type === 'debt'} balance={bals[toAccount] !== undefined ? money(bals[toAccount]) : undefined} onChange={setToAccount}>
+              <button type="button" className="tx-swap off" onClick={() => setToAccount('')} aria-label={L('Cancelar transferência')}><Ic d={ICON.close} size={16} /></button></AccountRow>}
+            <DateRow label={t('transactions.date')} value={date} onChange={setDate} testId="tx-date" />
             {!toAccount && groups.length > 0 && <label className="tx-row"><span><Ic d="M4 6h16M4 12h16M4 18h10" size={18} />{L('Grupo')}</span>
               <PickMenu compact label={L('Grupo')} value={groupId} options={[{ value: '', label: L('Nenhum') }, ...groups.map((g) => ({ value: g.id, label: g.name }))]} onChange={(v) => setGroupId(String(v))} /></label>}
-            {<div className="tx-row"><span><Ic d="M4 12a8 8 0 0 1 14-5l2-2v6h-6l2-2a5 5 0 1 0 1 6" size={18} />{toAccount ? L('Repetir todos os meses') : L('Recorrente')}</span>
-              <button type="button" role="switch" aria-checked={recurring} className={'ob-toggle' + (recurring ? ' on' : '')} onClick={() => setRecurring(!recurring)} aria-label={t('transactions.recurring')}><i /></button></div>}
-            {recurring && (<>
-              <label className="tx-row tx-sub"><span>{t('goals.frequency')}</span>
-                <PickMenu compact label={t('goals.frequency')} value={freq} options={RECURRING_FREQUENCIES.map((f) => ({ value: f, label: t('goals.' + f) }))} onChange={(v) => setFreq(v as RecurringFrequency)} /></label>
-              <div className="tx-row tx-sub"><span>{L('Termina em')}</span>
-                <DatePicker value={endDate} onChange={setEndDate} allowEmpty ariaLabel={t('transactions.recurringEnd')} /></div>
-            </>)}
+            <RepeatRows label={toAccount ? L('Repetir todos os meses') : undefined} on={recurring} setOn={setRecurring} freq={freq} setFreq={setFreq} end={endDate} setEnd={setEndDate} />
           </div>
         </>) : (<>
         <Seg value={type} onChange={setType} label={t('transactions.type')} options={[{ id: 'expense', label: t('transactions.typeExpense') }, { id: 'income', label: t('transactions.typeIncome') }]} />

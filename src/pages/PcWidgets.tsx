@@ -5,6 +5,9 @@ import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
 import type { Account, Budget, Category, Transfer } from '../db/database';
 import { accountBalanceCents } from '../core/accounts';
+import { planInfo, splitDesc, type PlanInfo } from '../core/debtPlan';
+import { PlanLine } from '../ui/AccountPlan';
+import { loadSettings } from '../core/settings';
 import { Ic, CatIcon, catLabel } from '../ui/fx';
 import { L } from '../i18n/phrases';
 
@@ -96,6 +99,30 @@ export function AssistantWidget() {
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('assistant.placeholder')} />
         <button type="submit" aria-label={t('assistant.send')} disabled={!q.trim()}><Ic d={SEND} size={16} /></button>
       </form>
+    </section>
+  );
+}
+
+/** Poupanças e dívidas em curso: barra de progresso e data em que deve terminar. */
+export function PlansWidget({ money }: { money: (c: number) => string }) {
+  const { t } = useTranslation();
+  const [rows, setRows] = useState<Array<{ a: Account; p: PlanInfo }>>([]);
+  useEffect(() => {
+    (async () => {
+      const accs = live(await db.accounts.toArray()), txs = live(await db.transactions.toArray()), goals = live(await db.goals.toArray());
+      const trs = live(await db.transfers.toArray()) as Transfer[], n = new Date();
+      const sal = live(await db.salaries.toArray()).filter((x) => x.year * 100 + x.month <= n.getFullYear() * 100 + n.getMonth() + 1).reduce((a, x) => a + x.amountCents, 0);
+      setRows(accs.filter((a) => a.type !== 'spending').map((a) => ({ a, p: planInfo(a, accountBalanceCents(a, txs, accs, sal, trs), trs, goals.find((g) => g.id === splitDesc(a.description).plan?.goalId), n) }))
+        .sort((x, y) => Number(x.p.total === 0) - Number(y.p.total === 0)));
+    })().catch(() => {});
+  }, []);
+  return (
+    <section className="mv-card pco-w">
+      <Head icon="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM8 13l3 3 5-6" title={L('Poupanças e dívidas')} to="/contas" link={t('blk.seeAll')} />
+      <div className="pco-wlist">
+        {rows.length === 0 && <p className="fx-muted">{L('Cria uma conta de poupança ou de dívida para a acompanhares aqui.')}</p>}
+        {rows.map(({ a, p }) => <PlanLine key={a.id} a={a} p={p} money={money} lang={loadSettings().language} />)}
+      </div>
     </section>
   );
 }

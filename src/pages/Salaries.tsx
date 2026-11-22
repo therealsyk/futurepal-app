@@ -1,14 +1,14 @@
+import { AccountRow, AmountField, DateRow, RepeatRows, TextRow } from '../ui/formFields';
 import { FormError, useMissing } from '../ui/missing';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
-import { salaryGrid, salaryYearSummary, setSalary, addTransaction, softDelete, addRecurring, materializeDueRecurrings, RECURRING_FREQUENCIES, activeCategories } from '../core/finance';
+import { salaryGrid, salaryYearSummary, setSalary, addTransaction, softDelete, addRecurring, materializeDueRecurrings, activeCategories } from '../core/finance';
 import { stampNew } from '../db/database';
 import type { Account, Category, Transaction, RecurringFrequency } from '../db/database';
 import { parseMoneyToCents, formatMoney } from '../core/money';
 import { loadSettings } from '../core/settings';
-import { PageHead, Sheet, MonthNav, EmptyState, Ic, ICON, CategorySelect, PickMenu } from '../ui/fx';
-import { DatePicker } from '../ui/DatePicker';
+import { PageHead, Sheet, MonthNav, EmptyState, Ic, ICON, CategorySelect } from '../ui/fx';
 import { todayISO } from '../core/dates';
 import { isSalaryTx, syncSalaryTransactions } from '../core/salaryTx';
 import { defaultAccountId } from '../core/accounts';
@@ -200,25 +200,14 @@ export const Salaries = () => {
       <Sheet open={open} onClose={() => { setOpen(false); miss.reset(); }} title={t('salaries.addExtra')}
         footer={<button type="button" className="tx-addbtn" onClick={addExtra}>{t('salaries.addExtra')}</button>}>
         {miss.note ?? (error && <FormError text={error} />)}
-        <input className={'tx-amt inc' + miss.cls('amount')} autoFocus inputMode="decimal" value={eAmount} placeholder="0" onChange={(e) => setEAmount(e.target.value)} aria-label={t('transactions.amount')} />
-        <span className="tx-cur">{s.currency}</span>
+        <AmountField value={eAmount} onChange={setEAmount} currency={s.currency} cls={miss.cls('amount')} autoFocus />
         <div className="tx-rows">
           <div className="tx-row"><span><Ic d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" size={18} />{t('transactions.category')}</span>
             <CategorySelect cats={cats} kind="income" value={eCat} onChange={setECat} ariaLabel={t('transactions.category')} className="fx-input tx-val" /></div>
-          <label className="tx-row"><span><Ic d="M4 20h4L19 9l-4-4L4 16z" size={18} />{t('salaries.extraName')}</span>
-            <input className="tx-val" value={eName} placeholder={L('Ex.: Prémio, horas extra, venda')} onChange={(e) => setEName(e.target.value)} /></label>
-          {accounts.length > 0 && <label className="tx-row"><span><Ic d={ICON.wallet} size={18} />{t('accounts.account')}</span>
-            <PickMenu compact label={t('accounts.account')} value={eAcc} options={accounts.filter((a) => a.type !== 'debt').map((a) => ({ value: a.id, label: a.name }))} onChange={(v) => setEAcc(String(v))} /></label>}
-          <div className="tx-row"><span><Ic d="M5 5h14v15H5zM5 10h14M9 3v4M15 3v4" size={18} />{t('transactions.date')}</span>
-            <DatePicker value={eDate} onChange={(v) => setEDate(v)} className="fx-input tx-val" /></div>
-          <div className="tx-row"><span><Ic d="M4 12a8 8 0 0 1 14-5l2-2v6h-6l2-2a5 5 0 1 0 1 6" size={18} />{L('Recorrente')}</span>
-            <button type="button" role="switch" aria-checked={eRec} className={'ob-toggle' + (eRec ? ' on' : '')} onClick={() => setERec(!eRec)} aria-label={L('Recorrente')}><i /></button></div>
-          {eRec && (<>
-            <label className="tx-row tx-sub"><span>{t('goals.frequency')}</span>
-              <PickMenu compact label={t('goals.frequency')} value={eFreq} options={RECURRING_FREQUENCIES.map((f) => ({ value: f, label: t('goals.' + f) }))} onChange={(v) => setEFreq(v as RecurringFrequency)} /></label>
-            <div className="tx-row tx-sub"><span>{L('Termina em')}</span>
-              <DatePicker value={eEnd} onChange={setEEnd} allowEmpty className="fx-input tx-val" /></div>
-          </>)}
+          <TextRow label={t('salaries.extraName')} value={eName} onChange={setEName} placeholder={L('Ex.: Prémio, horas extra, venda')} />
+          {accounts.length > 0 && <AccountRow label={t('accounts.account')} value={eAcc} options={accounts.filter((a) => a.type !== 'debt').map((a) => ({ id: a.id, name: a.name }))} onChange={setEAcc} />}
+          <DateRow label={t('transactions.date')} value={eDate} onChange={setEDate} cls={miss.cls('date')} />
+          <RepeatRows on={eRec} setOn={setERec} freq={eFreq} setFreq={setEFreq} end={eEnd} setEnd={setEEnd} />
         </div>
       </Sheet>
     </div>

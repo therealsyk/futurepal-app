@@ -319,15 +319,17 @@ export function PickMenu<T extends string | number>({ value, options, onChange, 
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const btn = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (!open) return;
-    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
-    document.addEventListener('mousedown', h);
-    // a opção escolhida fica visível e com foco (útil numa lista de 12 meses)
-    const cur = listRef.current?.querySelector<HTMLButtonElement>('button.on') ?? listRef.current?.querySelector<HTMLButtonElement>('button');
-    cur?.scrollIntoView({ block: 'nearest' });
-    cur?.focus();
-    return () => document.removeEventListener('mousedown', h);
+    // a opção escolhida fica visível e com foco (útil numa lista de 12 meses), sem mexer na página
+    const id = setTimeout(() => {
+      const box = listRef.current, cur = box?.querySelector<HTMLButtonElement>('button.on') ?? box?.querySelector<HTMLButtonElement>('button');
+      const sc = box?.parentElement;
+      if (cur && sc) sc.scrollTop = Math.max(0, cur.offsetTop - sc.clientHeight / 2);
+      cur?.focus({ preventScroll: true });
+    }, 0);
+    return () => clearTimeout(id);
   }, [open]);
   const current = options.find((o) => o.value === value);
   const pick = (v: T) => { onChange(v); setOpen(false); };
@@ -342,20 +344,20 @@ export function PickMenu<T extends string | number>({ value, options, onChange, 
   };
   return (
     <div className={'fx-switch fx-pick' + (compact ? ' compact' : '')} ref={ref} onKeyDown={open ? onKey : undefined}>
-      <button type="button" className="fx-btn" aria-haspopup="listbox" aria-expanded={open} aria-label={`${label}: ${current?.label ?? ''}`}
+      <button ref={btn} type="button" className="fx-btn" aria-haspopup="listbox" aria-expanded={open} aria-label={`${label}: ${current?.label ?? ''}`}
         onClick={() => setOpen(!open)} data-testid={testId}>
         <span className="fx-switch-name">{current?.label ?? ''}</span>
         <Ic d={ICON.down} size={14} />
       </button>
       {open && (
-        <div className="fx-menu fx-pick-menu" role="listbox" aria-label={label} ref={listRef}>
+        <Popover anchor={btn} open onClose={() => setOpen(false)} minWidth={200} className="fx-pick-pop"><div className="fx-pick-list" role="listbox" aria-label={label} ref={listRef}>
           {options.map((o) => (
             <button key={String(o.value)} type="button" role="option" aria-selected={o.value === value} className={o.value === value ? 'on' : ''} onClick={() => pick(o.value)}>
               <span>{o.label}</span>
               {o.sub ? <small>{o.sub}</small> : null}
             </button>
           ))}
-        </div>
+        </div></Popover>
       )}
     </div>
   );

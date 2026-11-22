@@ -1,0 +1,62 @@
+// Poupanças e dívidas: a caixa da conta (total, o que já foi, o que falta, quando acaba) e o resumo usado no widget.
+import { Link } from 'react-router-dom';
+import type { Account } from '../db/database';
+import { splitDesc, type PlanInfo } from '../core/debtPlan';
+import { L } from '../i18n/phrases';
+
+export const fill = (txt: string, v: Record<string, string>) => txt.replace(/\{(\w)\}/g, (_, x: string) => v[x] ?? '');
+const pct = (r: number) => Math.floor(r * 100 + 1e-9);
+
+export function endDate(months: number, lang: string, now = new Date()): string {
+  return new Date(now.getFullYear(), now.getMonth() + months, 1).toLocaleDateString(lang, { month: 'long', year: 'numeric' });
+}
+/** "10 anos e 4 meses" */
+export function duration(months: number): string {
+  const y = Math.floor(months / 12), mo = months % 12;
+  return [y ? `${y} ${y === 1 ? L('ano') : L('anos')}` : '', mo ? `${mo} ${mo === 1 ? L('mês') : L('meses')}` : ''].filter(Boolean).join(` ${L('e')} `) || L('este mês');
+}
+export const endText = (months: number, lang: string) => fill(L('Acabas em {d} (faltam {m})'), { d: endDate(months, lang), m: duration(months) });
+
+export function AccountPlanBox({ a, p, money, lang, onEdit }: { a: Account; p: PlanInfo; money: (c: number) => string; lang: string; onEdit: () => void }) {
+  const debt = a.type === 'debt', text = splitDesc(a.description).text, left = p.left, monthLeft = Math.max(0, p.monthly - p.inMonth);
+  const tile = (label: string, value: string, sub?: string, cls = '') => <div className="pl-tile"><small>{label}</small><b className={cls}>{value}</b>{sub && <em>{sub}</em>}</div>;
+  return (
+    <section className="mv-card debt-plan">
+      {text && <p className="acc-desc">{text}</p>}
+      {p.total > 0 && left === 0 ? <p className="debt-done">{debt ? L('Dívida paga! 🎉') : L('Objetivo atingido 🎉')}</p> : <>
+        {p.total > 0 && <>
+          <div className="pl-bar"><i style={{ width: `${Math.max(2, p.ratio * 100)}%` }} /><span>{pct(p.ratio)}%</span></div>
+          <div className="pl-tiles">
+            {tile(debt ? L('Valor total da dívida') : L('Objetivo'), money(p.total))}
+            {tile(debt ? L('Já abateste') : L('Já tens'), money(p.done), undefined, 'fx-pos')}
+            {tile(debt ? L('Falta abater') : L('Falta juntar'), money(left), p.payable !== null && p.rate > 0 ? fill(L('{m} com juros'), { m: money(p.payable) }) : undefined, debt ? 'fx-neg' : '')}
+            {tile(debt ? L('Termina em') : L('Chegas lá em'), p.months === null ? '—' : endDate(p.months, lang), p.months === null ? (p.monthly > 0 ? L('O valor só dá para os juros') : L('Define o valor por mês')) : fill(L('faltam {m}'), { m: duration(p.months) }))}
+          </div>
+        </>}
+        {p.monthly > 0 && <div className={'pl-month' + (monthLeft === 0 ? ' ok' : '')}>
+          <span><b>{L('Este mês')}</b><small>{monthLeft === 0 ? L('Feito ✓') : fill(debt ? L('Falta abater {m}') : L('Falta juntar {m}'), { m: money(monthLeft) })}</small></span>
+          <b>{money(p.inMonth)} <small>/ {money(p.monthly)}</small></b>
+        </div>}
+        {p.rate > 0 && p.payable !== null && <p className="pl-note">{fill(L('Juros de {r}% por ano: ainda vais pagar {m} só de juros.'), { r: String(p.rate).replace('.', ','), m: money(p.payable - left) })}</p>}
+        {p.deadline && <p className={'pl-note ' + (p.onTime === null ? '' : p.onTime ? 'fx-pos' : 'fx-neg')}>{p.onTime === null ? `${L('Data limite')}: ` : ''}{p.onTime === null ? new Date(p.deadline + 'T00:00:00').toLocaleDateString(lang, { day: 'numeric', month: 'long', year: 'numeric' }) : fill(p.onTime ? L('Vais a tempo: {d}') : L('⚠ A este ritmo não chegas até {d}'), { d: new Date(p.deadline + 'T00:00:00').toLocaleDateString(lang, { day: 'numeric', month: 'long', year: 'numeric' }) })}</p>}
+      </>}
+      <div className="debt-btns">
+        <button type="button" className="sh-btn out sm" onClick={onEdit}>{L('Alterar')}</button>
+        <Link to={`/transacoes?nova=1&para=${a.id}`} className="sh-btn in sm">{debt ? L('Abater') : L('Juntar')}</Link>
+      </div>
+    </section>
+  );
+}
+
+/** Linha do widget: nome, barra e quando termina. */
+export function PlanLine({ a, p, money, lang }: { a: Account; p: PlanInfo; money: (c: number) => string; lang: string }) {
+  const debt = a.type === 'debt';
+  return (
+    <Link to="/contas" className={'pl-line ' + a.type}>
+      <span><b>{a.name}</b><b>{p.total > 0 ? pct(p.ratio) + '%' : money(p.done)}</b></span>
+      {p.total > 0 && <i className="pco-limbar"><i style={{ width: `${Math.max(2, p.ratio * 100)}%` }} /></i>}
+      <small>{p.total > 0 ? fill(L('Falta {m} de {t}'), { m: money(p.left), t: money(p.total) }) : ''}</small>
+      <small>{p.total > 0 && p.left === 0 ? (debt ? L('Dívida paga! 🎉') : L('Objetivo atingido 🎉')) : p.months !== null && p.months > 0 ? `${debt ? L('Termina em') : L('Chegas lá em')} ${endDate(p.months, lang)}` : L('Define o valor por mês para saberes quando termina')}</small>
+    </Link>
+  );
+}

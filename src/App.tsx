@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, Routes, Route, useLocation } from 'react-router-dom';
+import { Link, Navigate, Routes, Route, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Rail from './ui/Rail';
 import MobileNav from './ui/MobileNav';
@@ -23,7 +23,6 @@ import { SimpleAccounts, SimpleGoals, SimpleLimits, SimpleOverview } from './pag
 import { AdminPage } from './pages/Admin';
 import { FamilyPage } from './pages/Family';
 import { AssistantPage } from './pages/Assistant';
-import { SplitPage } from './pages/Split';
 import { PlusPage, IrsPage, SubscriptionsPage, YearPage, ChallengesPage, WarrantiesPage, FreelancePage } from './pages/Premium';
 import { useIsMobile } from './ui/useIsMobile';
 import { DemoPage } from './ui/components';
@@ -220,7 +219,7 @@ export default function App() {
           <Route path="/independentes" element={<FreelancePage />} />
           <Route path="/casa" element={<FamilyPage />} />
           <Route path="/assistente" element={<AssistantPage />} />
-          <Route path="/dividir" element={<SplitPage />} />
+          <Route path="/dividir" element={<Navigate to="/grupos" replace />} />
           {import.meta.env.DEV && <Route path="/demo" element={<DemoPage />} />}
         </Routes>
         {/* PC: Definições numa janela a flutuar por cima da página aberta */}

@@ -1,3 +1,5 @@
+import { AccountRow, AmountField, DateRow, TextRow } from '../ui/formFields';
+import { linkedGroupId } from '../core/groupLink';
 import { FormError, useMissing } from '../ui/missing';
 import { createPortal } from 'react-dom';
 import { appConfirm } from '../ui/confirm';
@@ -14,9 +16,7 @@ import { loadSettings } from '../core/settings';
 
 import { billProgress, groupSummary, parseContact, toBills, type SplitBill } from '../core/split';
 import { avatarUrl } from '../core/avatar';
-import { LockedPreview } from '../ui/LockedPreview';
-import { catFitsKind, catLabel, CategorySelect, EmptyState, Ic, ICON, PageHead, Sheet, PickMenu } from '../ui/fx';
-import { DatePicker } from '../ui/DatePicker';
+import { catFitsKind, catLabel, CategorySelect, Ic, ICON, Sheet } from '../ui/fx';
 import { usePlan } from './Premium';
 import { L } from '../i18n/phrases';
 import { accountBalanceCents, defaultAccountId } from '../core/accounts';
@@ -33,7 +33,9 @@ type AddPersonal = { description: string; cents: number; date: string; categoryI
 const today = () => new Date().toLocaleDateString('sv-SE');
 const errText = (e: unknown) => (e as { message?: string })?.message ?? String(e);
 
-export function SplitPage() {
+/** Sempre dentro de um grupo de transações (página Grupos). splitId null = ainda não é dividido. */
+export interface SplitEmbed { splitId: string | null; name: string; groupId: string; invitesOnly?: boolean; onLinked: (splitId: string) => Promise<void>; onAdded: () => void }
+export function SplitPage({ embed }: { embed: SplitEmbed }) {
   const { has } = usePlan();
   const canSplit = has('split');
   const { t } = useTranslation();
@@ -42,7 +44,7 @@ export function SplitPage() {
   const me = auth.user?.id ?? '';
   const s = loadSettings();
   const [groups, setGroups] = useState<Group[]>([]);
-  const [sel, setSel] = useState<string>('');
+  const [sel, setSel] = useState<string>(embed.splitId ?? '');
   const [members, setMembers] = useState<Member[]>([]);
   const [bills, setBills] = useState<SplitBill[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
@@ -55,6 +57,7 @@ export function SplitPage() {
   const myName = meta.full_name || meta.name || (auth.user?.email ?? '').split('@')[0] || '—'; // nome da conta, automático
   const [bill, setBill] = useState<{ description: string; amount: string; date: string; out: string[]; iPaid: boolean; categoryId: string; addMine: boolean; withGroup: string; invites: string } | null>(null);
   const [personal, setPersonal] = useState<AddPersonal | null>(null);
+  const [more, setMore] = useState('');
   const missing = useMissing();
   const missingP = useMissing();
   const [accs, setAccs] = useState<Account[]>([]);
@@ -82,7 +85,6 @@ export function SplitPage() {
     if (g.error) setError(errText(g.error));
     setGroups((g.data ?? []) as Group[]);
     setInvites((inv.data ?? []) as Invite[]);
-    setSel((cur) => (cur && (g.data ?? []).some((x: Group) => x.id === cur) ? cur : (g.data?.[0]?.id ?? '')));
   }, [me]);
 
   const loadGroup = useCallback(async (gid: string) => {
@@ -114,12 +116,8 @@ export function SplitPage() {
   useEffect(() => { loadGroup(sel).catch((e) => setError(errText(e))); }, [sel, loadGroup]);
 
   if (!getSupabase() || !auth.user) {
-    return (
-      <div className="fx-page">
-        <PageHead title={t('split.title')} sub={t('split.sub')} />
-        <LockedPreview kind="split" title={t('split.needLogin')} text={L('Cria grupos, divide as despesas em partes iguais e vê logo quem deve a quem.')} action={<Link to="/definicoes" className="fx-btn primary">{t('family.goLogin')}</Link>} />
-      </div>
-    );
+    if (embed.invitesOnly) return null;
+    return <div className="mv-card sp-start"><p>{L('Inicia sessão para convidares pessoas e dividires as despesas deste grupo.')}</p><Link to="/definicoes" className="sh-btn out sm">{L('Iniciar sessão')}</Link></div>;
   }
 
   const rpc = async (fn: string, args: Record<string, unknown>): Promise<boolean> => {
@@ -179,29 +177,29 @@ export function SplitPage() {
       const parsed = contacts.map((raw) => ({ raw, c: parseContact(raw) }));
       const bad = parsed.filter((p) => !p.c).map((p) => p.raw);
       if (bad.length) { setError(t('split.badContact') + ' ' + bad.join(', ')); return; }
-      const name = [myName.trim(), ...contacts.map((c) => c.split('@')[0])].join(' + ');
+      const name = embed.name;
       const g = await sb.rpc('create_split_group', { p_name: name, p_display_name: myName, p_currency: s.currency });
       if (g.error) { setError(errText(g.error)); return; }
       gid = String(g.data);
       for (const p of parsed) {
         const r = await sb.rpc('invite_to_split', { p_group: gid, p_email: p.c!.email, p_phone: p.c!.phone });
-        if (r.error) { setError(errText(r.error)); return; }
+        if (r.error) { setError(errText(r.error)); await embed.onLinked(gid); return; }
       }
       ids = [me];
       people = 1 + contacts.length;
     }
     const { error: e } = await sb.rpc('add_split_bill', { p_group: gid, p_description: bill.description, p_amount_cents: cents, p_date: bill.date, p_members: ids, p_creator_paid: bill.iPaid });
-    if (e) { setError(errText(e)); return; }
+    if (e) { setError(errText(e)); if (isNew) await embed.onLinked(gid); return; }
     const mine = ids.includes(me);
     const myShare = mine ? Math.ceil(cents / people) : 0;
     const { description, date, iPaid, addMine, categoryId } = bill;
     setBill(null);
-    if (isNew) await loadList();
-    if (gid === sel) await loadGroup(gid); else setSel(gid);
+    if (!isNew) await loadGroup(gid);
     if (iPaid && mine && myShare > 0 && addMine && categoryId) {
-      await addTransaction(db, { date, type: 'expense', categoryId, description: description.trim(), amountCents: myShare, currency: group?.currency ?? s.currency });
-      setInfo(t('split.addedPersonal', { amount: money(myShare) }));
+      await addTransaction(db, { date, type: 'expense', categoryId, description: description.trim(), amountCents: myShare, currency: group?.currency ?? s.currency, groupId: isNew ? linkedGroupId(gid, me) : embed.groupId });
+      setInfo(t('split.addedPersonal', { amount: money(myShare) })); embed.onAdded();
     }
+    if (isNew) await embed.onLinked(gid);
   };
   const setPaid = async (b: SplitBill, userId: string, paid: boolean) => {
     if (!(await rpc('set_split_paid', { p_bill: b.id, p_user: userId, p_paid: paid }))) return;
@@ -216,22 +214,25 @@ export function SplitPage() {
   };
   const leave = async () => {
     if (!await appConfirm(t('split.leaveConfirm'))) return;
-    if (await rpc('leave_split_group', { p_group: sel })) { setSel(''); await loadList(); }
+    if (await rpc('leave_split_group', { p_group: sel })) await loadList();
   };
   const savePersonal = async () => {
     if (!personal || !missP.check()) return;
-    await addTransaction(db, { date: personal.date, type: 'expense', categoryId: personal.categoryId, description: personal.description, amountCents: personal.cents, currency: group?.currency ?? s.currency, accountId: personal.accountId || defaultAccountId(accs) || undefined });
+    await addTransaction(db, { date: personal.date, type: 'expense', categoryId: personal.categoryId, description: personal.description, amountCents: personal.cents, currency: group?.currency ?? s.currency, accountId: personal.accountId || defaultAccountId(accs) || undefined, groupId: embed.groupId || undefined });
+    embed.onAdded();
     setInfo(t('split.addedPersonal', { amount: money(personal.cents) }));
     setPersonal(null);
   };
 
+  const inviteMore = async () => {
+    const c = parseContact(more);
+    if (c && await rpc('invite_to_split', { p_group: sel, p_email: c.email, p_phone: c.phone })) { setMore(''); setInfo(L('Convite enviado.')); await loadGroup(sel); }
+  };
   const canCreate = canSplit; // criar grupos: Plus ou Pro (aceitar convites: qualquer plano)
   const sum = groupSummary(bills, me);
 
   return (
-    <div className="fx-page sh">
-      <PageHead title={t('split.title')} sub={t('split.sub')}>{!canCreate && <Link to="/plus" className="fx-btn">{t('split.createNeedsFamily')}</Link>}</PageHead>
-      {(canCreate || groups.length > 0) && <button type="button" className="sh-pill" onClick={openBill}><Ic d={ICON.plus} size={16} />{t('split.newBill')}</button>}
+    <div className="sp-embed">
       {error && <p className="fx-error">{error}</p>}
       {info && <p className="fx-muted">{info}</p>}
 
@@ -248,13 +249,10 @@ export function SplitPage() {
         </div>
       )}
 
-      {groups.length === 0 ? <EmptyState icon={ICON.check} title={t('split.empty')} sub={t('split.emptySub')} /> : (
+      {embed.invitesOnly ? null : !embed.splitId ? <div className="mv-card sp-start"><p>{L('Convida pessoas para este grupo e divide as despesas em partes iguais. Vês logo quem já pagou.')}</p>{canCreate ? <button type="button" className="sh-btn in sm" onClick={openBill}><Ic d={ICON.plus} size={16} />{L('Convidar e dividir uma despesa')}</button> : <Link to="/plus" className="sh-btn out sm">{t('split.createNeedsFamily')}</Link>}</div> : (
         <>
-          <div className="sp-tabs">
-            {groups.length > 1
-              ? <select className="fx-input sp-group-select" value={sel} onChange={(e) => setSel(e.target.value)}>{groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}</select>
-              : null}
-          </div>
+          <div className="sp-bar"><button type="button" className="sh-btn in sm" onClick={openBill}><Ic d={ICON.plus} size={16} />{L('Dividir uma despesa')}</button>
+            <form className="sp-more" onSubmit={(e) => { e.preventDefault(); inviteMore(); }}><input value={more} onChange={(e) => setMore(e.target.value)} placeholder={t('split.invitePh')} aria-label={L('Convidar mais alguém')} /><button type="submit" className="sh-btn out sm" disabled={!parseContact(more)}>{L('Convidar')}</button></form></div>
           {group && (
             <>
 
@@ -339,24 +337,18 @@ export function SplitPage() {
         footer={bill ? <button type="button" className="tx-addbtn" onClick={trySave}>{t('common.add')}</button> : null}>
         {bill && (<div className="sp-billform">
           {miss.note ?? (error && <FormError text={error} />)}
-          <input className={'tx-amt sp-amt' + miss.cls('amount')} autoFocus inputMode="decimal" value={bill.amount} placeholder="0" onChange={(e) => setBill({ ...bill, amount: e.target.value.replace(/[^\d.,]/g, '') })} aria-label={t('split.total')} />
-          <span className="tx-cur">{group?.currency ?? s.currency}</span>
+          <AmountField value={bill.amount} onChange={(v) => setBill({ ...bill, amount: v })} currency={group?.currency ?? s.currency} label={t('split.total')} cls={miss.cls('amount')} autoFocus />
           {(() => { const c = parseMoneyToCents(bill.amount) ?? 0; const n = bill.withGroup ? members.filter((m) => !bill.out.includes(m.userId)).length : 1 + contactsOf(bill.invites).length; return c > 0 && n > 0 ? <p className="sp-each">{t('split.eachPays', { amount: money(Math.ceil(c / n)) })}</p> : null; })()}
           <div className="tx-rows">
-            <label className={'tx-row' + miss.cls('description')}><span><Ic d="M4 20h4L19 9l-4-4L4 16z" size={18} />{t('transactions.description')}</span>
-              <input className="tx-val" value={bill.description} placeholder={t('split.billPh')} onChange={(e) => setBill({ ...bill, description: e.target.value })} /></label>
+            <TextRow label={t('transactions.description')} value={bill.description} onChange={(v) => setBill({ ...bill, description: v })} placeholder={t('split.billPh')} cls={miss.cls('description')} />
             <div className={'tx-row' + miss.cls('category')}><span><Ic d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" size={18} />{t('transactions.category')}</span>
               <CategorySelect cats={expCats} kind="expense" value={bill.categoryId} onChange={(v) => setBill({ ...bill, categoryId: v })} ariaLabel={t('transactions.category')} emptyLabel={L('Escolher…')} className="fx-input tx-val" /></div>
-            <div className="tx-row"><span><Ic d="M5 5h14v15H5zM5 10h14M9 3v4M15 3v4" size={18} />{t('transactions.date')}</span>
-              <DatePicker value={bill.date} onChange={(v) => setBill({ ...bill, date: v })} ariaLabel={t('transactions.date')} /></div>
-            <label className={'tx-row' + miss.cls('people')}><span><Ic d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M22 19v-1a4 4 0 0 0-3-3.9M16 4.1a3 3 0 0 1 0 5.8" size={18} />{L('Com quem?')}</span>
-              <PickMenu compact label={L('Grupo')} value={bill.withGroup} options={[...groups.map((g) => ({ value: g.id, label: g.name })), ...(canCreate ? [{ value: '', label: L('Pessoas novas') }] : [])]}
-                onChange={(v) => { const g = String(v); if (g) setSel(g); setBill({ ...bill, withGroup: g, out: [] }); }} /></label>
+            <DateRow label={t('transactions.date')} value={bill.date} onChange={(v) => setBill({ ...bill, date: v })} />
             {bill.withGroup ? members.map((m) => (
               <div key={m.userId} className="tx-row tx-sub"><span className="sp-toggle-who"><Face m={m} small />{m.userId === me ? t('family.you') : m.displayName}</span>
                 <button type="button" role="switch" aria-checked={!bill.out.includes(m.userId)} className={'ob-toggle' + (!bill.out.includes(m.userId) ? ' on' : '')} onClick={() => setBill({ ...bill, out: bill.out.includes(m.userId) ? bill.out.filter((x) => x !== m.userId) : [...bill.out, m.userId] })} aria-label={m.displayName}><i /></button></div>
             )) : <>
-              <div className="tx-row sp-invrow"><span><Ic d="M4 6h16v12H4zM4 7l8 6 8-6" size={18} />{t('split.inviteLabel')}</span>
+              <div className={'tx-row sp-invrow' + miss.cls('people')}><span><Ic d="M4 6h16v12H4zM4 7l8 6 8-6" size={18} />{t('split.inviteLabel')}</span>
                 <div className="sp-chips">
                   {contactsOf(bill.invites).map((c) => <span key={c} className="sp-chip">{c}<button type="button" aria-label={t('common.delete')} onClick={() => setBill({ ...bill, invites: contactsOf(bill.invites).filter((x) => x !== c).join('\n') })}>×</button></span>)}
                   <input className={'tx-val sp-chipin' + (invDraft.trim() && !parseContact(invDraft) ? ' bad' : '')} value={invDraft} inputMode="email" placeholder={contactsOf(bill.invites).length ? L('Adicionar outro') : t('split.invitePh')}
@@ -386,17 +378,11 @@ export function SplitPage() {
             onChange={(e) => { const c = parseMoneyToCents(e.target.value); if (c !== null) setPersonal({ ...personal, cents: c }); }} aria-label={t('transactions.amount')} />
           <span className="tx-cur">{group?.currency ?? s.currency}</span>
           <div className="tx-rows">
-            <label className="tx-row"><span><Ic d="M4 20h4L19 9l-4-4L4 16z" size={18} />{t('transactions.description')}</span>
-              <input className="tx-val" value={personal.description} onChange={(e) => setPersonal({ ...personal, description: e.target.value })} /></label>
+            <TextRow label={t('transactions.description')} value={personal.description} onChange={(v) => setPersonal({ ...personal, description: v })} />
             <div className={'tx-row' + missP.cls('category')}><span><Ic d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" size={18} />{t('transactions.category')}</span>
               <CategorySelect cats={expCats} kind="expense" value={personal.categoryId} onChange={(v) => setPersonal({ ...personal, categoryId: v })} ariaLabel={t('transactions.category')} emptyLabel={L('Escolher…')} className="fx-input tx-val" /></div>
-            {accs.length > 0 && <div className="tx-row tx-acc"><span><Ic d={ICON.wallet} size={18} />{t('accounts.account')}</span>
-              <span className="tx-accval"><span className="tx-accpick">
-                <PickMenu compact label={t('accounts.account')} value={personal.accountId || defaultAccountId(accs) || ''} options={accs.map((a2) => ({ value: a2.id, label: a2.name, sub: bals[a2.id] !== undefined ? money(bals[a2.id]) : undefined }))} onChange={(v) => setPersonal({ ...personal, accountId: String(v) })} />
-                {bals[personal.accountId || defaultAccountId(accs) || ''] !== undefined && <small className={bals[personal.accountId || defaultAccountId(accs) || ''] < 0 ? 'fx-neg' : 'fx-pos'}>{money(bals[personal.accountId || defaultAccountId(accs) || ''])}</small>}
-              </span></span></div>}
-            <div className="tx-row"><span><Ic d="M5 5h14v15H5zM5 10h14M9 3v4M15 3v4" size={18} />{t('transactions.date')}</span>
-              <DatePicker value={personal.date} onChange={(v) => setPersonal({ ...personal, date: v })} className="fx-input tx-val" /></div>
+            {accs.length > 0 && (() => { const aid = personal.accountId || defaultAccountId(accs) || ''; return <AccountRow label={t('accounts.account')} value={aid} options={accs.map((a2) => ({ id: a2.id, name: a2.name, sub: bals[a2.id] !== undefined ? money(bals[a2.id]) : undefined }))} balance={bals[aid] !== undefined ? money(bals[aid]) : undefined} onChange={(v) => setPersonal({ ...personal, accountId: v })} />; })()}
+            <DateRow label={t('transactions.date')} value={personal.date} onChange={(v) => setPersonal({ ...personal, date: v })} />
           </div>
         </>}
       </Sheet>

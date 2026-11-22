@@ -1,6 +1,6 @@
 // Plano de uma conta de poupança ou dívida: quanto por mês, juros, quanto devia no início e a meta ligada.
 // Vai guardado no fim da descrição da conta, que já é sincronizada: não precisa de colunas novas na nuvem.
-import type { Account, Transfer } from '../db/database';
+import type { Account, Goal, Transfer } from '../db/database';
 
 export interface DebtPlan { monthlyCents: number; startCents: number; rate?: number; goalId?: string } // rate = juro por ano, em %
 const SEP = '⁣plan:'; // separador invisível
@@ -68,4 +68,19 @@ export function debtStatus(a: Account, balCents: number, transfers: Transfer[], 
 export function inThisMonth(a: Account, transfers: Transfer[], now: Date): number {
   const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   return transfers.filter((t) => t.deletedAt === null && t.toAccountId === a.id && t.date.startsWith(month)).reduce((s, t) => s + t.amountCents, 0);
+}
+
+export interface PlanInfo { total: number; done: number; left: number; ratio: number; monthly: number; inMonth: number; rate: number; payable: number | null; months: number | null; deadline: string | null; onTime: boolean | null }
+
+/** Tudo o que se mostra de uma poupança ou dívida (caixa da conta e widget). Sem objetivo, total = 0. */
+export function planInfo(a: Account, bal: number, transfers: Transfer[], goal: Goal | undefined, now: Date): PlanInfo {
+  const plan = splitDesc(a.description).plan, monthly = plan?.monthlyCents ?? 0, rate = plan?.rate ?? 0, debt = a.type === 'debt';
+  const left = debt ? Math.max(0, bal) : goal ? Math.max(0, goal.targetCents - bal) : 0;
+  const total = debt ? Math.max(left, plan?.startCents ?? a.initialBalanceCents) : goal?.targetCents ?? 0;
+  const done = debt ? total - left : bal, po = debt ? payoff(left, monthly, rate) : null;
+  const months = total === 0 ? null : debt ? po?.months ?? null : left === 0 ? 0 : monthly > 0 ? Math.ceil(left / monthly) : null;
+  const deadline = goal?.targetDate ?? null;
+  const e = deadline ? new Date(deadline + 'T00:00:00') : null;
+  const lim = e ? Math.max(0, (e.getFullYear() - now.getFullYear()) * 12 + e.getMonth() - now.getMonth()) : 0;
+  return { total, done, left, ratio: total > 0 ? Math.max(0, Math.min(1, done / total)) : 0, monthly, inMonth: inThisMonth(a, transfers, now), rate, payable: po?.totalCents ?? null, months, deadline, onTime: deadline && months !== null ? months <= lim : null };
 }

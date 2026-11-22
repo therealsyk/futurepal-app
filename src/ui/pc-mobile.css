@@ -1369,3 +1369,26 @@ html:not(.pcm) .fx-card-head { flex-wrap: wrap; row-gap: 2px; }
 .tx-accpick .fx-pick > .fx-btn > span { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 button.tx-swaprow { width: 100%; padding: 0; border: 0; border-bottom: 1px solid var(--border); background: none; font: inherit; color: var(--muted); cursor: pointer; text-align: left; }
 button.tx-swaprow > span, button.tx-swaprow > span svg { color: var(--mv, var(--accent)); } button.tx-swaprow:hover > span { filter: brightness(1.15); }
+
+/* ---- Campos comuns: valor sempre branco; listas de escolha flutuam sem mexer no conteúdo */
+.tx-amt, .tx-amt.exp:not(:placeholder-shown), .tx-amt.inc:not(:placeholder-shown) { color: var(--text) !important; } .tx-amt.miss, .tx-amt.miss:placeholder-shown { color: var(--red) !important; }
+.fx-pick-pop { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; } .fx-pick-list { position: relative; }
+.fx-pick-list button { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; width: 100%; border: 0; background: none; color: var(--text); font: inherit; font-size: 14.5px; text-align: left; padding: 10px 12px; border-radius: 12px; cursor: pointer; }
+.fx-pick-list button small { color: var(--muted); font-size: 12.5px; white-space: nowrap; } .fx-pick-list button:hover, .fx-pick-list button:focus-visible { background: var(--card-2); outline: none; } .fx-pick-list button.on { background: var(--mv-soft); font-weight: 650; }
+/* ---- Caixa da conta de poupança/dívida */
+.pl-bar { position: relative; height: 26px; border-radius: 99px; background: var(--track); overflow: hidden; } .pl-bar i { display: block; height: 100%; border-radius: 99px; background: var(--mv, var(--accent)); } .pl-bar span { position: absolute; inset: 0; display: grid; place-items: center; font-size: 13px; font-weight: 800; }
+.pl-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; } .pl-tile { display: flex; flex-direction: column; gap: 3px; padding: 13px 15px; border-radius: 16px; background: var(--card-2); min-width: 0; }
+.pl-tile small { font-size: 13px !important; } .pl-tile b { font-size: 18px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; } .pl-tile b::first-letter { text-transform: uppercase; } .pl-tile em { color: var(--muted); font-size: 12.5px; font-style: normal; }
+.pl-month { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 15px; border-radius: 16px; background: var(--card-2); } .pl-month span { display: flex; flex-direction: column; gap: 2px; } .pl-month > b { font-size: 17px; font-variant-numeric: tabular-nums; white-space: nowrap; } .pl-month.ok span small, .pl-month.ok > b { color: var(--pos); }
+.pl-note { margin: 0; font-size: 14px; line-height: 1.4; }
+@media (max-width: 900px) { .pl-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pl-tile b { font-size: 16px; } }
+/* widget */
+.pl-line { display: flex; flex-direction: column; gap: 5px; padding: 11px 13px; border-radius: 14px; background: var(--card-2); color: var(--text); text-decoration: none; } .pl-line > span { display: flex; justify-content: space-between; gap: 10px; } .pl-line small { color: var(--muted); font-size: 12.5px; }
+.pl-line .pco-limbar { height: 9px; margin: 0; } .pl-line.debt .pco-limbar i { background: #d9a24b; }
+/* ---- Grupos */
+.grp-total .sh-row { display: flex; justify-content: space-between; gap: 10px; margin-top: 6px; }
+html.pcm .fx-page.grp .grp-add, .grp-add { position: static !important; transform: none !important; min-width: 0 !important; width: auto !important; height: 40px !important; min-height: 0; margin: 0 !important; padding: 0 16px; font-size: 14px; text-decoration: none; }
+.grp-split { display: flex; flex-direction: column; gap: 12px; } .grp-split > h2 { margin: 8px 4px 0; font-size: 18px; }
+.sp-embed { display: flex; flex-direction: column; gap: 12px; } .sp-embed:empty { display: none; }
+.sp-start { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; } .sp-start p { flex: 1 1 260px; margin: 0; line-height: 1.45; } .sp-start .sh-btn, .sp-bar .sh-btn { position: static !important; transform: none !important; min-width: 0 !important; width: auto !important; margin: 0 !important; padding: 0 18px; text-decoration: none; }
+.sp-bar { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; } .sp-more { display: flex; gap: 8px; flex: 1 1 280px; } .sp-more input { flex: 1; min-width: 0; height: 42px; padding: 0 16px; border-radius: 99px; border: 1px solid var(--border); background: var(--card-2); color: var(--text); font: inherit; }

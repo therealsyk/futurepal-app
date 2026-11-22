@@ -637,7 +637,9 @@ export async function listRecurring(db: WalletDB): Promise<Recurring[]> {
 
 // ---- Grupos (SPEC §6.9) ----
 export async function addGroup(db: WalletDB, name: string, color: string): Promise<Group> {
-  return db.groups.add(stampNew({ name, color }));
+  const g = stampNew<Group>({ name, color });
+  await db.groups.add(g); // add() devolve só o id
+  return g;
 }
 
 export async function listGroups(db: WalletDB): Promise<Group[]> {
