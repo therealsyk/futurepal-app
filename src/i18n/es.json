@@ -1097,6 +1097,9 @@
     "expense": "Gasto",
     "category": "Categoría",
     "createGoal": "Crear meta",
-    "goalTarget": "Importe objetivo"
+    "goalTarget": "Importe objetivo",
+    "currencyTitle": "Elige tu moneda",
+    "noResults": "No se encontró ninguna moneda.",
+    "syncing": "Trayendo tus datos de la nube…"
   }
 }

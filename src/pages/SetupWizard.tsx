@@ -26,6 +26,9 @@ import { useMissing } from '../ui/missing';
 import { openTxForm, TxFormHost, useTxSaved } from '../ui/TxForm';
 import logoUrl from '../assets/logo.svg';
 import { LoginForm } from './Login';
+import { BottomSheet } from './SimplePages';
+import { currencySymbol, groupCurrencies } from '../core/currencies';
+import { currencyFlagUrl } from '../ui/currencyFlag';
 
 type Step = 'splash' | 'ask' | 'act' | 'done' | 'keep' | 'auth' | 'signup';
 const LANGUAGES = ['pt-PT', 'pt-BR', 'en', 'es', 'fr'] as const;
@@ -58,7 +61,8 @@ export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings
   const [country] = useState(initial.country || g0.country);
   const [signedIn, setSignedIn] = useState(false), [syncNote, setSyncNote] = useState('');
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
-  const info = COUNTRIES.find((c) => c.code === country), currency = info?.currency ?? initial.currency ?? 'EUR';
+  const info = COUNTRIES.find((c) => c.code === country), regional = info?.currency ?? initial.currency ?? 'EUR';
+  const [cur, setCur] = useState(''), [choosing, setChoosing] = useState(false), currency = cur || regional; // a moeda pergunta-se antes do primeiro valor
   const loginHandled = useRef(false); // o login (formulário ou social) só é tratado uma vez
   useEffect(() => { ensureDefaultCategories(db).catch(() => {}); startOnboarding(); if (i18n.language !== language) i18n.changeLanguage(language); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { screen(step === 'act' ? 'act_' + goal : step); }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -100,7 +104,7 @@ export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings
   const after = () => (signedIn || !hasSupabaseConfig() ? finish().catch(() => {}) : setStep('keep'));
   const back = () => setStep(step === 'ask' || step === 'auth' ? 'splash' : step === 'act' ? 'ask' : step === 'signup' ? 'keep' : 'act');
   const money = (c: number) => formatMoney(c, currency, language);
-  const pick = (g: Goal1) => { setGoal(g); chooseGoal(g); setStep('act'); };
+  const pick = (g: Goal1) => { setGoal(g); chooseGoal(g); if (cur) setStep('act'); else setChoosing(true); };
   const choices: Array<[Goal1, string]> = [['expenses', L('Controlar as minhas despesas')], ['goal', L('Poupar para uma meta')], ['split', L('Dividir despesas com outras pessoas')], ['save', L('Ver quanto posso poupar')]];
 
   return (
@@ -119,9 +123,9 @@ export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings
           <div className="on-choices">{choices.map(([id, label], i) => <button key={id} type="button" style={{ '--i': i } as CSSProperties} onClick={() => pick(id)} data-testid={'ob-goal-' + id}><span><Ic d={IC[id]} size={26} /></span><b>{label}</b><Ic d={ICON.right} size={18} /></button>)}</div>
         </div>}
         {step === 'act' && goal === 'expenses' && <ExpenseAct currency={currency} language={language} onDone={() => setStep('done')} />}
-        {step === 'act' && goal === 'goal' && <GoalAct currency={currency} onDone={() => setStep('done')} />}
+        {step === 'act' && goal === 'goal' && <GoalAct currency={currency} onCurrency={() => setChoosing(true)} onDone={() => setStep('done')} />}
         {step === 'act' && goal === 'split' && <GroupAct currency={currency} language={language} onDone={() => setStep('done')} />}
-        {step === 'act' && goal === 'save' && <SaveAct currency={currency} money={money} onDone={after} />}
+        {step === 'act' && goal === 'save' && <SaveAct currency={currency} onCurrency={() => setChoosing(true)} money={money} onDone={after} />}
         {step === 'done' && <div className="on-center">
           <span className="on-ok"><Ic d="M20 6 9 17l-5-5" size={46} /></span>
           <h1>{goal === 'expenses' ? L('Despesa guardada') : goal === 'goal' ? L('Meta criada') : L('Grupo criado')}</h1>
@@ -141,6 +145,7 @@ export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings
         {step === 'signup' && <div className="ob-last"><LoginForm key={authMode} initialMode={authMode} onDone={() => { setSignedIn(true); finish({ ...build(), account: 'signedin' }).catch(() => {}); }} onSkip={() => { finish().catch(() => {}); }} /></div>}
       </div>
       <TxFormHost />
+      {choosing && <CurrencySheet language={language} value={currency} suggested={regional} onClose={() => setChoosing(false)} onPick={(c) => { setCur(c); setChoosing(false); if (step === 'ask') setStep('act'); }} />}
     </div>
   );
 }
@@ -152,12 +157,12 @@ function ExpenseAct({ currency, language, onDone }: { currency: string; language
   useTxSaved(onDone);
   return <div className="on-center"><Head d={IC.expenses} title={L('Vamos adicionar a tua primeira despesa')} text={L('Escreve o valor, escolhe uma categoria e, se quiseres, indica a data e a conta onde pagaste.')} /><button type="button" className="ob-cta" onClick={() => openTxForm({ type: 'expense', currency, language, first: true })} data-testid="ob-add-tx"><Ic d={ICON.plus} size={18} />{L('Adicionar despesa')}</button></div>;
 }
-function GoalAct({ currency, onDone }: { currency: string; onDone: () => void }) {
+function GoalAct({ currency, onCurrency, onDone }: { currency: string; onCurrency: () => void; onDone: () => void }) {
   const [name, setName] = useState(''), [v, setV] = useState(''), [has, setHas] = useState(false), [end, setEnd] = useState('');
   const c = parseMoneyToCents(v) ?? 0, missing = useMissing(), miss = missing([['v', L('o valor'), c > 0], ['name', L('o nome'), !!name.trim()], ['end', L('a data limite'), !has || !!end]]);
   return <div className="on-col"><Head d={IC.goal} title={L('Qual é a tua primeira meta?')} /><Form>{miss.note}
-    <AmountField value={v} onChange={setV} currency={currency} label={L('Quanto queres juntar')} cls={miss.cls('v')} />
-    <div className="tx-rows"><TextRow icon={FI.target} label={L('Nome da meta')} value={name} onChange={setName} placeholder={L('Ex.: Férias, carro')} cls={miss.cls('name')} />
+    <AmountField value={v} onChange={setV} currency={currency} onCurrency={onCurrency} cls={miss.cls('v')} />
+    <div className="tx-rows"><TextRow icon={FI.target} label={L('Meta')} value={name} onChange={setName} placeholder={L('Ex.: Férias, carro')} cls={miss.cls('name')} />
       <SwitchRow icon={FI.date} cls={miss.cls('end')} label={has ? L('Data limite') : L('Tem data limite?')} on={has} onChange={setHas}><DatePicker value={end} onChange={setEnd} className="fx-input tx-val" /></SwitchRow></div>
     <button type="button" className="tx-addbtn" onClick={async () => { if (!miss.check()) return; await addGoal(db, name.trim(), c, todayISO(), has ? end : null); milestone('goal'); onDone(); }}>{L('Criar meta')}</button></Form></div>;
 }
@@ -170,10 +175,30 @@ function GroupAct({ currency, language, onDone }: { currency: string; language: 
     <div className="tx-rows"><TextRow icon={FI.name} label={L('Nome do grupo')} value={name} onChange={setName} placeholder={L('Ex.: Férias de verão')} cls={miss.cls('name')} /></div>
     <button type="button" className="tx-addbtn" onClick={async () => { if (!miss.check()) return; const g = await addGroup(db, name.trim(), GROUP_COLOR); milestone('group'); setId(g.id); }}>{L('Criar grupo')}</button></Form></div>;
 }
-function SaveAct({ currency, money, onDone }: { currency: string; money: (c: number) => string; onDone: () => void }) {
+function SaveAct({ currency, onCurrency, money, onDone }: { currency: string; onCurrency: () => void; money: (c: number) => string; onDone: () => void }) {
   const [v, setV] = useState(''), [inc, setInc] = useState(0);
   const c = parseMoneyToCents(v) ?? 0, missing = useMissing(), miss = missing([['v', L('o valor'), c > 0]]);
   const keep = async () => { const n = new Date(); await setSalary(db, n.getFullYear(), n.getMonth() + 1, inc); await syncSalaryTransactions(db, currency).catch(() => {}); milestone('income'); onDone(); };
   if (inc > 0) return <div className="on-center"><GoalRing r={0.2} size={168}><b>20%</b></GoalRing><h1>{L('Podes poupar cerca de')}</h1><b className="on-big fx-pos"><CountMoney cents={Math.round(inc * 0.2)} money={money} /></b><p>{fill(L('por mês, ou {m} num ano. É uma estimativa: guardar 20% do que recebes. Com as tuas despesas fica mais certa.'), { m: money(Math.round(inc * 2.4)) })}</p><button type="button" className="ob-cta" onClick={() => { keep().catch(onDone); }}>{L('Guardar como salário deste mês')}</button><button type="button" className="on-skip" onClick={onDone}>{L('Continuar sem guardar')}</button></div>;
-  return <div className="on-col"><Head d={IC.save} title={L('Quanto recebes por mês?')} /><Form>{miss.note}<AmountField value={v} onChange={setV} currency={currency} label={L('Rendimento mensal')} kind="income" cls={miss.cls('v')} /><button type="button" className="tx-addbtn" onClick={() => { if (miss.check()) setInc(c); }}>{L('Calcular')}</button></Form></div>;
+  return <div className="on-col"><Head d={IC.save} title={L('Quanto recebes por mês?')} /><Form>{miss.note}<AmountField value={v} onChange={setV} currency={currency} onCurrency={onCurrency} kind="income" cls={miss.cls('v')} /><button type="button" className="tx-addbtn" onClick={() => { if (miss.check()) setInc(c); }}>{L('Calcular')}</button></Form></div>;
+}
+
+/** Escolher a moeda: a da região em cima, e as outras com pesquisa. */
+function CurrencySheet({ language, value, suggested, onPick, onClose }: { language: string; value: string; suggested: string; onPick: (c: string) => void; onClose: () => void }) {
+  const { t } = useTranslation();
+  const [q, setQ] = useState('');
+  const all = groupCurrencies(language, q).flatMap((g) => g.items), first = groupCurrencies(language, '').flatMap((g) => g.items).filter((c) => c.code === suggested);
+  const list = q ? all : [...first, ...all.filter((c) => c.code !== suggested)];
+  return (
+    <BottomSheet title={t('onboard.currencyTitle')} onClose={onClose}>
+      <label className="ob-search"><Ic d={ICON.search} size={18} /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('onboard.search')} aria-label={t('onboard.search')} /></label>
+      <div className="on-curs" role="radiogroup" aria-label={t('onboard.currencyTitle')}>{list.map((c, i) => (
+        <button key={c.code} type="button" role="radio" aria-checked={value === c.code} className={value === c.code ? 'on' : ''} onClick={() => onPick(c.code)}>
+          {currencyFlagUrl(c.code) ? <img className="ob-coin ob-flag" src={currencyFlagUrl(c.code)!} alt="" /> : <span className="ob-coin">{currencySymbol(c.code, language)}</span>}
+          <span><b>{c.name}</b><small>{c.code}{!q && i === 0 && first.length > 0 ? ` · ${L('Sugerida para a tua região')}` : ''}</small></span>{value === c.code && <Ic d="M20 6 9 17l-5-5" size={18} />}
+        </button>))}
+        {list.length === 0 && <p className="fx-muted">{t('onboard.noResults')}</p>}
+      </div>
+    </BottomSheet>
+  );
 }

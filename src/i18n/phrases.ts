@@ -1097,6 +1097,8 @@ export const PHRASES: Record<string, Tr> = {
   'As comparações são com o mês ou ano anterior.': ['Comparisons are with the previous month or year.', 'Las comparaciones son con el mes o año anterior.', 'Les comparaisons portent sur le mois ou l’an précédent.'],
   'Despesas do ano': ['Spent this year', 'Gastos del año', 'Dépenses de l’année'],
   'Poupança do ano': ['Saved this year', 'Ahorro del año', 'Épargne de l’année'],
+  'Meta': ['Goal', 'Meta', 'Objectif'],
+  'Sugerida para a tua região': ['Suggested for your region', 'Sugerida para tu región', 'Suggérée pour votre région'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */

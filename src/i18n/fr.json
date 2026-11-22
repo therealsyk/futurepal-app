@@ -1097,6 +1097,9 @@
     "expense": "Dépense",
     "category": "Catégorie",
     "createGoal": "Créer un objectif",
-    "goalTarget": "Montant cible"
+    "goalTarget": "Montant cible",
+    "currencyTitle": "Choisissez votre devise",
+    "noResults": "Aucune devise trouvée.",
+    "syncing": "Récupération de vos données…"
   }
 }

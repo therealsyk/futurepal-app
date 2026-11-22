@@ -17,12 +17,12 @@ export const FI = {
 export const onlyDigits = (v: string) => v.replace(/[^\d.,]/g, '');
 
 /** Valor grande com a moeda por baixo. Numa transação: despesa a vermelho e com "−", rendimento a verde (o valor guardado não muda). */
-export function AmountField({ value, onChange, currency, label, cls = '', autoFocus, kind, signed }: { value: string; onChange: (v: string) => void; currency: string; label?: string; cls?: string; autoFocus?: boolean; kind?: 'expense' | 'income'; signed?: boolean }) {
+export function AmountField({ value, onChange, currency, label, cls = '', autoFocus, kind, signed, onCurrency }: { onCurrency?: () => void; value: string; onChange: (v: string) => void; currency: string; label?: string; cls?: string; autoFocus?: boolean; kind?: 'expense' | 'income'; signed?: boolean }) {
   const { t } = useTranslation();
   return (
     <>
       <input className={'tx-amt' + (kind ? ' k-' + kind : '') + cls} autoFocus={autoFocus} inputMode="decimal" value={kind === 'expense' && value ? '−' + value : value} placeholder="0" onChange={(e) => onChange(signed ? e.target.value.replace(/[^\d.,-]/g, '') : onlyDigits(e.target.value))} aria-label={label ?? t('transactions.amount')} />
-      <span className="tx-cur">{label ? `${label} · ${currency}` : currency}</span>
+      {onCurrency ? <button type="button" className="tx-cur tx-curbtn" onClick={onCurrency}>{currency}<Ic d={ICON.down} size={14} /></button> : <span className="tx-cur">{label ? `${label} · ${currency}` : currency}</span>}
     </>
   );
 }
