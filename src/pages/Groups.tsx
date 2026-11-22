@@ -271,7 +271,8 @@ export function Groups() {
               {info.people.map((m) => { const on = eds.includes(m.userId); return <div key={m.userId} className="sp-row"><Face m={m} /><span className="sp-row-main"><span className="sp-row-top"><b>{m.displayName}</b></span></span><button type="button" role="switch" aria-checked={on} aria-label={m.displayName} className={'ob-toggle' + (on ? ' on' : '')} onClick={() => setEds(on ? eds.filter((x) => x !== m.userId) : [...eds, m.userId])}><i /></button></div>; })}
             </div></div></div>
           </>}
-          <div className="gg-foot"><span /><button type="button" className="tx-addbtn" onClick={saveEdit}>{L('Guardar')}</button><button type="button" className="gg-del" aria-label={L('Apagar grupo')} onClick={() => { const g = edit, del = info?.remove; closeEdit(); if (del) del(); else remove(g).catch(() => {}); }}><Ic d={ICON.trash} size={17} /><span className="lg">{L('Apagar grupo')}</span><span className="sm">{L('Apagar')}</span></button></div>
+          <button type="button" className="tx-row gg-delrow" onClick={() => { const g = edit, del = info?.remove; closeEdit(); if (del) del(); else remove(g).catch(() => {}); }}><span><Ic d={ICON.trash} size={18} />{L('Apagar grupo')}</span><Ic d={ICON.right} size={16} /></button>
+          <button type="button" className="tx-addbtn" onClick={saveEdit}>{L('Guardar')}</button>
         </div></BottomSheet>}
       </div>
     );
