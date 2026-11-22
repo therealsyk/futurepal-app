@@ -116,6 +116,15 @@ export function normalizeReceipt(raw: unknown, today: string): ReceiptGuess | nu
 }
 
 /** Reduz uma foto para enviar menos dados (e gastar menos) — lado maior até `max` px, JPEG. */
+/** Foto quadrada e pequena (para guardar e sincronizar sem pesar): recorta o centro. */
+export async function squareImage(file: Blob, size = 360, quality = 0.82): Promise<string> {
+  const bmp = await createImageBitmap(file), side = Math.min(bmp.width, bmp.height);
+  const c = document.createElement('canvas');
+  c.width = c.height = Math.min(size, side);
+  c.getContext('2d')!.drawImage(bmp, (bmp.width - side) / 2, (bmp.height - side) / 2, side, side, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', quality);
+}
+
 export async function shrinkImage(file: Blob, max = 1600, quality = 0.8): Promise<string> {
   const bmp = await createImageBitmap(file);
   const k = Math.min(1, max / Math.max(bmp.width, bmp.height));

@@ -14,7 +14,7 @@ const FIELD_MAP: Record<SyncTable, Record<string, string>> = {
   budgets: { categoryId: 'category_id', limitCents: 'limit_cents', period: 'period', year: 'year', month: 'month' },
   goals: { name: 'name', targetCents: 'target_cents', currentCents: 'current_cents', startDate: 'start_date', targetDate: 'target_date', notes: 'notes', accountIds: 'account_ids', contributions: 'contributions' },
   recurrings: { type: 'type', categoryId: 'category_id', description: 'description', amountCents: 'amount_cents', currency: 'currency', frequency: 'frequency', nextDate: 'next_date', endDate: 'end_date', accountId: 'account_id', toAccountId: 'to_account_id' },
-  groups: { name: 'name', color: 'color' },
+  groups: { name: 'name', color: 'color', image: 'image' },
   accounts: { name: 'name', description: 'description', type: 'type', currency: 'currency', initialBalanceCents: 'initial_balance_cents', includeInNetWorth: 'include_in_net_worth', isDefault: 'is_default', showOnHome: 'show_on_home', order: 'order' },
   transfers: { fromAccountId: 'from_account_id', toAccountId: 'to_account_id', amountCents: 'amount_cents', date: 'date', note: 'note' },
 };
@@ -119,7 +119,9 @@ export async function syncNow(client: SupabaseClient, db: WalletDB, userId: stri
     for (let i = 0; i < dirty.length; i += CHUNK) {
       const rows = dirty.slice(i, i + CHUNK).map((r) => toRemote(table, r, userId));
       // ids fixos ('acc-default', 'cat-…') repetem-se entre utilizadores: a chave é (user_id, id) — ver supabase/per_user_ids.sql
-      const pushErr = await client.from(table).upsert(rows, { onConflict: 'user_id,id' });
+      let pushErr = await client.from(table).upsert(rows, { onConflict: 'user_id,id' });
+      // servidor ainda sem a coluna da foto dos grupos (supabase/group_image.sql): envia o resto e a foto fica neste aparelho
+      if (table === 'groups' && pushErr.error && /image/i.test(pushErr.error.message)) pushErr = await client.from(table).upsert(rows.map(({ image: _foto, ...r }) => r), { onConflict: 'user_id,id' });
       if (pushErr.error) return { pushed, pulled, lastSync: now, error: `${table}: ${pushErr.error.message}` };
       pushed += rows.length;
     }

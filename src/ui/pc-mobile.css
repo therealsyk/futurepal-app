@@ -1519,3 +1519,12 @@ html:not(.pcm) .mv-menu { padding: 0 11px; } html:not(.pcm) .mv-menu svg { displ
 .gg-colors { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin: 18px 0; } .gg-colors button { width: 38px; height: 38px; border: 3px solid transparent; border-radius: 50%; cursor: pointer; transition: transform .15s; } .gg-colors button.on { border-color: var(--text); transform: scale(1.12); }
 @media (max-width: 768px) { .gg-ic.big { width: 112px; height: 112px; border-radius: 32px; } .gg-hero .gl-act { font-size: 14px; gap: 6px; } }
 @media (prefers-reduced-motion: reduce) { .gg-ic.big { animation: none; } }
+/* grupo partilhado: as pessoas ficam por baixo, no mesmo cartão */
+.gg-shared { flex-wrap: wrap; row-gap: 22px !important; padding-bottom: 20px !important; } .gg-shared .gx-people { flex: 0 0 100%; justify-content: center; margin-top: 0 !important; padding: 20px 0 0 !important; }
+.gg-shared .gx-person { transition: transform .18s; } .gg-shared .gx-person:hover { transform: translateY(-3px); }
+.gx-ends { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+/* foto do grupo */
+.gg-ic.pic { overflow: hidden; } .gg-ic.pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gg-photo { position: relative; display: block; width: max-content; margin: 6px auto 10px; cursor: pointer; } .gg-photo .gg-ic.big { width: 120px; height: 120px; border-radius: 36px; transition: filter .18s; } .gg-photo:hover .gg-ic { filter: brightness(1.12); }
+.gg-photo > i { position: absolute; right: -6px; bottom: -6px; display: grid; place-items: center; width: 40px; height: 40px; border: 3px solid var(--card); border-radius: 50%; background: var(--mv); color: var(--mv-ink, #032a2d); } .gg-photo input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; } .gg-photo:focus-within > i { outline: 2px solid var(--text); }
+.gg-photo-acts { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 10px 0 8px; color: var(--muted); font-size: 13.5px; } .gg-photo-acts button { padding: 6px 14px; border: 0; border-radius: 99px; background: none; color: var(--red); font: inherit; font-weight: 700; cursor: pointer; } .gg-photo-acts button:hover { background: color-mix(in srgb, var(--red) 12%, transparent); }

@@ -18,7 +18,8 @@ import { EmptyState } from '../ui/EmptyState';
 import { FI, InviteRow, SwitchRow, TextRow } from '../ui/formFields';
 import { parseContact } from '../core/split';
 import { usePlan } from './Premium';
-import { useMissing } from '../ui/missing';
+import { FormError, useMissing } from '../ui/missing';
+import { squareImage } from '../core/assistant';
 import { IS_DEMO } from '../demo/demo';
 import { BottomSheet } from './SimplePages';
 import { Face, SplitGroup, type Member } from './Split';
@@ -33,6 +34,11 @@ const KINDS: Array<[RegExp, string]> = [
   [/carro|auto|gasolina|car\b|coche|voiture/i, 'M5 17H3v-5l2-5h14l2 5v5h-2M5 17a2 2 0 1 0 4 0 2 2 0 0 0-4 0M15 17a2 2 0 1 0 4 0 2 2 0 0 0-4 0M9 17h6M3 12h18'],
 ];
 const iconOf = (name: string) => KINDS.find(([re]) => re.test(name))?.[1] ?? 'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5';
+
+/** Foto do grupo ou, sem foto, o ícone na cor dele. */
+function GroupPic({ name, image, big }: { name: string; image?: string; big?: boolean }) {
+  return <span className={'gg-ic' + (big ? ' big' : '') + (image ? ' pic' : '')}>{image ? <img src={image} alt="" /> : <Ic d={iconOf(name)} size={big ? 62 : 30} />}</span>;
+}
 
 const COLORS = ['#17c3c9', '#8b5cf6', '#f59e0b', '#ef4444', '#22c55e', '#3b82f6', '#ec4899'];
 
@@ -57,7 +63,8 @@ export function Groups() {
   const [people, setPeople] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const { has } = usePlan();
-  const [edit, setEdit] = useState<Group | null>(null), [color, setColor] = useState('');
+  const [edit, setEdit] = useState<Group | null>(null), [color, setColor] = useState(''), [image, setImage] = useState(''), [picErr, setPicErr] = useState('');
+  const pickPhoto = async (f?: File) => { if (!f) return; try { setImage(await squareImage(f)); setPicErr(''); } catch { setPicErr(L('Não foi possível abrir esta foto. Experimenta outra (JPG ou PNG).')); } };
   const missing = useMissing(), emissing = useMissing();
   const emiss = emissing([['name', L('o nome'), !!name.trim()]]);
   const closeEdit = () => { setEdit(null); setName(''); emiss.reset(); };
@@ -182,19 +189,20 @@ export function Groups() {
 
   const open = groups.find((g) => g.id === id);
   if (open) {
+    const startEdit = () => { setName(open.name); setColor(open.color); setImage(open.image ?? ''); setPicErr(''); setEdit(open); };
     const list = of(open.id).sort((a, b) => b.date.localeCompare(a.date));
     return (
       <div className="fx-page mv sh grp gl-page">
         <header className="mv-head"><Link to="/grupos" className="mv-sq" aria-label={L('Voltar')}><Ic d={ICON.left} size={20} /></Link><h1 className="sh-title">{open.name}</h1></header>
-        {splitOf(open.id) && !IS_DEMO ? <SplitGroup key={open.id} splitId={splitIdOf(open.id)!} groupId={open.id} createdAt={open.createdAt} local={list} cats={cats} onChanged={() => { load().catch(() => {}); }} onGone={() => drop(open)} /> : <>
+        {splitOf(open.id) && !IS_DEMO ? <SplitGroup key={open.id} splitId={splitIdOf(open.id)!} groupId={open.id} createdAt={open.createdAt} color={open.color} pic={<GroupPic name={open.name} image={open.image} big />} onEdit={startEdit} local={list} cats={cats} onChanged={() => { load().catch(() => {}); }} onGone={() => drop(open)} /> : <>
         <section className="mv-hero sh-hero gl-hero gg-hero" style={{ '--g': open.color } as CSSProperties}>
-          <span className="gg-ic big"><Ic d={iconOf(open.name)} size={62} /></span>
+          <GroupPic name={open.name} image={open.image} big />
           <div className="gl-sum">
             <div className="gl-have"><small>{L('Total do grupo')}</small><b>{money(total(open.id))}</b><small>{count(list.length)}</small></div>
             <div className="gl-acts">
               <button type="button" className="gl-act main" onClick={() => openTxForm({ type: 'expense', groupId: open.id })}><Ic d={ICON.plus} size={18} />{L('Adicionar')}</button>
               {!IS_DEMO && <button type="button" className="gl-act" onClick={() => { setName(open.name); setSplit(true); setAdding(open); }}><Ic d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M19 8v6M16 11h6" size={18} />{L('Dividir')}</button>}
-              <button type="button" className="gl-act" onClick={() => { setName(open.name); setColor(open.color); setEdit(open); }}><Ic d="M4 20h4L19 9l-4-4L4 16zM13 7l4 4" size={18} />{L('Alterar')}</button>
+              <button type="button" className="gl-act" onClick={startEdit}><Ic d="M4 20h4L19 9l-4-4L4 16zM13 7l4 4" size={18} />{L('Alterar')}</button>
             </div>
           </div>
         </section>
@@ -218,10 +226,17 @@ export function Groups() {
         </>}
         {sheet}
         {edit && <BottomSheet title={L('Alterar grupo')} onClose={closeEdit}><div className="acc-form">
-          {emiss.note}
+          {emiss.note ?? (picErr && <FormError text={picErr} />)}
+          <label className="gg-photo" style={{ '--g': color } as CSSProperties}>
+            <GroupPic key={image || 'icon'} name={name} image={image} big />
+            <i aria-hidden="true"><Ic d="M4 8h3l2-3h6l2 3h3v11H4zM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" size={18} /></i>
+            <input type="file" accept="image/*" aria-label={L('Escolher foto')} onChange={(e) => { pickPhoto(e.target.files?.[0]); e.target.value = ''; }} />
+          </label>
+          <div className="gg-photo-acts"><span>{image ? L('Toca na foto para a trocar') : L('Toca para escolher uma foto')}</span>{image && <button type="button" onClick={() => setImage('')}>{L('Tirar a foto')}</button>}</div>
           <div className="tx-rows"><TextRow icon={FI.name} label={L('Nome')} value={name} onChange={setName} placeholder={L('Ex.: Férias de verão')} cls={emiss.cls('name')} /></div>
           <div className="gg-colors" role="radiogroup" aria-label={L('Cor')}>{COLORS.map((c) => <button key={c} type="button" role="radio" aria-checked={c === color} aria-label={c} className={c === color ? 'on' : ''} style={{ background: c }} onClick={() => setColor(c)} />)}</div>
-          <button type="button" className="tx-addbtn" onClick={async () => { if (!emiss.check()) return; await db.groups.update(edit.id, { name: name.trim(), color, updatedAt: new Date().toISOString() }); closeEdit(); await load(); }}>{L('Guardar')}</button>
+          {splitOf(edit.id) && <p className="gl-hint">{L('Só muda para ti: as outras pessoas continuam a ver o grupo como estava.')}</p>}
+          <button type="button" className="tx-addbtn" onClick={async () => { if (!emiss.check()) return; await db.groups.update(edit.id, { name: name.trim(), color, image, updatedAt: new Date().toISOString() }); closeEdit(); await load(); }}>{L('Guardar')}</button>
         </div></BottomSheet>}
       </div>
     );
@@ -238,7 +253,7 @@ export function Groups() {
           const names = others.length === 0 ? '' : others.length <= 2 ? others.map((m) => m.displayName.split(' ')[0]).join(` ${L('e')} `) : `${others[0].displayName.split(' ')[0]}, ${others[1].displayName.split(' ')[0]} +${others.length - 2}`;
           return (
             <Link key={g.id} to={`/grupos/${g.id}`} className="mv-card gl-card gg-card" style={{ '--g': g.color, '--i': i } as CSSProperties}>
-              <span className="gg-ic"><Ic d={iconOf(g.name)} size={30} /></span>
+              <GroupPic name={g.name} image={g.image} />
               <span className="gl-main">
                 <b className="gl-name">{g.name}</b>
                 <span className="gl-money"><b>{money(sharedOf(g.id)?.cents ?? total(g.id))}</b> · {count(sharedOf(g.id)?.n ?? of(g.id).length)}</span>

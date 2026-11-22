@@ -1,8 +1,7 @@
 // Grupo dividido: todas as transações do grupo são divididas por todos. Uma só lista, com as fotos de quem já pagou
 // e, ao tocar, quanto deve cada um. Os dados vêm do Supabase (supabase/split.sql).
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getSupabase } from '../auth/supabase';
 import { useAuth } from '../auth/AuthContext';
@@ -20,6 +19,7 @@ import { billOfTx, SPLIT_CHANGED } from '../core/groupLink';
 import { catFitsKind, CatIcon, Ic, ICON, Sheet } from '../ui/fx';
 import { AccountRow, CategoryRow, DateRow, InviteRow } from '../ui/formFields';
 import { useMissing } from '../ui/missing';
+import { openTxForm, useTxSaved } from '../ui/TxForm';
 import { L } from '../i18n/phrases';
 import { BottomSheet } from './SimplePages';
 
@@ -37,7 +37,7 @@ function Who({ m, name, paid, wait }: { m: Member; name: string; paid?: boolean;
   return <span className={'gx-who' + (wait ? ' inv' : '')} title={name}><Face m={m} /><i className={paid ? 'ok' : 'wait'}><Ic d={paid ? CHECK : CLOCK} size={9} /></i></span>;
 }
 
-export function SplitGroup({ splitId, groupId, createdAt, local, cats, onChanged, onGone }: { splitId: string; groupId: string; createdAt: string; local: Transaction[]; cats: Category[]; onChanged: () => void; onGone: () => void }) {
+export function SplitGroup({ splitId, groupId, createdAt, color, pic, local, cats, onEdit, onChanged, onGone }: { color: string; pic: ReactNode; onEdit: () => void; splitId: string; groupId: string; createdAt: string; local: Transaction[]; cats: Category[]; onChanged: () => void; onGone: () => void }) {
   const { t } = useTranslation();
   const auth = useAuth();
   const me = auth.user?.id ?? '';
@@ -126,6 +126,7 @@ export function SplitGroup({ splitId, groupId, createdAt, local, cats, onChanged
   // o que falta os outros pagarem nas transações que eu adicionei (conta com quem ainda não aceitou)
   const owed = bills.filter((b) => b.createdBy === me).reduce((a, b) => a + Math.max(0, leftOf(b) - (b.shares.some((x) => x.userId === me && !x.paidAt) ? shareOf(b, me) : 0)), 0);
 
+  useTxSaved(() => { load().catch(() => {}); });
   // outra pessoa (só quem adicionou a transação): marca ou desmarca
   const mark = async (b: SplitBill, uid: string, paid: boolean) => {
     if (!(await appConfirm(`${paid ? L('Esta pessoa já pagou?') : L('Marcar como por pagar?')} ${nameOf(uid)}: ${money(shareOf(b, uid))}`, { ok: L('Sim'), danger: false }))) return;
@@ -165,14 +166,14 @@ export function SplitGroup({ splitId, groupId, createdAt, local, cats, onChanged
 
   return (
     <>
-      <section className="mv-hero sh-hero grp-total">
-        {owner === me && <button type="button" className="gx-trash" onClick={removeGroup} aria-label={L('Apagar grupo')} title={L('Apagar grupo')}><Ic d={ICON.trash} size={17} /><span>{L('Apagar grupo')}</span></button>}
-        <small className="mv-hero-label">{L('Total do grupo')}</small>
-        <div className="sh-big">{money(total)}</div>
-        <small className="sh-pct">{L('Criado a')} {day(createdAt)} · {bills.length} {bills.length === 1 ? L('transação') : L('transações')}</small>
-        <div className="gx-sum">
-          <div><small>{L('Tens de pagar')}</small><b>{money(owe)}</b><em>{owe > 0 ? `${unpaid.length} ${unpaid.length === 1 ? L('transação') : L('transações')}` : L('Está tudo pago')}</em></div>
-          <div><small>{L('Vais receber')}</small><b>{money(owed)}</b><em>{owed > 0 ? L('dos outros') : L('Nada a receber')}</em></div>
+      <section className="mv-hero sh-hero grp-total gl-hero gg-hero gg-shared" style={{ '--g': color } as CSSProperties}>
+        {pic}
+        <div className="gl-sum">
+          <div className="gl-have"><small>{L('Total do grupo')}</small><b>{money(total)}</b><small>{bills.length} {bills.length === 1 ? L('transação') : L('transações')}</small></div>
+          <div className="gl-acts">
+            <button type="button" className="gl-act main" onClick={() => openTxForm({ type: 'expense', groupId })}><Ic d={ICON.plus} size={18} />{L('Adicionar')}</button>
+            <button type="button" className="gl-act" onClick={onEdit}><Ic d="M4 20h4L19 9l-4-4L4 16zM13 7l4 4" size={18} />{L('Alterar')}</button>
+          </div>
         </div>
         <div className="gx-people">
         {members.map((m) => <span key={m.userId} className="gx-person"><Face m={m} /><b>{m.userId === me ? L('Tu') : m.displayName}</b></span>)}
@@ -181,9 +182,15 @@ export function SplitGroup({ splitId, groupId, createdAt, local, cats, onChanged
         </div>
       </section>
       {error && <p className="fx-error">{error}</p>}
+      <div className="pl-tiles gl-tiles">
+        <div className="pl-tile"><small>{L('Tens de pagar')}</small><b className={owe > 0 ? 'fx-neg' : ''}>{money(owe)}</b><em>{owe > 0 ? `${unpaid.length} ${unpaid.length === 1 ? L('transação') : L('transações')}` : L('Está tudo pago')}</em></div>
+        <div className="pl-tile"><small>{L('Vais receber')}</small><b className={owed > 0 ? 'fx-pos' : ''}>{money(owed)}</b><em>{owed > 0 ? L('dos outros') : L('Nada a receber')}</em></div>
+        <div className="pl-tile"><small>{L('Pessoas')}</small><b>{members.length}</b><em>{pending.length > 0 ? `+${pending.length} ${L('por responder')}` : L('Todas no grupo')}</em></div>
+        <div className="pl-tile"><small>{L('Criado a')}</small><b>{day(createdAt)}</b></div>
+      </div>
 
-      <section className="mv-card">
-        <div className="mv-card-head"><h2>{L('Transações')}</h2><Link to={`/transacoes?nova=1&grupo=${groupId}`} className="sh-btn in sm grp-add"><Ic d={ICON.plus} size={16} />{L('Adicionar transação')}</Link></div>
+      <section className="mv-card gl-sec">
+        <h2>{L('Transações')}</h2>
         {bills.length === 0 && <p className="fx-muted">{L('Tudo o que adicionares aqui é dividido por todos.')}</p>}
         {bills.map((b) => {
           const pr = billProgress(b), mine = mineOf(b), ex = open === b.id;
@@ -264,7 +271,8 @@ export function SplitGroup({ splitId, groupId, createdAt, local, cats, onChanged
             </div>
           </div>, document.body);
       })()}
-      <div className="gx-end">
+      <div className="gx-end gx-ends">
+        {owner === me && <button type="button" className="gx-rm" onClick={removeGroup}><Ic d={ICON.trash} size={18} />{L('Apagar grupo')}</button>}
         <button type="button" className="gx-rm" onClick={leave}><Ic d={LEAVE} size={18} />{L('Sair do grupo')}</button>
       </div>
     </>

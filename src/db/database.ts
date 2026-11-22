@@ -103,6 +103,7 @@ export interface Recurring extends BaseRecord {
 export interface Group extends BaseRecord {
   name: string;
   color: string;
+  image?: string; // foto própria (data-URI pequena); vazia ou sem ela mostra-se o ícone
 }
 
 // Conta (Gastos / Poupança / Dívida) — como no app do telemóvel.

@@ -876,6 +876,15 @@ export const PHRASES: Record<string, Tr> = {
   'Último movimento': ['Latest transaction', 'Último movimiento', 'Dernière opération'],
   'Alterar grupo': ['Edit group', 'Editar grupo', 'Modifier le groupe'],
   'Cor': ['Colour', 'Color', 'Couleur'],
+  'Pessoas': ['People', 'Personas', 'Personnes'],
+  'por responder': ['awaiting reply', 'sin responder', 'en attente'],
+  'Todas no grupo': ['Everyone has joined', 'Todas en el grupo', 'Tout le monde est là'],
+  'Só muda para ti: as outras pessoas continuam a ver o grupo como estava.': ['Only changes for you: everyone else still sees the group as it was.', 'Solo cambia para ti: las demás personas siguen viendo el grupo como estaba.', 'Ne change que pour vous : les autres voient toujours le groupe tel quel.'],
+  'Escolher foto': ['Choose photo', 'Elegir foto', 'Choisir une photo'],
+  'Toca na foto para a trocar': ['Tap the photo to change it', 'Toca la foto para cambiarla', 'Touchez la photo pour la changer'],
+  'Toca para escolher uma foto': ['Tap to choose a photo', 'Toca para elegir una foto', 'Touchez pour choisir une photo'],
+  'Tirar a foto': ['Remove photo', 'Quitar la foto', 'Retirer la photo'],
+  'Não foi possível abrir esta foto. Experimenta outra (JPG ou PNG).': ['Couldn’t open this photo. Try another one (JPG or PNG).', 'No se pudo abrir esta foto. Prueba con otra (JPG o PNG).', 'Impossible d’ouvrir cette photo. Essayez-en une autre (JPG ou PNG).'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */
