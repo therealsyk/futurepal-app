@@ -1334,7 +1334,7 @@ button.sh-tx.txs-row { width: 100%; border: 0; border-top: 1px solid var(--borde
 .bs-body .sh-btn { align-self: center; }
 @keyframes bs-up { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes bs-fade { from { opacity: 0; } to { opacity: 1; } }
-@media (min-width: 769px) { .bs-sheet { margin-bottom: 28px; margin-left: 108px; } }
+@media (min-width: 769px) { .bs-sheet { margin-bottom: 28px; margin-left: 88px; } }
 @media (prefers-reduced-motion: reduce) { .bs-sheet, .bs-backdrop { animation: none; } }
 /* Folhas de criar: valor em grande (como em Nova transação) e opções em linhas */
 .bs-body .sh-form { display: flex; flex-direction: column; gap: 0; }
