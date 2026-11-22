@@ -958,9 +958,6 @@ export const PHRASES: Record<string, Tr> = {
   '{m} por mês': ['{m} per month', '{m} al mes', '{m} par mois'],
   '{m} por dia': ['{m} per day', '{m} al día', '{m} par jour'],
   'Podias ter poupado': ['You could have saved', 'Podrías haber ahorrado', 'Vous auriez pu économiser'],
-  'do rendimento do mês já foi gasto': ['of this month’s income already spent', 'de los ingresos del mes ya gastado', 'du revenu du mois déjà dépensé'],
-  'do que recebeste': ['of what you received', 'de lo que recibiste', 'de ce que vous avez reçu'],
-  'Gastaste mais do que recebeste': ['You spent more than you received', 'Gastaste más de lo que recibiste', 'Vous avez dépensé plus que reçu'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */

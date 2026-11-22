@@ -1,6 +1,5 @@
 // Início simplificado — só o essencial, para qualquer pessoa.
 //  1. Quanto ainda tenho este mês  2. Adicionar gasto / dinheiro recebido  3. A minha poupança  4. Últimos movimentos
-import { CmpWords } from './PcOverview';
 import type { CSSProperties } from 'react';
 import { GoalRing } from '../ui/GoalRing';
 import { CountMoney } from '../ui/CountMoney';
@@ -10,7 +9,7 @@ import { WidgetEmpty, WidgetRow } from '../ui/WidgetRow';
 import { GroupPic } from './Groups';
 import { NotificationBell } from '../ui/AccountBar';
 import { goalValueCents, splitDesc } from '../core/debtPlan';
-
+import { cmpText, refText } from '../core/compare';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -67,6 +66,7 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
   const received = month.filter((x) => x.type === 'income').reduce((a, x) => a + x.amountCents, 0);
   const spent = month.filter((x) => x.type === 'expense').reduce((a, x) => a + x.amountCents, 0);
   const left = received - spent;
+  const ratio = received > 0 ? Math.min(1, spent / received) : spent > 0 ? 1 : 0;
   const salaryToDate = (data?.salaries ?? []).filter((x) => x.year * 100 + x.month <= now.getFullYear() * 100 + now.getMonth() + 1).reduce((a, x) => a + x.amountCents, 0);
   // Só contas com dinheiro (as dívidas, ex.: empréstimo da casa, ficam de fora para não assustar)
   const saved = data ? data.accounts.filter((a) => a.type !== 'debt').reduce((sum, a) => sum + accountBalanceCents(a, data.txs, data.accounts, salaryToDate, data.transfers), 0) : 0;
@@ -81,31 +81,27 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
   const heroEl = (<>
       <section className="mv-hero sh-hero" data-tour={embed ? undefined : 'month'}>
         {(() => {
-          const inP = (x: Transaction) => (ppr ? x.date >= ppr.from && x.date <= ppr.to : x.date.startsWith(prevPrefix));
-          const pInc = (data?.txs ?? []).filter((x) => x.type === 'income' && inP(x)).reduce((a, x) => a + x.amountCents, 0), pLeft = pInc - prevSpent;
-          const who = ranged ? t('pco.prev_' + per.preset) : mode === 'year' ? String(cur.y - 1) : new Date(cur.y, cur.m - 1, 1).toLocaleDateString(s.language, { month: 'long' });
-          const ratio = received > 0 ? Math.min(1, spent / received) : spent > 0 ? 1 : 0;
-          // comparação à direita do nome, como no PC: só a parte que interessa tem cor
-          const dlt = (n: number, b: number, up: boolean) => {
-            if (b === 0) return null;
-            const p = Math.round(((n - b) / Math.abs(b)) * 100), good = p === 0 ? 'same' : (p > 0) === up ? 'good' : 'bad';
-            return <span className={'pco-delta ' + good}>{up ? <>{p > 0 ? '+' : ''}{p}% <small>{t('pco.vs')} {who}</small></> : <CmpWords t={t} pct={p} name={who} />}</span>;
-          };
-          const bar = <div className={'sh-bar' + (left < 0 ? ' over' : '')} aria-hidden="true"><i style={{ width: `${ratio * 100}%` }} /></div>;
+          const pct = received > 0 ? Math.round((spent / received) * 100) : null;
+          // cor do quanto já se gastou do rendimento: sem cor até 50% (normal), amarelo até 80%, vermelho a partir daí
+          const tone = (p: number) => (p >= 80 ? 'bad' : p >= 50 ? 'warn' : 'neutral');
+          const dlt = prevSpent > 0 && spent > 0 ? Math.round(((spent - prevSpent) / prevSpent) * 100) : null;
+          const ref = refText(t, s.language, ranged ? { kind: 'preset', preset: per.preset } : { kind: mode === 'month' ? 'prevMonth' : 'prevYear' });
+          const cmp = dlt === null ? null : <small className={'sh-cmp ' + (dlt > 0 ? 'fx-neg' : 'fx-pos')}>{dlt === 0 ? cmpText(t, dlt, ref) : `${L('Gastaste')} ${cmpText(t, dlt, ref)}`}</small>;
           return mode === 'month' ? (
             <>
-              <div className="hm-row"><small className="mv-hero-label">{L('Ainda tens para gastar')}</small>{dlt(spent, prevSpent, false)}</div>
-              <div className="sh-valrow"><span className={'sh-big ' + (left < 0 ? 'fx-neg' : 'fx-pos')}>{money(left)}</span></div>
-              {bar}
+              <small className="mv-hero-label">{L('Ainda tens para gastar')}</small>
+              <div className="sh-valrow"><span className={'sh-big ' + (left < 0 ? 'fx-neg' : 'fx-pos')}>{money(left)}</span>{pct !== null && <span className={'fx-chip ' + tone(pct)} title={L('do rendimento já gasto')}>{pct}% {L('gasto')}</span>}</div>
+              <div className={"sh-bar" + (left < 0 ? " over" : "")} aria-hidden="true"><i style={{ width: `${ratio * 100}%` }} /></div>
+              {cmp}
             </>
           ) : (
             <>
-              <div className="hm-row"><small className="mv-hero-label">{ranged ? L('Recebeste neste período') : L('Recebeste este ano')}</small>{dlt(received, pInc, true)}</div>
+              <small className="mv-hero-label">{ranged ? L('Recebeste neste período') : L('Recebeste este ano')}</small>
               <div className="sh-valrow"><span className="sh-big fx-pos">{money(received)}</span></div>
-              {bar}
-              <div className="sh-kpis hm-kpis">
-                <div className="sh-kpi"><div className="hm-row"><small>{L('Gastos')}</small>{dlt(spent, prevSpent, false)}</div><b className="fx-neg">{money(spent)}</b></div>
-                <div className="sh-kpi"><div className="hm-row"><small>{L('Poupança')}</small>{dlt(left, pLeft, true)}</div><b className={left < 0 ? 'fx-neg' : 'fx-pos'}>{money(left)}</b></div>
+              <div className={"sh-bar" + (left < 0 ? " over" : "")} aria-hidden="true"><i style={{ width: `${ratio * 100}%` }} /></div>
+              <div className="sh-kpis">
+                <div className="sh-kpi"><small>{L('Gastos')}</small><div className="sh-valrow"><b className="fx-neg">{money(spent)}</b>{pct !== null && <span className={'fx-chip ' + tone(pct)}>{pct}%</span>}</div>{cmp}</div>
+                <div className="sh-kpi"><small>{L('Poupança')}</small><div className="sh-valrow"><b className={left < 0 ? 'fx-neg' : 'fx-pos'}>{money(left)}</b>{received > 0 && <span className={'fx-chip ' + (left < 0 ? 'bad' : 'good')}>{Math.round((left / received) * 100)}%</span>}</div></div>
               </div>
             </>
           );
