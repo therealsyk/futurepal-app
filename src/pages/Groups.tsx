@@ -23,7 +23,7 @@ import { squareImage } from '../core/assistant';
 import { listenSplit, tellSplit } from '../core/splitLive';
 import { IS_DEMO } from '../demo/demo';
 import { BottomSheet } from './SimplePages';
-import { Face, SplitGroup, type Member } from './Split';
+import { CALENDAR, Face, GTile, SplitGroup, type Member } from './Split';
 import { openTxForm, useTxSaved } from '../ui/TxForm';
 import { L } from '../i18n/phrases';
 
@@ -231,11 +231,11 @@ export function Groups() {
         </section>
         {list.length > 0 && (() => {
           const out = list.filter((x) => x.type === 'expense'), top = [...out].sort((a, b) => b.amountCents - a.amountCents)[0], sum = out.reduce((a, x) => a + x.amountCents, 0);
-          return <div className="pl-tiles gl-tiles">
-            <div className="pl-tile"><small>{L('Maior gasto')}</small><b>{top ? money(top.amountCents) : '—'}</b>{top && <em>{top.description || catLabel(t, cats.find((y) => y.id === top.categoryId) ?? { name: '' })}</em>}</div>
-            <div className="pl-tile"><small>{L('Média por gasto')}</small><b>{out.length ? money(Math.round(sum / out.length)) : '—'}</b></div>
-            <div className="pl-tile"><small>{L('Último movimento')}</small><b>{day(list[0].date)}</b></div>
-            <div className="pl-tile"><small>{L('Criado a')}</small><b>{day(open.createdAt)}</b></div>
+          return <div className="gx-tiles">
+            <GTile d="M12 19V5M5 12l7-7 7 7" label={L('Maior gasto')} value={top ? money(top.amountCents) : '—'} />
+            <GTile d="M4 20V10M10 20V4M16 20v-7M22 20H2" label={L('Média por gasto')} value={out.length ? money(Math.round(sum / out.length)) : '—'} />
+            <GTile d="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 7v5l3 2" label={L('Último movimento')} value={day(list[0].date)} />
+            <GTile d={CALENDAR} label={L('Criado a')} value={day(open.createdAt)} />
           </div>;
         })()}
         <section className="mv-card gl-sec">

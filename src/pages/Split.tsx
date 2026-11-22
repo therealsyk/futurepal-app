@@ -35,6 +35,13 @@ const FRIEND = 'M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3
 const LEAVE = 'M15 4h4v16h-4M10 16l-4-4 4-4M6 12h10';
 const CLOCK = 'M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 7v5l3 2', CHECK = 'M20 6 9 17l-5-5';
 
+export const CALENDAR = 'M5 5h14v15H5zM5 10h14M8 3v4M16 3v4';
+const FRIENDS = 'M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M22 19v-1a4 4 0 0 0-3-3.9M16 4.1a3 3 0 0 1 0 5.8';
+/** Caixa simples: ícone, o que é e o valor. */
+export function GTile({ d, label, value, tone = '' }: { d: string; label: string; value: string; tone?: string }) {
+  return <div className={'gx-tile ' + tone}><span aria-hidden="true"><Ic d={d} size={20} /></span><div><small>{label}</small><b>{value}</b></div></div>;
+}
+
 /** Foto com o estado no canto: certo verde (pagou) ou relógio amarelo (falta). */
 function Who({ m, name, paid, wait }: { m: Member; name: string; paid?: boolean; wait?: boolean }) {
   return <span className={'gx-who' + (wait ? ' inv' : '')} title={name}><Face m={m} /><i className={paid ? 'ok' : 'wait'}><Ic d={paid ? CHECK : CLOCK} size={9} /></i></span>;
@@ -188,11 +195,11 @@ export function SplitGroup({ splitId, groupId, createdAt, color, pic, local, cat
         </div>
       </section>
       {error && <p className="fx-error">{error}</p>}
-      <div className="pl-tiles gl-tiles">
-        <div className="pl-tile"><small>{L('Tens de pagar')}</small><b className={owe > 0 ? 'fx-neg' : ''}>{money(owe)}</b><em>{owe > 0 ? `${unpaid.length} ${unpaid.length === 1 ? L('transação') : L('transações')}` : L('Está tudo pago')}</em></div>
-        <div className="pl-tile"><small>{L('Vais receber')}</small><b className={owed > 0 ? 'fx-pos' : ''}>{money(owed)}</b><em>{owed > 0 ? L('dos outros') : L('Nada a receber')}</em></div>
-        <div className="pl-tile"><small>{L('Pessoas')}</small><b>{members.length}</b><em>{pending.length > 0 ? `+${pending.length} ${L('por responder')}` : L('Todas no grupo')}</em></div>
-        <div className="pl-tile"><small>{L('Criado a')}</small><b>{day(createdAt)}</b></div>
+      <div className="gx-tiles">
+        <GTile d="M12 19V5M5 12l7-7 7 7" tone={owe > 0 ? 'neg' : ''} label={L('A pagar')} value={money(owe)} />
+        <GTile d="M12 5v14M5 12l7 7 7-7" tone={owed > 0 ? 'pos' : ''} label={L('A receber')} value={money(owed)} />
+        <GTile d={FRIENDS} label={L('Pessoas')} value={String(members.length)} />
+        <GTile d={CALENDAR} label={L('Criado a')} value={day(createdAt)} />
       </div>
 
       <section className="mv-card gl-sec">

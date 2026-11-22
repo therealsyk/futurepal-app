@@ -894,6 +894,8 @@ export const PHRASES: Record<string, Tr> = {
   'Todas as pessoas do grupo podem adicionar': ['Everyone in the group can add', 'Todas las personas del grupo pueden añadir', 'Tout le groupe peut ajouter'],
   'Só tu podes adicionar': ['Only you can add', 'Solo tú puedes añadir', 'Vous seul pouvez ajouter'],
   'O nome, a foto e a cor mudam para todas as pessoas do grupo.': ['The name, photo and colour change for everyone in the group.', 'El nombre, la foto y el color cambian para todas las personas del grupo.', 'Le nom, la photo et la couleur changent pour tout le groupe.'],
+  'A pagar': ['To pay', 'A pagar', 'À payer'],
+  'A receber': ['To receive', 'A recibir', 'À recevoir'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */
