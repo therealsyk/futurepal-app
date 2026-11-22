@@ -7,7 +7,7 @@ import { getSupabase, hasSupabaseConfig } from '../auth/supabase';
 import { ensureDefaultAccount } from '../core/accounts';
 import { todayISO } from '../core/dates';
 import { addGoal, addGroup, ensureDefaultCategories, setSalary } from '../core/finance';
-import { COUNTRIES, countryName } from '../core/locale';
+import { COUNTRIES } from '../core/locale';
 import { formatMoney, parseMoneyToCents } from '../core/money';
 import { chooseGoal, finishOnboarding, milestone, screen, startOnboarding, type Goal1 } from '../core/onboarding';
 import { syncSalaryTransactions } from '../core/salaryTx';
@@ -19,17 +19,18 @@ import { runSync } from '../sync/runSync';
 import { CountMoney } from '../ui/CountMoney';
 import { DatePicker } from '../ui/DatePicker';
 import { AmountField, FI, SwitchRow, TextRow } from '../ui/formFields';
-import { Ic, ICON, PickMenu } from '../ui/fx';
+import { Ic, ICON } from '../ui/fx';
 import { fill } from '../ui/AccountPlan';
 import { GoalRing } from '../ui/GoalRing';
 import { useMissing } from '../ui/missing';
 import { openTxForm, TxFormHost, useTxSaved } from '../ui/TxForm';
+import logoUrl from '../assets/logo.svg';
 import { LoginForm } from './Login';
 
 type Step = 'splash' | 'ask' | 'act' | 'done' | 'keep' | 'auth' | 'signup';
-const LANGUAGES = [
-  { code: 'pt-PT', label: 'Português (Portugal)' }, { code: 'pt-BR', label: 'Português (Brasil)' }, { code: 'en', label: 'English' }, { code: 'es', label: 'Español' }, { code: 'fr', label: 'Français' },
-];
+const LANGUAGES = ['pt-PT', 'pt-BR', 'en', 'es', 'fr'] as const;
+// o fuso horário diz melhor onde a pessoa está do que a língua (ex.: aparelho em inglês em Portugal)
+const ZONES: Array<[RegExp, string]> = [[/Lisbon|Madeira|Azores/, 'PT'], [/Sao_Paulo|Bahia|Fortaleza|Manaus|Recife|Belem|Cuiaba/, 'BR'], [/Madrid|Canary|Ceuta/, 'ES'], [/Europe\/Paris/, 'FR'], [/Europe\/London/, 'GB'], [/Dublin/, 'IE'], [/Berlin/, 'DE'], [/Zurich/, 'CH'], [/Mexico/, 'MX'], [/Argentina|Buenos_Aires/, 'AR'], [/Tokyo/, 'JP'], [/^Australia/, 'AU'], [/Toronto|Vancouver|Montreal|Halifax|Edmonton|Winnipeg/, 'CA']];
 const IC = {
   expenses: 'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6', goal: 'M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8z',
   split: 'M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M22 19v-1a4 4 0 0 0-3-3.9M16 4.1a3 3 0 0 1 0 5.8', save: 'M19 7a3 3 0 0 0-3-2H9a6 6 0 0 0-6 6c0 2 1 3.5 2 4.5V19h3v-2h5v2h3v-3a6 6 0 0 0 2-3h2V9h-2zM15 10h.01',
@@ -38,11 +39,13 @@ const GROUP_COLOR = '#17c3c9';
 
 export const ONBOARDED_FLAG = 'wallet.justOnboarded';
 
-/** País e língua do aparelho, para não perguntar à partida. */
-function guess(): { language: string; country: string } {
-  const nav = typeof navigator !== 'undefined' ? navigator.language || 'pt-PT' : 'pt-PT', [l, c] = nav.split('-');
-  const language = LANGUAGES.find((x) => x.code === nav)?.code ?? LANGUAGES.find((x) => x.code.startsWith(l))?.code ?? 'en';
-  return { language, country: COUNTRIES.some((x) => x.code === c) ? c : language === 'pt-PT' ? 'PT' : language === 'pt-BR' ? 'BR' : language === 'es' ? 'ES' : language === 'fr' ? 'FR' : 'PT' };
+/** Língua do aparelho; país (e moeda) pelo fuso horário ou pela região. Muda-se depois em Definições. */
+function guess(): { language: AppSettings['language']; country: string } {
+  const nav = navigator.language || 'pt-PT', [l, c] = nav.split('-');
+  const language = LANGUAGES.find((x) => x === nav) ?? LANGUAGES.find((x) => x.startsWith(l)) ?? 'en';
+  let zone = ''; try { zone = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { /* sem fuso */ }
+  const by = ZONES.find(([re]) => re.test(zone))?.[1] ?? c?.toUpperCase();
+  return { language, country: COUNTRIES.some((x) => x.code === by) ? by! : language === 'pt-BR' ? 'BR' : language === 'es' ? 'ES' : language === 'fr' ? 'FR' : 'PT' };
 }
 
 export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings) => void }) {
@@ -51,8 +54,8 @@ export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings
   const [g0] = useState(guess);
   const [step, setStep] = useState<Step>('splash');
   const [goal, setGoal] = useState<Goal1>('expenses');
-  const [language, setLanguage] = useState(initial.country ? initial.language : g0.language);
-  const [country, setCountry] = useState(initial.country || g0.country);
+  const [language] = useState(initial.country ? initial.language : g0.language);
+  const [country] = useState(initial.country || g0.country);
   const [signedIn, setSignedIn] = useState(false), [syncNote, setSyncNote] = useState('');
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const info = COUNTRIES.find((c) => c.code === country), currency = info?.currency ?? initial.currency ?? 'EUR';
@@ -105,15 +108,11 @@ export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings
       {step !== 'splash' && step !== 'done' && step !== 'keep' && <div className="ob-top"><button type="button" className="ob-round" onClick={back} aria-label={t('onboard.back')}><Ic d={ICON.left} size={20} /></button>{step !== 'auth' && step !== 'signup' && <button type="button" className="on-skip" onClick={() => finish().catch(() => {})}>{L('Agora não')}</button>}</div>}
       <div className="ob-body on-body" key={step}>
         {step === 'splash' && <div className="on-center">
-          <span className="on-logo"><Ic d={ICON.wallet} size={46} /></span>
+          <img className="on-brand" src={logoUrl} alt="FuturePal" />
           <h1>FuturePal</h1>
           <p>{L('Controla as tuas despesas e descobre para onde vai cada cêntimo, no poupar é que está o ganho.')}</p>
           <button type="button" className="ob-cta" onClick={() => setStep('ask')} data-testid="ob-start">{L('Começar')}</button>
           {hasSupabaseConfig() && <button type="button" className="on-skip" onClick={() => { setAuthMode('signin'); setStep('auth'); }} data-testid="ob-login">{L('Já tenho conta')}</button>}
-          <div className="on-lang">
-            <PickMenu compact label={t('settings.language')} value={language} testId="ob-language" options={LANGUAGES.map((l) => ({ value: l.code, label: l.label }))} onChange={(v) => { setLanguage(String(v) as typeof language); i18n.changeLanguage(String(v)); }} />
-            <PickMenu compact label={t('settings.country')} value={country} testId="ob-country" options={COUNTRIES.map((c) => ({ value: c.code, label: `${countryName(c.code, language)} · ${c.currency}` }))} onChange={(v) => setCountry(String(v))} />
-          </div>
         </div>}
         {step === 'ask' && <div className="on-col">
           <h1>{L('O que queres fazer primeiro?')}</h1>
