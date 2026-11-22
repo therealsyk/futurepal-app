@@ -43,7 +43,7 @@ export function NewAccount({ initial, accounts, balOf, money, endText, onClose, 
   const [how, setHow] = useState<'hand' | 'transfer'>('hand');
   const [from, setFrom] = useState(''), [amount, setAmount] = useState<string | null>(null), [date, setDate] = useState(todayISO()), [recurring, setRecurring] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [step, setStep] = useState(1); // telemóvel: duas páginas curtas em vez de uma comprida
+  const [step, setStep] = useState(1);
 
   const debt = kind === 'debt', plan = kind !== 'spending', start = cents(bal);
   const m = plan && hasMonthly ? cents(monthly) : 0, r = debt && hasRate ? Number(rate.replace(',', '.')) || 0 : 0;
@@ -57,7 +57,7 @@ export function NewAccount({ initial, accounts, balOf, money, endText, onClose, 
   const amt = amount ?? monthly, po = debt ? payoff(start, m, r) : null;
 
   const missing = useMissing();
-  const two = plan && !PC_MOBILE;
+  const two = plan; // poupança e dívida: duas páginas curtas, sempre à mesma largura e sem scroll
   const first: MissRule[] = [
     ['bal', debt ? L('quanto deves') : '', !debt || start > 0], ['name', L('o nome'), !!name.trim()],
     ['monthly', debt ? L('quanto abater por mês') : L('quanto juntar por mês'), !plan || (!hasMonthly && !r) || m > 0],
@@ -68,7 +68,7 @@ export function NewAccount({ initial, accounts, balOf, money, endText, onClose, 
     ['end', L('a data limite'), !plan || !hasEnd || !!end], ['target', L('quanto queres juntar no total'), !goal || goalCents > 0],
     ['from', L('a conta de onde sai o dinheiro'), !transfer || !!src], ['amount', L('quanto transferir'), !transfer || cents(amt) > 0],
   ];
-  const miss = missing(two ? (step === 1 ? first : second) : [...first, ...second]);
+  const miss = missing(two && step === 2 ? second : first);
   const pickKind = (k: Account['type']) => { setKind(k); setStep(1); miss.reset(); };
 
   const create = async () => {
@@ -143,10 +143,10 @@ export function NewAccount({ initial, accounts, balOf, money, endText, onClose, 
   </>;
   return (
     <BottomSheet title={L('Nova conta')} onClose={two && step === 2 ? () => { setStep(1); miss.reset(); } : onClose}>
-      <div className={'acc-form' + (plan && PC_MOBILE ? ' wide' : '')}>
+      <div className="acc-form">
         {miss.note}
         {!(two && step === 2) && <div className="tx-seg acc-kind"><Seg value={kind} onChange={pickKind} label={L('Tipo de conta')} options={[{ id: 'spending', label: L('Gastos') }, { id: 'savings', label: L('Poupança') }, { id: 'debt', label: L('Dívidas') }]} /></div>}
-        {two ? <div>{step === 1 ? partA : partB}</div> : <div className="acc-cols"><div>{partA}</div>{plan && <div>{partB}</div>}</div>}
+        {step === 2 && two ? partB : partA}
         {two && step === 1
           ? <button type="button" className="tx-addbtn" onClick={() => { if (miss.check()) setStep(2); }}>{L('Seguinte')}</button>
           : <button type="button" className="tx-addbtn" disabled={busy} onClick={create}>{L('Criar conta')}</button>}

@@ -1320,7 +1320,7 @@ html:not(.pcm) .fx-card-head { flex-wrap: wrap; row-gap: 2px; }
 .debt-prev { margin: 12px 0 0; text-align: center; color: var(--pos); font-size: 14px; font-weight: 650; }
 @media (max-width: 768px) { .st-row:has(.fx-seg) .st-text { flex: 1 1 calc(100% - 60px); } .st-row:has(.fx-seg) .fx-seg { width: 100%; } }
 
-/* Nova conta: as mesmas linhas da Nova transação; no PC duas colunas, no telemóvel duas páginas curtas */
+/* Nova conta: as mesmas linhas da Nova transação, em duas páginas curtas */
 .acc-kind .fx-seg { grid-template-columns: repeat(3, 1fr) !important; }
 .acc-form { display: flex; flex-direction: column; gap: 10px; }
 .acc-form .tx-seg .fx-seg button { font-size: 14.5px; white-space: nowrap; }
@@ -1331,10 +1331,6 @@ html:not(.pcm) .fx-card-head { flex-wrap: wrap; row-gap: 2px; }
 .acc-lbl { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 5px 0; white-space: normal; } .acc-lbl small { color: var(--muted); font-size: 11.5px; font-weight: 500; line-height: 1.25; }
 .acc-how { margin: 14px 0 8px; font-size: 16.5px; font-weight: 750; text-align: center; color: var(--text); }
 .acc-form .tx-addbtn { margin-top: 8px; }
-.acc-cols > div { min-width: 0; }
-.acc-form.wide .acc-cols { display: grid; grid-template-columns: 1fr 1fr; column-gap: 40px; align-items: start; }
-.bs-sheet:has(.acc-form.wide) { width: min(960px, 100%) !important; }
-.bs-sheet:has(.acc-form.wide), .bs-sheet:has(.acc-form.wide) > .bs-body { overflow: visible; -webkit-mask-image: none !important; mask-image: none !important; }
 /* Metas das contas, à parte das outras */
 .goal-sec { margin: 22px 4px 2px; } .goal-sec h2 { margin: 0 0 4px; font-size: 18px; } .goal-sec p { margin: 0; color: var(--muted); font-size: 13.5px; line-height: 1.4; }
 .goal-acc { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 99px; font-size: 12.5px; font-weight: 700; color: var(--pos); background: color-mix(in srgb, var(--pos) 14%, transparent); }
@@ -1356,3 +1352,4 @@ html:not(.pcm) .fx-card-head { flex-wrap: wrap; row-gap: 2px; }
 .acc-exp.open { grid-template-rows: 1fr; margin-top: 0; }
 .acc-chev { position: absolute; right: 16px; bottom: 16px; display: grid; transition: transform .25s; } [aria-expanded="true"] > .acc-chev { transform: rotate(180deg); }
 @media (prefers-reduced-motion: reduce) { .acc-exp, .acc-chev { transition: none; } }
+.bs-sheet:has(.acc-form), .bs-sheet:has(.acc-form) > .bs-body { overflow: visible; -webkit-mask-image: none !important; mask-image: none !important; }
