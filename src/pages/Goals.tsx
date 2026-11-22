@@ -1,3 +1,5 @@
+import { L } from '../i18n/phrases';
+import { FormError, useMissing } from '../ui/missing';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
@@ -90,9 +92,13 @@ export function Goals() {
   const selectedValue = (ids: string[]) => accounts.filter((a) => ids.includes(a.id)).reduce((s, a) => s + accountBalanceCents(a, txs, accounts, salaryCents, transfers), 0);
   const currentOf = (g: Goal) => (g.accountIds && g.accountIds.length ? selectedValue(g.accountIds) : g.currentCents);
 
+  const missing = useMissing();
+  const miss = missing([['name', L('o nome'), !!gName.trim()], ['amount', L('o valor'), (parseMoneyToCents(gTarget) ?? 0) > 0]]);
+  const closeNew = () => { setOpen(false); miss.reset(); };
   const createGoal = async () => {
     const cents = parseMoneyToCents(gTarget);
-    if (!gName.trim() || cents === null || cents <= 0) { setError(t('goals.invalid')); return; }
+    setError(null);
+    if (!miss.check() || cents === null) return;
     if (!withinFreeLimit('goals', goals.length)) { setError(t('plus.limitGoals', { n: FREE_LIMITS.goals })); return; }
     const g = await addGoal(db, gName.trim(), cents, gStart, gEnd || null);
     await db.goals.update(g.id, { notes: gNotes.trim() || undefined, accountIds: gAccs.length ? gAccs : undefined });
@@ -229,11 +235,11 @@ export function Goals() {
         {toDelete?.table === 'recurrings' && <p className="fx-muted fx-small">{t('goals.confirmRecurringNote')}</p>}
       </Sheet>
 
-      <Sheet open={open} onClose={() => setOpen(false)} title={t('goals.createGoal')}
-        footer={<><span style={{ flex: 1 }} /><button type="button" className="fx-btn" onClick={() => setOpen(false)}>{t('common.cancel')}</button><button type="button" className="fx-btn primary" onClick={createGoal}>{t('goals.createGoal')}</button></>}>
-        {error && <p className="fx-error">{error}</p>}
-        <Field label={t('goals.name')}><input className="fx-input" autoFocus value={gName} placeholder={t('goals.namePlaceholder')} onChange={(e) => setGName(e.target.value)} /></Field>
-        <Field label={`${t('goals.target')} (${settings.currency})`}><input className="fx-input big" inputMode="decimal" value={gTarget} placeholder="0" onChange={(e) => setGTarget(e.target.value)} /></Field>
+      <Sheet open={open} onClose={closeNew} title={t('goals.createGoal')}
+        footer={<><span style={{ flex: 1 }} /><button type="button" className="fx-btn" onClick={closeNew}>{t('common.cancel')}</button><button type="button" className="fx-btn primary" onClick={createGoal}>{t('goals.createGoal')}</button></>}>
+        {miss.note ?? (error && <FormError text={error} />)}
+        <Field label={t('goals.name')} miss={miss.cls('name')}><input className="fx-input" autoFocus value={gName} placeholder={t('goals.namePlaceholder')} onChange={(e) => setGName(e.target.value)} /></Field>
+        <Field label={`${t('goals.target')} (${settings.currency})`} miss={miss.cls('amount')}><input className="fx-input big" inputMode="decimal" value={gTarget} placeholder="0" onChange={(e) => setGTarget(e.target.value)} /></Field>
         <div className="fx-two">
           <Field label={t('goals.startDate')}><DatePicker value={gStart} onChange={(v) => setGStart(v)} /></Field>
           <Field label={t('goals.targetDate')}><DatePicker value={gEnd} onChange={(v) => setGEnd(v)} allowEmpty /></Field>

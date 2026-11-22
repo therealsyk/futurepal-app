@@ -630,6 +630,12 @@ export const PHRASES: Record<string, Tr> = {
   'Não': ['No', 'No', 'Non'],
   'Calculadora': ['Calculator', 'Calculadora', 'Calculatrice'],
   'Usar este valor': ['Use this amount', 'Usar este valor', 'Utiliser ce montant'],
+  'o nome': ['the name', 'el nombre', 'le nom'],
+  'a categoria': ['the category', 'la categoría', 'la catégorie'],
+  'a data': ['the date', 'la fecha', 'la date'],
+  'a data limite': ['the end date', 'la fecha límite', 'la date limite'],
+  'as contas': ['the accounts', 'las cuentas', 'les comptes'],
+  'a mensagem': ['the message', 'el mensaje', 'le message'],
 };
 
 /** Traduz uma frase da interface (escrita em português no código). */

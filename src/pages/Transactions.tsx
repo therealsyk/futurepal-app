@@ -1,3 +1,4 @@
+import { FormError, useMissing } from '../ui/missing';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { appConfirm } from '../ui/confirm';
 import { useTranslation } from 'react-i18next';
@@ -53,6 +54,7 @@ export function Transactions() {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<'expense' | 'income'>('expense');
   const [amount, setAmount] = useState('');
+  const missing = useMissing();
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(todayISO());
   const [categoryId, setCategoryId] = useState('');
@@ -144,9 +146,11 @@ export function Transactions() {
     })().catch(() => {});
   }, [open, accounts]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const miss = missing([['amount', L('o valor'), (parseMoneyToCents(amount) ?? 0) > 0], ['cat', L('a categoria'), (SIMPLE_UI && !!toAccount) || !!categoryId], ['date', L('a data'), !!date]]);
   const submit = async () => {
     const cents = parseMoneyToCents(amount);
-    if (cents === null || cents <= 0) { setError(t('transactions.amountInvalid')); return; }
+    setError(null);
+    if (!miss.check() || cents === null) return;
     if (SIMPLE_UI && toAccount) { // transferência entre contas (pode repetir-se)
       try {
         if (recurring) {
@@ -161,7 +165,6 @@ export function Transactions() {
       } catch (e) { setError(String(e)); }
       return;
     }
-    if (!categoryId) { setError(t('transactions.pickCategory')); return; }
     try {
       if (recurring) {
         if (endDate && endDate < date) { setError(t('transactions.endBeforeStart')); return; }
@@ -324,20 +327,20 @@ export function Transactions() {
         </div>
       )}
 
-      <Sheet open={open} onClose={() => { setOpen(false); setToAccount(''); }} title={toAccount ? L('Transferência') : t('transactions.addTransaction')}
+      <Sheet open={open} onClose={() => { setOpen(false); setToAccount(''); miss.reset(); }} title={toAccount ? L('Transferência') : t('transactions.addTransaction')}
         footer={SIMPLE_UI && isMobile
           ? <><button type="button" className="tx-addbtn" onClick={submit}>{toAccount ? L('Transferir') : type === 'expense' ? L('Adicionar despesa') : L('Adicionar rendimento')}</button><CalculatorButton value={amount} lang={settings.language} onUse={setAmount} /></>
-          : <><span style={{ flex: 1 }} /><button type="button" className="fx-btn" onClick={() => setOpen(false)}>{t('common.cancel')}</button><button type="button" className="fx-btn primary" onClick={submit}>{t('common.add')}</button><CalculatorButton value={amount} lang={settings.language} onUse={setAmount} /></>}>
-        {error && <p className="fx-error">{error}</p>}
+          : <><span style={{ flex: 1 }} /><button type="button" className="fx-btn" onClick={() => { setOpen(false); miss.reset(); }}>{t('common.cancel')}</button><button type="button" className="fx-btn primary" onClick={submit}>{t('common.add')}</button><CalculatorButton value={amount} lang={settings.language} onUse={setAmount} /></>}>
+        {miss.note ?? (error && <FormError text={error} />)}
         {SIMPLE_UI && isMobile ? (<>
           {/* Formulário (telemóvel): valor grande e linhas com ícone */}
           <div className="tx-seg"><Seg value={type} onChange={setType} label={t('transactions.type')} options={[{ id: 'expense', label: t('transactions.typeExpense') }, { id: 'income', label: t('transactions.typeIncome') }]} /></div>
-          <input className={'tx-amt ' + (type === 'expense' ? 'exp' : 'inc')} autoFocus inputMode="decimal" value={amount} placeholder="0" onChange={(e) => setAmount(e.target.value)} aria-label={t('transactions.amount')} />
+          <input className={'tx-amt ' + (type === 'expense' ? 'exp' : 'inc') + miss.cls('amount')} autoFocus inputMode="decimal" value={amount} placeholder="0" onChange={(e) => setAmount(e.target.value)} aria-label={t('transactions.amount')} />
           <span className="tx-cur">{settings.currency}</span>
           <div className="tx-rows">
             <label className="tx-row"><span><Ic d="M4 20h4L19 9l-4-4L4 16z" size={18} />{t('transactions.description')}</span>
               <input className="tx-val" value={description} placeholder={L('Opcional')} onChange={(e) => setDescription(e.target.value)} /></label>
-            <div className="tx-row"><span><Ic d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" size={18} />{t('transactions.category')}</span>
+            <div className={'tx-row' + miss.cls('cat')}><span><Ic d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" size={18} />{t('transactions.category')}</span>
               {toAccount ? <span className="tx-muted">{L('Transferência')}</span> : <CategorySelect cats={cats} kind={type} value={categoryId} onChange={setCategoryId} ariaLabel={t('transactions.category')} className="fx-input tx-val" />}</div>
             <div className="tx-row tx-acc"><span><Ic d={ICON.wallet} size={18} />{toAccount ? L('Da conta') : t('accounts.account')}</span>
               <span className="tx-accval">
@@ -372,7 +375,7 @@ export function Transactions() {
           </div>
         </>) : (<>
         <Seg value={type} onChange={setType} label={t('transactions.type')} options={[{ id: 'expense', label: t('transactions.typeExpense') }, { id: 'income', label: t('transactions.typeIncome') }]} />
-        <Field label={t('transactions.amount')}><input className="fx-input big" autoFocus inputMode="decimal" value={amount} placeholder="0,00" onChange={(e) => setAmount(e.target.value)} /></Field>
+        <Field label={t('transactions.amount')} miss={miss.cls('amount')}><input className="fx-input big" autoFocus inputMode="decimal" value={amount} placeholder="0,00" onChange={(e) => setAmount(e.target.value)} /></Field>
         <Field label={t('transactions.description')}><input className="fx-input" value={description} placeholder={t('transactions.descriptionPlaceholder')} onChange={(e) => setDescription(e.target.value)} /></Field>
         <div className="fx-two">
           <Field label={t('transactions.category')}>

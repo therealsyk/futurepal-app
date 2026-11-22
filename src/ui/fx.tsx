@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
 import type { Account, Category } from '../db/database';
-import { catalogItem, groupOf, iconPathOf, GROUP_ORDER } from '../core/categoryCatalog';
+import { catalogItem, CATEGORY_GROUPS, groupOf, iconPathOf, GROUP_ORDER } from '../core/categoryCatalog';
 import {
   ALL_ACCOUNTS, getActiveAccountId, setActiveAccountId, listAccounts, ensureDefaultAccount,
 } from '../core/accounts';
@@ -120,9 +120,9 @@ export function Sheet({ title, open, onClose, children, footer, wide }: { title:
   );
 }
 
-export function Field({ label, children }: { label: string; children: ReactNode }) {
+export function Field({ label, children, miss = '' }: { label: string; children: ReactNode; miss?: string }) {
   return (
-    <label className="fx-field">
+    <label className={'fx-field' + miss}>
       <span>{label}</span>
       {children}
     </label>
@@ -240,8 +240,8 @@ export function CategorySelect({ cats: all, value, onChange, className = 'fx-inp
               onMouseEnter={() => setHi(i)} onClick={() => pick('')}>{emptyLabel}</button>
           ); })()}
           {groups.map(({ g, items }) => (
-            <div key={g} role="group" aria-label={t('categoryGroups.' + g)}>
-              <div className="fx-pop-group">{t('categoryGroups.' + g)}</div>
+            <div key={g} role="group" className="fx-pop-sec" style={{ ['--g' as string]: CATEGORY_GROUPS.find((x) => x.id === g)?.color ?? 'var(--muted)' }} aria-label={t('categoryGroups.' + g)}>
+              <div className="fx-pop-group"><i aria-hidden="true" />{t('categoryGroups.' + g)}</div>
               {items.map((c) => { n++; const i = n; const v = val(c); return (
                 <button key={c.id} type="button" role="option" aria-selected={v === value} data-hi={hi === i ? '1' : undefined}
                   className={(v === value ? 'on' : '') + (hi === i ? ' hi' : '')} onMouseEnter={() => setHi(i)} onClick={() => pick(v)}>

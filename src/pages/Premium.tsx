@@ -1,3 +1,5 @@
+import { L } from '../i18n/phrases';
+import { useMissing } from '../ui/missing';
 import { LockedPreview } from '../ui/LockedPreview';
 import { trackEvent } from '../core/presence';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -346,8 +348,11 @@ export function WarrantiesPage() {
   const [f, setF] = useState({ name: '', purchaseDate: new Date().toISOString().slice(0, 10), months: '36', store: '', price: '' });
   const refresh = async () => setItems((await db.warranties.toArray()).filter((w) => w.deletedAt === null).sort((a, b) => warrantyEnd(a.purchaseDate, a.months).localeCompare(warrantyEnd(b.purchaseDate, b.months))));
   useEffect(() => { refresh().catch(() => {}); }, []);
+  const missing = useMissing();
+  const miss = missing([['name', L('o nome'), !!f.name.trim()], ['date', L('a data'), !!f.purchaseDate]]);
+  const closeAdd = () => { setOpen(false); miss.reset(); };
   const save = async () => {
-    if (!f.name.trim()) return;
+    if (!miss.check()) return;
     await db.warranties.add(stampNew<Warranty>({ name: f.name.trim(), purchaseDate: f.purchaseDate, months: Math.max(1, Number(f.months) || 24), store: f.store.trim(), note: '', priceCents: parseMoneyToCents(f.price) ?? 0 }));
     setOpen(false); setF({ ...f, name: '', store: '', price: '' }); await refresh();
   };
@@ -375,11 +380,12 @@ export function WarrantiesPage() {
           </div>
         )}
       </Locked>
-      <Sheet open={open} onClose={() => setOpen(false)} title={t('plus.wAdd')}
-        footer={<><span style={{ flex: 1 }} /><button type="button" className="fx-btn" onClick={() => setOpen(false)}>{t('common.cancel')}</button><button type="button" className="fx-btn primary" onClick={save}>{t('common.add')}</button></>}>
-        <Field label={t('plus.wName')}><input className="fx-input" value={f.name} placeholder={t('plus.wNamePh')} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
+      <Sheet open={open} onClose={closeAdd} title={t('plus.wAdd')}
+        footer={<><span style={{ flex: 1 }} /><button type="button" className="fx-btn" onClick={closeAdd}>{t('common.cancel')}</button><button type="button" className="fx-btn primary" onClick={save}>{t('common.add')}</button></>}>
+        {miss.note}
+        <Field label={t('plus.wName')} miss={miss.cls('name')}><input className="fx-input" value={f.name} placeholder={t('plus.wNamePh')} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
         <div className="fx-two">
-          <Field label={t('plus.wDate')}><DatePicker value={f.purchaseDate} onChange={(v) => setF({ ...f, purchaseDate: v })} /></Field>
+          <Field label={t('plus.wDate')} miss={miss.cls('date')}><DatePicker value={f.purchaseDate} onChange={(v) => setF({ ...f, purchaseDate: v })} /></Field>
           <Field label={t('plus.wMonths')}><input className="fx-input" inputMode="numeric" value={f.months} onChange={(e) => setF({ ...f, months: e.target.value })} /></Field>
         </div>
         <div className="fx-two">

@@ -1070,8 +1070,7 @@ button.sp-row { cursor: pointer; } button.sp-row:hover { background: color-mix(i
 .tx-amt.sp-amt { color: var(--text) !important; }
 
 /* Formulário com campos em falta: a janela abana, os campos ficam a vermelho e aparece um aviso */
-@keyframes fx-shake { 10%, 90% { transform: translateX(-2px); } 20%, 80% { transform: translateX(4px); } 30%, 50%, 70% { transform: translateX(-8px); } 40%, 60% { transform: translateX(8px); } }
-.fx-sheet:has(.sp-billform.shake), .bs-sheet:has(.shake) { animation: fx-shake .45s cubic-bezier(.36,.07,.19,.97) both; box-shadow: 0 0 0 2px color-mix(in srgb, var(--red) 70%, transparent), 0 30px 80px -20px rgba(0,0,0,.6) !important; }
+.fx-sheet:has(.sp-miss), .bs-sheet:has(.sp-miss) { box-shadow: 0 0 0 2px color-mix(in srgb, var(--red) 70%, transparent), 0 30px 80px -20px rgba(0,0,0,.6) !important; }
 .sp-miss { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; padding: 10px 14px; border-radius: 14px; background: color-mix(in srgb, var(--red) 12%, transparent); border: 1px solid color-mix(in srgb, var(--red) 40%, transparent); color: var(--red); font-size: 14px; font-weight: 650; }
 .sp-miss-ic { font-size: 18px; line-height: 1; }
 .tx-row.miss { box-shadow: inset 3px 0 0 var(--red); background: color-mix(in srgb, var(--red) 7%, transparent); border-radius: 10px; }
@@ -1150,3 +1149,24 @@ button.sp-row { cursor: pointer; } button.sp-row:hover { background: color-mix(i
 .calc-use:disabled { background: var(--card-2); color: var(--muted); cursor: default; }
 @media (max-width: 768px) { .calc-btn { right: 16px; bottom: calc(22px + var(--safe-b, 0px)); } .calc-keys button { height: 48px; } }
 @media (prefers-reduced-motion: reduce) { .calc { animation: none; } .calc-btn:hover { transform: none; } }
+
+/* Campos em falta: triângulo e vermelho no próprio campo */
+.tx-row.miss > span:first-child::after, .fx-field.miss > span::before, .sh-form label.miss:not(.bs-amount)::before, .bs-amount.miss small::before, .sh-accpick.miss > small::before { content: '\26A0'; color: var(--red); font-weight: 400; }
+.tx-row.miss > span:first-child::after { margin-left: 8px; } .fx-field.miss > span::before, .bs-amount.miss small::before, .sh-accpick.miss > small::before { margin-right: 6px; }
+.tx-amt.miss + .tx-cur::before { content: '\26A0'; margin-right: 6px; color: var(--red); }
+.fx-field.miss > span, .sh-accpick.miss > small, .bs-amount.miss small, .ct-preview.miss input { color: var(--red) !important; }
+.fx-field.miss .fx-input, .fx-input.miss, .ob-amount.miss, .ct-preview.miss input { border-color: var(--red) !important; }
+.bs-amount.miss .tx-amt, .bs-amount.miss .tx-amt::placeholder { color: var(--red) !important; }
+.bs-body .sh-form > label.miss:not(.bs-amount) { justify-content: flex-start; padding: 0 10px; border-radius: 10px; border-bottom-color: transparent; color: var(--red); background: color-mix(in srgb, var(--red) 7%, transparent); box-shadow: inset 3px 0 0 var(--red); }
+.bs-body .sh-form > label.miss:not(.bs-amount) > :is(input, button, div) { margin-left: auto; }
+.bs-body > .sp-miss { margin-bottom: 14px; }
+
+/* Lista de categorias: cada grupo na sua caixa, com título e cor próprios, e linha entre categorias */
+.fx-pop-sec { margin: 12px 2px 0; border: 1px solid color-mix(in srgb, var(--g) 35%, var(--border)); border-radius: 16px; overflow: clip; background: color-mix(in srgb, var(--card-2) 45%, transparent); }
+.fx-pop-sec:first-child { margin-top: 2px; }
+.fx-pop-sec .fx-pop-group { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 9px; padding: 11px 12px; font-size: 13px; font-weight: 800; background: color-mix(in srgb, var(--g) 20%, var(--card-2)); border-bottom: 1px solid color-mix(in srgb, var(--g) 35%, var(--border)); }
+.fx-pop-group > i { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--g); }
+.fx-pop-sec button { border-radius: 0 !important; padding: 11px 12px 11px 31px !important; }
+.fx-pop-sec button + button { border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent) !important; }
+.fx-pop-sec button.on { box-shadow: inset 3px 0 0 var(--mv, var(--accent)); }
+.fx-pop-list > button[role="option"] { margin: 0 2px; width: calc(100% - 4px); }

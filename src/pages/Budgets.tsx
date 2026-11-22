@@ -1,3 +1,5 @@
+import { L } from '../i18n/phrases';
+import { FormError, useMissing } from '../ui/missing';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
@@ -86,10 +88,13 @@ export function Budgets() {
   const free = cats.filter((c) => catFitsKind(c, 'expense') && !(usage[c.id]?.limitCents > 0));
 
   const openAdd = () => { setNewCat(free[0]?.id ?? ''); setNewAmount(''); setAddError(null); setAdding(true); };
+  const missing = useMissing();
+  const miss = missing([['cat', L('a categoria'), !!newCat], ['amount', L('o valor'), (parseMoneyToCents(newAmount) ?? 0) > 0]]);
+  const closeAdd = () => { setAdding(false); miss.reset(); };
   const addBudget = async () => {
     const cents = parseMoneyToCents(newAmount);
-    if (!newCat) { setAddError(t('budgets.pickCategory')); return; }
-    if (cents === null || cents <= 0) { setAddError(t('transactions.amountInvalid')); return; }
+    setAddError(null);
+    if (!miss.check() || cents === null) return;
     if (!withinFreeLimit('budgets', list.length)) { setAddError(t('plus.limitBudgets', { n: FREE_LIMITS.budgets })); return; }
     if (period === 'year') { for (let m = 1; m <= 12; m++) await setBudget(db, newCat, cents, year, m); }
     else await setBudget(db, newCat, cents, year, month);
@@ -143,13 +148,13 @@ export function Budgets() {
         </div>
       )}
 
-      <Sheet open={adding} onClose={() => setAdding(false)} title={t('budgets.addNew')}
-        footer={<><span style={{ flex: 1 }} /><button type="button" className="fx-btn" onClick={() => setAdding(false)}>{t('common.cancel')}</button><button type="button" className="fx-btn primary" onClick={addBudget} data-testid="budget-save">{t('common.add')}</button></>}>
-        {addError && <p className="fx-error">{addError}</p>}
-        <Field label={t('transactions.category')}>
+      <Sheet open={adding} onClose={closeAdd} title={t('budgets.addNew')}
+        footer={<><span style={{ flex: 1 }} /><button type="button" className="fx-btn" onClick={closeAdd}>{t('common.cancel')}</button><button type="button" className="fx-btn primary" onClick={addBudget} data-testid="budget-save">{t('common.add')}</button></>}>
+        {miss.note ?? (addError && <FormError text={addError} />)}
+        <Field label={t('transactions.category')} miss={miss.cls('cat')}>
           <CategorySelect cats={free} value={newCat} onChange={setNewCat} ariaLabel={t('transactions.category')} />
         </Field>
-        <Field label={period === 'year' ? t('budgets.monthlyLimitYear', { year }) : t('budgets.monthlyLimit', { month: `${monthNames[month - 1]} ${year}` })}>
+        <Field label={period === 'year' ? t('budgets.monthlyLimitYear', { year }) : t('budgets.monthlyLimit', { month: `${monthNames[month - 1]} ${year}` })} miss={miss.cls('amount')}>
           <input className="fx-input big" inputMode="decimal" placeholder="0,00" value={newAmount} onChange={(e) => setNewAmount(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addBudget(); }} />
         </Field>
       </Sheet>

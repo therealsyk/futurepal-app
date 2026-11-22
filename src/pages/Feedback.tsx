@@ -1,3 +1,5 @@
+import { L } from '../i18n/phrases';
+import { FormError, useMissing } from '../ui/missing';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Sheet, Seg, Field } from '../ui/fx';
@@ -17,9 +19,12 @@ export function FeedbackSheet({ open, onClose }: { open: boolean; onClose: () =>
   const [error, setError] = useState('');
   const [sent, setSent] = useState(false);
 
-  const close = () => { onClose(); setTimeout(() => { setSent(false); setError(''); }, 200); };
+  const missing = useMissing();
+  const close = () => { onClose(); missing([]).reset(); setTimeout(() => { setSent(false); setError(''); }, 200); };
 
+  const miss = missing([['msg', L('a mensagem'), !!message.trim()]]);
   async function send() {
+    if (!miss.check()) return;
     setBusy(true); setError('');
     const err = await sendFeedback(getSupabase(), { kind, message, email: auth.user?.email ?? email, language: loadSettings().language }).catch(() => 'feedback.errSend' as const);
     setBusy(false);
@@ -43,7 +48,8 @@ export function FeedbackSheet({ open, onClose }: { open: boolean; onClose: () =>
           <p className="fx-muted" style={{ marginTop: 0 }}>{t('feedback.intro')}</p>
           <Seg<FeedbackKind> value={kind} onChange={setKind} label={t('feedback.kind')}
             options={[{ id: 'idea', label: t('feedback.idea') }, { id: 'bug', label: t('feedback.bug') }, { id: 'other', label: t('feedback.other') }]} />
-          <Field label={kind === 'bug' ? t('feedback.bugLabel') : t('feedback.message')}>
+          {miss.note}
+          <Field label={kind === 'bug' ? t('feedback.bugLabel') : t('feedback.message')} miss={miss.cls('msg')}>
             <textarea className="fx-input" rows={6} maxLength={4000} value={message} onChange={(e) => setMessage(e.target.value)}
               placeholder={kind === 'bug' ? t('feedback.bugPh') : t('feedback.messagePh')} data-testid="feedback-message" />
           </Field>
@@ -53,7 +59,7 @@ export function FeedbackSheet({ open, onClose }: { open: boolean; onClose: () =>
             </Field>
           )}
           <p className="fx-muted fx-small">{t('feedback.privacy')}</p>
-          {error && <p className="fx-error" role="alert">{error}</p>}
+          {error && <FormError text={error} />}
         </>
       )}
     </Sheet>

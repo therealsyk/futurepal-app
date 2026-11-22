@@ -1,3 +1,5 @@
+import { L } from '../i18n/phrases';
+import { useMissing } from '../ui/missing';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { COUNTRIES, countryName } from '../core/locale';
@@ -326,9 +328,11 @@ function TransactionsStep({ currency, language }: { currency: string; language: 
     activeCategories(db).then((c) => { setCats(c); if (c[0]) setCatId(c[0].id); }).catch(() => {});
   }, []);
 
+  const missing = useMissing();
+  const miss = missing([['amount', L('o valor'), (parseMoneyToCents(amount) ?? 0) > 0], ['cat', L('a categoria'), !!catId]]);
   async function save() {
     const cents = parseMoneyToCents(amount);
-    if (!cents || cents <= 0) { setError(t('onboard.badAmount')); return; }
+    if (!miss.check() || !cents) return;
     const accounts = await listAccounts(db);
     const acc = accounts.find((a) => a.isDefault) ?? accounts[0];
     const tx = await addTransaction(db, {
@@ -363,11 +367,12 @@ function TransactionsStep({ currency, language }: { currency: string; language: 
         )}
         <button type="button" className="ob-outline" onClick={() => setOpen(true)} data-testid="ob-add-tx">{t('onboard.addTx')}</button>
       </div>
-      <Sheet open={open} onClose={() => setOpen(false)} title={t('onboard.addTx')}
+      <Sheet open={open} onClose={() => { setOpen(false); miss.reset(); }} title={t('onboard.addTx')}
         footer={<button type="button" className="ob-cta" onClick={save}>{t('common.add')}</button>}>
+        {miss.note}
         <Seg<'expense' | 'income'> value={type} onChange={setType} label={t('onboard.addTx')}
           options={[{ id: 'expense', label: t('onboard.expense') }, { id: 'income', label: t('onboard.income') }]} />
-        <input className="ob-amount center" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0,00" aria-label={t('onboard.amount')} autoFocus />
+        <input className={'ob-amount center' + miss.cls('amount')} inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0,00" aria-label={t('onboard.amount')} autoFocus />
         <input className="fx-input" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder={t('onboard.txDescPh')} aria-label={t('onboard.txDescPh')} />
         <CategorySelect cats={cats} kind={type} value={catId} onChange={setCatId} ariaLabel={t('onboard.category')} />
         {error && <p className="ob-error" role="alert">{error}</p>}
@@ -384,10 +389,11 @@ function GoalStep({ currency, language }: { currency: string; language: string }
   const [goals, setGoals] = useState<Goal[]>([]);
   const [error, setError] = useState('');
 
+  const missing = useMissing();
+  const miss = missing([['name', L('o nome'), !!name.trim()], ['amount', L('o valor'), (parseMoneyToCents(target) ?? 0) > 0]]);
   async function save() {
     const cents = parseMoneyToCents(target);
-    if (!name.trim()) { setError(t('onboard.goalNameReq')); return; }
-    if (!cents || cents <= 0) { setError(t('onboard.badAmount')); return; }
+    if (!miss.check() || !cents) return;
     const g = await addGoal(db, name.trim(), cents, today());
     setGoals((l) => [...l, g]);
     setName(''); setTarget(''); setError(''); setOpen(false);
@@ -416,10 +422,11 @@ function GoalStep({ currency, language }: { currency: string; language: string }
         )}
         <button type="button" className="ob-outline" onClick={() => setOpen(true)} data-testid="ob-add-goal">{t('onboard.createGoal')}</button>
       </div>
-      <Sheet open={open} onClose={() => setOpen(false)} title={t('onboard.createGoal')}
+      <Sheet open={open} onClose={() => { setOpen(false); miss.reset(); }} title={t('onboard.createGoal')}
         footer={<button type="button" className="ob-cta" onClick={save}>{t('common.save')}</button>}>
-        <input className="fx-input" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('onboard.goalNamePh')} aria-label={t('onboard.goalNamePh')} autoFocus />
-        <input className="ob-amount center" inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value)} placeholder="0,00" aria-label={t('onboard.goalTarget')} />
+        {miss.note}
+        <input className={'fx-input' + miss.cls('name')} value={name} onChange={(e) => setName(e.target.value)} placeholder={t('onboard.goalNamePh')} aria-label={t('onboard.goalNamePh')} autoFocus />
+        <input className={'ob-amount center' + miss.cls('amount')} inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value)} placeholder="0,00" aria-label={t('onboard.goalTarget')} />
         {error && <p className="ob-error" role="alert">{error}</p>}
       </Sheet>
     </div>

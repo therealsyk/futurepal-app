@@ -1,3 +1,5 @@
+import { L } from '../i18n/phrases';
+import { FormError, useMissing } from '../ui/missing';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
@@ -36,12 +38,15 @@ export function Categories() {
     setError(null); setConfirmDel(false);
     setDraft({ id: c.id, name: label(c), group: groupOf(c), icon: c.icon || 'dots', color: c.color || groupColor(groupOf(c)), image: c.image?.startsWith('data:') ? c.image : '' });
   };
-  const close = () => setDraft(null);
+  const missing = useMissing();
+  const close = () => { setDraft(null); missing([]).reset(); };
 
+  const miss = missing([['name', L('o nome'), !!draft?.name.trim()]]);
   const save = async () => {
     if (!draft) return;
     const name = draft.name.trim();
-    if (!name) { setError(t('accounts.nameRequired')); return; }
+    setError(null);
+    if (!miss.check()) return;
     try {
       const fields = { color: draft.color, icon: draft.icon, group: draft.group, image: draft.image || undefined };
       if (!draft.id) {
@@ -109,9 +114,9 @@ export function Categories() {
         </>}>
         {draft && (
           <>
-            {error && <p className="fx-error">{error}</p>}
+            {miss.note ?? (error && <FormError text={error} />)}
             {confirmDel && <p className="fx-muted fx-small">{t('categories.deleteNote')}</p>}
-            <div className="ct-preview">
+            <div className={'ct-preview' + miss.cls('name')}>
               <CatIcon cat={{ icon: draft.icon, color: draft.color, image: draft.image }} size={56} />
               <input className="fx-input big" autoFocus value={draft.name} placeholder={t('panel.categoryName')} onChange={(e) => setDraft({ ...draft, name: e.target.value })} aria-label={t('panel.categoryName')} />
             </div>

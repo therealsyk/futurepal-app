@@ -1,3 +1,4 @@
+import { FormError, useMissing } from '../ui/missing';
 import { createPortal } from 'react-dom';
 import { appConfirm } from '../ui/confirm';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -54,9 +55,8 @@ export function SplitPage() {
   const myName = meta.full_name || meta.name || (auth.user?.email ?? '').split('@')[0] || '—'; // nome da conta, automático
   const [bill, setBill] = useState<{ description: string; amount: string; date: string; out: string[]; iPaid: boolean; categoryId: string; addMine: boolean; withGroup: string; invites: string } | null>(null);
   const [personal, setPersonal] = useState<AddPersonal | null>(null);
-  const [miss, setMiss] = useState<string[]>([]);
-  const [shake, setShake] = useState(0);
-  useEffect(() => { if (!miss.length) return; setMiss((m) => m.filter((k) => !(k === 'amount' && bill && (parseMoneyToCents(bill.amount) ?? 0)) && !(k === 'description' && bill?.description.trim()))); }, [bill]); // eslint-disable-line react-hooks/exhaustive-deps
+  const missing = useMissing();
+  const missingP = useMissing();
   const [accs, setAccs] = useState<Account[]>([]);
   const [bals, setBals] = useState<Record<string, number>>({});
   useEffect(() => {
@@ -152,16 +152,17 @@ export function SplitPage() {
     const out: string[] = [];
     if (!(parseMoneyToCents(b.amount) ?? 0)) out.push('amount');
     if (!b.description.trim()) out.push('description');
+    if (!b.categoryId) out.push('category');
     if (b.withGroup ? members.every((m) => b.out.includes(m.userId)) : contactsOf(b.invites).length === 0) out.push('people');
     return out;
   };
-  const trySave = () => {
-    if (!bill) return;
-    const m = missingOf(bill);
-    setMiss(m);
-    if (m.length) { setShake((n) => n + 1); return; }
-    saveBill();
-  };
+  const LABEL: Record<string, string> = { amount: L('o valor'), description: L('a descrição'), category: L('a categoria'), people: L('com quem dividir') };
+  const lack = bill ? missingOf(bill) : [];
+  const miss = missing(Object.keys(LABEL).map((k) => [k, LABEL[k], !lack.includes(k)]));
+  const missP = missingP([['amount', L('o valor'), (personal?.cents ?? 0) > 0], ['category', L('a categoria'), !!personal?.categoryId]]);
+  const closeBill = () => { setBill(null); setInvDraft(''); miss.reset(); };
+  const closePersonal = () => { setPersonal(null); missP.reset(); };
+  const trySave = () => { if (bill && miss.check()) saveBill(); };
   const saveBill = async () => {
     if (!bill) return;
     const cents = parseMoneyToCents(bill.amount) ?? 0;
@@ -218,7 +219,7 @@ export function SplitPage() {
     if (await rpc('leave_split_group', { p_group: sel })) { setSel(''); await loadList(); }
   };
   const savePersonal = async () => {
-    if (!personal?.categoryId) return;
+    if (!personal || !missP.check()) return;
     await addTransaction(db, { date: personal.date, type: 'expense', categoryId: personal.categoryId, description: personal.description, amountCents: personal.cents, currency: group?.currency ?? s.currency, accountId: personal.accountId || defaultAccountId(accs) || undefined });
     setInfo(t('split.addedPersonal', { amount: money(personal.cents) }));
     setPersonal(null);
@@ -334,22 +335,21 @@ export function SplitPage() {
         </>
       )}
 
-      <Sheet open={!!bill} onClose={() => { setBill(null); setInvDraft(''); setMiss([]); }} title={t('split.newBill')}
+      <Sheet open={!!bill} onClose={closeBill} title={t('split.newBill')}
         footer={bill ? <button type="button" className="tx-addbtn" onClick={trySave}>{t('common.add')}</button> : null}>
-        {bill && (<div key={shake} className={'sp-billform' + (shake && miss.length ? ' shake' : '')}>
-          {error && <p className="fx-error">{error}</p>}
-          {miss.length > 0 && <p className="sp-miss"><span className="sp-miss-ic">⚠</span>{L('Falta preencher')}: {miss.map((k) => ({ amount: L('o valor'), description: L('a descrição'), people: L('com quem dividir') } as Record<string, string>)[k]).join(', ')}</p>}
-          <input className={'tx-amt sp-amt' + (miss.includes('amount') ? ' miss' : '')} autoFocus inputMode="decimal" value={bill.amount} placeholder="0" onChange={(e) => setBill({ ...bill, amount: e.target.value.replace(/[^\d.,]/g, '') })} aria-label={t('split.total')} />
+        {bill && (<div className="sp-billform">
+          {miss.note ?? (error && <FormError text={error} />)}
+          <input className={'tx-amt sp-amt' + miss.cls('amount')} autoFocus inputMode="decimal" value={bill.amount} placeholder="0" onChange={(e) => setBill({ ...bill, amount: e.target.value.replace(/[^\d.,]/g, '') })} aria-label={t('split.total')} />
           <span className="tx-cur">{group?.currency ?? s.currency}</span>
           {(() => { const c = parseMoneyToCents(bill.amount) ?? 0; const n = bill.withGroup ? members.filter((m) => !bill.out.includes(m.userId)).length : 1 + contactsOf(bill.invites).length; return c > 0 && n > 0 ? <p className="sp-each">{t('split.eachPays', { amount: money(Math.ceil(c / n)) })}</p> : null; })()}
           <div className="tx-rows">
-            <label className={'tx-row' + (miss.includes('description') ? ' miss' : '')}><span><Ic d="M4 20h4L19 9l-4-4L4 16z" size={18} />{t('transactions.description')}</span>
+            <label className={'tx-row' + miss.cls('description')}><span><Ic d="M4 20h4L19 9l-4-4L4 16z" size={18} />{t('transactions.description')}</span>
               <input className="tx-val" value={bill.description} placeholder={t('split.billPh')} onChange={(e) => setBill({ ...bill, description: e.target.value })} /></label>
-            <div className="tx-row"><span><Ic d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" size={18} />{t('transactions.category')}</span>
+            <div className={'tx-row' + miss.cls('category')}><span><Ic d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" size={18} />{t('transactions.category')}</span>
               <CategorySelect cats={expCats} kind="expense" value={bill.categoryId} onChange={(v) => setBill({ ...bill, categoryId: v })} ariaLabel={t('transactions.category')} emptyLabel={L('Escolher…')} className="fx-input tx-val" /></div>
             <div className="tx-row"><span><Ic d="M5 5h14v15H5zM5 10h14M9 3v4M15 3v4" size={18} />{t('transactions.date')}</span>
               <DatePicker value={bill.date} onChange={(v) => setBill({ ...bill, date: v })} ariaLabel={t('transactions.date')} /></div>
-            <label className={'tx-row' + (miss.includes('people') ? ' miss' : '')}><span><Ic d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M22 19v-1a4 4 0 0 0-3-3.9M16 4.1a3 3 0 0 1 0 5.8" size={18} />{L('Com quem?')}</span>
+            <label className={'tx-row' + miss.cls('people')}><span><Ic d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M22 19v-1a4 4 0 0 0-3-3.9M16 4.1a3 3 0 0 1 0 5.8" size={18} />{L('Com quem?')}</span>
               <PickMenu compact label={L('Grupo')} value={bill.withGroup} options={[...groups.map((g) => ({ value: g.id, label: g.name })), ...(canCreate ? [{ value: '', label: L('Pessoas novas') }] : [])]}
                 onChange={(v) => { const g = String(v); if (g) setSel(g); setBill({ ...bill, withGroup: g, out: [] }); }} /></label>
             {bill.withGroup ? members.map((m) => (
@@ -374,20 +374,21 @@ export function SplitPage() {
       </Sheet>
 
       {/* Registar a minha parte nas despesas: o mesmo formulário da "Nova transação" */}
-      <Sheet open={!!personal} onClose={() => setPersonal(null)} title={L('Registar nas tuas despesas')}
+      <Sheet open={!!personal} onClose={closePersonal} title={L('Registar nas tuas despesas')}
         footer={<div className="sp-pfoot">
-          <button type="button" className="sp-pbtn no" onClick={() => setPersonal(null)}>{t('split.personalNo')}</button>
-          <button type="button" className="sp-pbtn yes" disabled={!personal?.categoryId} onClick={savePersonal}>{L('Adicionar despesa')}</button>
+          <button type="button" className="sp-pbtn no" onClick={closePersonal}>{t('split.personalNo')}</button>
+          <button type="button" className="sp-pbtn yes" onClick={savePersonal}>{L('Adicionar despesa')}</button>
         </div>}>
         {personal && <>
+          {missP.note}
           <p className="fx-muted fx-small" style={{ textAlign: 'center', margin: '0 0 4px' }}>{L('Pagaste a tua parte. Regista-a também nas tuas despesas.')}</p>
-          <input className="tx-amt sp-amt" inputMode="decimal" value={(personal.cents / 100).toFixed(2).replace('.', ',')}
+          <input className={'tx-amt sp-amt' + missP.cls('amount')} inputMode="decimal" value={(personal.cents / 100).toFixed(2).replace('.', ',')}
             onChange={(e) => { const c = parseMoneyToCents(e.target.value); if (c !== null) setPersonal({ ...personal, cents: c }); }} aria-label={t('transactions.amount')} />
           <span className="tx-cur">{group?.currency ?? s.currency}</span>
           <div className="tx-rows">
             <label className="tx-row"><span><Ic d="M4 20h4L19 9l-4-4L4 16z" size={18} />{t('transactions.description')}</span>
               <input className="tx-val" value={personal.description} onChange={(e) => setPersonal({ ...personal, description: e.target.value })} /></label>
-            <div className="tx-row"><span><Ic d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" size={18} />{t('transactions.category')}</span>
+            <div className={'tx-row' + missP.cls('category')}><span><Ic d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" size={18} />{t('transactions.category')}</span>
               <CategorySelect cats={expCats} kind="expense" value={personal.categoryId} onChange={(v) => setPersonal({ ...personal, categoryId: v })} ariaLabel={t('transactions.category')} emptyLabel={L('Escolher…')} className="fx-input tx-val" /></div>
             {accs.length > 0 && <div className="tx-row tx-acc"><span><Ic d={ICON.wallet} size={18} />{t('accounts.account')}</span>
               <span className="tx-accval"><span className="tx-accpick">

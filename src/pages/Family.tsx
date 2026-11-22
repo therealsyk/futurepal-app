@@ -1,3 +1,5 @@
+import { L } from '../i18n/phrases';
+import { useMissing } from '../ui/missing';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { appConfirm } from '../ui/confirm';
 import { Link } from 'react-router-dom';
@@ -53,6 +55,7 @@ function FamilyInner() {
     setError(known ? t('family.err_' + known.replace(/ /g, '_')) : msg);
   };
 
+  const missing = useMissing();
   const load = useCallback(async () => {
     const sb = getSupabase();
     if (!sb || !me) { setLoading(false); return; }
@@ -130,9 +133,11 @@ function FamilyInner() {
     });
     if (e) fail(e); else await load();
   };
+  const miss = missing([['desc', L('a descrição'), !!f.description.trim()], ['amount', L('o valor'), (parseMoneyToCents(f.amount) ?? 0) > 0], ['split', L('com quem dividir'), f.split.length > 0]]);
+  const closeAdd = () => { setOpen(false); miss.reset(); };
   const save = async () => {
     const cents = parseMoneyToCents(f.amount) ?? 0;
-    if (!f.description.trim() || cents <= 0 || f.split.length === 0) return;
+    if (!miss.check()) return;
     await insert({ description: f.description.trim(), amountCents: cents, date: f.date, paidBy: f.paidBy, split: f.split, settlement: false });
     setOpen(false);
   };
@@ -212,11 +217,12 @@ function FamilyInner() {
         </div>
       )}
 
-      <Sheet open={open} onClose={() => setOpen(false)} title={t('family.add')}
-        footer={<><span style={{ flex: 1 }} /><button type="button" className="fx-btn" onClick={() => setOpen(false)}>{t('common.cancel')}</button><button type="button" className="fx-btn primary" onClick={save}>{t('common.add')}</button></>}>
-        <Field label={t('family.what')}><input className="fx-input" value={f.description} placeholder={t('family.whatPh')} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field>
+      <Sheet open={open} onClose={closeAdd} title={t('family.add')}
+        footer={<><span style={{ flex: 1 }} /><button type="button" className="fx-btn" onClick={closeAdd}>{t('common.cancel')}</button><button type="button" className="fx-btn primary" onClick={save}>{t('common.add')}</button></>}>
+        {miss.note}
+        <Field label={t('family.what')} miss={miss.cls('desc')}><input className="fx-input" value={f.description} placeholder={t('family.whatPh')} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field>
         <div className="fx-two">
-          <Field label={t('family.amount')}><input className="fx-input" inputMode="decimal" value={f.amount} placeholder="0,00" onChange={(e) => setF({ ...f, amount: e.target.value })} /></Field>
+          <Field label={t('family.amount')} miss={miss.cls('amount')}><input className="fx-input" inputMode="decimal" value={f.amount} placeholder="0,00" onChange={(e) => setF({ ...f, amount: e.target.value })} /></Field>
           <Field label={t('family.date')}><DatePicker value={f.date} onChange={(v) => setF({ ...f, date: v })} /></Field>
         </div>
         <Field label={t('family.whoPaid')}>
@@ -224,7 +230,7 @@ function FamilyInner() {
             {members.map((m) => <option key={m.userId} value={m.userId}>{m.displayName}</option>)}
           </select>
         </Field>
-        <Field label={t('family.splitWith')}>
+        <Field label={t('family.splitWith')} miss={miss.cls('split')}>
           <div className="fm-split">
             {members.map((m) => (
               <label key={m.userId}><input type="checkbox" checked={f.split.includes(m.userId)} onChange={() => toggleSplit(m.userId)} /> {m.displayName}</label>

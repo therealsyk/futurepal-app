@@ -1,3 +1,4 @@
+import { FormError, useMissing } from '../ui/missing';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
@@ -37,6 +38,7 @@ export const Salaries = () => {
   const [drafts, setDrafts] = useState<Record<number, string>>({});
   const [open, setOpen] = useState(false);
   const [eName, setEName] = useState('');
+  const missing = useMissing();
   const [eDate, setEDate] = useState(todayISO());
   const [eAmount, setEAmount] = useState('');
   const [eAcc, setEAcc] = useState('');
@@ -114,9 +116,11 @@ export const Salaries = () => {
     setOpen(true);
   };
 
+  const miss = missing([['amount', L('o valor'), (parseMoneyToCents(eAmount) ?? 0) > 0], ['date', L('a data'), !!eDate]]);
   const addExtra = async () => {
     const cents = parseMoneyToCents(eAmount);
-    if (!eDate || cents === null || cents <= 0) { setError(t('transactions.amountInvalid')); return; }
+    setError(null);
+    if (!miss.check() || cents === null) return;
     // já existe? (mesmo valor a 3 dias ou menos, registado aqui ou nas Transações)
     const day = (d: string) => new Date(d + 'T00:00:00').getTime() / 864e5;
     const all = (await db.transactions.toArray()).filter((x) => x.deletedAt === null && x.type === 'income');
@@ -193,10 +197,10 @@ export const Salaries = () => {
       <button type="button" className="sal-add floating" onClick={() => { openExtra().catch(() => {}); }}><Ic d={ICON.plus} size={16} />{t('salaries.addExtra')}</button>
 
       {/* Adicionar extra: mesmo formulário das transações (valor grande e linhas com ícone) */}
-      <Sheet open={open} onClose={() => setOpen(false)} title={t('salaries.addExtra')}
+      <Sheet open={open} onClose={() => { setOpen(false); miss.reset(); }} title={t('salaries.addExtra')}
         footer={<button type="button" className="tx-addbtn" onClick={addExtra}>{t('salaries.addExtra')}</button>}>
-        {error && <p className="fx-error">{error}</p>}
-        <input className="tx-amt inc" autoFocus inputMode="decimal" value={eAmount} placeholder="0" onChange={(e) => setEAmount(e.target.value)} aria-label={t('transactions.amount')} />
+        {miss.note ?? (error && <FormError text={error} />)}
+        <input className={'tx-amt inc' + miss.cls('amount')} autoFocus inputMode="decimal" value={eAmount} placeholder="0" onChange={(e) => setEAmount(e.target.value)} aria-label={t('transactions.amount')} />
         <span className="tx-cur">{s.currency}</span>
         <div className="tx-rows">
           <div className="tx-row"><span><Ic d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" size={18} />{t('transactions.category')}</span>

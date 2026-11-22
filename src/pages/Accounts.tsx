@@ -1,3 +1,5 @@
+import { L } from '../i18n/phrases';
+import { FormError, useMissing } from '../ui/missing';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
@@ -54,15 +56,22 @@ export function Accounts() {
 
   const shown = accounts.filter((a) => a.type === tab);
 
+  const missing = useMissing();
+  const missingT = useMissing();
   const openNew = () => { setError(null); setDraft({ id: null, name: '', description: '', type: tab, currency: settings.currency, initial: '', includeInNetWorth: true, isDefault: false, showOnHome: true }); };
   const openEdit = (a: Account) => {
     setError(null);
     setDraft({ id: a.id, name: a.name, description: a.description, type: a.type, currency: a.currency, initial: (a.initialBalanceCents / 100).toString().replace('.', ','), includeInNetWorth: a.includeInNetWorth, isDefault: a.isDefault, showOnHome: a.showOnHome });
   };
 
+  const miss = missing([['name', L('o nome'), !!draft?.name.trim()]]);
+  const missT = missingT([['amount', L('o valor'), (parseMoneyToCents(tdraft?.amount ?? '') ?? 0) > 0]]);
+  const closeDraft = () => { setDraft(null); miss.reset(); };
+  const closeT = () => { setTdraft(null); missT.reset(); };
   const save = async () => {
     if (!draft) return;
-    if (!draft.name.trim()) { setError(t('accounts.nameRequired')); return; }
+    setError(null);
+    if (!miss.check()) return;
     const initial = draft.initial.trim() === '' ? 0 : parseMoneyToCents(draft.initial.replace('-', ''));
     if (initial === null) { setError(t('accounts.balanceInvalid')); return; }
     const sign = draft.initial.trim().startsWith('-') ? -1 : 1;
@@ -85,6 +94,8 @@ export function Accounts() {
   };
   const saveTransfer = async () => {
     if (!tdraft) return;
+    setTerror(null);
+    if (!missT.check()) return;
     const cents = parseMoneyToCents(tdraft.amount);
     const input = { fromAccountId: tdraft.from, toAccountId: tdraft.to, amountCents: cents ?? 0, date: tdraft.date, note: tdraft.note, categoryId: tdraft.categoryId || null };
     const err = validateTransfer(input, accounts);
@@ -186,17 +197,17 @@ export function Accounts() {
         </div>
       )}
 
-      <Sheet open={tdraft !== null} onClose={() => setTdraft(null)} title={tdraft?.abate ? t('accounts.abateTitle') : t('accounts.transferTitle')}
+      <Sheet open={tdraft !== null} onClose={closeT} title={tdraft?.abate ? t('accounts.abateTitle') : t('accounts.transferTitle')}
         footer={
           <>
             <span style={{ flex: 1 }} />
-            <button type="button" className="fx-btn" onClick={() => setTdraft(null)}>{t('common.cancel')}</button>
+            <button type="button" className="fx-btn" onClick={closeT}>{t('common.cancel')}</button>
             <button type="button" className="fx-btn primary" onClick={saveTransfer}>{tdraft?.abate ? t('accounts.abate') : t('accounts.transfer')}</button>
           </>
         }>
         {tdraft && (
           <>
-            {terror && <p className="fx-error">{terror}</p>}
+            {missT.note ?? (terror && <FormError text={terror} />)}
             {tdraft.abate && <p className="fx-hint">{t('accounts.abateHint')}</p>}
             <div className="fx-two">
               <Field label={t('accounts.from')}>
@@ -212,7 +223,7 @@ export function Accounts() {
             </div>
             {tFrom && tTarget && tFrom.currency !== tTarget.currency && <p className="fx-error">{t('accounts.err_currency')}</p>}
             <div className="fx-two">
-              <Field label={t('accounts.amount')}>
+              <Field label={t('accounts.amount')} miss={missT.cls('amount')}>
                 <input className="fx-input big" autoFocus inputMode="decimal" value={tdraft.amount} placeholder="0,00" onChange={(e) => setTdraft({ ...tdraft, amount: e.target.value })} />
               </Field>
               <Field label={t('accounts.date')}>
@@ -230,19 +241,19 @@ export function Accounts() {
         )}
       </Sheet>
 
-      <Sheet open={draft !== null} onClose={() => setDraft(null)} title={draft?.id ? t('accounts.edit') : t('accounts.add_' + (draft?.type ?? 'spending'))}
+      <Sheet open={draft !== null} onClose={closeDraft} title={draft?.id ? t('accounts.edit') : t('accounts.add_' + (draft?.type ?? 'spending'))}
         footer={
           <>
             {draft?.id && accounts.length > 1 && <button type="button" className="fx-btn danger" onClick={remove}><Ic d={ICON.trash} size={16} />{t('common.delete')}</button>}
             <span style={{ flex: 1 }} />
-            <button type="button" className="fx-btn" onClick={() => setDraft(null)}>{t('common.cancel')}</button>
+            <button type="button" className="fx-btn" onClick={closeDraft}>{t('common.cancel')}</button>
             <button type="button" className="fx-btn primary" onClick={save}>{draft?.id ? t('common.save') : t('accounts.create')}</button>
           </>
         }>
         {draft && (
           <>
-            {error && <p className="fx-error">{error}</p>}
-            <Field label={t('accounts.name')}>
+            {miss.note ?? (error && <FormError text={error} />)}
+            <Field label={t('accounts.name')} miss={miss.cls('name')}>
               <input className="fx-input big" autoFocus value={draft.name} placeholder={t('accounts.namePlaceholder')} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
             </Field>
             <Field label={t('accounts.description')}>
