@@ -164,7 +164,7 @@ export default function App() {
     return () => { window.removeEventListener('wallet:open-settings', open); window.removeEventListener('keydown', key); };
   }, []);
   useEffect(() => { setSettingsOpen(false); }, [pathname]);
-  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }); document.querySelector('.app-main')?.scrollTo({ top: 0, behavior: 'instant' }); }, [pathname]);
 
   // "Está tudo pronto!" depois do setup.
   useEffect(() => {

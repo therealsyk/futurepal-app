@@ -131,11 +131,6 @@ html.pcm .fx-page:has(> .pm-plans) > * { margin-top: 0 !important; margin-bottom
 .stm .fx-page { padding: 24px 28px !important; max-width: none !important; min-height: 0 !important; }
 .stm-close { position: sticky; top: 14px; float: right; margin: 14px 14px 0 0; z-index: 2; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border); background: var(--card-2); color: var(--text); cursor: pointer; font-size: 15px; }
 /* Definições: barra de deslocação visível e discreta, na cor da app */
-.stm { scrollbar-width: thin !important; scrollbar-color: color-mix(in srgb, var(--text) 30%, transparent) transparent; }
-.stm::-webkit-scrollbar { width: 10px; display: block !important; }
-.stm::-webkit-scrollbar-track { background: transparent; margin: 18px 0; }
-.stm::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--text) 26%, transparent); border-radius: 99px; border: 3px solid var(--bg); }
-.stm::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--text) 45%, transparent); }
 
 /* Painel: só um + redondo no canto */
 .pc-fab { width: 56px; height: 56px; min-width: 0 !important; padding: 0 !important; border-radius: 50%; font-size: 0; gap: 0; }
@@ -178,7 +173,7 @@ html.pcm .fx-page.pco { height: 100vh; display: flex; flex-direction: column; ov
 .pco-slot { position: relative; min-height: 0; min-width: 0; display: flex; flex-direction: column; }
 .pco-slot .sh-embed { height: 100%; display: flex; flex-direction: column; }
 .pco-slot .sh-embed > .mv-card, .pco-slot > .mv-card { flex: 1; min-height: 0; overflow: hidden; padding: 20px 22px; border-radius: 24px; margin: 0; }
-.pco-slot .sh-embed > .mv-card { overflow-y: auto; scrollbar-width: thin; }
+.pco-slot .sh-embed > .mv-card { overflow-y: auto; }
 .pco-chart .fx-chart { min-height: 0 !important; }
 .pco-metrics { height: 100%; min-height: 0; }
 .pco-metric { min-height: 0; justify-content: space-between; padding: 14px 18px !important; gap: 2px; }
@@ -192,7 +187,7 @@ html.pcm .fx-page.pco { height: 100vh; display: flex; flex-direction: column; ov
 .pco-acc-total { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 16px; background: color-mix(in srgb, var(--mv, var(--accent)) 14%, var(--card-2)); }
 .pco-acc-total small { color: var(--muted); font-size: 12.5px; }
 .pco-acc-total strong { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; }
-.pco-acc-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; min-height: 0; scrollbar-width: thin; }
+.pco-acc-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; min-height: 0; }
 .pco-acc { position: relative; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 10px 12px 14px; border-radius: 14px; background: var(--card-2); overflow: hidden; }
 .pco-acc-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--mv, var(--accent)); }
 .pco-acc.savings .pco-acc-dot, .pco-acc.savings .pco-acc-bar { background: var(--pos); }
@@ -315,11 +310,7 @@ html.pcm .sal-page { padding-bottom: 110px !important; }
 .pco-right { display: flex; align-items: center; gap: 10px; }
 .pco-right .pf-chip { height: 48px; padding: 0 18px; border-radius: 16px; }
 .pco .pf-seg, .pco .pf-nav, .pco .pf-fbtn { height: 48px; }
-.pco-slot .sh-embed > .mv-card { overflow-y: auto; scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--text) 26%, transparent) transparent; }
-.pco-slot .sh-embed > .mv-card::-webkit-scrollbar { width: 10px; display: block !important; }
-.pco-slot .sh-embed > .mv-card::-webkit-scrollbar-track { background: transparent; margin: 18px 0; }
-.pco-slot .sh-embed > .mv-card::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--text) 26%, transparent); border-radius: 99px; border: 3px solid var(--card); }
-.pco-slot .sh-embed > .mv-card::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--text) 45%, transparent); }
+.pco-slot .sh-embed > .mv-card { overflow-y: auto; }
 /* Categorias: donut à esquerda e a lista à direita (as 6 maiores) para caber sem scroll */
 /* Contas (discreto, no topo) */
 .pco-accchip { position: relative; }
@@ -379,9 +370,7 @@ html.pcm .sal-page { padding-bottom: 110px !important; }
 .ai-model span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ai-model:hover, .ai-new:hover { background: var(--card-2); }
 .ai-new { width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--border); background: var(--card); color: var(--text); display: grid; place-items: center; cursor: pointer; }
-.ai-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding: 20px 4px; scroll-behavior: smooth; scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--text) 26%, transparent) transparent; }
-.ai-list::-webkit-scrollbar { width: 10px; display: block !important; }
-.ai-list::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--text) 26%, transparent); border-radius: 99px; border: 3px solid var(--bg); }
+.ai-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding: 20px 4px; scroll-behavior: smooth; }
 .ai-empty { margin: auto; display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; padding: 20px; }
 .ai-orb { width: 84px; height: 84px; border-radius: 50%; display: grid; place-items: center; color: var(--mv-ink, #032a2d); background: radial-gradient(circle at 30% 30%, color-mix(in srgb, var(--mv, #17c3c9) 60%, #fff), var(--mv, #17c3c9) 60%, color-mix(in srgb, var(--mv, #17c3c9) 40%, #8b7cf6)); animation: ai-float 4s ease-in-out infinite; box-shadow: 0 20px 50px -18px color-mix(in srgb, var(--mv, #17c3c9) 80%, transparent); }
 @keyframes ai-float { 50% { transform: translateY(-8px) scale(1.03); } }
@@ -558,7 +547,7 @@ html:has(.win-titlebar) .adm { top: 34px; }
 .adm-tbtn { height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); font: inherit; font-size: 13.5px; cursor: pointer; }
 .adm-tbtn:hover { background: var(--card-2); }
 .adm-burger { display: none; width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 16px; cursor: pointer; }
-.adm-content { flex: 1; overflow-y: auto; padding: 24px 28px 40px; scrollbar-width: thin; }
+.adm-content { flex: 1; overflow-y: auto; padding: 24px 28px 40px; }
 .adm-title { margin-bottom: 20px; } .adm-title h1 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; } .adm-title p { margin: 4px 0 0; color: var(--muted); }
 .adm .fx-card, .adm .ad-card { border-radius: 12px !important; padding: 18px 20px !important; background: var(--card); border: 1px solid var(--border); box-shadow: none; margin-bottom: 16px; }
 .adm .ad-card h3 { margin: 0 0 12px; font-size: 15px; font-weight: 600; }
@@ -1043,7 +1032,7 @@ button.sp-row { cursor: pointer; } button.sp-row:hover { background: color-mix(i
 /* Definições: menus iguais aos da app */
 .st-row .fx-pick > .fx-btn, .fx-field .fx-pick > .fx-btn { min-width: 200px; height: 42px; justify-content: space-between; gap: 10px; border-radius: 99px; background: var(--bg); border: 1px solid var(--border); font-weight: 600; }
 .fx-field .fx-pick { width: 100%; } .fx-field .fx-pick > .fx-btn { width: 100%; border-radius: 12px; }
-.fx-pick-menu { max-height: 340px; overflow-y: auto; scrollbar-width: thin; }
+.fx-pick-menu { max-height: 340px; overflow-y: auto; }
 
 /* Consumer Intelligence */
 .ci-filters { align-items: center; }
@@ -1134,7 +1123,7 @@ button.sp-row { cursor: pointer; } button.sp-row:hover { background: color-mix(i
 
 /* ---- Resumo: grelha livre. Cada widget muda de sítio e de tamanho (Personalizar) e o conteúdo adapta-se ao espaço */
 html.pcm .fx-page.pco { height: 100vh; height: 100dvh; overflow: hidden; }
-.pco-scroll { flex: 1; min-height: 0; margin: 5px -7px 0; overflow: hidden auto; scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--text) 26%, transparent) transparent; }
+.pco-scroll { flex: 1; min-height: 0; margin: 5px -7px 0; overflow: hidden auto; }
 .pco-board { position: relative; }
 .pco-slot { position: absolute; padding: 7px; box-sizing: border-box; outline: none; display: block; }
 .pco-cell { position: relative; width: 100%; height: 100%; container: w / size; display: flex; flex-direction: column; border-radius: 26px; }
@@ -1162,7 +1151,7 @@ html.pcm .fx-page.pco { height: 100vh; height: 100dvh; overflow: hidden; }
 
 /* Conteúdo que se adapta: letras e espaços pelo tamanho do widget; o menos importante sai primeiro */
 .pco-cell .sh-embed { height: 100%; min-height: 0; }
-.pco-cell .mv-card { display: flex; flex-direction: column; min-width: 0; min-height: 0; box-sizing: border-box; overflow: hidden auto; padding: clamp(8px, min(4cqw, 5cqh), 22px) clamp(10px, 4.5cqw, 24px) !important; border-radius: 24px; scrollbar-width: thin; }
+.pco-cell .mv-card { display: flex; flex-direction: column; min-width: 0; min-height: 0; box-sizing: border-box; overflow: hidden auto; padding: clamp(8px, min(4cqw, 5cqh), 22px) clamp(10px, 4.5cqw, 24px) !important; border-radius: 24px; }
 .pco-cell .sh-embed > .mv-card, .pco-cell > .mv-card { flex: 1; margin: 0; }
 .pco-cell .mv-card-head, .pco-cell .pco-mhead { flex: none; gap: 10px; min-width: 0; }
 .pco-cell .mv-card-head { margin-bottom: clamp(2px, 2.5cqh, 10px); }
@@ -1206,7 +1195,7 @@ html.pcm .fx-page.pco { height: 100vh; height: 100dvh; overflow: hidden; }
 .pco-cell .mv-card:has(.sh-cats) { overflow: hidden; }
 .pco-cell .sh-seg.small { flex: none; margin-bottom: clamp(4px, 3cqh, 14px); } .pco-cell .sh-seg.small button { min-height: clamp(26px, 10cqh, 38px); min-width: 0; padding: 0 4px; font-size: clamp(11px, 4.4cqw, 14.5px); overflow: hidden; text-overflow: ellipsis; }
 .pco-cell .sh-cats { flex: 1; min-height: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: clamp(10px, 4cqw, 28px); }
-.pco-cell .sh-catlist { display: block; max-height: 100%; min-height: 0; overflow-y: auto; scrollbar-width: thin; align-self: center; }
+.pco-cell .sh-catlist { display: block; max-height: 100%; min-height: 0; overflow-y: auto; align-self: center; }
 .pco-cell .sh-catrow { padding: clamp(3px, 1.6cqh, 9px) 4px clamp(3px, 1.6cqh, 9px) 0; } .pco-cell .sh-catrow:first-child { border-top: 0; }
 .pco-cell .sh-donut { width: min(36cqw, 100cqh - 110px, 300px); height: auto; aspect-ratio: 1; margin: 0; }
 .pco-cell .sh-donut span { width: 70%; height: 70%; }
@@ -1232,10 +1221,58 @@ html.pcm .fx-page.pco { height: 100vh; height: 100dvh; overflow: hidden; }
 
 /* limites, contas, metas, grupos, assistente */
 .pco-cell .pco-w { gap: clamp(4px, 3cqh, 12px); }
-.pco-cell .pco-wlist { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; gap: clamp(4px, 2cqh, 8px); }
+.pco-cell .pco-wlist { flex: 1; min-height: 0; overflow-y: auto; gap: clamp(4px, 2cqh, 8px); }
 @container w (min-width: 620px) { .pco-wlist { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; } }
 .pco-cell .sh-goal + .sh-goal { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
 .pco-cell .sh-goal .sh-row { flex-wrap: wrap; row-gap: 0; }
 .pco-cell .pco-ai-in { flex: none; } .pco-cell .pco-ai-ex { min-height: 0; overflow: hidden; }
 @container w (max-height: 300px) { .pco-ai-ex { display: none; } }
 @container w (max-height: 180px) { .pco-ai-sub { display: none; } .pco-ai-in input, .pco-ai-in button { height: 36px !important; } }
+
+/* ---- Scroll em toda a app: barra quase invisível, deslizar suave e conteúdo que se desvanece onde há mais para ver */
+@property --sf-t { syntax: '<length>'; inherits: false; initial-value: 0px; }
+@property --sf-b { syntax: '<length>'; inherits: false; initial-value: 0px; }
+@keyframes sf-both { 0% { --sf-t: 0px; --sf-b: 30px; } 10%, 90% { --sf-t: 30px; --sf-b: 30px; } 100% { --sf-t: 30px; --sf-b: 0px; } }
+@keyframes sf-end { 0%, 90% { --sf-b: 30px; } 100% { --sf-b: 0px; } }
+@keyframes sf-hide { 0%, 92% { opacity: 1; } 100% { opacity: 0; } }
+html, .fx-sheet-body, .bs-body, .ct-icons, .st-notices, .as-chat, .ai-list, .stm, .pf-modal, .adm-content, .pco-wlist, .pco-acc-list, .pco-cell .sh-scroll, .pco-cell .sh-catlist, .pco-scroll:not(.editing) { scroll-behavior: smooth; }
+.fx-sheet-body, .bs-body, .ct-icons, .st-notices, .as-chat, .ai-list, .stm, .pf-modal, .fx-pick-menu, .fx-pop-list { overscroll-behavior: contain; }
+
+/* barra: 5 px, sem setas nem fundo; nota-se um pouco mais com o rato por cima */
+html, html.is-electron, html.is-electron body, body, .app-main, html.is-electron .app-main,
+:is(.fx-sheet-body, .bs-body, .fx-pop-list, .fx-pick-menu, .fx-datepop, .ct-icons, .im-table, .st-notices, .as-chat, .ai-list, .ab-pop, .stm, .pf-modal, .sw-layer, .ad-table-wrap, .adm-side, .adm-content, .pco-scroll, .pco-acc-list, .pco-wlist, .sh-catlist, .sh-scroll) { scrollbar-width: auto !important; scrollbar-color: auto !important; }
+html::-webkit-scrollbar, html.is-electron::-webkit-scrollbar, .app-main::-webkit-scrollbar, html.is-electron .app-main::-webkit-scrollbar, :is(.fx-sheet-body, .bs-body, .fx-pop-list, .fx-pick-menu, .fx-datepop, .ct-icons, .im-table, .st-notices, .as-chat, .ai-list, .ab-pop, .stm, .pf-modal, .sw-layer, .ad-table-wrap, .adm-side, .adm-content, .pco-scroll, .pco-acc-list, .pco-wlist, .sh-catlist, .sh-scroll)::-webkit-scrollbar { display: block !important; width: 5px; height: 5px; background: transparent; }
+*::-webkit-scrollbar-button, *::-webkit-scrollbar-corner { display: none; width: 0; height: 0; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { border: 0; border-radius: 99px; background: color-mix(in srgb, var(--text) 10%, transparent); }
+*:hover::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--text) 16%, transparent); }
+*::-webkit-scrollbar-thumb:hover, *::-webkit-scrollbar-thumb:active { background: color-mix(in srgb, var(--text) 34%, transparent); }
+
+/* janela que sobe: cabeçalho fixo, só o conteúdo desliza */
+.bs-sheet { display: flex; flex-direction: column; overflow: hidden; }
+.bs-sheet > .bs-grab, .bs-sheet > .bs-head { flex: none; }
+.bs-sheet > .bs-grab { align-self: center; }
+.bs-sheet > .bs-body { flex: 0 1 auto; min-height: 0; overflow-y: auto; margin: 0 -8px; padding: 0 8px; }
+/* widgets: o título fica, desliza só a lista */
+.sh-scroll { display: contents; }
+.pco-cell .mv-card { overflow: hidden !important; }
+.pco-cell .sh-scroll { display: block; flex: 1; min-height: 0; overflow-y: auto; margin-right: -6px; padding-right: 6px; }
+.pco-cell .sh-groups-row { flex: 1; min-height: 0; flex-wrap: wrap; align-content: flex-start; overflow: hidden auto; }
+.pco-cell .sh-catlist, .pco-cell .pco-wlist { padding-right: 6px; }
+html.is-electron.pcm .fx-page.pco { height: calc(100vh - 34px); }
+
+@supports (animation-timeline: scroll()) {
+  .fx-sheet-body, .bs-body, .ct-icons, .st-notices, .as-chat, .ai-list, .pco-scroll, .pco-acc-list, .pco-wlist, .pco-cell .sh-catlist, .pco-cell .sh-scroll, .fx-pop-list {
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--sf-t), #000 calc(100% - var(--sf-b)), transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 var(--sf-t), #000 calc(100% - var(--sf-b)), transparent 100%);
+    animation: sf-both linear both; animation-timeline: scroll(self block);
+  }
+  .fx-pop-list { animation-name: sf-end; } /* o título do grupo fica nítido no topo */
+  .pco-scroll.editing { animation: none; }
+  /* caixas que deslizam inteiras (menus, Definições): véu no fundo */
+  .fx-pick-menu::after, .stm::after, .pf-modal::after { content: ''; position: sticky; bottom: -22px; z-index: 3; display: block; flex: none; height: 34px; margin-top: -34px; pointer-events: none; opacity: 0; background: linear-gradient(transparent, var(--card)); animation: sf-hide linear both; animation-timeline: scroll(nearest block); }
+  .fx-pick-menu::after { bottom: -7px; } .stm::after { bottom: 0; background: linear-gradient(transparent, var(--bg)); }
+  /* a própria página */
+  @media (min-width: 769px) { .app-main::after { content: ''; position: sticky; bottom: 0; z-index: 30; display: block; flex: none; height: 46px; margin-top: -46px; pointer-events: none; opacity: 0; background: linear-gradient(transparent, var(--bg)); animation: sf-hide linear both; animation-timeline: scroll(nearest block); } }
+}
+@media (prefers-reduced-motion: reduce) { html, .fx-sheet-body, .bs-body, .ai-list, .stm { scroll-behavior: auto; } }

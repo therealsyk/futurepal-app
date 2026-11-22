@@ -110,7 +110,7 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
       {/* 4. Últimos movimentos, em linguagem simples */}
       <section className="mv-card">
         <div className="mv-card-head"><h2>{t('blk.latest')}{rng && <small className="sh-count">{t('blk.txCount', { count: inRange.length })}</small>}</h2><Link to={embed?.seeAll ?? (rng ? `/transacoes?de=${rng.from}&ate=${rng.to}` : '/transacoes')} className="mv-link">{t('blk.seeAll')}</Link></div>
-        {latest.length === 0 ? <p className="fx-muted">{t('blk.noTx')}</p> : latest.map((x) => {
+        <div className="sh-scroll">{latest.length === 0 ? <p className="fx-muted">{t('blk.noTx')}</p> : latest.map((x) => {
           const c = catOf(x.categoryId);
           return (
             <div key={x.id} className="sh-tx">
@@ -119,7 +119,7 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
               <b className={x.type === 'income' ? 'fx-pos' : ''}>{x.type === 'income' ? '+' : '−'}{money(x.amountCents)}</b>
             </div>
           );
-        })}
+        })}</div>
       </section>
   </>);
   const groupsEl = (<>
@@ -140,7 +140,7 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
       {/* 6. Metas: só a principal, com a barra */}
       <section className="mv-card">
         <div className="mv-card-head"><h2>{L('Metas')}</h2><Link to="/metas" className="mv-link">{(data?.goals.length ?? 0) > 0 ? L('Ver todas') : L('Criar meta')}</Link></div>
-        {(data?.goals ?? []).slice(0, embed ? 20 : 1).map((g) => {
+        <div className="sh-scroll">{(data?.goals ?? []).slice(0, embed ? 20 : 1).map((g) => {
           const r = g.targetCents > 0 ? Math.min(1, g.currentCents / g.targetCents) : 0;
           return (
             <div key={g.id} className="sh-goal">
@@ -150,7 +150,7 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
             </div>
           );
         })}
-        {(data?.goals.length ?? 0) === 0 && <p className="fx-muted" style={{ margin: 0 }}>{L('Define um objetivo (ex.: 1000 € para férias) e acompanha quanto falta.')}</p>}
+        {(data?.goals.length ?? 0) === 0 && <p className="fx-muted" style={{ margin: 0 }}>{L('Define um objetivo (ex.: 1000 € para férias) e acompanha quanto falta.')}</p>}</div>
       </section>
   </>);
   if (embed) return <div className="mv sh sh-embed">{{ hero: heroEl, latest: latestEl, groups: groupsEl, goals: goalsEl }[embed.part]}</div>;

@@ -1,4 +1,5 @@
 const { app, BrowserWindow, Menu, ipcMain, net, shell } = require('electron');
+app.commandLine.appendSwitch('enable-smooth-scrolling'); // a roda do rato desliza em vez de saltar
 
 // Sem o menu "File / Edit / View / Window" (copiar/colar continuam a funcionar nos campos de texto).
 Menu.setApplicationMenu(null);
