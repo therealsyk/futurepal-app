@@ -261,7 +261,7 @@ export function Settings() {
       {CI_ENABLED && <CiOptRow />}
       <h2 className="st-section">{t('ai.section')}</h2>
       <div className="st-group">
-        <Row icon={I.spark} title={t('ai.rowTitle')} sub={aiOn ? `${getPreset(ai.provider)?.label ?? ai.provider} · ${ai.model}` : t('ai.rowSub')} onClick={() => setAiOpen(true)} testId="ai-row" />
+        <Row icon={I.spark} title={t('ai.rowTitle')} sub={aiOn ? `${L(getPreset(ai.provider)?.label ?? ai.provider)} · ${ai.model}` : t('ai.rowSub')} onClick={() => setAiOpen(true)} testId="ai-row" />
       </div>
 
       <h2 className="st-section">{t('updates.about')}</h2>

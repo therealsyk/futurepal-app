@@ -1,6 +1,7 @@
 import { afterPayments, splitDesc } from './debtPlan';
 import type { WalletDB, Account, AccountType, Transaction, Transfer } from '../db/database';
 import { stampNew } from '../db/database';
+import { L } from '../i18n/phrases';
 
 // ── Contas ───────────────────────────────────────────────────────────────
 // Saldo = saldo inicial + rendimentos − despesas dos movimentos da conta.
@@ -168,7 +169,7 @@ export async function addTransfer(db: WalletDB, input: NewTransfer): Promise<Tra
   if (input.categoryId) {
     const tx = stampNew<Transaction>({
       date: input.date, type: 'expense', categoryId: input.categoryId,
-      description: row.note || 'Transfer', amountCents: input.amountCents,
+      description: row.note || L('Transferência'), amountCents: input.amountCents,
       currency: (await listAccounts(db)).find((a) => a.id === input.fromAccountId)?.currency ?? 'EUR',
       accountId: input.fromAccountId, transferId: row.id,
     });

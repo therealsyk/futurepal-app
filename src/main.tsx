@@ -36,6 +36,10 @@ i18n.use(initReactI18next).init({
   interpolation: { escapeValue: false },
 });
 
+// a página diz em que língua está (leitores de ecrã, corretor e tradutor do navegador)
+document.documentElement.lang = settings.language;
+i18n.on('languageChanged', (l) => { document.documentElement.lang = l; });
+
 // App de Windows: barra do título própria (arrastar a janela) por baixo dos botões do sistema
 if ((window as unknown as { __electronBridge?: unknown }).__electronBridge) {
   document.documentElement.classList.add('is-electron');

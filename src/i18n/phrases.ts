@@ -1157,11 +1157,44 @@ export const PHRASES: Record<string, Tr> = {
   'Quanto tens nesta conta?': ['How much do you have in it?', '¿Cuánto tienes en ella?', 'Combien avez-vous dessus ?'],
   'Criar conta e continuar': ['Create account and continue', 'Crear cuenta y continuar', 'Créer le compte et continuer'],
   'Aqui vês quanto tens em cada conta e crias contas novas.': ['See what’s in each account and create new ones here.', 'Aquí ves cuánto tienes en cada cuenta y creas nuevas.', 'Ici, voyez chaque compte et créez-en d’autres.'],
+  'Viagem': ['Trip', 'Viaje', 'Voyage'],
+  'Obras': ['Renovation', 'Obras', 'Travaux'],
+  'Natal': ['Christmas', 'Navidad', 'Noël'],
+  'Poupanças': ['Savings', 'Ahorros', 'Épargne'],
+  'Fundo de emergência': ['Emergency fund', 'Fondo de emergencia', 'Fonds d’urgence'],
+  'Conta do banco': ['Bank account', 'Cuenta del banco', 'Compte bancaire'],
+  'Dinheiro': ['Cash', 'Efectivo', 'Espèces'],
+  'Supermercado': ['Groceries', 'Supermercado', 'Supermarché'],
+  'Combustível': ['Fuel', 'Combustible', 'Carburant'],
+  'Restaurantes': ['Restaurants', 'Restaurantes', 'Restaurants'],
+  'Férias': ['Holidays', 'Vacaciones', 'Vacances'],
+  'Carro': ['Car', 'Coche', 'Voiture'],
+  'Emergências': ['Emergencies', 'Emergencias', 'Urgences'],
+  'Crédito habitação': ['Mortgage', 'Hipoteca', 'Prêt immobilier'],
+  'Crédito auto': ['Car loan', 'Préstamo del coche', 'Crédit auto'],
+  'Contas da casa': ['House bills', 'Cuentas de casa', 'Factures de la maison'],
+  'Jantar de sexta': ['Friday dinner', 'Cena del viernes', 'Dîner du vendredi'],
+  'Outro (compatível com OpenAI)': ['Other (OpenAI compatible)', 'Otro (compatible con OpenAI)', 'Autre (compatible OpenAI)'],
 };
+
+/** Português do Brasil: as palavras de Portugal que lá se dizem de outra forma. */
+const BR: Array<[RegExp, string]> = [
+  ['telemóveis', 'celulares'], ['telemóvel', 'celular'], ['ecrãs', 'telas'], ['o ecrã', 'a tela'], ['no ecrã', 'na tela'], ['do ecrã', 'da tela'], ['ecrã', 'tela'], ['utilizadores', 'usuários'], ['utilizador', 'usuário'], ['ficheiros', 'arquivos'], ['ficheiro', 'arquivo'], ['palavra-passe', 'senha'],
+  ['partilhada', 'compartilhada'], ['partilhado', 'compartilhado'], ['partilhar', 'compartilhar'], ['subscrições', 'assinaturas'], ['subscrição', 'assinatura'], ['registares', 'registrar'], ['registar', 'registrar'], ['registaste', 'registrou'], ['regista', 'registra'], ['definições', 'configurações'], ['contactos', 'contatos'], ['contacto', 'contato'], ['equipa', 'equipe'], 
+  ['poupanças', 'economias'], ['crédito habitação', 'financiamento imobiliário'],  ['toda a app', 'todo o app'], ['uma app', 'um app'], ['à app', 'ao app'], ['a app', 'o app'], ['da app', 'do app'], ['na app', 'no app'], ['apagar', 'excluir'], ['apagado', 'excluído'],  
+].map(([a, b]) => [new RegExp(`(?<![\\p{L}])${a}(?![\\p{L}])`, 'giu'), b] as [RegExp, string]);
+const up = (from: string, to: string) => (from[0] !== from[0].toLowerCase() ? to[0].toUpperCase() + to.slice(1) : to);
+const brMemo = new Map<string, string>();
+function toBR(pt: string): string {
+  let x = brMemo.get(pt);
+  if (x === undefined) { x = BR.reduce((a, [re, b]) => a.replace(re, (m) => up(m, b)), pt); brMemo.set(pt, x); }
+  return x;
+}
 
 /** Traduz uma frase da interface (escrita em português no código). */
 export function L(pt: string): string {
   const lang = i18n.language || 'pt-PT';
+  if (lang === 'pt-BR') return toBR(pt);
   if (lang.startsWith('pt')) return pt;
   const tr = PHRASES[pt];
   if (!tr) return pt;

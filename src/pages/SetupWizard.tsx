@@ -66,6 +66,9 @@ export default function SetupWizard({ onDone }: { onDone: (settings: AppSettings
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const info = COUNTRIES.find((c) => c.code === country), regional = info?.currency ?? initial.currency ?? 'EUR';
   const [cur, setCur] = useState(''), [choosing, setChoosing] = useState(false), currency = cur || regional; // a moeda pergunta-se antes do primeiro valor
+  // datas, calendário e valores leem as definições: têm de estar já na língua e na moeda certas
+  useState(() => { if (!initial.country) saveSettings({ ...initial, language, currency: regional, firstDayOfWeek: info ? info.firstDayOfWeek : initial.firstDayOfWeek, dateFormat: info ? info.dateFormat : initial.dateFormat }, { silent: true }); return 0; });
+  useEffect(() => { if (cur && !loadSettings().country) saveSettings({ ...loadSettings(), currency: cur }, { silent: true }); }, [cur]);
   const loginHandled = useRef(false); // o login (formulário ou social) só é tratado uma vez
   useEffect(() => { ensureDefaultCategories(db).catch(() => {}); startOnboarding(); if (i18n.language !== language) i18n.changeLanguage(language); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { screen(step === 'act' ? 'act_' + goal : step); }, [step]); // eslint-disable-line react-hooks/exhaustive-deps

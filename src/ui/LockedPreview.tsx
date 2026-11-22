@@ -19,7 +19,7 @@ function MockChat() {
 function MockSplit() {
   return (
     <div className="lp-mock">
-      {[['✈️ Viagem a Lisboa', '4 pessoas', '320,00 €'], ['🏠 Contas da casa', '3 pessoas', '186,40 €'], ['🍕 Jantar de sexta', '5 pessoas', '72,50 €']].map(([n, p, v]) => (
+      {[['✈️ ' + L('Viagem a Lisboa'), '4 ' + L('pessoas'), '320,00 €'], ['🏠 ' + L('Contas da casa'), '3 ' + L('pessoas'), '186,40 €'], ['🍕 ' + L('Jantar de sexta'), '5 ' + L('pessoas'), '72,50 €']].map(([n, p, v]) => (
         <div key={n} className="lp-card"><span className="lp-av" /><span className="lp-txt"><b>{n}</b><small>{p}</small></span><b>{v}</b></div>
       ))}
       <div className="lp-card"><span className="lp-av g" /><span className="lp-txt"><b>{L('A Ana deve-te')}</b><small>{L('Viagem a Lisboa')}</small></span><b className="fx-pos">80,00 €</b></div>

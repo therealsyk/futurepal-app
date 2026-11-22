@@ -69,7 +69,7 @@ export function RepeatRows({ label = L('Recorrente'), on, setOn, freq, setFreq, 
   const { t } = useTranslation();
   return (
     <>
-      <SwitchRow icon={FI.month} label={label} on={on} onChange={setOn} />
+      <SwitchRow icon={FI.month} label={label} on={on} onChange={setOn} cls=" tx-rep" />
       {on && <>
         <div className="tx-row tx-sub"><span>{t('goals.frequency')}</span><PickMenu compact label={t('goals.frequency')} value={freq} options={RECURRING_FREQUENCIES.map((f) => ({ value: f, label: t('goals.' + f) }))} onChange={(v) => setFreq(v as RecurringFrequency)} /></div>
         <div className="tx-row tx-sub"><span>{L('Termina em')}</span><DatePicker value={end} onChange={setEnd} allowEmpty ariaLabel={L('Termina em')} /></div>
