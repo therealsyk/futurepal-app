@@ -91,14 +91,14 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
             <>
               <small className="mv-hero-label">{L('Ainda tens para gastar')}</small>
               <div className="sh-valrow"><span className={'sh-big ' + (left < 0 ? 'fx-neg' : 'fx-pos')}>{money(left)}</span>{pct !== null && <span className={'fx-chip ' + tone(pct)} title={L('do rendimento já gasto')}>{pct}% {L('gasto')}</span>}</div>
-              <div className="sh-bar" aria-hidden="true"><i style={{ width: `${ratio * 100}%` }} /></div>
+              <div className={"sh-bar" + (left < 0 ? " over" : "")} aria-hidden="true"><i style={{ width: `${ratio * 100}%` }} /></div>
               {cmp}
             </>
           ) : (
             <>
               <small className="mv-hero-label">{ranged ? L('Recebeste neste período') : L('Recebeste este ano')}</small>
               <div className="sh-valrow"><span className="sh-big fx-pos">{money(received)}</span></div>
-              <div className="sh-bar" aria-hidden="true"><i style={{ width: `${ratio * 100}%` }} /></div>
+              <div className={"sh-bar" + (left < 0 ? " over" : "")} aria-hidden="true"><i style={{ width: `${ratio * 100}%` }} /></div>
               <div className="sh-kpis">
                 <div className="sh-kpi"><small>{L('Gastos')}</small><div className="sh-valrow"><b className="fx-neg">{money(spent)}</b>{pct !== null && <span className={'fx-chip ' + tone(pct)}>{pct}%</span>}</div>{cmp}</div>
                 <div className="sh-kpi"><small>{L('Poupança')}</small><div className="sh-valrow"><b className={left < 0 ? 'fx-neg' : 'fx-pos'}>{money(left)}</b>{received > 0 && <span className={'fx-chip ' + (left < 0 ? 'bad' : 'good')}>{Math.round((left / received) * 100)}%</span>}</div></div>
