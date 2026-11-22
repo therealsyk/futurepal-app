@@ -1153,7 +1153,7 @@ export const PHRASES: Record<string, Tr> = {
   'Mensal': ['Monthly', 'Mensual', 'Mensuel'],
   'Anual': ['Yearly', 'Anual', 'Annuel'],
   'Primeiro, cria a tua conta': ['First, create your account', 'Primero, crea tu cuenta', 'D’abord, créez votre compte'],
-  'É de onde sai o dinheiro: o teu banco, um cartão ou a carteira. A seguir adicionas a transação.': ['It’s where the money comes from: your bank, a card or your wallet. Then you add the transaction.', 'Es de donde sale el dinero: tu banco, una tarjeta o la cartera. Después añades la transacción.', 'C’est d’où vient l’argent : banque, carte ou portefeuille. Ensuite, vous ajoutez l’opération.'],
+  'As despesas que registares ficam associadas a esta conta. Serve só para te organizares: a app não se liga ao teu banco nem mexe no teu dinheiro.': ['The expenses you record will be linked to this account. It’s just to keep you organised: the app doesn’t connect to your bank or touch your money.', 'Los gastos que registres quedarán asociados a esta cuenta. Es solo para organizarte: la app no se conecta a tu banco ni toca tu dinero.', 'Les dépenses que vous notez seront liées à ce compte. C’est juste pour vous organiser : l’app ne se connecte pas à votre banque et ne touche pas à votre argent.'],
   'Quanto tens nesta conta?': ['How much do you have in it?', '¿Cuánto tienes en ella?', 'Combien avez-vous dessus ?'],
   'Criar conta e continuar': ['Create account and continue', 'Crear cuenta y continuar', 'Créer le compte et continuer'],
   'Aqui vês quanto tens em cada conta e crias contas novas.': ['See what’s in each account and create new ones here.', 'Aquí ves cuánto tienes en cada cuenta y creas nuevas.', 'Ici, voyez chaque compte et créez-en d’autres.'],

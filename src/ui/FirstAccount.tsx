@@ -26,7 +26,7 @@ export function FirstAccount({ currency, onClose, onDone }: { currency: string; 
   return (
     <BottomSheet title={L('Primeiro, cria a tua conta')} onClose={onClose}>
       <div className="acc-form fa-form">
-        <div className="fa-top"><span className="on-logo sm"><Ic d={ICON.wallet} size={30} /></span><p>{L('É de onde sai o dinheiro: o teu banco, um cartão ou a carteira. A seguir adicionas a transação.')}</p></div>
+        <div className="fa-top"><span className="on-logo sm"><Ic d={ICON.wallet} size={30} /></span><p>{L('As despesas que registares ficam associadas a esta conta. Serve só para te organizares: a app não se liga ao teu banco nem mexe no teu dinheiro.')}</p></div>
         {miss.note}
         <p className="fa-q">{L('Quanto tens nesta conta?')}</p>
         <AmountField value={v} onChange={setV} currency={currency} kind="income" signed />
