@@ -126,9 +126,9 @@ export function SimpleAccounts() {
   return (
     <div className="fx-page mv sh">
       <header className="mv-head"><h1 className="sh-title">{L('Contas')}</h1></header>
-      <div className="sh-kpis">
-        <div className="sh-kpi"><small>{L('Dinheiro nas contas')}</small><b className={money_ < 0 ? 'fx-neg' : 'fx-pos'}>{money(money_)}</b></div>
-        <div className="sh-kpi"><small>{L('Dívidas')}</small><b className={debts > 0 ? 'fx-neg' : ''}>{money(debts)}</b></div>
+      <div className="gx-tiles even two">
+        <GTile d="M3 7a2 2 0 0 1 2-2h13v4M3 7v11a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1H5a2 2 0 0 1-2-2zM16 14.5h.01" tone={money_ < 0 ? 'neg' : 'pos'} label={L('Dinheiro nas contas')} value={money(money_)} />
+        <GTile d="M12 19V5M5 12l7-7 7 7" tone={debts > 0 ? 'neg' : ''} label={L('Dívidas')} value={money(debts)} />
       </div>
       <div className="sh-seg" role="tablist">
         {TYPES.map((x) => <button key={x.id} type="button" role="tab" aria-selected={tab === x.id} className={tab === x.id ? 'on' : ''} onClick={() => { setTab(x.id); setForm(false); }}>{x.label}</button>)}

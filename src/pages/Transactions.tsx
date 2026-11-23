@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { appConfirm } from '../ui/confirm';
 import { useTranslation } from 'react-i18next';
+import { GTile } from './Split';
 import { SIMPLE_UI } from '../core/uiMode';
 import { EmptyState as EmptyHero } from '../ui/EmptyState';
 import { useIsMobile } from '../ui/useIsMobile';
@@ -141,12 +142,11 @@ export function Transactions() {
             const top = visible.filter((x) => x.type === 'expense').sort((a2, b2) => b2.amountCents - a2.amountCents)[0];
             const topCat = top ? cats.find((k) => k.id === top.categoryId) : undefined;
             const pctCmp = prevCount ? Math.round(((n - prevCount) / prevCount) * 100) : null;
-            const cmp = pctCmp === null ? null : <span className={'fx-chip ' + (pctCmp > 0 ? 'warn' : pctCmp < 0 ? 'good' : 'neutral')} title={t('txs.vs_' + period)}>{pctCmp > 0 ? '+' : ''}{pctCmp}% <small>{t('txs.vsShort_' + period)}</small></span>;
             return (
-              <div className="txs-stats">
-                <div><small>{t('txs.count_' + period)}</small><span className="txs-v"><b>{n}</b>{cmp}</span></div>
-                {period === 'year' && <div><small>{t('txs.avgMonth')}</small><span className="txs-v"><b>{avg.toLocaleString(settings.language, { maximumFractionDigits: 1 })}</b></span></div>}
-                <div className="wide"><small>{t('txs.biggest')}</small><b>{top ? <>{top.description || (topCat ? catLabel(t, topCat) : '')} · <span className="fx-neg">{money(top.amountCents)}</span></> : '—'}</b></div>
+              <div className={'gx-tiles even ' + (period === 'year' ? 'three' : 'two')}>
+                <GTile d="M4 7h13l-3-3M20 17H7l3 3" label={t('txs.count_' + period)} value={String(n) + (pctCmp ? `  ${pctCmp > 0 ? '+' : ''}${pctCmp}%` : '')} />
+                {period === 'year' && <GTile d="M5 5h14v15H5zM5 10h14M8 3v4M16 3v4" label={t('txs.avgMonth')} value={avg.toLocaleString(settings.language, { maximumFractionDigits: 1 })} />}
+                <GTile d="M12 19V5M5 12l7-7 7 7" tone={top ? 'neg' : ''} label={t('txs.biggest') + (top ? ' · ' + (top.description || (topCat ? catLabel(t, topCat) : '')) : '')} value={top ? money(top.amountCents) : '—'} />
               </div>
             );
           })()}

@@ -1,5 +1,6 @@
 // Página de uma dívida: sugestões para acabar mais depressa (com base nos gastos da pessoa), simulador e pagamentos feitos.
 import { useState, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { db } from '../db/app-db';
 import type { Account, Transaction, Transfer } from '../db/database';
@@ -9,6 +10,7 @@ import { joinDesc, payoff, splitDesc } from '../core/debtPlan';
 import { duration, endDate, fill } from '../ui/AccountPlan';
 import { appConfirm } from '../ui/confirm';
 import { CountMoney } from '../ui/CountMoney';
+import { SwitchRow } from '../ui/formFields';
 import { Ic, ICON } from '../ui/fx';
 import { L } from '../i18n/phrases';
 
@@ -40,19 +42,22 @@ export function DebtBoost({ a, left, txs, accounts, transfers, balOf, money, lan
   const { text, plan } = splitDesc(a.description), rate = plan?.rate ?? 0;
   const base = usualPayment(plan?.monthlyCents ?? 0, a.id, transfers);
   const liquid = accounts.filter((x) => x.type !== 'debt').reduce((s, x) => s + balOf(x), 0);
-  const b = budget(txs, transfers, accounts, liquid), opts = base > 0 ? options(left, base, rate, b) : [];
+  const [extras, setExtras] = useState(true);
+  const b = budget(txs, transfers, accounts, liquid, new Date(), !extras), opts = base > 0 ? options(left, base, rate, b) : [];
   const nowEnd = base > 0 ? payoff(left, base, rate) : null; // como está hoje: é com isto que as opções se comparam
   const lump = Math.min(b.lumpCents, left), lumpEffect = lump > 0 && base > 0 ? simulate(left, base, rate, lump, base) : null;
   const top = Math.max(base * 3, base + b.extraCents * 2, Math.ceil(left / 24)), step = top > 200000 ? 5000 : 1000;
-  const [now, setNow] = useState(0), [per, setPer] = useState<number | null>(null);
+  const [now, setNow] = useState(0), [per, setPer] = useState<number | null>(null), [ask, setAsk] = useState<{ cents: number; e: Effect } | null>(null);
   const monthly = per ?? base, sim = monthly > 0 ? simulate(left, base, rate, now, monthly) : null;
   if (left <= 0) return null;
   const gain = (e: Effect) => [e.saveMonths > 0 ? fill(L('menos {m}'), { m: duration(e.saveMonths) }) : '', e.saveInterestCents > 0 ? fill(L('poupas {m} em juros'), { m: money(e.saveInterestCents) }) : ''].filter(Boolean).join(' · ');
+  const save = async (cents: number) => {
+    await updateAccount(db, a.id, { description: joinDesc(text, { startCents: plan?.startCents ?? Math.max(left, a.initialBalanceCents), rate: plan?.rate, goalId: plan?.goalId, monthlyCents: cents }) });
+    setAsk(null); reload();
+  };
   const apply = async (cents: number, e?: Effect | null) => {
-    const keep = Math.max(0, b.freeCents - Math.max(0, cents - base));
-    const msg = e && b.months >= 2 && cents > base
-      ? fill(L('Se passares a pagar {p} por mês, passas a poupar {a} por mês em vez de {b} e acabas {t} mais cedo.'), { p: money(cents), a: money(keep), b: money(b.freeCents), t: duration(e.saveMonths) }) + (e.saveInterestCents > 0 ? ' ' + fill(L('Poupas também {m} em juros.'), { m: money(e.saveInterestCents) }) : '')
-      : fill(L('Passar a abater {m} por mês nesta dívida?'), { m: money(cents) });
+    if (e && b.months >= 2 && cents > base) { setAsk({ cents, e }); return; }
+    const msg = fill(L('Passar a abater {m} por mês nesta dívida?'), { m: money(cents) });
     if (!(await appConfirm(msg, { ok: L('Sim'), danger: false }))) return;
     await updateAccount(db, a.id, { description: joinDesc(text, { startCents: plan?.startCents ?? Math.max(left, a.initialBalanceCents), rate: plan?.rate, goalId: plan?.goalId, monthlyCents: cents }) });
     reload();
@@ -66,7 +71,9 @@ export function DebtBoost({ a, left, txs, accounts, transfers, balOf, money, lan
           : base <= 0 ? <p className="gl-sub">{L('Define quanto abates por mês em "Ver conta" para veres sugestões.')}</p>
           : opts.length === 0 && !lumpEffect ? <p className="sh-alert">{fill(L('Num mês normal sobram-te cerca de {m}. Por agora não convém abater mais: mantém o valor atual.'), { m: money(b.freeCents) })}</p>
           : <>
-            <p className="gl-sub">{fill(L('Num mês normal recebes {i} e gastas {g}. Sobram-te {f}: as opções usam só uma parte disso.'), { i: money(b.incomeCents), g: money(b.spendCents + b.debtCents), f: money(b.freeCents) })}</p>
+            <div className="tx-rows db-extras"><SwitchRow icon="M12 3v18M17 7H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" label={L('Contar rendimentos extras')} sub={extras ? L('Salário e extras') : L('Só o salário')} on={extras} onChange={setExtras} /></div>
+            <div className="db-flow"><span><small>{L('Recebes')}</small><b className="fx-pos">{money(b.incomeCents)}</b></span><i>−</i><span><small>{L('Gastas')}</small><b className="fx-neg">{money(b.spendCents + b.debtCents)}</b></span><i>=</i><span><small>{L('Sobra')}</small><b className="db-gold">{money(b.freeCents)}</b></span></div>
+            <p className="gl-sub">{L('As sugestões usam só uma parte do que te sobra, para nunca ficares apertado. Toca numa para ver o que muda.')}</p>
             {nowEnd && <div className="db-now"><span><small>{L('Agora pagas')}</small><b>{money(base)}<i>/{L('mês')}</i></b></span><Ic d={ICON.right} size={18} /><span><small>{L('Acabas em')}</small><b>{endDate(nowEnd.months, lang)}</b></span></div>}
             {opts.length > 0 && <div className="db-opts">{opts.map((o, i) => (
               <button key={o.extra} type="button" style={{ '--i': i } as CSSProperties} onClick={() => apply(o.monthly, o.effect)}>
@@ -77,6 +84,17 @@ export function DebtBoost({ a, left, txs, accounts, transfers, balOf, money, lan
             {lumpEffect && <div className="db-lump"><span className="pco-mic"><Ic d="M13 2 4 14h7l-1 8 9-12h-7z" size={19} /></span><div><b>{fill(L('Podias pagar já {m}'), { m: money(lump) })}</b><small>{L('Acabas em')} <strong>{endDate(lumpEffect.months, lang)}</strong> · <strong className="fx-pos">{fill(L('Poupas {m}'), { m: duration(lumpEffect.saveMonths) })}</strong></small></div><Link className="gl-act" to={`/transacoes?nova=1&para=${a.id}`}>{L('Abater')}</Link></div>}
           </>}
       </section>
+      {ask && createPortal(<div className="spi-back" onMouseDown={(ev) => { if (ev.target === ev.currentTarget) setAsk(null); }}><div className="spi-card db-ask" role="dialog" aria-modal="true" aria-label={L('Confirmar')}>
+        <span className="on-logo sm"><Ic d="M13 2 4 14h7l-1 8 9-12h-7z" size={30} /></span>
+        <h2>{fill(L('Passar a pagar {m} por mês?'), { m: '' })}<b className="db-gold">{money(ask.cents)}</b></h2>
+        <div className="db-ask-rows">
+          <div style={{ '--i': 0 } as CSSProperties}><span className="pco-mic good"><Ic d="M5 12l4 4L19 6" size={18} /></span><p>{L('Acabas em')} <b>{endDate(ask.e.months, lang)}</b><small className="fx-pos">{fill(L('{t} mais cedo'), { t: duration(ask.e.saveMonths) })}</small></p></div>
+          {ask.e.saveInterestCents > 0 && <div style={{ '--i': 1 } as CSSProperties}><span className="pco-mic good"><Ic d="M12 3v18M17 7H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" size={18} /></span><p>{L('Poupas em juros')} <b className="fx-pos">{money(ask.e.saveInterestCents)}</b></p></div>}
+          <div style={{ '--i': 2 } as CSSProperties}><span className="pco-mic gold"><Ic d="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 7v5l3 2" size={18} /></span><p>{L('Fica para poupar por mês')} <b className="db-gold">{money(Math.max(0, b.freeCents - Math.max(0, ask.cents - base)))}</b><small><s>{money(b.freeCents)}</s></small></p></div>
+        </div>
+        <button type="button" className="ob-cta lg-go" onClick={() => { save(ask.cents).catch(() => {}); }}>{L('Sim, passar a pagar')}<Ic d="M5 12h14M13 6l6 6-6 6" size={18} /></button>
+        <button type="button" className="on-skip" onClick={() => setAsk(null)}>{L('Agora não')}</button>
+      </div></div>, document.body)}
       <section className="mv-card gl-sec db-sim">
         <h2>{L('Simulador')}</h2>
         <p className="gl-sub">{L('Arrasta as bolas e vê quando acabas.')}</p>

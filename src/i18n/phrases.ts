@@ -1204,6 +1204,18 @@ export const PHRASES: Record<string, Tr> = {
   'Num mês normal recebes {i} e gastas {g}. Sobram-te {f}: as opções usam só uma parte disso.': ['In a normal month you earn {i} and spend {g}. {f} is left: the options use only part of it.', 'En un mes normal recibes {i} y gastas {g}. Te sobran {f}: las opciones usan solo una parte.', 'Un mois normal, vous recevez {i} et dépensez {g}. Il reste {f} : les options n’en utilisent qu’une partie.'],
   'Importar': ['Import', 'Importar', 'Importer'],
   'Sem paciência para escrever tudo? Em Definições › Dados › Importar, escolhes o ficheiro do teu banco (CSV, Excel ou PDF) e a app junta as despesas sozinha.': ['No patience to type it all? In Settings › Data › Import, pick your bank’s file (CSV, Excel or PDF) and the app adds the expenses for you.', '¿Sin paciencia para escribirlo todo? En Ajustes › Datos › Importar, eliges el archivo de tu banco (CSV, Excel o PDF) y la app añade los gastos.', 'Pas envie de tout saisir ? Dans Réglages › Données › Importer, choisissez le fichier de votre banque (CSV, Excel ou PDF) et l’app ajoute les dépenses.'],
+  'Recebes': ['You earn', 'Recibes', 'Vous recevez'],
+  'Gastas': ['You spend', 'Gastas', 'Vous dépensez'],
+  'Sobra': ['Left', 'Sobra', 'Reste'],
+  'As sugestões usam só uma parte do que te sobra, para nunca ficares apertado. Toca numa para ver o que muda.': ['Suggestions use only part of what’s left, so you’re never short. Tap one to see what changes.', 'Las sugerencias usan solo una parte de lo que sobra, para que nunca vayas justo. Toca una para ver qué cambia.', 'Les suggestions n’utilisent qu’une partie de ce qui reste, pour ne jamais être juste. Touchez-en une pour voir.'],
+  'Passar a pagar {m} por mês?': ['Pay {m} a month?', '¿Pagar {m} al mes?', 'Payer {m} par mois ?'],
+  '{t} mais cedo': ['{t} sooner', '{t} antes', '{t} plus tôt'],
+  'Poupas em juros': ['You save in interest', 'Ahorras en intereses', 'Vous économisez en intérêts'],
+  'Fica para poupar por mês': ['Left to save each month', 'Queda para ahorrar al mes', 'Reste à épargner par mois'],
+  'Sim, passar a pagar': ['Yes, pay this', 'Sí, pagar esto', 'Oui, payer ce montant'],
+  'Contar rendimentos extras': ['Count extra income', 'Contar ingresos extra', 'Compter les revenus extra'],
+  'Salário e extras': ['Salary and extras', 'Salario y extras', 'Salaire et extras'],
+  'Só o salário': ['Salary only', 'Solo el salario', 'Salaire seulement'],
 };
 
 /** Português do Brasil: as palavras de Portugal que lá se dizem de outra forma. */

@@ -26,14 +26,14 @@ export interface Budget {
 }
 
 /** Um mês normal da pessoa (últimos 6 meses fechados) e o que dá para abater a mais sem risco. */
-export function budget(txs: Transaction[], transfers: Transfer[], accounts: Account[], liquidCents: number, now = new Date()): Budget {
+export function budget(txs: Transaction[], transfers: Transfer[], accounts: Account[], liquidCents: number, now = new Date(), salaryOnly = false): Budget {
   const debts = new Set(accounts.filter((a) => a.type === 'debt').map((a) => a.id));
   const keys = Array.from({ length: 6 }, (_, i) => ym(new Date(now.getFullYear(), now.getMonth() - 1 - i, 1)));
   const rows = keys.map((k) => {
     const m = txs.filter((t) => t.deletedAt === null && t.date.startsWith(k));
     return {
       n: m.length,
-      inc: m.filter((t) => t.type === 'income').reduce((a, t) => a + t.amountCents, 0),
+      inc: m.filter((t) => t.type === 'income' && (!salaryOnly || t.id.startsWith('sal-'))).reduce((a, t) => a + t.amountCents, 0),
       exp: m.filter((t) => t.type === 'expense' && !t.transferId).reduce((a, t) => a + t.amountCents, 0),
       debt: transfers.filter((t) => t.deletedAt === null && t.date.startsWith(k) && debts.has(t.toAccountId)).reduce((a, t) => a + t.amountCents, 0),
     };
