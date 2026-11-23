@@ -1,3 +1,4 @@
+import { markPeriodChange } from '../ui/rollGate';
 // Contas e Limites, organizados como no vídeo de referência, no estilo FuturePal.
 import { beforePayments, goalValueCents, joinDesc, payoff, planInfo, splitDesc } from '../core/debtPlan';
 import { AccountPlanBox, endText as planEnd, fill } from '../ui/AccountPlan';
@@ -6,10 +7,11 @@ import { addGoal } from '../core/finance';
 import { todayISO } from '../core/dates';
 import { NewGoal } from './NewGoal';
 import { GoalCard, GoalView, type GoalInfo } from './GoalView';
+import { isGoalPaused } from '../core/goalPause';
 import { GoalRing } from '../ui/GoalRing';
 import { GTile } from './Split';
 import { milestone } from '../core/onboarding';
-import { DebtBoost, MoreInfo, PaymentList } from './DebtBoost';
+import { DebtBoost, MoreInfo, PaySection } from './DebtBoost';
 import { CountMoney } from '../ui/CountMoney';
 import { allPayments, inPeriod, isEssential } from '../core/payments';
 import { hasFeature } from '../core/plan';
@@ -79,15 +81,20 @@ export function SimpleAccounts() {
   const [edit, setEdit] = useState<string | null>(null);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [openAcc, setOpenAcc] = useState<string | null>(null); // poupança/dívida aberta na lista
+  const [presetM, setPresetM] = useState<string | undefined>(undefined); // valor por mês sugerido pelo Planeamento
   const reload = () => { loadAll().then(setD).catch(() => {}); db.goals.toArray().then((g) => setGoals(live(g))).catch(() => {}); };
   useEffect(() => { reload(); }, []);
+  useEffect(() => { // ?editar=<conta>&mensal=<cêntimos>: abre a conta já com o valor por mês sugerido
+    const q = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
+    if (!q.get('editar')) return;
+    setEdit(q.get('editar')); setPresetM(String(Number(q.get('mensal') || 0)));
+    window.history.replaceState(null, '', window.location.href.split('?')[0] + '?tab=' + (q.get('tab') || 'savings'));
+  }, []);
 
   const now = new Date();
   const salaryToDate = (d?.salaries ?? []).filter((x) => x.year * 100 + x.month <= now.getFullYear() * 100 + now.getMonth() + 1).reduce((a, x) => a + x.amountCents, 0);
   const balOf = (a: Account) => (d ? accountBalanceCents(a, d.txs, d.accounts, salaryToDate, d.transfers) : 0);
   // Mesma conta que o Início: dinheiro nas contas (sem dívidas) e, à parte, quanto se deve
-  const money_ = (d?.accounts ?? []).filter((a) => a.type !== 'debt').reduce((sum, a) => sum + balOf(a), 0);
-  const debts = (d?.accounts ?? []).filter((a) => a.type === 'debt').reduce((sum, a) => sum + balOf(a), 0);
   const openEdit = (a: Account) => setEdit(a.id);
   const closeEdit = () => setEdit(null);
   const saveEdit = async (a: Account, e: AccountEdit) => {
@@ -108,7 +115,7 @@ export function SimpleAccounts() {
     const paid = a.type === 'debt' ? (d?.transfers ?? []).filter((t2) => t2.toAccountId === a.id).reduce((x, t2) => x + t2.amountCents, 0) : 0;
     const base = d ? accountBalanceCents(a, d.txs, d.accounts, salaryToDate, d.transfers.filter((t2) => t2.toAccountId !== a.id)) : 0;
     const init = a.type === 'debt' ? a.initialBalanceCents + beforePayments(v, paid, plan) - base : a.initialBalanceCents + (v - before);
-    await updateAccount(db, a.id, { name: e.name, description: joinDesc(e.desc, plan), initialBalanceCents: init });
+    await updateAccount(db, a.id, { name: e.name, description: joinDesc(e.desc, plan), initialBalanceCents: init, includeInNetWorth: e.inNet, ...(e.main ? { isDefault: true } : {}) });
     closeEdit(); reload();
   };
   const delAcc = async (a: Account) => {
@@ -122,38 +129,70 @@ export function SimpleAccounts() {
   const list = (d?.accounts ?? []).filter((a) => a.type === tab).sort((a, b) => a.order - b.order);
   const endText = (months: number) => planEnd(months, s.language);
   const editing = (d?.accounts ?? []).find((a) => a.id === edit);
+  const [preset, setPreset] = useState<string | null>(null); // poupança por mês pedida ao criar a 1.ª conta de gastos
+  // vindo da simulação de compra às prestações: nova dívida já preenchida
+  const [debtPre] = useState(() => { const q = new URLSearchParams(window.location.hash.split('?')[1] ?? ''); return q.get('nova') === 'debt' ? { name: q.get('nome') ?? '', bal: String(Number(q.get('valor') || 0) / 100).replace('.', ','), monthly: String(Number(q.get('mes') || 0) / 100).replace('.', ',') } : null; });
+  const [debtOpen, setDebtOpen] = useState(!!debtPre);
 
   return (
     <div className="fx-page mv sh">
       <header className="mv-head"><h1 className="sh-title">{L('Contas')}</h1></header>
-      <div className="gx-tiles even two">
-        <GTile d="M3 7a2 2 0 0 1 2-2h13v4M3 7v11a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1H5a2 2 0 0 1-2-2zM16 14.5h.01" tone={money_ < 0 ? 'neg' : 'pos'} label={L('Dinheiro nas contas')} value={money(money_)} />
-        <GTile d="M12 19V5M5 12l7-7 7 7" tone={debts > 0 ? 'neg' : ''} label={L('Dívidas')} value={money(debts)} />
+      {(() => { // telemóvel: uma só caixa com o património líquido (as quatro caixas ficam só no PC)
+        const accs = d?.accounts ?? [], net = accs.filter((a) => a.includeInNetWorth).reduce((x, a) => x + (a.type === 'debt' ? -Math.abs(balOf(a)) : balOf(a)), 0);
+        return <section className="mv-card acc-netcard"><span className="acc-netic"><Ic d="M3 17l6-6 4 4 8-8M14 7h7v7" size={20} /></span><div><small>{L('Património líquido')}</small><b className={net < 0 ? 'fx-neg' : 'fx-pos'}><CountMoney cents={net} money={money} /></b><em>{L('O que tens nas contas menos o que deves.')}</em></div></section>;
+      })()}
+      <div className={'acc-seg t-' + tab} role="tablist" style={{ ['--i' as string]: Math.max(0, TYPES.findIndex((x) => x.id === tab)) }}>
+        <span className="acc-seg-pill" aria-hidden="true" />
+        {TYPES.map((x) => {
+          const n = (d?.accounts ?? []).filter((a) => a.type === x.id).length;
+          return <button key={x.id} type="button" role="tab" aria-selected={tab === x.id} className={'t-' + x.id + (tab === x.id ? ' on' : '')} onClick={() => { markPeriodChange(); setTab(x.id); setForm(false); }}><span className="acc-seg-ic"><Ic d={TYPE_IC[x.id]} size={17} /></span>{x.label}{n > 0 && <em>{n}</em>}</button>;
+        })}
       </div>
-      <div className="sh-seg" role="tablist">
-        {TYPES.map((x) => <button key={x.id} type="button" role="tab" aria-selected={tab === x.id} className={tab === x.id ? 'on' : ''} onClick={() => { setTab(x.id); setForm(false); }}>{x.label}</button>)}
-      </div>
-      {tab === 'debt' && <p className="sh-info">{L('Para baixar uma dívida, faz uma transferência de uma conta de gastos ou de poupança para a conta da dívida.')}</p>}
+      {(() => {
+        const accs = d?.accounts ?? [];
+        const sumOf = (k: Account['type']) => accs.filter((a) => a.type === k).reduce((x, a) => x + balOf(a), 0);
+        const net = accs.filter((a) => a.includeInNetWorth).reduce((x, a) => x + (a.type === 'debt' ? -Math.abs(balOf(a)) : balOf(a)), 0);
+        const out = accs.filter((a) => !a.includeInNetWorth).length;
+        const tile = (k: Account['type'], d2: string, label: string, v: number, tone: string, i: number) => (
+          <button key={k} type="button" className={'gx-tile acc-tile t-' + k + (tab === k ? ' on' : '')} style={{ ['--i' as string]: i }} onClick={() => { markPeriodChange(); setTab(k); setForm(false); }} aria-pressed={tab === k}>
+            <span aria-hidden="true"><Ic d={d2} size={20} /></span><div><small>{label}</small><b className={tone}>{money(v)}</b></div>
+          </button>
+        );
+        return (
+          <div className="gx-tiles even acc-tiles">
+            {tile('spending', TYPE_IC.spending, L('Gastos'), sumOf('spending'), sumOf('spending') < 0 ? 'fx-neg' : '', 0)}
+            {tile('savings', TYPE_IC.savings, L('Poupança'), sumOf('savings'), sumOf('savings') > 0 ? 'fx-pos' : '', 1)}
+            {tile('debt', TYPE_IC.debt, L('Dívidas'), sumOf('debt'), sumOf('debt') > 0 ? 'fx-neg' : '', 2)}
+            <div className="gx-tile acc-tile acc-net" style={{ ['--i' as string]: 3 }} title={L('O que tens nas contas menos o que deves.')}>
+              <span aria-hidden="true"><Ic d="M3 17l6-6 4 4 8-8M14 7h7v7" size={20} /></span>
+              <div><small>{L('Património líquido')}</small><b className={net < 0 ? 'fx-neg' : 'fx-pos'}>{money(net)}</b>{out > 0 && <em>{out === 1 ? L('1 conta fora das contas') : fill(L('{n} contas fora das contas'), { n: String(out) })}</em>}</div>
+            </div>
+          </div>
+        );
+      })()}
       {list.length === 0 && <EmptyState icon="M3 7a2 2 0 0 1 2-2h13v4M3 7v11a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1H5a2 2 0 0 1-2-2zM16 14.5h.01" title={tab === 'debt' ? L('Sem dívidas registadas') : tab === 'savings' ? L('Sem contas de poupança') : L('Sem contas de gastos')} text={tab === 'debt' ? L('Regista um empréstimo para acompanhares quanto ainda falta pagar.') : L('Cria uma conta para veres o teu saldo sempre atualizado.')} examples={tab === 'debt' ? ['🏠 Crédito habitação', '🚗 Crédito auto'] : tab === 'savings' ? ['🐷 Poupanças', '🛟 Fundo de emergência'] : ['🏦 Conta do banco', '💶 Dinheiro']} />}
       {list.map((a) => (
         <div key={a.id} className="sh-accwrap">
           <button type="button" className={'acc-card sh-acc t-' + a.type} onClick={() => (a.type === 'spending' ? openEdit(a) : setOpenAcc(openAcc === a.id ? null : a.id))} aria-expanded={a.type === 'spending' ? undefined : openAcc === a.id} aria-label={a.type === 'spending' ? `${L('Alterar conta')}: ${a.name}` : a.name}>
             {a.type !== 'spending' && <span className="acc-chev"><Ic d={ICON.down} size={18} /></span>}
             <div className="acc-card-top"><span className="acc-card-ic"><Ic d={TYPE_IC[a.type]} size={16} /></span><b>{a.name}</b>{a.isDefault && a.name !== L('Principal') && <small>{L('Principal')}</small>}</div>
-            <div className={'acc-card-val' + (balOf(a) < 0 ? ' neg' : '')}>{money(balOf(a))}</div>
+            <div className={'acc-card-val' + (balOf(a) < 0 ? ' neg' : '')}><CountMoney cents={balOf(a)} money={money} /></div>
           </button>
           {a.type === 'spending' ? splitDesc(a.description).text && <p className="acc-desc">{splitDesc(a.description).text}</p> : (
             <div className={'acc-exp' + (openAcc === a.id ? ' open' : '')} aria-hidden={openAcc !== a.id} inert={openAcc !== a.id}><div>
               <AccountPlanBox a={a} p={planInfo(a, balOf(a), d?.transfers ?? [], goals.find((x) => x.id === splitDesc(a.description).plan?.goalId), now)} money={money} lang={s.language} onEdit={() => openEdit(a)} more={<MoreInfo id={a.id} />}>
-                <div className="db-inbox"><h3>{a.type === 'debt' ? L('Pagamentos feitos') : L('Dinheiro que entrou')}</h3><PaymentList a={a} transfers={d?.transfers ?? []} txs={d?.txs ?? []} accounts={d?.accounts ?? []} money={money} lang={s.language} /></div>
+                <PaySection inner title={a.type === 'debt' ? L('Pagamentos feitos') : L('Dinheiro que entrou')} a={a} transfers={d?.transfers ?? []} txs={d?.txs ?? []} accounts={d?.accounts ?? []} money={money} lang={s.language} short={3} />
               </AccountPlanBox>
             </div></div>
           )}
         </div>
       ))}
+      {tab === 'debt' && list.length > 0 && <p className="acc-tip"><Ic d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20zM12 16v-4M12 8h.01" size={15} />{L('Para baixar uma dívida, faz uma transferência de uma conta de gastos ou de poupança para a conta da dívida.')}</p>}
 <button type="button" className="sh-btn in" onClick={() => setForm(true)}><Ic d={ICON.plus} size={20} />{L('Criar conta')}</button>
-      {form && <NewAccount initial={tab} accounts={d?.accounts ?? []} balOf={balOf} money={money} endText={endText} onClose={() => setForm(false)} onDone={(k) => { setForm(false); setTab(k); reload(); }} />}
-      {editing && <NewAccount key={editing.id} initial={editing.type} accounts={d?.accounts ?? []} balOf={balOf} money={money} endText={endText} onClose={closeEdit} onDone={() => {}}
+      {debtOpen && debtPre && <NewAccount key="debtpre" initial="debt" preset={debtPre} accounts={d?.accounts ?? []} balOf={balOf} money={money} endText={endText} onClose={() => setDebtOpen(false)} onDone={() => { setDebtOpen(false); setTab('debt'); reload(); }} />}
+      {form && <NewAccount key={preset ?? 'new'} initial={preset ? 'savings' : tab} preset={preset ? { monthly: preset } : undefined} accounts={d?.accounts ?? []} balOf={balOf} money={money} endText={endText} onClose={() => { setForm(false); setPreset(null); }}
+        onDone={(k, next) => { reload(); if (next) { setTab('savings'); setPreset(next.saveMonthly); setForm(true); } else { setForm(false); setPreset(null); setTab(k); } }} />}
+      {editing && <NewAccount key={editing.id} initial={editing.type} presetMonthly={presetM} accounts={d?.accounts ?? []} balOf={balOf} money={money} endText={endText} onClose={() => { closeEdit(); setPresetM(undefined); }} onDone={() => setPresetM(undefined)}
         edit={{ acc: editing, goal: goals.find((x) => x.id === splitDesc(editing.description).plan?.goalId), onSave: (e) => saveEdit(editing, e), onDelete: editing.isDefault ? undefined : () => delAcc(editing) }} />}
     </div>
   );
@@ -180,6 +219,17 @@ export function SimpleLimits() {
   const [endM, setEndM] = useState(''); // AAAA-MM
   const reload = () => loadAll().then(setD).catch(() => {});
   useEffect(() => { reload(); }, []);
+  // vindo de uma sugestão do Planeamento: abre "Novo limite" com a categoria e o valor sugeridos (para o mês que vem)
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
+    if (q.get('novo') !== '1') return;
+    const v = Number(q.get('valor') || 0);
+    if (q.get('cat')) setCat(q.get('cat')!);
+    if (v > 0) setAmt((v / 100).toFixed(2).replace('.', ','));
+    setCur({ y: new Date(now.getFullYear(), now.getMonth() + 1, 1).getFullYear(), m: new Date(now.getFullYear(), now.getMonth() + 1, 1).getMonth() });
+    setForm(true);
+    window.history.replaceState(null, '', window.location.href.split('?')[0]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const shift = (k: number) => setCur((c) => ({ y: c.y + Math.floor((c.m + k) / 12), m: ((c.m + k) % 12 + 12) % 12 }));
   const prefix = `${cur.y}-${String(cur.m + 1).padStart(2, '0')}`;
@@ -235,7 +285,7 @@ export function SimpleLimits() {
 
   return (
     <div className="fx-page mv sh lm-page">
-      <header className="mv-head"><h1 className="sh-title">{L('Limites do mês')}</h1><Link to="/orcamentos-completo" className="mv-sq lim-adv" aria-label={L('Mais opções')}><Ic d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4" size={18} /></Link></header>
+      <header className="mv-head"><h1 className="sh-title">{L('Limites do mês')}</h1></header>
       <section className={'mv-hero sh-hero lm-hero' + (limits.length ? '' : ' none')}>
         <div className="mv-hero-top">
           <button type="button" className="mv-chev" onClick={() => shift(-1)} aria-label={L('Mês anterior')}><Ic d={ICON.left} size={18} /></button>
@@ -315,8 +365,16 @@ export function SimpleGoals() {
   const [left_, setLeft] = useState(false);
   const navigate = useNavigate();
   const [form, setForm] = useState(false);
+  const [preset, setPreset] = useState<string | undefined>(undefined); // data sugerida pelo Planeamento (AAAA-MM-DD)
+  const [pause, setPause] = useState(false);
   const reload = async () => setD({ ...(await loadAll()), goals: live(await db.goals.toArray()) });
   useEffect(() => { reload().catch(() => {}); }, []);
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
+    if (q.get('meta')) { setOpen(q.get('meta')); if (q.get('data')) setPreset(q.get('data') + '-01'); setForm(true); }
+    if (q.get('pausar') === '1') setPause(true);
+    if (q.get('meta') || q.get('pausar')) window.history.replaceState(null, '', window.location.href.split('?')[0]);
+  }, []);
 
   const now = new Date();
   const salaryToDate = (d?.salaries ?? []).filter((x) => x.year * 100 + x.month <= now.getFullYear() * 100 + now.getMonth() + 1).reduce((a, x) => a + x.amountCents, 0);
@@ -383,8 +441,8 @@ export function SimpleGoals() {
   const gAcc = viaAcc ?? accGoals.find((y) => y.g.id === g?.id)?.acc;
   if (g && d) return (
     <>
-      <GoalView g={g} acc={gAcc} info={info(g)} accounts={d.accounts} extra={gAcc?.type === 'debt' ? <DebtBoost key={gAcc.id} a={gAcc} left={Math.max(0, balOf(gAcc))} txs={d.txs} accounts={d.accounts} transfers={d.transfers} balOf={balOf} money={money} lang={s.language} reload={reload} /> : gAcc ? <section className="mv-card gl-sec"><h2>{L('Dinheiro que entrou')}</h2><PaymentList a={gAcc} transfers={d.transfers} txs={d.txs} accounts={d.accounts} money={money} lang={s.language} short={8} /></section> : undefined} valueOf={(a) => goalValueCents(a, balOf(a))} money={money} date={date} onBack={() => { if (viaGoal) { setLeft(true); navigate('/contas'); } else setOpen(null); }} onEdit={() => setForm(true)} reload={reload} />
-      {form && <NewGoal edit={g} current={currentOf(g)} accounts={d.accounts} balOf={balOf} money={money} onClose={() => setForm(false)} onDone={() => { setForm(false); reload(); }} />}
+      <GoalView g={g} acc={gAcc} info={info(g)} accounts={d.accounts} extra={gAcc?.type === 'debt' ? <DebtBoost key={gAcc.id} a={gAcc} left={Math.max(0, balOf(gAcc))} txs={d.txs} accounts={d.accounts} transfers={d.transfers} balOf={balOf} money={money} lang={s.language} reload={reload} /> : gAcc ? <PaySection title={L('Dinheiro que entrou')} a={gAcc} transfers={d.transfers} txs={d.txs} accounts={d.accounts} money={money} lang={s.language} short={5} /> : undefined} valueOf={(a) => goalValueCents(a, balOf(a))} money={money} date={date} onBack={() => { if (viaGoal) { setLeft(true); navigate('/contas'); } else setOpen(null); }} onEdit={() => setForm(true)} reload={reload} />
+      {form && <NewGoal edit={g} presetEnd={preset} current={currentOf(g)} accounts={d.accounts} balOf={balOf} money={money} onClose={() => { setForm(false); setPreset(undefined); }} onDone={() => { setForm(false); setPreset(undefined); reload(); }} />}
     </>
   );
   // total juntado: cada conta conta uma só vez, mesmo que sirva para várias metas
@@ -403,11 +461,19 @@ export function SimpleGoals() {
         <span className="gl-total-sub">{L('de')} {money(aim)}{doneN > 0 && <em>✓ {doneN} {doneN === 1 ? L('concluída') : L('concluídas')}</em>}</span>
         <div className="sh-bar"><i style={{ width: `${Math.max(0, Math.min(1, savedTotal / aim)) * 100}%` }} /></div>
       </section>}
+      {(d?.goals.length ?? 0) > 0 && (() => {
+        const pausedN = (d?.goals ?? []).filter((x) => isGoalPaused(x)).length, until = (d?.goals ?? []).find((x) => isGoalPaused(x))?.paused?.until;
+        return pausedN > 0
+          ? <section className="mv-card gp-bar on"><span className="gp-ic"><Ic d="M8 5v14M16 5v14" size={18} /></span><div><b>{pausedN === 1 ? L('1 meta em pausa') : fill(L('{n} metas em pausa'), { n: String(pausedN) })}</b><small>{until ? fill(L('Até {d}. Depois voltam sozinhas.'), { d: new Date(until + 'T12:00:00').toLocaleDateString(s.language, { day: 'numeric', month: 'long' }) }) : L('Até as retomares. Não contam no Planeamento.')}</small></div>
+              <button type="button" className="gp-go" onClick={async () => { const t2 = new Date().toISOString(); for (const x of d?.goals ?? []) if (x.paused) await db.goals.update(x.id, { paused: null, updatedAt: t2 }); reload(); }}><Ic d="M7 5l12 7-12 7z" size={15} />{L('Retomar')}</button></section>
+          : <button type="button" className="gp-bar" onClick={() => setPause(true)}><span className="gp-ic"><Ic d="M8 5v14M16 5v14" size={18} /></span><div><b>{L('Pausar todas as metas')}</b><small>{L('Para quando o mês aperta. Retomas quando quiseres.')}</small></div><span class="gp-go ghost"><Ic d="M9 6l6 6-6 6" size={15} /></span></button>;
+      })()}
       {ownGoals.length > 0 && accGoals.length > 0 && <div className="goal-sec gl-part"><h2><span className="pco-mic"><Ic d="M6 21V4h11l-2 4 2 4H6" size={18} /></span>{L('As tuas metas')}</h2></div>}
       {ownGoals.length > 0 && <div className="gl-grid">{ownGoals.map((x, i) => <GoalCard key={x.id} g={x} info={info(x)} money={money} i={i} onOpen={() => setOpen(x.id)} />)}</div>}
       {accGoals.length > 0 && <div className={'goal-sec gl-part' + (ownGoals.length > 0 ? ' line' : '')}><h2><span className="pco-mic"><Ic d={ICON.wallet} size={18} /></span>{L('Das tuas contas')}</h2></div>}
       {accGoals.length > 0 && <div className="gl-grid">{accGoals.map(({ g: x, acc }, i) => <GoalCard key={x.id} g={x} acc={acc} icon={TYPE_IC[acc.type]} info={info(x)} money={money} i={i} onOpen={() => setOpen(x.id)} />)}</div>}
 <button type="button" className="sh-pill" onClick={() => setForm(true)}><Ic d={ICON.plus} size={16} />{L('Criar meta')}</button>
+      {pause && <PauseGoals goals={d?.goals ?? []} onClose={() => setPause(false)} onDone={() => { setPause(false); reload(); }} />}
       {form && <NewGoal accounts={d?.accounts ?? []} balOf={balOf} money={money} onClose={() => setForm(false)} onDone={() => { setForm(false); reload(); }} />}
     </div>
   );
@@ -561,9 +627,9 @@ export function SimpleOverview({ yearly = false, embed }: { yearly?: boolean; em
   </>);
   const totalsEl = (<>
           <div className="sh-kpis three">
-            <div className="sh-kpi"><small>{L('Rendimentos')}</small><span className="sh-valline"><b className="fx-pos">{money(m.income)}</b>{cmp('inc', m.income, pm.income, true)}</span></div>
-            <div className="sh-kpi"><small>{L('Despesas')}</small><span className="sh-valline"><b className="fx-neg">{money(m.expense)}</b>{cmp('exp', m.expense, pm.expense, false)}</span></div>
-            <div className="sh-kpi"><small>{L('Saldo')}</small><span className="sh-valline"><b className={bal < 0 ? 'fx-neg' : 'fx-pos'}>{money(bal)}</b>{cmp('bal', bal, prevBal, true)}</span></div>
+            <div className="sh-kpi inc"><span className="sh-kpi-ic"><Ic d="M12 19V5M5 12l7-7 7 7" size={17} /></span><small>{L('Rendimentos')}</small><span className="sh-valline"><b className="fx-pos">{money(m.income)}</b>{cmp('inc', m.income, pm.income, true)}</span></div>
+            <div className="sh-kpi exp"><span className="sh-kpi-ic"><Ic d="M12 5v14M5 12l7 7 7-7" size={17} /></span><small>{L('Despesas')}</small><span className="sh-valline"><b className="fx-neg">{money(m.expense)}</b>{cmp('exp', m.expense, pm.expense, false)}</span></div>
+            <div className="sh-kpi sav"><span className="sh-kpi-ic"><Ic d="M19 7a3 3 0 0 0-3-2H9a6 6 0 0 0-6 6c0 2 1 3.5 2 4.5V19h3v-2h5v2h3v-3a6 6 0 0 0 2-3h2V9h-2z" size={17} /></span><small>{yearly ? L('Poupança') : L('Saldo')}</small><span className="sh-valline"><b className={bal < 0 ? 'fx-neg' : 'fx-pos'}>{money(bal)}</b>{cmp('bal', bal, prevBal, true)}</span></div>
           </div>
   </>);
   const linesEl = (<>
@@ -583,7 +649,7 @@ export function SimpleOverview({ yearly = false, embed }: { yearly?: boolean; em
           </div>
           {catRows.total === 0 ? <p className="fx-muted" style={{ textAlign: 'center' }}>{t('blk.noData')}</p> : (
             <div className="sh-cats">
-              <div className="sh-donut" style={{ background: `conic-gradient(${donut})` }}><span><small>{t('blk.total')}</small><b>{money(catRows.total)}</b></span></div>
+              <div className="sh-donut" style={{ background: `conic-gradient(${donut})` }}><span><small>{t('blk.total')}</small><b><CountMoney cents={catRows.total} money={money} /></b></span></div>
               <div className="sh-catlist">{catRows.list.map((x, i) => (
                 <div key={x.id} className="sh-catrow">
                   <i className="sh-dot" style={{ background: COLS[i % COLS.length] }} />
@@ -647,5 +713,36 @@ export function SimpleOverview({ yearly = false, embed }: { yearly?: boolean; em
         </>
       ) : catsEl}
     </div>
+  );
+}
+
+/** Pausar todas as metas de uma vez: porquê, e se é só por um tempo (até uma data). */
+const PAUSE_REASONS = ['Tive despesas inesperadas', 'Recebi menos este mês', 'Quero pagar dívidas primeiro', 'Preciso de folga no orçamento', 'Nenhuma destas opções'];
+function PauseGoals({ goals, onClose, onDone }: { goals: Goal[]; onClose: () => void; onDone: () => void }) {
+  const [reason, setReason] = useState(''), [temp, setTemp] = useState(false), [until, setUntil] = useState(() => { const n = new Date(), e = new Date(n.getFullYear(), n.getMonth() + 2, 0); return `${e.getFullYear()}-${String(e.getMonth() + 1).padStart(2, '0')}-${String(e.getDate()).padStart(2, '0')}`; }); // por omissão: até ao fim do mês que vem
+  const [busy, setBusy] = useState(false);
+  const missing = useMissing();
+  const miss = missing([['reason', L('o motivo'), !!reason], ['until', L('até quando'), !temp || !!until]]);
+  const go = async () => {
+    if (!miss.check() || busy) return;
+    setBusy(true);
+    const t2 = new Date().toISOString();
+    for (const g of goals) if (g.currentCents < g.targetCents || g.accountIds?.length) await db.goals.update(g.id, { paused: { at: t2, until: temp ? until : null, reason }, updatedAt: t2 });
+    setBusy(false); onDone();
+  };
+  return (
+    <BottomSheet title={L('Pausar metas')} onClose={onClose}>
+      <div className="acc-form gp-form">
+        {miss.note}
+        <div className="gp-hero"><span><Ic d="M8 5v14M16 5v14" size={22} /></span><p>{L('Enquanto estiverem em pausa, as metas não contam no Planeamento nem nos avisos. O dinheiro que já juntaste fica igual.')}</p></div>
+        <div className={'gp-sec' + (miss.cls('reason') ? ' ' + miss.cls('reason') : '')}><b>{L('Porque queres pausar?')}</b>
+          <div className="gp-reasons">{PAUSE_REASONS.map((x, i) => <button key={x} type="button" className={reason === x ? 'on' : ''} style={{ ['--i' as string]: i }} onClick={() => setReason(x)}><i>{reason === x && <Ic d="M20 6 9 17l-5-5" size={13} />}</i>{L(x)}</button>)}</div>
+        </div>
+        <div className="tx-rows">
+          <SwitchRow icon={FI.date} cls={miss.cls('until')} label={temp ? L('Pausar até') : L('Pausar só por um tempo?')} sub={temp ? undefined : L('Se não ativares, ficam em pausa até as retomares')} on={temp} onChange={setTemp}><DatePicker value={until} onChange={setUntil} className="fx-input tx-val" /></SwitchRow>
+        </div>
+        <button type="button" className="tx-addbtn" disabled={busy} onClick={go}>{L('Pausar todas as metas')}</button>
+      </div>
+    </BottomSheet>
   );
 }
