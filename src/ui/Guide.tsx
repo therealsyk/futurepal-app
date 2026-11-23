@@ -70,6 +70,7 @@ const EXPNAV = (): StepDef[] => [{ path: pc() ? '/' : undefined, sel: pc() ? '.p
 const MORE = (): StepDef[] => [
   nav('/transacoes', 'nav.transactions'),
   { path: '/transacoes', sel: '.txs-search, .fx-search', t: () => L('Transações'), d: I.list, text: () => L('Aqui vês e procuras todas as tuas transações.') },
+  { path: '/definicoes?tab=data', sel: '[data-testid=import-row]', t: () => L('Importar'), d: 'M12 4v12M7 11l5 5 5-5M4 20h16', tap: true, text: () => L('Sem paciência para escrever tudo? Em Definições › Dados › Importar, escolhes o ficheiro do teu banco (CSV, Excel ou PDF) e a app junta as despesas sozinha.') },
 ];
 const REST = (): StepDef[] => [
   { path: '/', sel: '.sh-hero, .pco-metric', t: () => L('Início'), d: I.home, text: () => L('No Início vês quanto tens, quanto gastaste e quanto sobra.') },

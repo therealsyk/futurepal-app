@@ -1202,6 +1202,8 @@ export const PHRASES: Record<string, Tr> = {
   'Se passares a pagar {p} por mês, passas a poupar {a} por mês em vez de {b} e acabas {t} mais cedo.': ['If you pay {p} a month, you will save {a} a month instead of {b} and finish {t} sooner.', 'Si pagas {p} al mes, ahorrarás {a} al mes en lugar de {b} y terminarás {t} antes.', 'Si vous payez {p} par mois, vous épargnerez {a} par mois au lieu de {b} et finirez {t} plus tôt.'],
   'Poupas também {m} em juros.': ['You also save {m} in interest.', 'También ahorras {m} en intereses.', 'Vous économisez aussi {m} d’intérêts.'],
   'Num mês normal recebes {i} e gastas {g}. Sobram-te {f}: as opções usam só uma parte disso.': ['In a normal month you earn {i} and spend {g}. {f} is left: the options use only part of it.', 'En un mes normal recibes {i} y gastas {g}. Te sobran {f}: las opciones usan solo una parte.', 'Un mois normal, vous recevez {i} et dépensez {g}. Il reste {f} : les options n’en utilisent qu’une partie.'],
+  'Importar': ['Import', 'Importar', 'Importer'],
+  'Sem paciência para escrever tudo? Em Definições › Dados › Importar, escolhes o ficheiro do teu banco (CSV, Excel ou PDF) e a app junta as despesas sozinha.': ['No patience to type it all? In Settings › Data › Import, pick your bank’s file (CSV, Excel or PDF) and the app adds the expenses for you.', '¿Sin paciencia para escribirlo todo? En Ajustes › Datos › Importar, eliges el archivo de tu banco (CSV, Excel o PDF) y la app añade los gastos.', 'Pas envie de tout saisir ? Dans Réglages › Données › Importer, choisissez le fichier de votre banque (CSV, Excel ou PDF) et l’app ajoute les dépenses.'],
 };
 
 /** Português do Brasil: as palavras de Portugal que lá se dizem de outra forma. */
