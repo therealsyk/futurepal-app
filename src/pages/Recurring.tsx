@@ -1,3 +1,4 @@
+import { CountText } from '../ui/CountText';
 // Recorrentes: subscrições e pagamentos que se repetem. Mostra quanto pesam, encontra os que ainda não estão adicionados
 // e faz as contas a quanto se podia poupar. Aviso (RecurringPopup): pergunta se a pessoa quer adicionar um que se repete.
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
@@ -6,7 +7,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
 import type { Category, Recurring, RecurringFrequency, Transaction } from '../db/database';
-import { activeCategories, addRecurring, advanceDate, materializeDueRecurrings, RECURRING_FREQUENCIES } from '../core/finance';
+import { activeCategories, addRecurring, advanceDate, materializeDueRecurrings, RECURRING_FREQUENCIES, softDelete } from '../core/finance';
 import { allPayments, inPeriod, isEssential, isoDay, nextFrom, payKey, serviceOf, type Payment, type ServiceKind } from '../core/payments';
 import { formatMoney, parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
@@ -67,6 +68,9 @@ export function RecurringPage() {
   const [per, setPer] = useState<Period>(() => initialPeriod());
   const [edit, setEdit] = useState<Payment | null>(null);
   const [off, setOff] = useState<Record<string, boolean>>({}); // simulação: pagamentos a libertar
+  const [cutIds] = useState(() => (new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('cortar') ?? '').split(',').filter(Boolean)); // vindo de uma sugestão do Planeamento
+  const [rm, setRm] = useState(false), [rmBusy, setRmBusy] = useState(false);
+  useEffect(() => { if (!cutIds.length || !d) return; const o: Record<string, boolean> = {}; for (const p of [...added, ...found]) o[p.key] = !!p.recId && cutIds.includes(p.recId); setOff(o); setTimeout(() => document.querySelector('.rc-save')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 350); window.history.replaceState(null, '', window.location.href.split('?')[0]); }, [d]); // eslint-disable-line react-hooks/exhaustive-deps
   const catOf = (id: string) => d?.cats.find((c) => c.id === id);
   const all = [...added, ...found], range = periodRange(per);
   const sums = all.map((p) => inPeriod(p, range.from, range.to)), paid = sums.reduce((a, x) => a + x.paid, 0), due = sums.reduce((a, x) => a + x.due, 0);
@@ -90,13 +94,18 @@ export function RecurringPage() {
       <PeriodFilter value={per} onChange={setPer} />
       {all.length > 0 && <>
         <section className="mv-hero sh-hero gl-hero lm-sum rc-hero">
-          <GoalRing r={Math.min(1, ratio)} size={176}><b>{Math.round(ratio * 100)}%</b><small>{L('dos teus gastos')}</small></GoalRing>
+          <GoalRing r={Math.min(1, ratio)} size={176}><b><CountText text={`${Math.round(ratio * 100)}%`} /></b><small>{L('dos teus gastos')}</small></GoalRing>
           <div className="gl-have"><small>{L('Pagamentos que se repetem')}</small><b className="fx-neg"><CountMoney cents={paid + due} money={money} /></b>
             {due > 0 && <small>{fill(L('ainda vão sair {m}'), { m: money(due) })}</small>}</div>
         </section>
         <div className="gx-tiles lm-tiles">
-          <GTile d={CALENDAR} label={L('Por mês')} value={money(month)} />
-          <GTile d="M4 20V10M10 20V4M16 20v-7M22 20H2" label={L('Por ano')} value={money(month * 12)} />
+          {per.mode === 'year' ? <>
+            <GTile d={CALENDAR} label={L('Por mês')} value={money(month)} />
+            <GTile d="M4 20V10M10 20V4M16 20v-7M22 20H2" label={L('Por ano')} value={money(month * 12)} />
+          </> : <>
+            <GTile d="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 7v5l3 2" label={L('Por dia')} value={money(Math.round((month * 12) / 365))} />
+            <GTile d={CALENDAR} label={L('Por mês')} value={money(month)} />
+          </>}
           <GTile d={REPEAT} label={L('Pagamentos')} value={String(all.length)} />
         </div>
       </>}
@@ -114,10 +123,28 @@ export function RecurringPage() {
       {added.length > 0 && <section className="rc-sec">{found.length > 0 && <h2>{L('Os teus pagamentos')}</h2>}<div className="gl-grid">{added.map(card)}</div></section>}
       {d && all.length === 0 && hidden === 0 && <EmptyState icon={REPEAT} title={L('Sem pagamentos recorrentes')} text={L('Adiciona os que pagas todos os meses. A app também os encontra nas tuas despesas.')} examples={['🎬 Netflix', '🎵 Spotify', '💡 ' + L('Luz'), '🏠 ' + L('Renda')]} />}
       {all.length > 0 && <section className="mv-card gl-sec rc-save">
-        <div className="rc-savehead"><div><h2>{L('Quanto podias poupar')}</h2><p className="gl-sub">{L('Toca no que podias deixar de pagar.')}</p></div><div className="rc-savenum"><b className="fx-pos"><CountMoney cents={save * 12} money={money} /></b><small>{L('por ano')}</small></div></div>
-        <div className="rc-chips">{all.map((p) => <button key={p.recId ?? p.key} type="button" aria-pressed={freed(p)} className={freed(p) ? 'on' : ''} onClick={() => setOff((o) => ({ ...o, [p.key]: !freed(p) }))}><Ic d={freed(p) ? 'M20 6 9 17l-5-5' : ICON.plus} size={15} /><span>{title(p)}</span><b>{money(p.monthlyCents)}/{L('mês')}</b></button>)}</div>
+        <div className="rc-savehead"><div><h2>{L('Quanto podias poupar')}</h2><p className="gl-sub">{L('Toca no que podias deixar de pagar.')}</p></div><div className="rc-savenum"><b className="fx-pos"><CountMoney cents={per.mode === 'year' ? save * 12 : save} money={money} /></b><small>{per.mode === 'year' ? L('por ano') : L('por mês')}</small></div></div>
+        {(() => { const tot = all.reduce((a, p) => a + p.monthlyCents, 0), n = all.filter(freed).length; return <div className="rc-savebar-w"><span className="rc-savebar" aria-hidden="true"><i style={{ width: `${tot > 0 ? Math.max(save > 0 ? 3 : 0, (save / tot) * 100) : 0}%` }} /></span><small>{fill(L('{n} de {t} escolhidos · {y} por ano'), { n: String(n), t: String(all.length), y: money(save * 12) })}</small></div>; })()}
+        <div className="rc-chips">{all.map((p) => <button key={p.recId ?? p.key} type="button" aria-pressed={freed(p)} className={freed(p) ? 'on' : ''} onClick={() => setOff((o) => ({ ...o, [p.key]: !freed(p) }))}><Ic d={freed(p) ? 'M20 6 9 17l-5-5' : ICON.plus} size={15} /><span>{title(p)}</span><b>{per.mode === 'year' ? <>{money(p.monthlyCents)}/{L('mês')}</> : <>{money(Math.round(p.monthlyCents * 12 / 365))}/{L('dia')}</>}</b></button>)}</div>
+        {(() => { const sel = all.filter((p) => freed(p) && p.recId), tot = sel.reduce((a, p) => a + p.monthlyCents, 0); return sel.length > 0 && <button type="button" className="rc-rmbtn" key={sel.length} onClick={() => setRm(true)}>
+          <span className="rc-rmb-ic"><Ic d={ICON.trash} size={17} /></span>
+          <span className="rc-rmb-tx"><b>{sel.length === 1 ? L('Remover o pagamento escolhido') : fill(L('Remover os {n} pagamentos escolhidos'), { n: String(sel.length) })}</b><small>{fill(L('Deixas de os registar na app · {v}/mês'), { v: money(tot) })}</small></span>
+          <em>{sel.length}</em><Ic d="M9 6l6 6-6 6" size={16} />
+        </button>; })()}
       </section>}
       <button type="button" className="sh-pill" onClick={() => openTxForm({ type: 'expense', recurring: true })}><Ic d={ICON.plus} size={16} />{L('Novo recorrente')}</button>
+      {rm && createPortal(<div className="spi-back rc-rmback" onMouseDown={(e) => { if (e.target === e.currentTarget && !rmBusy) setRm(false); }}>
+        <section className="spi-card rc-rmcard" role="dialog" aria-modal="true" aria-label={L('Remover pagamentos recorrentes')}>
+          <span className="rc-rmic"><Ic d={ICON.trash} size={26} /></span>
+          <h2>{L('Tens a certeza?')}</h2>
+          <p>{L('Vais deixar de registar estes pagamentos na app:')}</p>
+          <ul className="rc-rmlist">{all.filter((p) => freed(p) && p.recId).map((p) => <li key={p.key}><b>{title(p)}</b><span>{money(p.monthlyCents)}/{L('mês')}</span></li>)}</ul>
+          <div className="rc-rmwarn"><Ic d="M12 8v5M12 16h.01M12 3l9 16H3z" size={18} /><p><b>{L('Lembra-te:')}</b> {L('remover aqui não cancela o serviço. A app só serve para registares e gerires as tuas despesas. Para deixares mesmo de pagar, contacta cada empresa e pede o cancelamento.')}</p></div>
+          <div className="rc-rmacts">
+            <button type="button" className="gl-act" disabled={rmBusy} onClick={() => setRm(false)}>{L('Cancelar')}</button>
+            <button type="button" className="gl-act danger" disabled={rmBusy} onClick={async () => { setRmBusy(true); for (const p of all.filter((x) => freed(x) && x.recId)) await softDelete(db, 'recurrings', p.recId!); setRmBusy(false); setRm(false); setOff({}); changed(); }}>{L('Sim, remover')}</button>
+          </div>
+        </section></div>, document.body)}
       {edit && <EditSheet p={edit} cats={d?.cats ?? []} onClose={() => setEdit(null)} />}
     </div>
   );

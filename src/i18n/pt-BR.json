@@ -16,7 +16,8 @@
     "theme_light": "Claro",
     "overview": "Visão mensal",
     "accounts": "Contas",
-    "plus": "Plus"
+    "plus": "Plus",
+    "planning": "Planejamento"
   },
   "common": {
     "appName": "FuturePal",
@@ -394,7 +395,7 @@
     "monthTotal": "Total mensal",
     "yearTotal": "Total do ano",
     "subtitle": "Salário de cada mês e rendimentos extra.",
-    "plusExtras": "+ {{value}} em extras",
+    "plusExtras": "{{value}} em extras",
     "monthlySalary": "Salário mensal",
     "editHint": "Escreva o valor de cada mês. Salva sozinho.",
     "noExtras": "Sem extras neste ano",
@@ -758,7 +759,8 @@
     "tipBank": "No internet banking, exporte os lançamentos em CSV, Excel ou OFX: são os formatos que dão melhor resultado.",
     "tipAi": "PDFs difíceis e fotos são lidos pelo seu modelo de IA.",
     "tipAiOff": "(Conecte um modelo em Configurações > IA.)",
-    "tipPrivacy": "O arquivo é lido neste aparelho. Só é enviado ao provedor de IA se você tocar em \"Usar IA\".",
+    "tipPrivacy": "Se um arquivo não puder ser lido automaticamente, aparece o botão \"Usar IA\". Só então ele é enviado ao seu provedor de IA.",
+    "localOnly": "Seu documento fica só neste aparelho. Ele nunca passa pelos nossos servidores e nós não temos acesso a ele.",
     "noRows": "Não encontrei lançamentos neste arquivo.",
     "noRowsTryAi": "Não consegui ler os lançamentos automaticamente. Quer que a IA tente?",
     "noRowsNoAi": "Não consegui ler os lançamentos. Conecte um modelo de IA em Configurações > IA para ler PDFs difíceis e fotos.",
@@ -922,7 +924,9 @@
     "prev_m1": "mês anterior",
     "prev_q": "3 meses anteriores",
     "prev_s": "6 meses anteriores",
-    "prev_custom": "período anterior"
+    "prev_custom": "período anterior",
+    "avgDayShort": "Média {{v}}/dia",
+    "avgMonthShort": "Média {{v}}/mês"
   },
   "blk": {
     "latest": "Últimas movimentações",

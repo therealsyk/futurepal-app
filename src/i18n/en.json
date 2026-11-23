@@ -16,7 +16,8 @@
     "theme_light": "Light",
     "overview": "Monthly overview",
     "accounts": "Accounts",
-    "plus": "Plus"
+    "plus": "Plus",
+    "planning": "Planning"
   },
   "common": {
     "appName": "FuturePal",
@@ -394,7 +395,7 @@
     "monthTotal": "Monthly total",
     "yearTotal": "Year total",
     "subtitle": "Each month's salary and extra income.",
-    "plusExtras": "+ {{value}} in extras",
+    "plusExtras": "{{value}} in extras",
     "monthlySalary": "Monthly salary",
     "editHint": "Type each month’s amount. It saves by itself.",
     "noExtras": "No extras this year",
@@ -897,7 +898,8 @@
     "tipBank": "In your online banking, export transactions as CSV, Excel or OFX — they give the best results.",
     "tipAi": "Hard PDFs and photos are read by your AI model.",
     "tipAiOff": "(Connect a model in Settings > AI.)",
-    "tipPrivacy": "The file is read on this device. It is only sent to your AI provider if you press \"Use AI\".",
+    "tipPrivacy": "If a file can't be read automatically, a \"Use AI\" button appears. Only then is it sent to your AI provider.",
+    "localOnly": "Your document stays only on this device. It never goes through our servers and we have no access to it.",
     "noRows": "No transactions found in this file.",
     "noRowsTryAi": "Couldn't read the transactions automatically. Let the AI try?",
     "noRowsNoAi": "Couldn't read the transactions. Connect an AI model in Settings > AI to read hard PDFs and photos.",
@@ -1458,7 +1460,9 @@
     "prev_m1": "previous month",
     "prev_q": "previous 3 months",
     "prev_s": "previous 6 months",
-    "prev_custom": "previous period"
+    "prev_custom": "previous period",
+    "avgDayShort": "Avg. {{v}}/day",
+    "avgMonthShort": "Avg. {{v}}/month"
   },
   "blk": {
     "latest": "Latest transactions",

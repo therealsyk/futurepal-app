@@ -55,3 +55,16 @@ describe('pagamentos recorrentes', () => {
     expect(nextFrom(p, today)).toBe('2026-12-20');
   });
 });
+
+describe('deteção de recorrentes: casos que não fazem sentido', () => {
+  const S = { createdAt: '', updatedAt: '', deletedAt: null };
+  const t = (id: string, date: string, cents: number, description: string, categoryId: string) => ({ id, date, type: 'expense' as const, categoryId, description, amountCents: cents, currency: 'EUR', accountId: 'main', ...S });
+  it('10 € de gasolina duas vezes com 6 meses de intervalo não é recorrente', () => {
+    const txs = [t('a', '2026-04-10', 1000, 'Galp', 'cat-catGas'), t('b', '2026-10-10', 1000, 'Galp', 'cat-catGas'), t('c', '2026-06-02', 4500, 'Galp', 'cat-catGas'), t('d', '2026-08-20', 3800, 'Galp', 'cat-catGas')];
+    expect(detectPayments(txs, new Date('2026-11-01T12:00:00'))).toHaveLength(0);
+  });
+  it('Netflix todos os meses continua a ser detetado', () => {
+    const txs = ['2026-07-14', '2026-08-14', '2026-09-14', '2026-10-14'].map((d, i) => t('n' + i, d, 1299, 'NETFLIX.COM', 'cat-catSubscriptions'));
+    expect(detectPayments(txs, new Date('2026-11-01T12:00:00')).map((p) => p.frequency)).toEqual(['monthly']);
+  });
+});

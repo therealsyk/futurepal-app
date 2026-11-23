@@ -19,12 +19,12 @@ import { BottomSheet } from './SimplePages';
 const show = (c: number) => (c > 0 ? String(c / 100).replace('.', ',') : '');
 const cents = (v: string) => Math.abs(parseMoneyToCents(v || '0') ?? 0);
 
-export function NewGoal({ edit, current = 0, accounts, balOf, money, onClose, onDone }: { edit?: Goal; current?: number; accounts: Account[]; balOf: (a: Account) => number; money: (c: number) => string; onClose: () => void; onDone: () => void }) {
+export function NewGoal({ edit, presetEnd, current = 0, accounts, balOf, money, onClose, onDone }: { edit?: Goal; presetEnd?: string; current?: number; accounts: Account[]; balOf: (a: Account) => number; money: (c: number) => string; onClose: () => void; onDone: () => void }) {
   const s = loadSettings();
   const was = splitDesc(edit?.notes), wasM = was.plan?.monthlyCents ?? 0;
   const [target, setTarget] = useState(show(edit?.targetCents ?? 0)), [name, setName] = useState(edit?.name ?? ''), [notes, setNotes] = useState(was.text);
   const [hasMonthly, setHasMonthly] = useState(wasM > 0), [monthly, setMonthly] = useState(show(wasM));
-  const [hasEnd, setHasEnd] = useState(!!edit?.targetDate), [end, setEnd] = useState(edit?.targetDate?.slice(0, 10) ?? '');
+  const [hasEnd, setHasEnd] = useState(!!presetEnd || !!edit?.targetDate), [end, setEnd] = useState(presetEnd ?? edit?.targetDate?.slice(0, 10) ?? '');
   const [how, setHow] = useState<'hand' | 'accounts'>(edit?.accountIds?.length ? 'accounts' : 'hand'), [accs, setAccs] = useState<string[]>(edit?.accountIds ?? []);
   const [repeat, setRepeat] = useState(false), [from, setFrom] = useState(''), [amount, setAmount] = useState<string | null>(null), [date, setDate] = useState(todayISO());
   const [busy, setBusy] = useState(false);

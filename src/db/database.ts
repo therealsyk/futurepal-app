@@ -83,6 +83,7 @@ export interface Goal extends BaseRecord {
   notes?: string;
   accountIds?: string[]; // contas que alimentam a meta (opcional)
   contributions?: Array<{ date: string; cents: number }>; // cada vez que se junta dinheiro (para a previsão por padrões)
+  paused?: { at: string; until: string | null; reason: string } | null; // meta em pausa (até à data, ou sem data)
 }
 
 export type RecurringFrequency = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'bimonthly' | 'quarterly' | 'semiannual' | 'yearly';

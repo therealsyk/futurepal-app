@@ -14,6 +14,14 @@ import { useIsMobile } from '../ui/useIsMobile';
 import { Sponsored } from '../ui/Sponsored';
 
 // SPEC §6.5: grelha por dia com o gasto sob o número; clicar abre o detalhe do dia.
+/** "November 1st" em inglês (com st/nd/rd/th); nas outras línguas, o formato normal ("1 de novembro"). */
+function dayLong(iso: string, lang: string): string {
+  const d = new Date(iso + 'T00:00:00');
+  if (!lang.startsWith('en')) return d.toLocaleDateString(lang, { day: 'numeric', month: 'long' });
+  const n = d.getDate(), suf = n % 100 >= 11 && n % 100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[n % 10] ?? 'th';
+  return `${d.toLocaleDateString(lang, { month: 'long' })} ${n}${suf}`;
+}
+
 export default function Calendar() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -111,7 +119,7 @@ export default function Calendar() {
           <div className="fx-col">
             <Metric icon={IC_SPENT} tone="exp" title={t('calendar.yearTotal')} value={money(yearTotal)} valueClass={yearTotal > 0 ? 'fx-neg' : ''} delta={dl(yearTotal, prevYearTotal)} deltaGoodUp={false} prevName={String(calYear - 1)} vsLabel={vs} bar={yearTotal > 0 ? 1 : 0} />
             <Metric icon={IC_CAL} tone="sav" title={t('calendar.monthAverage')} value={monthsWithSpend ? money(Math.round(yearTotal / monthsWithSpend)) : '—'} delta={monthsWithSpend && prevAvg ? dl(yearTotal / monthsWithSpend, prevAvg) : null} deltaGoodUp={false} prevName={String(calYear - 1)} vsLabel={vs} bar={yearMax > 0 && monthsWithSpend ? Math.min(1, (yearTotal / monthsWithSpend) / Math.max(1, topMonth?.total ?? 1)) : 0} />
-            <Metric icon={IC_TOP} tone="inc" title={t('calendar.topMonth')} value={topMonth && topMonth.total > 0 ? money(topMonth.total) : '—'} delta={null} deltaGoodUp={false} prevName="" vsLabel="" sub={topMonth && topMonth.total > 0 ? monthNames[topMonth.i] : t('calendar.yearHint')} bar={topMonth && yearTotal > 0 ? topMonth.total / yearTotal : 0} />
+            <Metric icon={IC_TOP} tone="inc" title={t('calendar.topMonth')} value={topMonth && topMonth.total > 0 ? money(topMonth.total) : '—'} delta={null} deltaGoodUp={false} prevName="" vsLabel="" corner={topMonth && topMonth.total > 0 ? monthNames[topMonth.i] : t('calendar.yearHint')} bar={topMonth && yearTotal > 0 ? topMonth.total / yearTotal : 0} />
           </div>
         </div>
       ) : (
@@ -134,7 +142,7 @@ export default function Calendar() {
         </div>
         <div className="fx-col">
           <Metric icon={IC_SPENT} tone="exp" title={ranged ? L('Gasto no período') : t('calendar.monthTotal')} value={money(ranged ? rangeTotal : monthTotal)} valueClass={(ranged ? rangeTotal : monthTotal) > 0 ? 'fx-neg' : ''} delta={ranged ? dl(rangeTotal, prevRangeTotal) : dl(monthTotal, prevMonthTotal)} deltaGoodUp={false} prevName={ranged ? t('pco.prev_' + per.preset) : prevMonthName} vsLabel={vs} bar={(ranged ? rangeTotal : monthTotal) > 0 ? 1 : 0} />
-          <Metric icon={IC_TOP} tone="inc" title={t('calendar.topDay')} value={best ? money(best[1]) : '—'} delta={null} deltaGoodUp={false} prevName="" vsLabel="" sub={best ? new Date(best[0] + 'T00:00:00').toLocaleDateString(settings.language, { day: 'numeric', month: 'long' }) : t('calendar.dayPanelHint')} bar={best && monthTotal > 0 ? best[1] / monthTotal : 0} />
+          <Metric icon={IC_TOP} tone="inc" title={t('calendar.topDay')} value={best ? money(best[1]) : '—'} delta={null} deltaGoodUp={false} prevName="" vsLabel="" corner={best ? dayLong(best[0], settings.language) : t('calendar.dayPanelHint')} bar={best && monthTotal > 0 ? best[1] / monthTotal : 0} />
         </div>
       </div>
       )}

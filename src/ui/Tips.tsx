@@ -86,7 +86,7 @@ export function HelpPage() {
         </section>
       ))}</div>
       <button type="button" className="ob-cta lg-go hp-tour" onClick={resumeGuide}>{guideStarted() ? L('Continuar a visita guiada') : L('Fazer a visita guiada')}<Ic d="M5 12h14M13 6l6 6-6 6" size={18} /></button>
-      <button type="button" className="gl-act hp-reset" disabled={reset} onClick={() => { resetTips(); setReset(true); }}>{reset ? L('As dicas vão voltar a aparecer') : L('Mostrar as dicas outra vez')}</button>
+      <button type="button" className={'hp-reset' + (reset ? ' done' : '')} disabled={reset} onClick={() => { resetTips(); setReset(true); }}><span className="hp-reset-ic"><Ic d={reset ? 'M20 6 9 17l-5-5' : 'M3 12a9 9 0 0 1 15.5-6.3L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.5 6.3L3 16M3 21v-5h5'} size={17} /></span><span className="hp-reset-tx"><b>{reset ? L('As dicas vão voltar a aparecer') : L('Mostrar as dicas outra vez')}</b><small>{L('As explicações curtas de cada página voltam a aparecer.')}</small></span></button>
     </div>
   );
 }

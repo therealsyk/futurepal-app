@@ -19,6 +19,7 @@ import { withoutSalaryTx } from '../core/salaryTx';
 import { SimpleHome } from './SimpleHome';
 import { SimpleOverview } from './SimplePages';
 import { useAuth } from '../auth/AuthContext';
+import { L } from '../i18n/phrases';
 
 // Painel — visual "clean".
 // Toda a lógica trabalha em cêntimos inteiros; todo o texto passa por t().
@@ -177,12 +178,16 @@ export function OverviewChart({ series, upTo, money, t }: {
         ))}
       </svg>
       {hv && hover !== null && (
-        <div className="fx-bubble" style={{
+        <div key={hover} className="fx-bubble oc-tip" style={{
           left: `calc(44px + (100% - 44px) * ${x(hover) / W})`,
           top: `calc((100% - 22px) * ${y(Math.max(hv.earning, hv.spending)) / H})`,
+          // perto das margens o balão encosta para dentro (não fica cortado); perto do topo aparece por baixo do ponto
+          ['--tx' as string]: x(hover) / W < 0.2 ? '-12%' : x(hover) / W > 0.8 ? '-88%' : '-50%',
+          ['--ty' as string]: y(Math.max(hv.earning, hv.spending)) / H < 0.4 ? '18%' : '-125%',
         }}>
           <b className="cht-m">{hv.label}</b>
           <span className="cht-r"><i className="inc" />{t('pco.income')}<b>{money(hv.earning)}</b></span><span className="cht-r"><i className="exp" />{t('pco.expenses')}<b>{money(hv.spending)}</b></span>
+          <span className="cht-r oc-bal"><i className="bal" />{L('Saldo')}<b className={hv.earning - hv.spending < 0 ? 'fx-neg' : 'fx-pos'}>{money(hv.earning - hv.spending)}</b></span>
         </div>
       )}
       <div className="fx-xaxis">{series.map((s, i) => <span key={i}>{s.tick ?? s.label}</span>)}</div>

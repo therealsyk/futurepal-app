@@ -17,6 +17,9 @@ import './ui/pc-mobile.css';
 import { loadSettings, setTheme } from './core/settings';
 import { prepareDemo } from './demo/demo';
 import { setupAndroidBack } from './core/androidBack';
+import { setupMockSplit } from './dev/mockSplit';
+
+setupMockSplit(import.meta.env.VITE_SUPABASE_URL || ''); // só em desenvolvimento e só se ligado (preview)
 
 setupAndroidBack();
 prepareDemo(); // modo demonstração do website: língua, setup feito, sem tutorial
@@ -59,3 +62,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     </HashRouter>
   </React.StrictMode>
 );
+
+// Arrastar um link/imagem mostrava o endereço interno da app: só se arrastam textos selecionados e campos.
+document.addEventListener('dragstart', (e) => { const el = e.target as HTMLElement | null; if (el && el.closest && el.closest('a, img, button, [role="button"], [role="tab"]')) e.preventDefault(); });

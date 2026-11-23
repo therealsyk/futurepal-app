@@ -34,6 +34,8 @@ export function useIsAdmin(): boolean {
   return admin;
 }
 
+// no website (website/admin) não há app por trás do login
+const ADMIN_SITE = import.meta.env.MODE === 'admin';
 const date = (s: string | null) => (s ? new Date(s).toLocaleDateString() : '—');
 
 export function AdminPage() {
@@ -86,7 +88,7 @@ export function AdminPage() {
     // As versões publicadas acompanham sozinhas a última release do GitHub (Windows e Android).
     const gh = await githubLatest();
     if (gh) {
-      const notes = gh.notes.split('\n').map((l) => l.replace(/^[-*#\s]+/, '').trim()).filter(Boolean).join(' · ').slice(0, 300);
+      const notes = gh.notes.split('\n').map((l) => l.replace(/^[-*#>\s]+/, '').replace(/\*\*|__|`/g, '').trim()).filter(Boolean).join(' · ').slice(0, 300);
       const targets: Array<[string, string]> = [];
       if (gh.windows) targets.push(['windows', `https://github.com/${GITHUB_REPO}/releases/latest`]);
       if (gh.apkUrl) targets.push(['android', gh.apkUrl]);
@@ -133,9 +135,9 @@ export function AdminPage() {
   };
 
   void stats; void interest; // o Dashboard (AdminDash) carrega os seus próprios dados
-  if (!unlocked) return <><PcOverview /><AdminLogin onDone={() => setUnlocked(true)} onCancel={() => { window.location.hash = '#/'; }} /></>;
+  if (!unlocked) return <>{!ADMIN_SITE && <PcOverview />}<AdminLogin onDone={() => setUnlocked(true)} onCancel={() => { if (ADMIN_SITE) window.location.href = '../'; else window.location.hash = '#/'; }} /></>;
   if (role === undefined) return <div className="fx-page ad-page" />;
-  if (role === null) return <><PcOverview /><AdminLogin onDone={() => setUnlocked(true)} onCancel={() => { window.location.hash = '#/'; }} /></>;
+  if (role === null) return <>{!ADMIN_SITE && <PcOverview />}<AdminLogin onDone={() => setUnlocked(true)} onCancel={() => { if (ADMIN_SITE) window.location.href = '../'; else window.location.hash = '#/'; }} /></>;
   const shown: AdminTab = allowedTab(role, tab) ? tab : 'overview';
   return (
     <AdminShell tab={shown} onTab={setTab} onRefresh={() => load()} role={role}>

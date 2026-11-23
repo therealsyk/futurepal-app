@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import * as XLSX from 'xlsx';
 import { db } from '../db/app-db';
@@ -27,6 +27,7 @@ export function ImportStatement({ onDone }: { onDone?: () => void }) {
   const money = (c: number) => formatMoney(c, settings.currency, settings.language);
   const fileRef = useRef<HTMLInputElement>(null);
   const [phase, setPhase] = useState<Phase>('pick');
+  const [drag, setDrag] = useState(false);
   const [fileName, setFileName] = useState('');
   const [lines, setLines] = useState<Line[]>([]);
   const [cats, setCats] = useState<Category[]>([]);
@@ -195,20 +196,26 @@ export function ImportStatement({ onDone }: { onDone?: () => void }) {
   if (phase !== 'review') {
     return (
       <div className="im-pick">
-        <button type="button" className="im-drop" onClick={() => fileRef.current?.click()} disabled={phase === 'reading'}
-          onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) onFile(f); }} data-testid="import-drop">
-          <Ic d="M12 16V4M7 9l5-5 5 5M4 20h16" size={28} />
+        <button type="button" className={'im-drop' + (drag ? ' drag' : '') + (phase === 'reading' ? ' busy' : '')} onClick={() => fileRef.current?.click()} disabled={phase === 'reading'}
+          onDragOver={(e) => { e.preventDefault(); if (!drag) setDrag(true); }} onDragLeave={() => setDrag(false)}
+          onDrop={(e) => { e.preventDefault(); setDrag(false); const f = e.dataTransfer.files?.[0]; if (f) onFile(f); }} data-testid="import-drop">
+          <span className="im-orb" aria-hidden="true">
+            {phase === 'reading' ? <i className="im-spin" /> : <Ic d="M12 16V4M7 9l5-5 5 5M4 20h16" size={26} />}
+          </span>
           <b>{phase === 'reading' ? t('importer.reading', { name: fileName }) : t('importer.pick')}</b>
-          <span>{t('importer.formats')}</span>
+          <span className="im-fmts">{t('importer.formats').split(/,\s*|\s+(?:ou|or|o)\s+/).filter(Boolean).map((f, i) => <em key={f} style={{ '--i': i } as CSSProperties}>{f}</em>)}</span>
         </button>
         <input ref={fileRef} hidden type="file" accept={ACCEPT} data-testid="import-file" onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ''; }} />
-        {message && <p className="fx-small" role="status">{message}</p>}
+        {message && <p className="im-msg" role="status"><Ic d="M12 8v5M12 16h.01M12 3l9 16H3z" size={16} />{message}</p>}
         {aiSource && aiReady && <button type="button" className="fx-btn primary" onClick={() => runAi(aiSource)}>{t('importer.useAi')}</button>}
-        <ul className="im-tips">
-          <li>{t('importer.tipBank')}</li>
-          <li>{t('importer.tipAi')}{aiReady ? '' : ' ' + t('importer.tipAiOff')}</li>
-          <li>{t('importer.tipPrivacy')}</li>
-        </ul>
+        <div className="im-tips">
+          {[
+            ['M3 21h18M5 21V10M19 21V10M12 3 3 8h18zM9 21v-6h6v6', t('importer.tipBank')],
+            ['M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z', t('importer.tipAi') + (aiReady ? '' : ' ' + t('importer.tipAiOff'))],
+            ['M6 11V8a6 6 0 0 1 12 0v3M5 11h14v10H5zM12 15v2', t('importer.tipPrivacy')],
+          ].map(([d, txt], i) => <div key={i} className="im-tip" style={{ '--i': i } as CSSProperties}><span className="im-tic"><Ic d={d} size={17} /></span><p>{txt}</p></div>)}
+        </div>
+        <p className="im-local"><span className="im-lock"><Ic d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6zM9 12l2 2 4-4" size={15} /></span>{t('importer.localOnly')}</p>
       </div>
     );
   }

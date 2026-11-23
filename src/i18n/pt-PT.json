@@ -16,7 +16,8 @@
     "theme_light": "Claro",
     "overview": "Visão mensal",
     "accounts": "Contas",
-    "plus": "Plus"
+    "plus": "Plus",
+    "planning": "Planeamento"
   },
   "common": {
     "appName": "FuturePal",
@@ -476,7 +477,7 @@
     "annualSavings": "Poupança do ano",
     "savingsPercent": "% poupança",
     "subtitle": "Salário de cada mês e rendimentos extra.",
-    "plusExtras": "+ {{value}} em extras",
+    "plusExtras": "{{value}} em extras",
     "monthlySalary": "Salário mensal",
     "editHint": "Escreve o valor de cada mês. Guarda-se sozinho.",
     "noExtras": "Sem extras neste ano",
@@ -897,7 +898,8 @@
     "tipBank": "No homebanking, exporta os movimentos em CSV, Excel ou OFX: são os formatos que dão melhor resultado.",
     "tipAi": "PDFs difíceis e fotografias são lidos pelo teu modelo de IA.",
     "tipAiOff": "(Liga um modelo em Definições > IA.)",
-    "tipPrivacy": "O ficheiro é lido neste aparelho. Só é enviado ao fornecedor de IA se carregares em \"Usar IA\".",
+    "tipPrivacy": "Se um ficheiro não der para ler automaticamente, aparece o botão \"Usar IA\". Só aí é enviado ao teu fornecedor de IA.",
+    "localOnly": "O teu documento fica só neste dispositivo. Nunca passa pelos nossos servidores e nós não temos acesso a ele.",
     "noRows": "Não encontrei movimentos neste ficheiro.",
     "noRowsTryAi": "Não consegui ler os movimentos automaticamente. Queres que a IA tente?",
     "noRowsNoAi": "Não consegui ler os movimentos. Liga um modelo de IA em Definições > IA para ler PDFs difíceis e fotografias.",
@@ -1452,7 +1454,9 @@
     "prev_m1": "mês anterior",
     "prev_q": "3 meses anteriores",
     "prev_s": "6 meses anteriores",
-    "prev_custom": "período anterior"
+    "prev_custom": "período anterior",
+    "avgDayShort": "Média {{v}}/dia",
+    "avgMonthShort": "Média {{v}}/mês"
   },
   "blk": {
     "latest": "Últimos movimentos",

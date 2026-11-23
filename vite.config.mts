@@ -26,8 +26,10 @@ const cspPlugin = {
     <meta http-equiv="Content-Security-Policy" content="${CSP}" />`),
 };
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   base: './',
+  // website/admin: só o painel de administração (mesmos componentes da app)
+  build: mode === 'admin' ? { rollupOptions: { input: 'admin-site.html' } } : undefined,
   plugins: [react(), tailwindcss(), cspPlugin],
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
-});
+}));

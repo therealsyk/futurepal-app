@@ -1488,8 +1488,8 @@ html.pcm .fx-page.sh > .es { flex: 1 1 100% !important; width: 100% !important; 
 .gp-check { margin-left: auto; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--mv); color: var(--mv-ink, #032a2d); animation: gp-pop .3s ease both; }
 .gp-val { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 .gp-val em { font-style: normal; font-size: 13px; font-weight: 600; color: var(--muted); margin-left: 3px; }
-.gp-bar { height: 6px; border-radius: 99px; background: var(--track); overflow: hidden; }
-.gp-bar i { display: block; height: 100%; width: calc(var(--speed) * 100%); border-radius: 99px; background: linear-gradient(90deg, var(--mv), color-mix(in srgb, var(--mv) 55%, #fff)); transform-origin: left; animation: gp-grow .8s cubic-bezier(.2,.8,.2,1) both; animation-delay: calc(var(--i) * 70ms + 150ms); }
+.gp-track { height: 6px; border-radius: 99px; background: var(--track); overflow: hidden; }
+.gp-track i { display: block; height: 100%; width: calc(var(--speed) * 100%); border-radius: 99px; background: linear-gradient(90deg, var(--mv), color-mix(in srgb, var(--mv) 55%, #fff)); transform-origin: left; animation: gp-grow .8s cubic-bezier(.2,.8,.2,1) both; animation-delay: calc(var(--i) * 70ms + 150ms); }
 .gp-end { color: var(--muted); font-size: 12px; }
 @keyframes gp-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes gp-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
@@ -2969,7 +2969,7 @@ html.pcm .rc-rmbtn { width: auto; align-self: flex-start; padding: 0 22px; }
 .rc-rmacts .gl-act.danger { color: #fff; background: var(--red, #ff6b6b); border-color: transparent; }
 
 /* ───── Metas: pausar todas ───── */
-.gp-bar { display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px 16px; border-radius: 20px; font: inherit; color: var(--text); text-align: left; cursor: pointer;
+.gp-bar { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 14px 16px; border-radius: 20px; font: inherit; color: var(--text); text-align: left; cursor: pointer;
   background: var(--card); border: 1px dashed color-mix(in srgb, var(--amber) 40%, var(--border)); transition: border-color .2s, transform .2s, background .2s; animation: im-in .45s cubic-bezier(.2,.8,.2,1) both .15s; }
 button.gp-bar:hover { border-style: solid; transform: translateY(-2px); background: color-mix(in srgb, var(--amber) 5%, var(--card)); }
 .gp-bar > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; } .gp-bar b { font-size: 15px; } .gp-bar small { font-size: 12.5px; color: var(--muted); }

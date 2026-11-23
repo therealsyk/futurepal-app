@@ -23,12 +23,14 @@ import { tellSplit } from '../core/splitLive';
 import { EmptyState } from '../ui/EmptyState';
 import { openTxForm, useTxSaved } from '../ui/TxForm';
 import { L } from '../i18n/phrases';
+import { CountText } from '../ui/CountText';
 import { BottomSheet } from './SimplePages';
 
 export interface Member { userId: string; displayName: string; avatarUrl: string | null }
 interface PendingOut { id: string; email: string | null; phone: string | null; status?: string }
 type Personal = { bill: SplitBill; cents: number; date: string; categoryId: string; accountId?: string };
 const today = () => new Date().toLocaleDateString('sv-SE');
+const fillN = (t: string, ...v: string[]) => { let i = 0; return t.replace(/\{\w+\}/g, () => v[i++] ?? ''); };
 const errText = (e: unknown) => (e as { message?: string })?.message ?? String(e);
 const HOURGLASS = 'M6 3h12M6 21h12M7 3v3.5c0 2 5 4 5 5.5s-5 3.5-5 5.5V21M17 3v3.5c0 2-5 4-5 5.5s5 3.5 5 5.5V21';
 const FRIEND = 'M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M19 8v6M16 11h6';
@@ -40,13 +42,48 @@ export const CALENDAR = 'M5 5h14v15H5zM5 10h14M8 3v4M16 3v4';
 const FRIENDS = 'M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M22 19v-1a4 4 0 0 0-3-3.9M16 4.1a3 3 0 0 1 0 5.8';
 /** Caixa simples: ícone, o que é e o valor. */
 export function GTile({ d, label, value, tone = '' }: { d: string; label: string; value: string; tone?: string }) {
-  return <div className={'gx-tile ' + tone}><span aria-hidden="true"><Ic d={d} size={20} /></span><div><small>{label}</small><b>{value}</b></div></div>;
+  return <div className={'gx-tile ' + tone}><span aria-hidden="true"><Ic d={d} size={20} /></span><div><small>{label}</small><b><CountText text={value} /></b></div></div>;
 }
 
+const CROWN = 'M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z';
+/** Coroa no canto da foto de quem criou o grupo. */
+export const Crown = () => <i className="gx-crown" aria-hidden="true"><Ic d={CROWN} size={10} /></i>;
+
 /** Foto com o estado no canto: certo verde (pagou) ou relógio amarelo (falta). */
-function Who({ m, name, paid, wait }: { m: Member; name: string; paid?: boolean; wait?: boolean }) {
-  return <span className={'gx-who' + (wait ? ' inv' : '')} title={name}><Face m={m} /><i className={paid ? 'ok' : 'wait'}><Ic d={paid ? CHECK : CLOCK} size={9} /></i></span>;
+function Who({ m, name, paid, wait, boss }: { m: Member; name: string; paid?: boolean; wait?: boolean; boss?: boolean }) {
+  return <span className={'gx-who' + (wait ? ' inv' : '')} title={name}><Face m={m} />{boss && <Crown />}<i className={paid ? 'ok' : 'wait'}><Ic d={paid ? CHECK : CLOCK} size={9} /></i></span>;
 }
+
+const INTRO_KEY = 'wallet:split-intro-seen';
+/** Explicação curta dos grupos partilhados (primeira vez, ou em "Como funciona?"). */
+export function SplitIntro({ onClose }: { onClose: () => void }) {
+  const steps: Array<[string, string, string]> = [
+    ['M12 3v18M17 7H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6', L('Uma pessoa paga'), L('Quem cria o grupo paga o jantar, o hotel ou a gasolina e adiciona cada despesa ao grupo.')],
+    [FRIEND, L('Convida o grupo'), L('Convida as outras pessoas por email ou telemóvel. Cada despesa é dividida por todos.')],
+    [CHECK, L('Toda a gente sabe quanto deve'), L('Cada um vê quanto tem de mandar a quem criou o grupo e marca quando pagou. Acabou o «quanto é que te devo?».')],
+  ];
+  const close = () => { try { localStorage.setItem(INTRO_KEY, '1'); } catch { /* sem storage */ } onClose(); };
+  return createPortal(
+    <div className="spi-back" onMouseDown={(e) => { if (e.target === e.currentTarget) close(); }}>
+      <div className="spi-card si-card" role="dialog" aria-modal="true" aria-labelledby="si-title">
+        <div className="si-art" aria-hidden="true">
+          <span className="si-boss"><b>€</b><Crown /></span>
+          {['A', 'B', 'C'].map((x, i) => <span key={x} className="si-friend" style={{ '--i': i } as CSSProperties}>{x}<i className="si-coin" /></span>)}
+        </div>
+        <h2 id="si-title">{L('Como funcionam os grupos partilhados')}</h2>
+        <div className="si-steps">
+          {steps.map(([d, title, text], i) => (
+            <div key={title} className="si-step" style={{ '--i': i } as CSSProperties}>
+              <span className="si-n"><Ic d={d} size={18} /></span>
+              <p><b>{title}</b><small>{text}</small></p>
+            </div>
+          ))}
+        </div>
+        <button type="button" className="ob-cta" onClick={close}>{L('Percebi')}</button>
+      </div>
+    </div>, document.body);
+}
+export const splitIntroSeen = () => { try { return localStorage.getItem(INTRO_KEY) === '1'; } catch { return true; } };
 
 /** O que a janela Alterar precisa de saber de um grupo partilhado. */
 export interface SplitEditInfo { owner: boolean; people: Member[]; editors: string[] }
@@ -68,6 +105,9 @@ export function SplitGroup({ splitId, groupId, createdAt, color, pic, local, cat
   const [closing, setClosing] = useState<SplitBill | null>(null);
   const [accs, setAccs] = useState<Account[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [closedAt, setClosedAt] = useState<string | null>(null); // o criador concluiu as despesas
+  const [payAll, setPayAll] = useState<{ date: string; categoryId: string; accountId?: string } | null>(null), [busy, setBusy] = useState(false), [cheer, setCheer] = useState(false);
+  const [intro, setIntro] = useState(() => !splitIntroSeen());
   const [bals, setBals] = useState<Record<string, number>>({});
   const money = (c: number) => formatMoney(c, currency, s.language);
   const day = (iso: string) => new Date(iso).toLocaleDateString(s.language, { day: 'numeric', month: 'short', year: 'numeric' });
@@ -86,7 +126,7 @@ export function SplitGroup({ splitId, groupId, createdAt, color, pic, local, cat
     const sh = ids.length ? await sb.from('split_shares').select('*').in('bill_id', ids) : { data: [], error: null };
     const e = m.error || b.error || i.error || sh.error;
     setError(e ? errText(e) : null);
-    if (g.data) { setCurrency((g.data as { currency: string }).currency); setOwner((g.data as { owner_id: string }).owner_id); }
+    if (g.data) { setCurrency((g.data as { currency: string }).currency); setOwner((g.data as { owner_id: string }).owner_id); setClosedAt((g.data as { closed_at?: string | null }).closed_at ?? null); }
     setMembers((m.data ?? []).map((r: any) => ({ userId: r.user_id, displayName: r.display_name, avatarUrl: r.avatar_url ?? null })));
     setEditors((m.data ?? []).filter((r: any) => r.can_edit === true).map((r: any) => r.user_id as string));
     setBills(toBills(b.data ?? [], sh.data ?? [])); setLoaded(!e);
@@ -133,7 +173,7 @@ export function SplitGroup({ splitId, groupId, createdAt, color, pic, local, cat
   const shareOf = (b: SplitBill, uid: string) => eachOf(b) || (b.shares.find((x) => x.userId === uid)?.shareCents ?? 0);
   // a minha parte registada nas minhas transações, para não aparecer duas vezes
   const mineOf = (b: SplitBill) => local.find((x) => billOfTx(x.id) === b.id) ?? local.find((x) => !billOfTx(x.id) && x.type === 'expense' && x.description === b.description && Math.abs(x.amountCents - shareOf(b, me)) <= 1);
-  const canEdit = owner === me || editors.includes(me);
+  const canEdit = (owner === me || editors.includes(me)) && !closedAt;
   const crowd: Array<Member & { wait?: boolean }> = [...members, ...pending.map((i) => ({ userId: i.id, displayName: i.email ?? '+' + i.phone, avatarUrl: null, wait: true }))]; // quem aparece no botão de convidar
   const nameOf = (id: string) => (id === me ? L('Tu') : members.find((m) => m.userId === id)?.displayName ?? '?');
   const memberOf = (id: string): Member => members.find((m) => m.userId === id) ?? { userId: id, displayName: nameOf(id), avatarUrl: null };
@@ -145,6 +185,10 @@ export function SplitGroup({ splitId, groupId, createdAt, color, pic, local, cat
   const owed = bills.filter((b) => b.createdBy === me).reduce((a, b) => a + Math.max(0, leftOf(b) - (b.shares.some((x) => x.userId === me && !x.paidAt) ? shareOf(b, me) : 0)), 0);
 
   useTxSaved(() => { load().catch(() => {}); });
+  const allShares = bills.flatMap((b) => b.shares.filter((x) => x.shareCents > 0));
+  const paidCount = allShares.filter((x) => x.paidAt).length;
+  const done = !!closedAt && paidCount === allShares.length; // concluído: tudo pago
+  const toWhom = [...new Set(unpaid.map((b) => b.createdBy))].filter((x) => x !== me);
   // outra pessoa (só quem adicionou a transação): marca ou desmarca
   const mark = async (b: SplitBill, uid: string, paid: boolean) => {
     if (!(await appConfirm(`${paid ? L('Esta pessoa já pagou?') : L('Marcar como por pagar?')} ${nameOf(uid)}: ${money(shareOf(b, uid))}`, { ok: L('Sim'), danger: false }))) return;
@@ -161,6 +205,27 @@ export function SplitGroup({ splitId, groupId, createdAt, color, pic, local, cat
     if (!(await rpc('set_split_paid', { p_bill: b.id, p_user: me, p_paid: true }))) return;
     if (!mineOf(b)) await putMyShare(db, b.id, me, { date: personal.date, type: 'expense', categoryId: personal.categoryId, description: b.description, amountCents: personal.cents, currency, accountId: personal.accountId || defaultAccountId(accs) || undefined, groupId });
     closePersonal(); await load(); onChanged();
+  };
+  // pagar de uma vez tudo o que devo neste grupo
+  const startPayAll = () => {
+    const exp = cats.filter((c) => c.deletedAt === null && catFitsKind(c, 'expense'));
+    setPayAll({ date: today(), categoryId: (exp.find((c) => c.nameKey === 'catOther') ?? exp[0])?.id ?? '' });
+  };
+  const confirmPayAll = async () => {
+    if (!payAll || busy) return;
+    setBusy(true);
+    try {
+      for (const b of unpaid) {
+        if (!(await rpc('set_split_paid', { p_bill: b.id, p_user: me, p_paid: true }))) return;
+        if (!mineOf(b)) await putMyShare(db, b.id, me, { date: payAll.date, type: 'expense', categoryId: payAll.categoryId, description: b.description, amountCents: shareOf(b, me), currency, accountId: payAll.accountId || defaultAccountId(accs) || undefined, groupId });
+      }
+      setPayAll(null); setCheer(true); setTimeout(() => setCheer(false), 2600);
+      await load(); onChanged();
+    } finally { setBusy(false); }
+  };
+  const setClosed = async (close: boolean) => {
+    const ok = await appConfirm(close ? L('Concluir as despesas deste grupo? Já não se podem adicionar despesas novas. O grupo fica à espera até toda a gente pagar e depois aparece como concluído.') : L('Reabrir o grupo para adicionar mais despesas?'), { ok: close ? L('Concluir') : L('Reabrir'), danger: false });
+    if (ok && (await rpc('close_split_group', { p_group: splitId, p_closed: close }))) { await load(); onChanged(); }
   };
   const leave = async () => {
     if (!(await appConfirm(L('Queres mesmo sair deste grupo? Deixas de ver as transações dele.'), { ok: L('Sair do grupo') }))) return;
@@ -187,6 +252,7 @@ export function SplitGroup({ splitId, groupId, createdAt, color, pic, local, cat
     <>
       <section className="mv-hero sh-hero grp-total gl-hero gg-hero gg-shared" style={{ '--g': color } as CSSProperties}>
         <button type="button" className="gx-leave" onClick={leave} aria-label={L('Sair do grupo')}><Ic d={LEAVE} size={17} /><span>{L('Sair')}</span></button>
+        <button type="button" className="gx-how" onClick={() => setIntro(true)} aria-label={L('Como funciona?')} title={L('Como funciona?')}>?</button>
         {pic}
         <div className="gl-sum">
           <div className="gl-have"><small>{L('Total do grupo')}</small><b>{money(total)}</b><small>{bills.length} {bills.length === 1 ? L('transação') : L('transações')}</small></div>
@@ -194,7 +260,7 @@ export function SplitGroup({ splitId, groupId, createdAt, color, pic, local, cat
             {canEdit && <button type="button" className="gl-act main" onClick={() => openTxForm({ type: 'expense', groupId })}><Ic d={ICON.plus} size={18} />{L('Adicionar transação')}</button>}
             <button type="button" className={'gl-act' + (crowd.length > 1 ? ' gx-inv' : '')} onClick={() => setInviting([])} aria-label={L('Convidar mais pessoas')} title={L('Convidar mais pessoas')}>
               <Ic d={FRIEND} size={18} />
-              {crowd.length > 1 ? <><span className="gg-faces">{crowd.slice(0, 4).map((m) => <span key={m.userId} className={m.wait ? 'wait' : ''} title={m.displayName}><Face m={m} /></span>)}{crowd.length > 4 && <i>+{crowd.length - 4}</i>}</span><span className="gx-plus" aria-hidden="true"><Ic d={ICON.plus} size={17} /></span></> : L('Convidar')}
+              {crowd.length > 1 ? <><span className="gg-faces">{crowd.slice(0, 4).map((m) => <span key={m.userId} className={m.wait ? 'wait' : ''} title={m.displayName}><Face m={m} />{m.userId === owner && <Crown />}</span>)}{crowd.length > 4 && <i>+{crowd.length - 4}</i>}</span><span className="gx-plus" aria-hidden="true"><Ic d={ICON.plus} size={17} /></span></> : L('Convidar')}
             </button>
             {canEdit && <button type="button" className="gl-act" onClick={() => onEdit({ owner: owner === me, people: members.filter((m) => m.userId !== me), editors })}><Ic d="M4 20h4L19 9l-4-4L4 16zM13 7l4 4" size={18} />{L('Alterar')}</button>}
           </div>
@@ -208,21 +274,40 @@ export function SplitGroup({ splitId, groupId, createdAt, color, pic, local, cat
         <GTile d={CALENDAR} label={L('Criado a')} value={day(createdAt)} />
       </div>
 
+      {closedAt && <section className={'gx-state' + (done ? ' done' : '')}>
+        <span className="gx-state-ic"><Ic d={done ? CHECK : HOURGLASS} size={20} /></span>
+        <div className="gx-state-txt"><b>{done ? L('Concluído') : L('Despesas concluídas · à espera de pagamentos')}</b>
+          <small>{done ? fillN(L('Toda a gente pagou. Concluído a {d}.'), day(closedAt)) : fillN(L('{p} de {t} partes pagas'), String(paidCount), String(allShares.length))}</small>
+          {!done && <span className="gx-state-bar"><i style={{ width: `${allShares.length ? (paidCount / allShares.length) * 100 : 0}%` }} /></span>}</div>
+        {owner === me && !done && <button type="button" className="gx-state-btn" onClick={() => setClosed(false)}>{L('Reabrir')}</button>}
+      </section>}
+
+      {owe > 0 && <section className="gx-payall">
+        <div className="gx-payall-top">
+          <span className="gx-payall-faces">{(toWhom.length ? toWhom : [owner]).slice(0, 3).map((u) => <span key={u} className="gx-who"><Face m={memberOf(u)} />{u === owner && <Crown />}</span>)}</span>
+          <div><small>{unpaid.length === 1 ? L('Deves 1 despesa') : fillN(L('Deves {n} despesas'), String(unpaid.length))}{toWhom.length === 1 ? ` · ${L('a')} ${nameOf(toWhom[0])}` : ''}</small><b>{money(owe)}</b></div>
+        </div>
+        <button type="button" className="gx-payall-btn" onClick={startPayAll}><Ic d={CHECK} size={18} />{unpaid.length > 1 ? L('Já paguei tudo') : L('Já paguei')}<span className="gx-shine" aria-hidden="true" /></button>
+      </section>}
+      {cheer && <div className="gx-cheer" role="status"><span><Ic d={CHECK} size={22} /></span>{L('Tudo pago! 🎉')}</div>}
+
       {loaded && bills.length === 0 && <EmptyState icon={EMPTY_IC} title={L('Ainda não há transações')} text={canEdit ? L('Tudo o que adicionares aqui é dividido por todos.') : L('Quando alguém adicionar uma despesa, aparece aqui a tua parte.')} examples={['🍽️ '+L('Jantar'), '🏨 '+L('Hotel'), '⛽ '+L('Gasolina'), '🛒 '+L('Compras')]} />}
       {bills.length > 0 && <section className="mv-card gl-sec">
         <h2>{L('Transações')}</h2>
-        {bills.map((b) => {
+        {bills.map((b, bi) => {
           const pr = billProgress(b), mine = mineOf(b), ex = open === b.id;
+          const head = bi === 0 || bills[bi - 1].date !== b.date;
           const left = leftOf(b);
           return (
             <div key={b.id} className="gx-item">
+              {head && <div className="sh-dayhead gx-dayhead"><b>{new Date(b.date + 'T12:00:00').toLocaleDateString(s.language, { weekday: 'short', day: 'numeric', month: 'short' })}</b></div>}
               <button type="button" className="sh-tx gx-row" aria-expanded={ex} onClick={() => setOpen(ex ? null : b.id)}>
                 <CatIcon cat={cats.find((c) => c.id === mine?.categoryId) ?? {}} size={36} />
-                <span className="sh-tx-main"><b>{b.description}</b><small>{day(b.date)} · {nameOf(b.createdBy)}</small></span>
+                <span className="sh-tx-main"><b>{b.description}</b><small>{L('Pago por')} {nameOf(b.createdBy)}</small></span>
                 <span className="gx-val"><b className="fx-neg">−{money(b.amountCents)}</b><em className={'gx-tag ' + (left > 0 ? 'warn' : 'ok')}>{left > 0 ? `${L('Falta')} ${money(left)}` : L('Pago')}</em></span><span className="gx-chev"><Ic d={ICON.down} size={16} /></span>
               </button>
               <div className="gx-faces">
-                {b.shares.map((x) => <Who key={x.userId} m={memberOf(x.userId)} name={nameOf(x.userId)} paid={!!x.paidAt} />)}
+                {b.shares.map((x) => <Who key={x.userId} m={memberOf(x.userId)} name={nameOf(x.userId)} paid={!!x.paidAt} boss={x.userId === owner} />)}
                 {pending.map((i) => <Who key={i.id} wait m={{ userId: i.id, displayName: i.email ?? i.phone ?? '?', avatarUrl: null }} name={i.email ?? '+' + i.phone} />)}
               </div>
               <div className={'acc-exp' + (ex ? ' open' : '')} aria-hidden={!ex} inert={!ex}><div><div className="gx-more">
@@ -237,8 +322,8 @@ export function SplitGroup({ splitId, groupId, createdAt, color, pic, local, cat
                     const mineRow = x.userId === me, can = b.createdBy === me && !mineRow;
                     return (
                       <div key={x.userId} className={'sp-row' + (x.paidAt ? ' paid' : '')}>
-                        <span className="sp-facewrap"><Face m={memberOf(x.userId)} />{x.paidAt && <i className="sp-paidmark">✓</i>}</span>
-                        <span className="sp-row-main"><span className="sp-row-top"><b>{nameOf(x.userId)}</b></span><small>{x.paidAt ? <span className="fx-pos">{L('Já pagou')} <b>{money(shareOf(b, x.userId))}</b></span> : <>{L('Tem de pagar')} <b>{money(shareOf(b, x.userId))}</b></>}</small></span>
+                        <span className="sp-facewrap"><Face m={memberOf(x.userId)} />{x.userId === owner && <Crown />}{x.paidAt && <i className="sp-paidmark">✓</i>}</span>
+                        <span className="sp-row-main"><span className="sp-row-top"><b>{nameOf(x.userId)}</b>{x.userId === owner && <em className="gx-boss">{L('Criador')}</em>}</span><small>{x.paidAt ? <span className="fx-pos">{L('Já pagou')} <b>{money(shareOf(b, x.userId))}</b></span> : <>{L('Tem de pagar')} <b>{money(shareOf(b, x.userId))}</b></>}</small></span>
                         {mineRow && !x.paidAt ? <button type="button" className="gx-pay" onClick={() => pay(b)}>{L('Pagar')}</button>
                           : can ? <button type="button" className={'sp-badge gx-mark ' + (x.paidAt ? 'ok' : 'wait')} onClick={() => mark(b, x.userId, !x.paidAt)}>{x.paidAt ? L('Pago') : L('Marcar como pago')}</button>
                           : <span className={'sp-badge ' + (x.paidAt ? 'ok' : 'wait')}>{x.paidAt ? L('Pago') : L('Pendente')}</span>}
@@ -253,13 +338,35 @@ export function SplitGroup({ splitId, groupId, createdAt, color, pic, local, cat
           );
         })}
       </section>}
+      {loaded && owner === me && !closedAt && bills.length > 0 && <button type="button" className="gx-close" onClick={() => setClosed(true)}>
+        <span className="gx-close-ic"><Ic d="M4 21V4h11l-1 4h6v9h-8l1-4H4" size={19} /></span>
+        <span className="gx-close-txt"><b>{L('Concluir despesas')}</b><small>{L('Acabou a viagem? Fecha o grupo e fica só a faltar os pagamentos.')}</small></span>
+        <Ic d="M9 6l6 6-6 6" size={18} />
+      </button>}
       {loaded && owner === me && <div className="gx-end"><button type="button" className="gx-rm" onClick={removeGroup}><Ic d={ICON.trash} size={18} />{L('Apagar grupo')}</button></div>}
+      {intro && <SplitIntro onClose={() => setIntro(false)} />}
+
+      {/* Pagar tudo de uma vez: confirma e fica nas tuas despesas */}
+      <Sheet open={!!payAll} onClose={() => setPayAll(null)} title={L('Pagar tudo')}
+        footer={<button type="button" className="tx-addbtn" disabled={busy} onClick={confirmPayAll}>{busy ? L('A registar…') : fillN(L('Sim, já paguei {m}'), money(owe))}</button>}>
+        {payAll && <>
+          <p className="gx-ask">{L('Já mandaste tudo o que devias')}{toWhom.length === 1 ? <> {L('a')} <b>{nameOf(toWhom[0])}</b></> : ''}?</p>
+          <div className="tx-amt gx-amt">−{money(owe)}</div>
+          <div className="gx-paylist">{unpaid.map((b, i) => <div key={b.id} className="gx-payline" style={{ '--i': i } as CSSProperties}><span>{b.description}</span><b>{money(shareOf(b, me))}</b></div>)}</div>
+          <div className="tx-rows">
+            <CategoryRow required cats={cats.filter((c) => c.deletedAt === null)} kind="expense" value={payAll.categoryId} onChange={(v) => setPayAll({ ...payAll, categoryId: v })} />
+            {accs.length > 0 && (() => { const aid = payAll.accountId || defaultAccountId(accs) || ''; return <AccountRow label={t('accounts.account')} value={aid} options={accs.map((a) => ({ id: a.id, name: a.name, right: bals[a.id] !== undefined ? money(bals[a.id]) : undefined }))} balance={bals[aid] !== undefined ? money(bals[aid]) : undefined} onChange={(v) => setPayAll({ ...payAll, accountId: v })} />; })()}
+            <DateRow label={t('transactions.date')} value={payAll.date} onChange={(v) => setPayAll({ ...payAll, date: v })} />
+          </div>
+          <p className="grp-hint">{L('Cada despesa fica nas tuas despesas, com a tua parte.')}</p>
+        </>}
+      </Sheet>
 
       {/* Convidar: quem está no grupo, quem falta responder e convidar mais pessoas */}
       {inviting && <BottomSheet title={L('Convidar')} onClose={() => setInviting(null)}>
         <div className="acc-form">
           <div className="sp-list gx-crew">
-            {members.map((m) => <div key={m.userId} className="sp-row"><Face m={m} /><span className="sp-row-main"><span className="sp-row-top"><b>{nameOf(m.userId)}</b></span></span><em className="gx-tag ok">{m.userId === owner ? L('Criou o grupo') : L('No grupo')}</em></div>)}
+            {members.map((m) => <div key={m.userId} className="sp-row"><span className="sp-facewrap"><Face m={m} />{m.userId === owner && <Crown />}</span><span className="sp-row-main"><span className="sp-row-top"><b>{nameOf(m.userId)}</b></span></span><em className="gx-tag ok">{m.userId === owner ? L('Criou o grupo') : L('No grupo')}</em></div>)}
             {invs.map((i) => { const who = i.email ?? '+' + i.phone, no = i.status === 'declined'; return <div key={i.id} className="sp-row"><span className={'gx-pic' + (no ? ' no' : ' wait')}><Face m={{ userId: i.id, displayName: who, avatarUrl: null }} /></span><span className="sp-row-main"><span className="sp-row-top"><b title={who}>{who}</b></span></span><em className={'gx-tag ' + (no ? 'no' : 'warn')}>{!no && <Ic d={HOURGLASS} size={12} />}{no ? L('Rejeitou') : L('Pendente')}</em></div>; })}
           </div>
           {error && <FormError text={error} />}

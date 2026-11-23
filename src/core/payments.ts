@@ -58,6 +58,25 @@ function pattern(key: string, all: Transaction[], ref: string, now: string): Pay
   return { key, name: (last.description || '').trim() || key, categoryId: last.categoryId, cents: last.amountCents, frequency: step[0], monthlyCents: monthlyEquivalentCents(last.amountCents, step[0]), nextDate: next, daysUntil: between(now, next), accountId: last.accountId, sure: list.length >= step[4], hits: list.map((t) => ({ date: t.date, cents: t.amountCents })) };
 }
 
+// categorias de gasto variável: só contam como recorrentes se forem mesmo regulares (semanal/mensal, valor quase igual, 4+ vezes)
+const VARIABLE_CAT = /cat-(catGas|catGroceries|catFood|catCoffee|catDrinks|catCandy|catTransport|catTaxi|catParking|catShopping|catClothes|catLeisure|catNightlife|catHobby|catLifestyle|catGift|catAnimals|catPharmacy|catHomeSupplies|catRepair|catMaintenance|catTravel|catHotel|catFlight|catVacation|catOther|catUnknown)$/;
+const LONG: RecurringFrequency[] = ['bimonthly', 'quarterly', 'semiannual', 'yearly'];
+/** Rejeita padrões que não fazem sentido como pagamento recorrente (ex.: 10 € de gasolina "a cada 6 meses"). */
+function plausible(p: Payment, cluster: number, merchant: number): boolean {
+  const svc = serviceOf(p.name), known = !!svc && !(svc.kind === 'energy' && /cat-catGas$/.test(p.categoryId)); // "Galp" em Combustível é bomba, não a conta do gás
+  const spread = (() => { const v = p.hits.map((h) => h.cents), mx = Math.max(...v), mn = Math.min(...v); return mx > 0 ? (mx - mn) / mx : 0; })();
+  if (VARIABLE_CAT.test(p.categoryId) && !known) {
+    if (LONG.includes(p.frequency)) return false;
+    if (p.hits.length < 4 || spread > 0.05) return false;
+  }
+  if (LONG.includes(p.frequency)) {
+    if (!known && p.cents < 2000) return false; // valores pequenos com meses de intervalo: quase sempre coincidência
+    if (!known && p.hits.length < 3) return false;
+    if (merchant > 0 && cluster / merchant < 0.6) return false; // o mesmo sítio tem muitas outras compras soltas
+  }
+  return true;
+}
+
 /** Despesas que se repetem com valor parecido e intervalo regular, e que ainda parecem estar ativas. */
 export function detectPayments(txs: Transaction[], today = new Date()): Payment[] {
   const now = isoDay(today), exp = txs.filter((t) => t.deletedAt === null && t.type === 'expense' && t.date <= now);
@@ -71,14 +90,14 @@ export function detectPayments(txs: Transaction[], today = new Date()): Payment[
     if (list.length < 2) continue;
     const varies = serviceOf(key)?.varies ?? false;
     const sets = varies ? [list] : clusters(list, 0.15);
-    const found = sets.map((x) => ({ x, p: pattern(key, x, ref, now) })).filter((y) => y.p);
+    const found = sets.map((x) => ({ x, p: pattern(key, x, ref, now) })).filter((y) => y.p && plausible(y.p, y.x.length, list.length));
     // o mesmo nome com dois valores: cada um fica com a sua chave
     found.forEach(({ x, p }, n) => take(n === 0 ? p : { ...p!, key: `${key}#${p!.cents}` }, x));
   }
   // nome que muda todos os meses (referências bancárias) mas a mesma categoria e exatamente o mesmo valor
   const same = new Map<string, Transaction[]>();
   for (const t of exp) if (!used.has(t.id) && t.amountCents >= 300) { const k = `cat:${t.categoryId}:${t.amountCents}`; same.set(k, [...(same.get(k) ?? []), t]); }
-  for (const [key, list] of same) { if (list.length < 3) continue; const p = pattern(key, list, ref, now); if (p && p.frequency !== 'weekly' && p.frequency !== 'biweekly') take(p, list); }
+  for (const [key, list] of same) { if (list.length < 3) continue; const p = pattern(key, list, ref, now); if (p && p.frequency !== 'weekly' && p.frequency !== 'biweekly' && plausible(p, list.length, list.length)) take(p, list); }
   return out;
 }
 

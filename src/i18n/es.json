@@ -16,7 +16,8 @@
     "theme_light": "Claro",
     "overview": "Resumen mensual",
     "plus": "Plus",
-    "accounts": "Cuentas"
+    "accounts": "Cuentas",
+    "planning": "Planificación"
   },
   "common": {
     "appName": "FuturePal",
@@ -271,7 +272,7 @@
     "annualSalaries": "Salarios del año",
     "annualExpenses": "Gastos del año",
     "annualSavings": "Ahorro del año",
-    "plusExtras": "+ {{value}} en extras",
+    "plusExtras": "{{value}} en extras",
     "monthlySalary": "Salario mensual",
     "editHint": "Escribe el importe de cada mes. Se guarda solo.",
     "noExtras": "Sin extras este año",
@@ -516,7 +517,8 @@
     "tipBank": "En tu banca online, exporta los movimientos en CSV, Excel u OFX: son los formatos que mejor funcionan.",
     "tipAi": "Los PDF difíciles y las fotos los lee tu modelo de IA.",
     "tipAiOff": "(Conecta un modelo en Ajustes > IA.)",
-    "tipPrivacy": "El archivo se lee en este dispositivo. Solo se envía a tu proveedor de IA si pulsas \"Usar IA\".",
+    "tipPrivacy": "Si un archivo no se puede leer automáticamente, aparece el botón \"Usar IA\". Solo entonces se envía a tu proveedor de IA.",
+    "localOnly": "Tu documento se queda solo en este dispositivo. Nunca pasa por nuestros servidores y no tenemos acceso a él.",
     "noRows": "No encontré movimientos en este archivo.",
     "noRowsTryAi": "No pude leer los movimientos automáticamente. ¿Quieres que lo intente la IA?",
     "noRowsNoAi": "No pude leer los movimientos. Conecta un modelo de IA en Ajustes > IA para leer PDF difíciles y fotos.",
@@ -676,7 +678,9 @@
     "prev_m1": "mes anterior",
     "prev_q": "3 meses anteriores",
     "prev_s": "6 meses anteriores",
-    "prev_custom": "periodo anterior"
+    "prev_custom": "periodo anterior",
+    "avgDayShort": "Media {{v}}/día",
+    "avgMonthShort": "Media {{v}}/mes"
   },
   "blk": {
     "latest": "Últimos movimientos",

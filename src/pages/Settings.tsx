@@ -1,3 +1,4 @@
+import { AlertPrefsPanel } from '../ui/AlertPrefs';
 import { PC_MOBILE } from '../core/uiMode';
 import { openTutorial } from '../ui/MobileTutorial';
 import { useRef, useState, type ChangeEvent, type CSSProperties, type ReactNode, useEffect } from 'react';
@@ -107,7 +108,7 @@ function Row({ icon, title, sub, children, onClick, testId, cls = '' }: { icon: 
     : <div className={'st-row' + cls} data-testid={testId}>{body}</div>;
 }
 
-const TABS = ['prefs', 'data', 'ai', 'about'] as const;
+const TABS = ['prefs', 'alerts', 'data', 'ai', 'about'] as const;
 
 export function Settings() {
   const { t, i18n } = useTranslation();
@@ -244,12 +245,13 @@ export function Settings() {
       </section>
 
       <div className="st2-tabs" role="tablist" style={{ '--i': tab } as CSSProperties}>
-        {([[I.sliders, t('settings2.preferences')], [I.data, L('Dados')], [I.spark, t('ai.section')], [I.info, t('updates.about')]] as const).map(([d, label], i) => (
+        {([[I.sliders, t('settings2.preferences')], ['M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10.3 21a1.9 1.9 0 0 0 3.4 0', L('Avisos')], [I.data, L('Dados')], [I.spark, t('ai.section')], [I.info, t('updates.about')]] as const).map(([d, label], i) => (
           <button key={label} type="button" role="tab" aria-selected={tab === i} className={tab === i ? 'on' : ''} onClick={() => setTab(i)}><Ic d={d} size={22} /><b>{label}</b></button>
         ))}
       </div>
 
       <div className="mv-card st2-list" key={tab} role="tabpanel">
+        {tab === 1 && <AlertPrefsPanel />}
         {tab === 0 && <>
         <Row icon={I.coins} title={t('settings.currency')} sub={t('settings2.currencySub')}>
           <PickMenu label={t('settings.currency')} testId="settings-currency" value={settings.currency} options={currencies.map((c) => ({ value: c, label: `${c} · ${currencyName(c, settings.language)}` }))} onChange={(v) => update({ ...settings, currency: String(v) })} />
@@ -272,7 +274,7 @@ export function Settings() {
         </div>
         {CI_ENABLED && <CiOptRow />}
         </>}
-        {tab === 1 && <>
+        {tab === 2 && <>
         <Row icon={I.up} title={t('settings.backupExport')} sub={t('settings2.exportSub')} onClick={onExportBackup} testId="backup-export-btn" />
         <Row icon={I.down} title={t('settings.backupImport')} sub={t('settings2.importSub')} onClick={() => importRef.current?.click()} />
         <Row icon={I.sheet} title={t('importer.title')} sub={t('importer.rowSub')} onClick={() => setImportOpen(true)} testId="import-row" />
@@ -281,8 +283,8 @@ export function Settings() {
         {backupMsg && <p className="st2-note" role="status" data-testid="backup-result">{backupMsg}</p>}
         {auth.user && <Row icon={I.user} title={t('danger.deleteAccount')} onClick={() => setDanger('account')} testId="delete-account" cls=" red" />}
         </>}
-        {tab === 2 && <Row icon={I.spark} title={t('ai.rowTitle')} sub={aiOn ? `${L(getPreset(ai.provider)?.label ?? ai.provider)} · ${ai.model}` : t('ai.rowSub')} onClick={() => setAiOpen(true)} testId="ai-row" />}
-        {tab === 3 && <>
+        {tab === 3 && <Row icon={I.spark} title={t('ai.rowTitle')} sub={aiOn ? `${L(getPreset(ai.provider)?.label ?? ai.provider)} · ${ai.model}` : t('ai.rowSub')} onClick={() => setAiOpen(true)} testId="ai-row" />}
+        {tab === 4 && <>
         <Row icon={I.sync} title={t('updates.version', { version: APP_VERSION })} sub={updMsg || t('updates.checkSub')} onClick={updBusy ? undefined : onCheckUpdates} testId="check-updates" cls={updBusy ? ' spin' : ''} />
         {!PC_MOBILE && <Row icon="M9.1 9a3 3 0 1 1 4.2 2.7c-.8.4-1.3 1.1-1.3 2v.3M12 17.5h.01M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18z" title={L('Ver a visita guiada')} sub={L('Mostra onde está cada coisa na app')} onClick={openTutorial} />}
         <Row icon={I.chat} title={t('feedback.row')} sub={t('feedback.rowSub')} onClick={() => setFeedbackOpen(true)} testId="feedback-row" />

@@ -15,6 +15,13 @@ import { useIsAdmin } from '../pages/Admin';
 import { ADMIN_LOGIN_EVENT, isUnlocked } from '../pages/AdminPhase1';
 import { usePlan } from '../pages/Premium';
 import { Ic } from './fx';
+import { buildAlerts, dismissNote, loadAlertPrefs, loadNoteState, markRead, NOTES_EVENT, visibleNote, type PlanAlert } from '../core/planningAlerts';
+import { loadPlanInput } from '../core/planningData';
+import { formatMoney } from '../core/money';
+import { loadSettings } from '../core/settings';
+import { useTxSaved } from './TxForm';
+import { L } from '../i18n/phrases';
+import { catLabel } from './fx';
 import { openLogin } from './LoginWindow';
 
 // Topo do Painel: conta da pessoa (foto, nome, email), campainha de notificações e menu da conta.
@@ -30,17 +37,47 @@ const ITEMS = {
   swap: 'M16 3l4 4-4 4M20 7H9M8 21l-4-4 4-4M4 17h11',
 };
 
-type Note = { id: string; text: string; to: string; kind: 'invite' | 'plan' | 'sub' | 'warranty' | 'tax'; invite?: InviteInfo };
+type Note = { id: string; text: string; to: string; kind: 'invite' | 'plan' | 'sub' | 'warranty' | 'tax' | 'alert'; invite?: InviteInfo; alert?: PlanAlert };
 const NOTE_IC: Record<Note['kind'], string> = {
   invite: 'M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M19 8v6M22 11h-6', plan: 'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z',
-  sub: 'M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3', warranty: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4', tax: 'M7 3h10v18l-5-3-5 3zM10 8h4M10 12h4',
+  sub: 'M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3', warranty: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4', tax: 'M7 3h10v18l-5-3-5 3zM10 8h4M10 12h4', alert: 'M3 17l6-6 4 4 8-8M14 7h7v7',
 };
+const ALERT_IC: Record<PlanAlert['kind'], string> = {
+  planning: 'M3 17l6-6 4 4 8-8M14 7h7v7', lowBalance: 'M12 8v5M12 16h.01M12 3l9 16H3z', payment: 'M5 5h14v15H5zM5 10h14M8 3v4M16 3v4', annual: 'M5 5h14v15H5zM5 10h14M8 3v4M16 3v4M12 14v3',
+  budget: 'M12 3a9 9 0 1 0 9 9h-9zM15 3.5V9h5.5A9 9 0 0 0 15 3.5z', goal: 'M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 16a4 4 0 1 1 0-8', debt: 'M3 10l9-6 9 6M5 10v9h14v-9', groups: 'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5',
+};
+const fillT = (s: string, v: Record<string, string>) => s.replace(/\{(\w+)\}/g, (_, k) => v[k] ?? '');
+/** Texto de um aviso, na língua da pessoa. Avisos são "a rever", nunca acusações. */
+function alertText(a: PlanAlert): string {
+  const st = loadSettings(), money = (c: number) => formatMoney(c, st.currency, st.language);
+  const day = (iso?: string) => (iso ? new Date(iso + 'T12:00:00').toLocaleDateString(st.language, { day: 'numeric', month: 'short' }) : '');
+  const p = a.p, when = p.days === 0 ? L('hoje') : p.days === 1 ? L('amanhã') : fillT(L('em {n} dias'), { n: String(p.days ?? 0) });
+  switch (a.id.split(':')[0]) {
+    case 'low': return fillT(L('Previsão: o saldo pode ficar em {v} a {d}.'), { v: money(p.cents ?? 0), d: day(p.date) });
+    case 'pay': return fillT(L('{n}: {v} {w}.'), { n: p.name || L('Pagamento'), v: money(p.cents ?? 0), w: when }) + (p.ratio ? ' ' + fillT(L('Se cancelares, poupas {y} por ano.'), { y: money(p.ratio) }) : '');
+    case 'annual': return fillT(L('Despesa anual: {n} ({v}) {w}.'), { n: p.name ?? '', v: money(p.cents ?? 0), w: when });
+    case 'budget': return fillT(L('Limite de {n}: já usaste {r}%.'), { n: p.name ?? '', r: String(Math.round((p.ratio ?? 0) * 100)) });
+    case 'budgetFc': return fillT(L('Ao ritmo atual, {n} pode passar o limite este mês.'), { n: p.name ?? '' });
+    case 'goalDone': return fillT(L('Meta concluída: {n} 🎉'), { n: p.name ?? '' });
+    case 'goalDue': return fillT(L('A data da meta {n} é {w}. Faltam {v}.'), { n: p.name ?? '', w: when, v: money(p.cents ?? 0) });
+    case 'debtDone': return fillT(L('Dívida concluída: {n} 🎉'), { n: p.name ?? '' });
+    case 'debtEnd': return fillT(L('{n}: está prevista a última prestação.'), { n: p.name ?? '' });
+    case 'plan': return fillT(L('Novo mês! Já podes planear {m}: vê se as tuas despesas e metas cabem.'), { m: p.date ? new Date(p.date + 'T12:00:00').toLocaleDateString(st.language, { month: 'long' }) : '' });
+    case 'grpOwe': return fillT(L('Tens {v} por pagar em grupos partilhados.'), { v: money(p.cents ?? 0) });
+    default: return '';
+  }
+}
 
 function useNotifications(): Note[] {
   const { t } = useTranslation();
   const [notes, setNotes] = useState<Note[]>([]);
   const [tick, setTick] = useState(0);
-  useEffect(() => { const on = () => setTick((n) => n + 1); window.addEventListener(SPLIT_CHANGED, on); return () => window.removeEventListener(SPLIT_CHANGED, on); }, []);
+  useEffect(() => {
+    const on = () => setTick((n) => n + 1);
+    for (const ev of [SPLIT_CHANGED, NOTES_EVENT, 'wallet:db-changed']) window.addEventListener(ev, on);
+    return () => { for (const ev of [SPLIT_CHANGED, NOTES_EVENT, 'wallet:db-changed']) window.removeEventListener(ev, on); };
+  }, []);
+  useTxSaved(() => setTick((n) => n + 1));
   useEffect(() => {
     (async () => {
       const out: Note[] = [];
@@ -66,7 +103,14 @@ function useNotifications(): Note[] {
         for (const i of (data ?? []) as Array<{ id: string; group_name: string; invited_by_name: string }>)
           out.unshift({ kind: 'invite', invite: { id: i.id, by: i.invited_by_name, group: i.group_name }, id: 'inv' + i.id, text: t('acct.nSplitInvite', { name: i.invited_by_name, group: i.group_name }), to: '/grupos' });
       }
-      setNotes(out);
+      // avisos do Planeamento (mesma projeção; id fixo por acontecimento)
+      try {
+        const inp = await loadPlanInput(db);
+        const cats = await db.categories.toArray();
+        for (const a of buildAlerts(inp, loadAlertPrefs(), (id) => { const c = cats.find((x) => x.id === id); return c ? catLabel(t, c) : ''; }, (id) => cats.find((x) => x.id === id)?.nameKey ?? '')) out.push({ kind: 'alert', id: a.id, alert: a, text: alertText(a), to: a.to });
+      } catch { /* sem dados: sem avisos */ }
+      const st = loadNoteState(), today = new Date().toLocaleDateString('sv-SE');
+      setNotes(out.filter((n) => visibleNote(n.id, st, today))); // lidas ficam (sem aura) até limpar
     })().catch(() => {});
   }, [t, tick]);
   return notes;
@@ -78,11 +122,16 @@ export function NotificationBell() {
   const navigate = useNavigate();
   const auth = useAuth();
   const notes = useNotifications();
+  const st = loadNoteState();
+  const unread = notes.filter((n) => !st.read[n.id]).length;
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [noteErr, setNoteErr] = useState<string | null>(null);
   const answer = async (id: string, accept: boolean) => { setBusy(id); setNoteErr(await answerSplitInvite(auth.user, id, accept)); setBusy(null); };
-  const go = (to: string) => { setOpen(false); navigate(to); };
+  const go = (to: string, id?: string) => { if (id) markRead([id]); setOpen(false); navigate(to); };
+  // só uma janela de cada vez: abrir as notificações fecha o menu da conta, e vice-versa
+  useEffect(() => { if (open) window.dispatchEvent(new CustomEvent('wallet:pop', { detail: 'bell' })); }, [open]);
+  useEffect(() => { const on = (e: Event) => { if ((e as CustomEvent).detail !== 'bell') setOpen(false); }; window.addEventListener('wallet:pop', on); return () => window.removeEventListener('wallet:pop', on); }, []);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
@@ -94,22 +143,26 @@ export function NotificationBell() {
   }, [open]);
   return (
     <div className="nt" ref={ref}>
-      <button type="button" className={'ab-bell' + (notes.length ? ' has' : '')} onClick={() => setOpen(!open)} aria-label={t('acct.notifications')} aria-expanded={open}>
+      <button type="button" className={'ab-bell' + (unread ? ' has' : '')} onClick={() => setOpen(!open)} aria-label={t('acct.notifications')} aria-expanded={open}>
         <Ic d={BELL} size={20} />
-        {notes.length > 0 && <i className="ab-dot">{notes.length > 9 ? '9+' : notes.length}</i>}
+        {unread > 0 && <i className="ab-dot">{unread > 9 ? '9+' : unread}</i>}
       </button>
       {open && (
         <div className="ab-pop ab-pop-bell" role="dialog" aria-label={t('acct.notifications')}>
-          <header className="nt-head"><span className="nt-bell"><Ic d={BELL} size={18} /></span><h4>{t('acct.notifications')}</h4>{notes.length > 0 && <em>{notes.length}</em>}</header>
+          <header className="nt-head"><span className="nt-bell"><Ic d={BELL} size={18} /></span><h4>{t('acct.notifications')}</h4>{unread > 0 && <em>{unread}</em>}
+            <span className="nt-acts">{unread > 0 && <button type="button" onClick={() => markRead(notes.map((n) => n.id))}>{L('Marcar todas como lidas')}</button>}
+</span></header>
           {noteErr && <p className="fx-error">{noteErr}</p>}
           {notes.length === 0 ? <div className="nt-empty"><span><Ic d={BELL} size={26} /></span><p>{t('acct.noNotes')}</p></div> : <div className="nt-list">{notes.map((n) => n.invite ? (
             <InviteCard key={n.id} inv={n.invite} busy={busy === n.invite.id} onAnswer={(a) => answer(n.invite!.id, a)} />
           ) : (
-            <button key={n.id} type="button" className={'nt-card ' + n.kind} onClick={() => go(n.to)}><span className="nt-ic"><Ic d={NOTE_IC[n.kind]} size={18} /></span><span className="nt-body">{n.text}</span><Ic d="M9 6l6 6-6 6" size={16} /></button>
+            <div key={n.id} className={'nt-item' + (st.read[n.id] ? ' read' : ' unread')}>
+              <button type="button" className={'nt-card ' + n.kind + (n.alert ? ' p' + n.alert.priority : '')} onClick={() => go(n.to, n.id)}><span className="nt-ic"><Ic d={n.alert ? ALERT_IC[n.alert.kind] : NOTE_IC[n.kind]} size={18} /></span><span className="nt-body">{n.text}</span><Ic d="M9 6l6 6-6 6" size={16} /></button>
+            </div>
           ))}</div>}
+          {notes.some((n) => !n.invite) && <button type="button" className="nt-clear" onClick={() => notes.filter((n) => !n.invite).forEach((n) => dismissNote(n.id))}><Ic d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" size={16} />{L('Limpar notificações')}</button>}
         </div>
       )}
-
     </div>
   );
 }
@@ -138,6 +191,8 @@ export function AccountBar() {
   const masked = email ? '•••••@' + email.split('@')[1] : t('settings2.localMode');
   const [switcher, setSwitcher] = useState(false);
   const go = (to: string) => { setOpen(null); navigate(to); };
+  useEffect(() => { if (open) window.dispatchEvent(new CustomEvent('wallet:pop', { detail: 'acct' })); }, [open]);
+  useEffect(() => { const on = (e: Event) => { if ((e as CustomEvent).detail !== 'acct') setOpen(null); }; window.addEventListener('wallet:pop', on); return () => window.removeEventListener('wallet:pop', on); }, []);
   const planName = t('plus.plan_' + activePlan());
 
   return (

@@ -1,3 +1,4 @@
+import { CountText } from '../ui/CountText';
 // Resumo do PC: Mensal | Anual | Período, caixas de rendimento/gastos/poupança, gráfico, contas,
 // últimos movimentos do período, categorias e calendário. Os widgets podem ir para qualquer sítio e mudar de tamanho (Personalizar).
 import { useEffect, useRef, useState, type JSX } from 'react';
@@ -31,10 +32,11 @@ const IC = {
 // Só a percentagem e "mais/menos" ficam coloridos; o resto igual ao "vs outubro" das outras caixas.
 export function CmpWords({ t, pct, name }: { t: ReturnType<typeof useTranslation>['t']; pct: number; name: string }) {
   const full = cmpText(t, pct, name), short = cmpShort(t, pct);
-  return full.startsWith(short) ? <>{short} <small>{full.slice(short.length).trim()}</small></> : <small>{full}</small>;
+  return full.startsWith(short) ? <><CountText text={short} /> <small>{full.slice(short.length).trim()}</small></> : <small>{full}</small>;
 }
 
-export function Metric({ icon, tone, title, value, valueClass, delta, deltaGoodUp, prevName, vsLabel, sub, bar }: {
+export function Metric({ icon, tone, title, value, valueClass, delta, deltaGoodUp, prevName, vsLabel, sub, bar, corner }: {
+  corner?: string; // texto no canto superior direito (ex.: o dia do maior gasto)
   icon: string; tone: 'inc' | 'exp' | 'sav'; title: string; value: string; valueClass?: string;
   delta: number | null; deltaGoodUp: boolean; prevName: string; vsLabel: string; sub?: string; bar: number;
 }) {
@@ -46,17 +48,17 @@ export function Metric({ icon, tone, title, value, valueClass, delta, deltaGoodU
       <div className="pco-mhead">
         <span className="pco-mic"><Ic d={icon} size={18} /></span>
         <h3>{title}</h3>
-        {pct !== null ? <span className={'pco-delta ' + (good === null ? 'same' : good ? 'good' : 'bad')}>{deltaGoodUp ? <>{pct > 0 ? '+' : ''}{pct}% <small>{vsLabel} {prevName}</small></> : <CmpWords t={t} pct={pct} name={prevName} />}</span> : null}
+        {pct !== null ? <span className={'pco-delta ' + (good === null ? 'same' : good ? 'good' : 'bad')}>{deltaGoodUp ? <><CountText text={`${pct > 0 ? '+' : ''}${pct}%`} /> <small>{vsLabel} {prevName}</small></> : <CmpWords t={t} pct={pct} name={prevName} />}</span> : corner ? <span className="pco-delta same pco-corner">{corner}</span> : null}
       </div>
-      <strong className={'pco-value ' + (valueClass ?? '')}>{value}</strong>
-      {sub && <small className="pco-sub">{sub}</small>}
+      <strong className={'pco-value ' + (valueClass ?? '')}><CountText text={value} /></strong>
+      {sub && <small className="pco-sub">{(() => { const m = /[-−]?[€$£]?\s?\d[\d.,\s]*\d(?:\s?[€$£])?/.exec(sub); return m ? <>{sub.slice(0, m.index)}<b className="pco-avgv"><CountText text={m[0]} /></b>{sub.slice(m.index + m[0].length)}</> : sub; })()}</small>}
       <div className="pco-bar" aria-hidden="true"><i style={{ width: `${Math.max(2, Math.min(100, bar * 100))}%` }} /></div>
     </section>
   );
 }
 
-type WidgetId = 'chart' | 'metrics' | 'latest' | 'cats' | 'cal' | 'goals' | 'limits' | 'accounts' | 'groups' | 'assistant' | 'plans';
-const ALL_WIDGETS: WidgetId[] = ['chart', 'metrics', 'latest', 'cats', 'cal', 'goals', 'limits', 'accounts', 'groups', 'assistant', 'plans'];
+type WidgetId = 'chart' | 'bars' | 'metrics' | 'latest' | 'cats' | 'cal' | 'goals' | 'limits' | 'accounts' | 'groups' | 'assistant' | 'plans';
+const ALL_WIDGETS: WidgetId[] = ['chart', 'bars', 'metrics', 'latest', 'cats', 'cal', 'goals', 'limits', 'accounts', 'groups', 'assistant', 'plans'];
 const DEFAULT_ORDER: WidgetId[] = ['chart', 'metrics', 'latest', 'cats', 'cal'];
 const ORDER_KEY = 'wallet.pcoOrder.v3'; // disposição antiga (só a ordem)
 const LAYOUT_KEY = 'wallet.pcoLayout.v4';
@@ -71,7 +73,7 @@ function loadLayout(): Cell[] {
 }
 const SLIDERS = 'M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M16 4v4M10 10v4M18 16v4';
 const WNAME: Record<WidgetId, string> = {
-  chart: 'Gráfico de rendimentos', metrics: 'Rendimento, gastos e poupança', latest: 'Últimos movimentos', cats: 'Categorias',
+  chart: 'Gráfico de rendimentos', bars: 'Rendimentos e despesas por mês', metrics: 'Rendimento, gastos e poupança', latest: 'Últimos movimentos', cats: 'Categorias',
   cal: 'Calendário de gastos', goals: 'Metas', limits: 'Limites do mês', accounts: 'Contas', groups: 'Grupos', assistant: 'Assistente IA', plans: 'Poupanças e dívidas',
 };
 
@@ -169,6 +171,10 @@ export function PcOverview() {
   const multiMonth = yearly || (ranged && range.from.slice(0, 7) !== range.to.slice(0, 7));
   const ek = vm + range.from + range.to;
 
+  // os widgets carregam cada um à sua vez: espera um instante e mostra tudo junto (sem uns aparecerem antes dos outros)
+  const [shown, setShown] = useState(false);
+  useEffect(() => { const id = setTimeout(() => setShown(true), 90); return () => clearTimeout(id); }, []);
+
   const blocks: Record<WidgetId, JSX.Element> = {
     chart: (
       <section className="mv-card pco-chart">
@@ -189,6 +195,7 @@ export function PcOverview() {
     ),
     latest: <SimpleHome key={'l' + ek} embed={{ mode: yearly ? 'year' : 'month', ...em, part: 'latest', range, seeAll: ranged ? `/transacoes?de=${range.from}&ate=${range.to}&p=${per.preset}` : yearly ? `/transacoes?ano=${per.y}` : `/transacoes?mes=${key(per.y, per.m)}` }} />,
     cats: <SimpleOverview key={'c' + ek} yearly={multiMonth} embed={{ ...em, part: 'cats', range: ranged ? range : undefined }} />,
+    bars: <SimpleOverview key={'b' + ek} yearly={multiMonth} embed={{ ...em, part: 'chart' }} />,
     cal: <SimpleOverview key={'k' + ek} yearly={multiMonth} embed={{ ...em, part: 'cal' }} />,
     goals: <SimpleHome key="g" embed={{ mode: 'month', y: now.getFullYear(), m: now.getMonth(), part: 'goals' }} />,
     groups: <SimpleHome key="gr" embed={{ mode: 'month', y: now.getFullYear(), m: now.getMonth(), part: 'groups' }} />,
@@ -207,7 +214,7 @@ export function PcOverview() {
   const addW = (id: string, h?: number) => { save(addCell(cells, id, 8, h)); setAddOpen(false); };
 
   return (
-    <div className="fx-page pco">
+    <div className={'fx-page pco' + (shown ? ' pg-ready' : ' pg-wait')}>
       <header className="pco-head">
         <div className="pco-title">
           <PeriodFilter value={per} onChange={setPer} />

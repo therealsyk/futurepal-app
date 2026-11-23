@@ -1,4 +1,6 @@
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { markPeriodChange } from '../ui/rollGate';
+import { CountText } from '../ui/CountText';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { appConfirm } from '../ui/confirm';
 import { useTranslation } from 'react-i18next';
 import { GTile } from './Split';
@@ -44,22 +46,23 @@ export function Transactions() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [kind, setKind] = useState<'all' | 'expense' | 'income'>('all');
-  const [filterCat, setFilterCat] = useState('');
+  const [filterCat, setFilterCat] = useState(() => new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('categoria') ?? ''); // ?categoria=<id>: vindo de uma sugestão do Planeamento
   const [filterText, setFilterText] = useState('');
+  // ?conta=<id>: vindo de uma meta/dívida, mostra só o dinheiro que entrou nessa conta (todas as datas)
+  const [onlyAcc, setOnlyAcc] = useState<string | null>(new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('conta'));
 
   const refresh = async () => {
-    const rows = await filterTransactions(db, { categoryId: filterCat || undefined, text: filterText });
-    setTxs(rows.filter((x) => x.date >= range.from && x.date <= range.to));
-    const cs = await activeCategories(db);
-    setCats(cs);
-    setGroups(await listGroups(db));
-    setTransfers(await loadTransfers(db));
+    // tudo lido ao mesmo tempo (a página abre mais depressa)
+    const [rows, cs, gs, trs] = await Promise.all([filterTransactions(db, { categoryId: filterCat || undefined, text: filterText }), activeCategories(db), listGroups(db), loadTransfers(db)]);
+    setTxs(onlyAcc ? rows : rows.filter((x) => x.date >= range.from && x.date <= range.to));
+    setCats(cs); setGroups(gs); setTransfers(trs);
+    setReady(true);
   };
-  useEffect(() => { refresh().catch(() => {}); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [range.from, range.to, filterCat, filterText]);
+  useEffect(() => { refresh().catch(() => setReady(true)); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [range.from, range.to, filterCat, filterText, onlyAcc]);
 
   const visible = useMemo(
-    () => txsOfAccount(txs, active, accounts).filter((x) => kind === 'all' || x.type === kind).sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt)),
-    [txs, active, accounts, kind],
+    () => (onlyAcc ? txs.filter((x) => x.accountId === onlyAcc && x.type === 'income') : txsOfAccount(txs, active, accounts)).filter((x) => kind === 'all' || x.type === kind).sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt)),
+    [txs, active, accounts, kind, onlyAcc],
   );
   const money = (c: number, cur = settings.currency) => formatMoney(c, cur, settings.language);
   const income = visible.filter((x) => x.type === 'income').reduce((s, x) => s + x.amountCents, 0);
@@ -68,13 +71,14 @@ export function Transactions() {
   // Transferências entre contas também aparecem na lista (não contam como rendimento nem despesa).
   const nameOf = (id: string) => accounts.find((a) => a.id === id)?.name ?? '?';
   const visibleTransfers = useMemo(() => {
+    if (onlyAcc) return transfers.filter((tr) => tr.toAccountId === onlyAcc);
     if (kind !== 'all' || filterCat) return [];
     const q = filterText.trim().toLowerCase();
     return transfers.filter((tr) => tr.date >= range.from && tr.date <= range.to
       && (active === ALL_ACCOUNTS || tr.fromAccountId === active || tr.toAccountId === active)
       && (!q || `${tr.note} ${nameOf(tr.fromAccountId)} ${nameOf(tr.toAccountId)}`.toLowerCase().includes(q)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transfers, range.from, range.to, active, kind, filterCat, filterText, accounts]);
+  }, [transfers, range.from, range.to, active, kind, filterCat, filterText, accounts, onlyAcc]);
 
   const byDay = useMemo(() => {
     const m = new Map<string, { txs: Transaction[]; trs: Transfer[] }>();
@@ -113,6 +117,11 @@ export function Transactions() {
   const [openRow, setOpenRow] = useState<string | null>(null);
   // Nº de transações do período anterior (mês ou ano), para a comparação em %
   const [prevCount, setPrevCount] = useState<number | null>(null);
+  const [ready, setReady] = useState(false); // só mostra a página quando os dados chegam (sem números a 0 que depois saltam)
+  // espera um instante depois dos dados (outros valores ainda se acertam) e só então mostra a página, de uma vez
+  const [shown, setShown] = useState(false);
+  useEffect(() => { if (!(ready && accounts.length > 0) || shown) return; const id = setTimeout(() => setShown(true), 0); return () => clearTimeout(id); }, [ready, accounts.length, shown]); // eslint-disable-line react-hooks/exhaustive-deps
+  const lastPct = useRef<number | null>(null); // a percentagem anterior fica à vista até chegar a nova (sem desaparecer e voltar)
   useEffect(() => {
     const pr = previousRange(per);
     filterTransactions(db, {}).then((r) => setPrevCount(txsOfAccount(r.filter((x) => x.date >= pr.from && x.date <= pr.to), active, accounts).filter((x) => kind === 'all' || x.type === kind).length)).catch(() => setPrevCount(null));
@@ -121,18 +130,27 @@ export function Transactions() {
   const simple = SIMPLE_UI && isMobile;
 
   return (
-    <div className={'fx-page' + (simple ? ' tx-simple' : '')}>
+    <div className={'fx-page' + (simple ? ' tx-simple' : '') + (shown ? ' pg-ready' : ' pg-wait')}>
       {simple && (
         <div className="txs-new mv sh">
           {/* Transações (telemóvel): só a lista completa, com filtros simples */}
           <header className="mv-head"><h1 className="sh-title">{t('txs.title')}</h1></header>
           <button type="button" className="sh-btn in txs-add" onClick={openNew}><Ic d={ICON.plus} size={18} />{t('txs.new')}</button>
           <PeriodFilter value={per} onChange={setPer} />
-          <div className="sh-seg small three" role="tablist">
-            <button type="button" className={kind === 'all' ? 'on' : ''} onClick={() => setKind('all')}>{t('txs.all')}</button>
-            <button type="button" className={kind === 'expense' ? 'on' : ''} onClick={() => setKind('expense')}>{t('txs.expenses')}</button>
-            <button type="button" className={kind === 'income' ? 'on' : ''} onClick={() => setKind('income')}>{t('txs.incomes')}</button>
-          </div>
+          {(() => {
+            const kinds = [
+              { id: 'all' as const, label: t('txs.all'), d: 'M4 7h13l-3-3M20 17H7l3 3', n: txsOfAccount(txs, active, accounts).length },
+              { id: 'expense' as const, label: t('txs.expenses'), d: 'M12 5v14M5 12l7 7 7-7', n: txsOfAccount(txs, active, accounts).filter((x) => x.type === 'expense').length },
+              { id: 'income' as const, label: t('txs.incomes'), d: 'M12 19V5M5 12l7-7 7 7', n: txsOfAccount(txs, active, accounts).filter((x) => x.type === 'income').length },
+            ];
+            return (
+              <div className={'acc-seg txk-seg t-' + kind} role="tablist" style={{ ['--i' as string]: kinds.findIndex((k) => k.id === kind) }}>
+                <span className="acc-seg-pill" aria-hidden="true" />
+                {kinds.map((k) => <button key={k.id} type="button" role="tab" aria-selected={kind === k.id} className={'t-' + k.id + (kind === k.id ? ' on' : '')} onClick={() => { markPeriodChange(); setKind(k.id); }}><span className="acc-seg-ic"><Ic d={k.d} size={17} /></span>{k.label}{k.n > 0 && <em>{k.n}</em>}</button>)}
+              </div>
+            );
+          })()}
+          <label className="txs-search"><Ic d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-4-4" size={17} /><input value={filterText} onChange={(e) => setFilterText(e.target.value)} placeholder={t('txs.search')} /></label>
           {(() => {
             const n = visible.length;
             const nowD = new Date();
@@ -141,22 +159,32 @@ export function Transactions() {
             const avg = span > 0 ? n / span : 0;
             const top = visible.filter((x) => x.type === 'expense').sort((a2, b2) => b2.amountCents - a2.amountCents)[0];
             const topCat = top ? cats.find((k) => k.id === top.categoryId) : undefined;
-            const pctCmp = prevCount ? Math.round(((n - prevCount) / prevCount) * 100) : null;
+            const fresh = prevCount ? Math.round(((n - prevCount) / prevCount) * 100) : null;
+            if (fresh !== null) lastPct.current = fresh;
+            const pctCmp = fresh ?? lastPct.current;
+            const days = period === 'year' ? (isCur ? Math.max(1, Math.round((nowD.getTime() - new Date(year, 0, 1).getTime()) / 864e5) + 1) : (year % 4 === 0 ? 366 : 365))
+              : (year === nowD.getFullYear() && month === nowD.getMonth() + 1 ? nowD.getDate() : new Date(year, month, 0).getDate());
+            const perDay = n / Math.max(1, days);
+            const prevLabel = period === 'year' ? String(year - 1) : new Date(year, month - 2, 1).toLocaleDateString(settings.language, { month: 'long' });
             return (
-              <div className={'gx-tiles even ' + (period === 'year' ? 'three' : 'two')}>
-                <GTile d="M4 7h13l-3-3M20 17H7l3 3" label={t('txs.count_' + period)} value={String(n) + (pctCmp ? `  ${pctCmp > 0 ? '+' : ''}${pctCmp}%` : '')} />
-                {period === 'year' && <GTile d="M5 5h14v15H5zM5 10h14M8 3v4M16 3v4" label={t('txs.avgMonth')} value={avg.toLocaleString(settings.language, { maximumFractionDigits: 1 })} />}
+              <div className="gx-tiles even txs-tiles three">
+                <div className="gx-tile txs-cnt"><span aria-hidden="true"><Ic d="M4 7h13l-3-3M20 17H7l3 3" size={20} /></span><div><small>{t('txs.count_' + period)}</small>
+                  <span className="txs-v"><b><CountText text={String(n)} /></b>{<span style={{ opacity: pctCmp ? 1 : 0, transition: 'opacity .45s ease, background-color .45s ease, color .45s ease' }} className={'fx-chip ' + ((pctCmp ?? 0) > 0 ? 'warn' : (pctCmp ?? 0) < 0 ? 'good' : 'neutral')} title={`${t('pco.vs')} ${prevLabel}`}><CountText text={`${pctCmp ?? 0}%`} /> <small>{t('txs.vsShort_' + period)}</small></span>}</span></div></div>
+                {period === 'year' && <GTile d="M5 5h14v15H5zM5 10h14M8 3v4M16 3v4" label={L('Transações por mês (média)')} value={avg.toLocaleString(settings.language, { maximumFractionDigits: 1 })} />}
+                {period !== 'year' && <GTile d="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 7v5l3 2" label={L('Transações por dia (média)')} value={perDay.toLocaleString(settings.language, { maximumFractionDigits: 1 })} />}
                 <GTile d="M12 19V5M5 12l7-7 7 7" tone={top ? 'neg' : ''} label={t('txs.biggest') + (top ? ' · ' + (top.description || (topCat ? catLabel(t, topCat) : '')) : '')} value={top ? money(top.amountCents) : '—'} />
               </div>
             );
           })()}
-          <label className="txs-search"><Ic d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-4-4" size={17} /><input value={filterText} onChange={(e) => setFilterText(e.target.value)} placeholder={t('txs.search')} /></label>
           <section className="mv-card">
             <div className="mv-card-head"><h2>{t('txs.list')}</h2></div>
             {byDay.length === 0 && <EmptyHero icon="M4 7h13l-3-3M20 17H7l3 3" title={t('txs.empty_' + period)} text={t('txs.emptyText')} examples={[t('txs.ex1'), t('txs.ex2'), t('txs.ex3')]} />}
+            {onlyAcc && <button type="button" className="txs-daychip txs-accchip" onClick={() => setOnlyAcc(null)}>{L('Só')}: {nameOf(onlyAcc)} ✕</button>}
             {dayOnly && <button type="button" className="txs-daychip" onClick={() => setDayOnly(null)}>{t('txs.onlyDay', { day: new Date(dayOnly).toLocaleDateString(settings.language, { day: 'numeric', month: 'long' }) })}</button>}
-            {byDay.filter(([day]) => !dayOnly || day === dayOnly).map(([day, g]) => (
-              <div key={day} className="sh-day">
+            {byDay.filter(([day]) => !dayOnly || day === dayOnly).map(([day, g], di, arr) => (
+              <Fragment key={day}>
+              {new Set(arr.map(([d2]) => d2.slice(0, 7))).size > 1 && (di === 0 || arr[di - 1][0].slice(0, 7) !== day.slice(0, 7)) && <div className="txs-month"><span>{new Date(day.slice(0, 7) + '-01T12:00:00').toLocaleDateString(settings.language, { month: 'long', year: 'numeric' })}</span></div>}
+              <div className="sh-day">
                 <div className="sh-dayhead"><b>{new Date(day).toLocaleDateString(settings.language, { weekday: 'short', day: 'numeric', month: 'short' })}</b></div>
                 {g.txs.map((x) => { const c = cats.find((k) => k.id === x.categoryId); return (
                   <div key={x.id}>
@@ -176,6 +204,7 @@ export function Transactions() {
                   </div>
                 ))}
               </div>
+              </Fragment>
             ))}
           </section>
         </div>

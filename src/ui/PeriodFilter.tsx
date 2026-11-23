@@ -1,3 +1,4 @@
+import { markPeriodChange } from './rollGate';
 // Filtro de período partilhado (PC e telemóvel), pensado para ser fácil para qualquer pessoa:
 //   [ Mensal | Anual ]  ‹ novembro de 2026 ›   [ Filtrar ▾ ]
 // "Filtrar" abre um menu: Último mês, Último trimestre, Último semestre, Outras datas…
@@ -102,7 +103,8 @@ function RangeModal({ from, to, onApply, onClose }: { from: string; to: string; 
   );
 }
 
-export function PeriodFilter({ value, onChange }: { value: Period; onChange: (p: Period) => void }) {
+export function PeriodFilter({ value, onChange: onChange0 }: { value: Period; onChange: (p: Period) => void }) {
+  const onChange = onChange0;
   const { t } = useTranslation();
   const lang = loadSettings().language;
   const p = value;
@@ -121,10 +123,10 @@ export function PeriodFilter({ value, onChange }: { value: Period; onChange: (p:
   const choose = (pr: Exclude<Preset, 'custom'>) => { onChange({ ...p, mode: 'range', preset: pr, ...presetRange(pr) }); setMenu(false); };
   const rangeLabel = p.preset === 'custom' ? `${formatDateShort(p.from)} – ${formatDateShort(p.to)}` : t('period.' + p.preset);
   return (
-    <div className="pf">
+    <div className="pf" onClickCapture={markPeriodChange} onChangeCapture={markPeriodChange}>
       <div className="sh-seg pf-seg" role="tablist" aria-label={t('pco.summary')}>
-        <button type="button" role="tab" aria-selected={p.mode === 'month'} className={p.mode === 'month' ? 'on' : ''} onClick={() => onChange({ ...p, mode: 'month' })}>{t('period.month')}</button>
-        <button type="button" role="tab" aria-selected={p.mode === 'year'} className={p.mode === 'year' ? 'on' : ''} onClick={() => onChange({ ...p, mode: 'year' })}>{t('period.year')}</button>
+        <button type="button" role="tab" aria-selected={p.mode === 'month'} className={p.mode === 'month' ? 'on' : ''} onClick={() => onChange({ ...p, mode: 'month' })}><Ic d="M5 5h14v15H5zM5 10h14M8 3v4M16 3v4" size={15} />{t('period.month')}</button>
+        <button type="button" role="tab" aria-selected={p.mode === 'year'} className={p.mode === 'year' ? 'on' : ''} onClick={() => onChange({ ...p, mode: 'year' })}><Ic d="M4 20V10M10 20V4M16 20v-7M22 20H2" size={15} />{t('period.year')}</button>
       </div>
       {ranged ? (
         <div className="sh-monthnav pf-nav pf-active">

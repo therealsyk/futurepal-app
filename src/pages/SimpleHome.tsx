@@ -2,6 +2,7 @@
 //  1. Quanto ainda tenho este mês  2. Adicionar gasto / dinheiro recebido  3. A minha poupança  4. Últimos movimentos
 import type { CSSProperties } from 'react';
 import { GoalRing } from '../ui/GoalRing';
+import { GoalCard } from './GoalView';
 import { LimitsWidget } from './PcWidgets';
 import { isFresh } from '../core/onboarding';
 import { CountMoney } from '../ui/CountMoney';
@@ -9,7 +10,6 @@ import { goalEtaMonths } from '../core/goalEta';
 import { fill } from '../ui/AccountPlan';
 import { WidgetEmpty, WidgetRow } from '../ui/WidgetRow';
 import { GroupPic } from './Groups';
-import { NotificationBell } from '../ui/AccountBar';
 import { goalValueCents, splitDesc } from '../core/debtPlan';
 import { cmpShort, cmpText, refText } from '../core/compare';
 import { useEffect, useState } from 'react';
@@ -20,13 +20,10 @@ import type { Account, Category, Transaction, Transfer, Salary, Group, Goal } fr
 import { accountBalanceCents } from '../core/accounts';
 import { formatMoney } from '../core/money';
 import { loadSettings } from '../core/settings';
-import { useAuth } from '../auth/AuthContext';
-import { UserAvatar } from '../ui/UserAvatar';
 import { Ic, ICON, CatIcon, catLabel } from '../ui/fx';
 import { L } from '../i18n/phrases';
 import { PeriodFilter, initialPeriod, periodRange, previousRange, type Period } from '../ui/PeriodFilter';
 
-const GEAR = 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z';
 
 // só as metas criadas à parte: as das contas acompanham-se na própria conta
 async function ownGoals(): Promise<Goal[]> {
@@ -39,7 +36,6 @@ export type HomePart = 'hero' | 'latest' | 'groups' | 'goals';
 export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: number; m: number; part: HomePart; range?: { from: string; to: string }; seeAll?: string } } = {}) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const auth = useAuth();
   const s = loadSettings();
   const money = (c: number) => formatMoney(c, s.currency, s.language);
   const [data, setData] = useState<{ txs: Transaction[]; cats: Category[]; accounts: Account[]; transfers: Transfer[]; salaries: Salary[]; groups: Group[]; goals: Goal[] } | null>(null);
@@ -66,6 +62,7 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
   const prevPrefix = mode === 'year' ? String(cur.y - 1) : (() => { const pd = new Date(cur.y, cur.m - 1, 1); return `${pd.getFullYear()}-${String(pd.getMonth() + 1).padStart(2, '0')}`; })();
   const prevSpent = (data?.txs ?? []).filter((x) => x.type === 'expense' && (ppr ? x.date >= ppr.from && x.date <= ppr.to : x.date.startsWith(prevPrefix))).reduce((a, x) => a + x.amountCents, 0);
   const received = month.filter((x) => x.type === 'income').reduce((a, x) => a + x.amountCents, 0);
+  const prevReceived = (data?.txs ?? []).filter((x) => x.type === 'income' && (ppr ? x.date >= ppr.from && x.date <= ppr.to : x.date.startsWith(prevPrefix))).reduce((a, x) => a + x.amountCents, 0);
   const spent = month.filter((x) => x.type === 'expense').reduce((a, x) => a + x.amountCents, 0);
   const left = received - spent;
   const ratio = received > 0 ? Math.min(1, spent / received) : spent > 0 ? 1 : 0;
@@ -78,8 +75,6 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
   const inRange = (data?.txs ?? []).filter((x) => !rng || (x.date >= rng.from && x.date <= rng.to));
   const latest = [...inRange].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt)).slice(0, embed ? 40 : 5); // no Resumo do PC o widget pode ser esticado: mostra o que couber
   const catOf = (id: string) => data?.cats.find((c) => c.id === id);
-  const meta = (auth.user?.user_metadata ?? {}) as { name?: string; full_name?: string };
-  const name = meta.full_name || meta.name || auth.user?.email?.split('@')[0] || '';
 
   const heroEl = (<>
       <section className="mv-hero sh-hero" data-tour={embed ? undefined : 'month'}>
@@ -94,7 +89,7 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
           return mode === 'month' ? (
             <>
               <small className="mv-hero-label">{L('Ainda tens para gastar')}</small>
-              <div className="sh-valrow"><span className={'sh-big ' + (left < 0 ? 'fx-neg' : 'fx-pos')}>{money(left)}</span></div>{pct !== null && <span className="hm-pill" style={heat(pct)}><b>{pct}%</b> {L('do rendimento do mês já foi gasto')}</span>}
+              <div className="sh-valrow"><span className={'sh-big ' + (left < 0 ? 'fx-neg' : 'fx-pos')}>{money(left)}</span></div>{pct !== null && <span className="hm-pill hm-pct" style={{ background: heat(pct).background }}><b style={{ color: heat(pct).color }}>{pct}%</b> {L('do rendimento do mês já foi gasto')}</span>}
               <div className={"sh-bar" + (left < 0 ? " over" : "")} aria-hidden="true"><i style={{ width: `${ratio * 100}%` }} /></div>
               {cmp}
             </>
@@ -102,8 +97,10 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
             <>
               <small className="mv-hero-label">{ranged ? L('Recebeste neste período') : L('Recebeste este ano')}</small>
               <div className="sh-valrow"><span className="sh-big fx-pos">{money(received)}</span></div>
-              {!ranged && <small className="sh-cmp hm-l">{t('pco.avgMonth', { v: money(Math.round(received / nMonths)) })}</small>}
+              {!ranged && <span className="hm-pill hm-avg2"><b>{money(Math.round(received / nMonths))}</b> {L('em média por mês')}</span>}
               <div className={"sh-bar" + (left < 0 ? " over" : "")} aria-hidden="true"><i style={{ width: `${ratio * 100}%` }} /></div>
+              {(() => { const dr = prevReceived > 0 && received > 0 ? Math.round(((received - prevReceived) / prevReceived) * 100) : null;
+                return dr === null ? null : <small className="sh-cmp hm-l">{dr === 0 ? cmpText(t, dr, ref) : <>{L('Recebeste')} <b className={dr < -10 ? 'fx-neg' : dr < 0 ? 'lm-warn' : 'fx-pos'}>{cmpShort(t, dr)}</b>{cmpText(t, dr, ref).startsWith(cmpShort(t, dr)) ? cmpText(t, dr, ref).slice(cmpShort(t, dr).length) : ' ' + ref}</>}</small>; })()}
 
             </>
           );
@@ -180,7 +177,13 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
       {/* 6. Metas: só a principal, com a barra */}
       <section className="mv-card">
         <div className="mv-card-head">{embed && <span className="pco-mic"><Ic d="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8z" size={18} /></span>}<h2>{L('Metas')}</h2>{(data?.goals.length ?? 0) > 0 && <Link to="/metas" className="mv-link">{L('Ver todas')}</Link>}</div>
-        <div className="sh-scroll wr-list">{(data?.goals ?? []).slice(0, embed ? 20 : 3).map((g, i) => {
+        {!embed && <div className="hm-goals">{(data?.goals ?? []).slice(0, 3).map((g, i) => {
+          const gc = g.accountIds?.length ? accRows.filter((x) => g.accountIds!.includes(x.a.id)).reduce((x, y) => x + goalValueCents(y.a, y.bal), 0) : g.currentCents;
+          const r = g.targetCents > 0 ? Math.max(0, Math.min(1, gc / g.targetCents)) : 0;
+          const eta = g.targetDate ? new Date(g.targetDate.slice(0, 10) + 'T12:00:00').toLocaleDateString(s.language, { month: 'long', year: 'numeric' }) : '';
+          return <GoalCard key={g.id} g={g} i={i} money={money} onOpen={() => navigate('/metas')} info={{ cur: gc, r, eta, per: 0, done: r >= 1, when: null, long: '' }} />;
+        })}</div>}
+        <div className="sh-scroll wr-list">{embed && (data?.goals ?? []).slice(0, 20).map((g, i) => {
           const gc = g.accountIds?.length ? accRows.filter((x) => g.accountIds!.includes(x.a.id)).reduce((x, y) => x + goalValueCents(y.a, y.bal), 0) : g.currentCents; // ligada a contas: o valor vem delas
           const r = g.targetCents > 0 ? Math.max(0, Math.min(1, gc / g.targetCents)) : 0;
           return (
@@ -194,15 +197,6 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
 
   return (
     <div className="fx-page mv sh">
-      <header className="mv-head">
-        <div className="mv-hello">
-          <UserAvatar user={auth.user} name={name || '?'} className="ab-initials mv-avatar" />
-          <div className="mv-hello-txt">{name && <small>{L('Olá,')}</small>}<h1 style={{ fontSize: Math.max(13, Math.min(20, Math.floor(100 / ((name.split(' ')[0].length + 1) * 0.58)))) }}>{name ? name.split(' ')[0] + '!' : L('Olá!')}</h1></div>
-        </div>
-        <NotificationBell />
-        <button type="button" className="mv-sq mv-menu" data-tour="menu" onClick={() => window.dispatchEvent(new Event('wallet:open-more'))} aria-label={L('Mais funções')}><Ic d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" size={19} /><span>{L('Menu')}</span></button>
-        <button type="button" className="mv-sq" data-tour="settings" onClick={() => navigate('/definicoes')} aria-label={t('nav.settings')}><Ic d={GEAR} size={20} /></button>
-      </header>
 
       {/* 1. A pergunta principal, com uma escolha clara: este mês ou o ano todo */}
       <PeriodFilter value={per} onChange={setPer} />

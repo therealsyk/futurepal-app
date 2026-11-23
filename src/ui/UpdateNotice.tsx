@@ -105,7 +105,7 @@ export function UpdateNotice() {
       <div className="up-text">
         <b>{info.status === 'required' ? t('updates.requiredTitle') : t('updates.availableTitle', { version: info.latest })}</b>
         <span>{info.status === 'required' ? t('updates.requiredText', { version: info.latest, current: info.current }) : t('updates.availableText', { current: info.current })}</span>
-        {info.notes ? <small>{info.notes}</small> : null}
+        {info.notes ? <small>{info.notes.replace(/\*\*|__|`/g, '').replace(/^#+\s*/gm, '')}</small> : null}
         {phase === 'downloading' && <i className="up-bar" style={{ width: `${percent}%` }} />}
         {phase === 'error' && <small className="up-err">{t('updates.error')}</small>}
         {!canAct && phase !== 'downloading' && <small>{t('updates.noLink')}</small>}

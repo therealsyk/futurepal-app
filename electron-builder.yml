@@ -12,6 +12,13 @@ win:
   target: nsis
   icon: build/icon.png
   artifactName: FuturePal-Setup-${version}.${ext}
+# Onde as apps instaladas procuram versões novas: o repositório público das releases.
+# (Sem isto, o electron-builder usava o remote do git, que é privado, e as apps nunca viam as atualizações.)
+publish:
+  provider: github
+  owner: therealsyk
+  repo: futurepal
+  releaseType: release
 # Liga futurepal:// à app (volta do login com Google/Facebook/Apple).
 protocols:
   - name: FuturePal

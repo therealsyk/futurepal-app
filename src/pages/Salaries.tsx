@@ -1,3 +1,4 @@
+import { markPeriodChange } from '../ui/rollGate';
 import { createPortal } from 'react-dom';
 import { appConfirm } from '../ui/confirm';
 import { openTxForm, useTxSaved } from '../ui/TxForm';
@@ -13,6 +14,8 @@ import { isSalaryTx, syncSalaryTransactions } from '../core/salaryTx';
 import { Metric } from './PcOverview';
 import { L } from '../i18n/phrases';
 import { AmountField } from '../ui/formFields';
+import { CountText } from '../ui/CountText';
+import { PC_MOBILE } from '../core/uiMode';
 
 const IC = {
   income: 'M12 19V5M5 12l7-7 7 7',
@@ -24,10 +27,16 @@ const IC = {
 // Grelha de meses × ano com o salário de cada mês + extras (todos os outros rendimentos do ano).
 // Sem duplicados: um salário registado à mão nas Transações (categoria Salário) passa para esta grelha,
 // e escrever o salário de um mês substitui esse registo manual em vez de o somar.
+const fill = (x: string, v: Record<string, string>) => x.replace(/\{(\w+)\}/g, (_, k) => v[k] ?? '');
+
 export const Salaries = () => {
   const { t } = useTranslation();
   const s = loadSettings();
   const [year, setYear] = useState(new Date().getFullYear());
+  const [ready, setReady] = useState(false); // só mostra a página quando os dados chegam
+  // espera um instante depois dos dados (outros valores ainda se acertam) e só então mostra a página, de uma vez
+  const [shown, setShown] = useState(false);
+  useEffect(() => { if (!(ready) || shown) return; const id = setTimeout(() => setShown(true), 0); return () => clearTimeout(id); }, [ready, shown]); // eslint-disable-line react-hooks/exhaustive-deps
   const [grid, setGrid] = useState<Array<{ month: number; amountCents: number }>>([]);
   const [summary, setSummary] = useState<{ salaryCents: number; expenseCents: number; savingsCents: number; pctSavings: number } | null>(null);
   const [extras, setExtras] = useState<Transaction[]>([]);
@@ -57,8 +66,9 @@ export const Salaries = () => {
       .filter((tx) => tx.deletedAt === null && tx.type === 'income' && !isSalaryTx(tx) && tx.date.startsWith(String(year)))
       .sort((a, b) => b.date.localeCompare(a.date)));
     setDrafts({});
+    setReady(true); // tudo carregado: a página aparece
   };
-  useEffect(() => { load().catch(() => {}); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [year]);
+  useEffect(() => { load().catch(() => setReady(true)); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [year]);
 
   const [pay, setPay] = useState(''), [later, setLaterS] = useState(() => { try { return sessionStorage.getItem('wallet.salLater') === '1'; } catch { return false; } });
   const setLater = (v: boolean) => { setLaterS(v); try { sessionStorage.setItem('wallet.salLater', '1'); } catch { /* sem storage */ } };
@@ -97,9 +107,9 @@ export const Salaries = () => {
   const avg = (v: number) => t('pco.avgMonth', { v: fmt(Math.round(v / months)) });
 
   return (
-    <div className="fx-page sal-page">
+    <div className={'fx-page sal-page' + (shown ? ' pg-ready' : ' pg-wait')}>
       <PageHead title={t('salaries.title')}>
-        <MonthNav label={String(year)} onPrev={() => setYear(year - 1)} onNext={() => setYear(year + 1)} />
+        <MonthNav label={String(year)} onPrev={() => { markPeriodChange(); setYear(year - 1); }} onNext={() => { markPeriodChange(); setYear(year + 1); }} />
       </PageHead>
 
       {start && !later && createPortal(<div className="spi-back sal-back" onMouseDown={(e) => { if (e.target === e.currentTarget) setLater(true); }}><section className="mv-card sal-start" role="dialog" aria-modal="true" aria-label={L('Quanto recebes por mês?')}>
@@ -111,7 +121,22 @@ export const Salaries = () => {
         <button type="button" className="ob-cta lg-go" disabled={(parseMoneyToCents(pay) ?? 0) <= 0} onClick={() => { commit(today.getMonth() + 1, pay).then(() => setPay('')).catch(() => {}); }}>{L('Guardar')}<Ic d="M5 12h14M13 6l6 6-6 6" size={18} /></button>
         <button type="button" className="on-skip" onClick={() => setLater(true)}>{L('Agora não')}</button>
       </section></div>, document.body)}
-      <div className="pco-metrics-row">
+      {!PC_MOBILE ? (() => {
+        const pct = (v: number | null) => (v === null ? null : `${v > 0 ? '+' : ''}${Math.round(v * 100)}%`);
+        const ds = dl(salaryTotal, prev.salary);
+        return <section className="mv-card sal-hero">
+          <div className="sal-hhead"><span className="sal-hic"><Ic d={IC.income} size={17} /></span><small>{t('salaries.annualSalaries')}</small>
+            {ds !== null && <em className={'fx-chip ' + (ds >= 0 ? 'good' : 'warn')}>{pct(ds)} <small>{t('pco.vs')} {year - 1}</small></em>}</div>
+          <strong className="sal-hval"><CountText text={fmt(salaryTotal)} /></strong>
+          <small className="sal-hsub">{t('salaries.plusExtras', { value: fmt(extrasTotal) })}</small>
+          <span className="sal-hbar" aria-hidden="true"><i className="exp" style={{ width: `${income > 0 ? Math.min(100, (expense / income) * 100) : 0}%` }} /><i className="sav" style={{ width: `${income > 0 ? Math.max(0, Math.min(100, (saved / income) * 100)) : 0}%` }} /></span>
+          <div className="sal-hstats">
+            <span className="exp"><small>{L('Despesas')}</small><b><CountText text={fmt(expense)} /></b><em>{fmt(Math.round(expense / months))}/{L('mês')}</em></span>
+            <span className={saved < 0 ? 'exp' : 'sav'}><small>{L('Poupança')}</small><b><CountText text={fmt(saved)} /></b><em>{fmt(Math.round(saved / months))}/{L('mês')}</em></span>
+            <span className="rate"><small>{L('Taxa de poupança')}</small><b><CountText text={income > 0 ? `${Math.round(rate * 100)}%` : '—'} /></b></span>
+          </div>
+        </section>;
+      })() : <div className="pco-metrics-row">
         <Metric icon={IC.income} tone="inc" title={t('salaries.annualSalaries')} value={fmt(salaryTotal)} valueClass="fx-pos" delta={dl(salaryTotal, prev.salary)} deltaGoodUp {...cmp}
           sub={t('salaries.plusExtras', { value: fmt(extrasTotal) })} bar={income > 0 ? salaryTotal / income : 0} />
         <Metric icon={IC.spent} tone="exp" title={t('salaries.annualExpenses')} value={fmt(expense)} valueClass={expense > 0 ? 'fx-neg' : ''} delta={dl(expense, prev.expense)} deltaGoodUp={false} {...cmp}
@@ -119,17 +144,20 @@ export const Salaries = () => {
         <Metric icon={IC.saved} tone="sav" title={t('salaries.annualSavings')} value={fmt(saved)} valueClass={saved < 0 ? 'fx-neg' : 'fx-pos'} delta={dl(saved, prevSaved)} deltaGoodUp {...cmp}
           sub={avg(saved)} bar={income > 0 ? Math.max(0, saved) / income : 0} />
         <Metric icon={IC.pct} tone="sav" title={L('Taxa de poupança')} value={income > 0 ? `${Math.round((saved / income) * 100)}%` : '—'} delta={prev.income > 0 && income > 0 ? dl(rate, prevRate) : null} deltaGoodUp {...cmp}
-          sub={L('do que recebeste ficou guardado')} bar={income > 0 ? Math.max(0, saved) / income : 0} />
-      </div>
+          sub='' bar={income > 0 ? Math.max(0, saved) / income : 0} />
+      </div>}
 
       <div className="fx-card">
-        <div className="fx-card-head"><h2>{t('salaries.monthlySalary')}</h2><span className="fx-label">{t('salaries.editHint')}</span></div>
+        <div className="sal-xhead sal-mhead">
+          <span className="sal-xic sal-mic"><Ic d="M3 7h18v12H3zM3 11h18M7 15h3" size={18} /></span>
+          <div className="sal-xtt"><h2>{t('salaries.monthlySalary')}</h2><small>{t('salaries.editHint')}</small></div>
+        </div>
         <div className="fx-salary-grid">
           {grid.map((row) => {
             const missing = isCurrentYear && row.month <= today.getMonth() + 1 && row.amountCents === 0;
             const shown = drafts[row.month] ?? (row.amountCents ? (row.amountCents / 100).toFixed(2).replace('.', ',') : '');
             return (
-              <label key={row.month} className={'fx-salary-cell' + (missing ? ' missing' : '')}>
+              <label key={row.month} className={'fx-salary-cell' + (missing ? ' missing' : '') + (isCurrentYear && row.month === today.getMonth() + 1 ? ' now' : '')} style={{ '--i': row.month - 1 } as React.CSSProperties}>
                 <span>{monthNames[row.month - 1]}</span>
                 <div><input inputMode="decimal" value={shown} placeholder="—" aria-label={`${t('salaries.salaryFor')} ${monthNames[row.month - 1]}`}
                   onChange={(e) => setDrafts({ ...drafts, [row.month]: e.target.value })}
@@ -142,18 +170,23 @@ export const Salaries = () => {
       </div>
 
       <div className="fx-card sal-extras" style={{ marginTop: 16 }}>
-        <div className="fx-card-head"><h2>{t('salaries.extras')}</h2><span className="fx-num">{fmt(extrasTotal)}</span></div>
+        <div className="sal-xhead">
+          <span className="sal-xic"><Ic d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z" size={18} /></span>
+          <div className="sal-xtt"><h2>{t('salaries.extras')}</h2><small>{L('Tudo o que recebeste além do salário')}</small></div>
+          {extras.length > 0 && <span className="sal-xtot"><b className="fx-pos">+<CountText text={fmt(extrasTotal)} /></b><small>{extras.length === 1 ? fill(L('1 rendimento em {y}'), { y: String(year) }) : fill(L('{n} rendimentos em {y}'), { n: String(extras.length), y: String(year) })}</small></span>}
+        </div>
         {extras.length === 0 ? <EmptyState icon={ICON.wallet} title={t('salaries.noExtras')} sub={t('salaries.noExtrasSub')} /> : (
           <div className="sal-days">
-            {[...new Set(extras.map((x) => x.date))].map((day) => (
+            {[...new Set(extras.map((x) => x.date))].map((day, di, arr) => (
               <div key={day} className="sh-day">
+                {(di === 0 || arr[di - 1].slice(0, 7) !== day.slice(0, 7)) && <div className="txs-month sal-xmonth"><span>{new Date(day.slice(0, 7) + '-01T12:00:00').toLocaleDateString(s.language, { month: 'long' })}<em>+{fmt(extras.filter((x) => x.date.startsWith(day.slice(0, 7))).reduce((a, x) => a + x.amountCents, 0))}</em></span></div>}
                 <div className="sh-dayhead"><b>{new Date(day + 'T00:00:00').toLocaleDateString(s.language, { weekday: 'short', day: 'numeric', month: 'short' })}</b></div>
                 {extras.filter((x) => x.date === day).map((x) => { const c = cats.find((k) => k.id === x.categoryId); return (
                   <div key={x.id}>
                     <button type="button" className="sh-tx txs-row" onClick={() => setOpenRow(openRow === x.id ? null : x.id)}>
                       <CatIcon cat={c ?? {}} size={36} />
                       <span className="sh-tx-main"><b>{x.description || (c ? catLabel(t, c) : '')}</b><small>{c ? catLabel(t, c) : ''}</small></span>
-                      <b className="fx-pos">+{fmt(x.amountCents)}</b>
+                      <b className="fx-pos">{fmt(x.amountCents)}</b>
                     </button>
                     {openRow === x.id && <div className="txs-actions"><button type="button" className="sh-danger" onClick={async () => { if (await appConfirm(L('Apagar este movimento?'))) { await softDelete(db, 'transactions', x.id); setOpenRow(null); await load(); } }}>{L('Apagar')}</button></div>}
                   </div>

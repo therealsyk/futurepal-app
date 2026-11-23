@@ -10,7 +10,7 @@ import { todayISO } from '../core/dates';
 import { milestone } from '../core/onboarding';
 import { loadSettings } from '../core/settings';
 import { DatePicker } from '../ui/DatePicker';
-import { Seg } from '../ui/fx';
+import { Ic, Seg } from '../ui/fx';
 import { AccountRow, AmountField, DateRow, FI, SwitchRow, TextRow, onlyDigits as digits } from '../ui/formFields';
 import { PC_MOBILE } from '../core/uiMode';
 import { useMissing, type MissRule } from '../ui/missing';
@@ -21,25 +21,32 @@ import { BottomSheet } from './SimplePages';
 const cents = (v: string) => Math.abs(parseMoneyToCents(v || '0') ?? 0);
 
 /** O que se pode mudar numa conta que já existe. */
-export interface AccountEdit { balCents: number; name: string; desc: string; monthlyCents: number; rate: number; goal: boolean; end: string | null; targetCents: number }
+export interface AccountEdit { balCents: number; name: string; desc: string; monthlyCents: number; rate: number; goal: boolean; end: string | null; targetCents: number; main: boolean; inNet: boolean }
 const num = (c: number) => (c / 100).toFixed(2).replace('.', ',');
 
-export function NewAccount({ initial, accounts, balOf, money, endText, onClose, onDone, edit }: {
+export function NewAccount({ initial, accounts, balOf, money, endText, onClose, onDone, edit, preset, presetMonthly }: {
+  presetMonthly?: string; // cêntimos sugeridos pelo Planeamento ('0' = pausar a poupança automática)
+  preset?: { monthly: string; name?: string; bal?: string }; // vindo da 1.ª conta de gastos: poupança com valor fixo por mês já preenchido
   edit?: { acc: Account; goal?: Goal; onSave: (e: AccountEdit) => Promise<void>; onDelete?: () => void };
   initial: Account['type']; accounts: Account[]; balOf: (a: Account) => number; money: (c: number) => string; endText: (months: number) => string;
-  onClose: () => void; onDone: (kind: Account['type']) => void;
+  onClose: () => void; onDone: (kind: Account['type'], next?: { saveMonthly: string }) => void;
 }) {
   const s = loadSettings();
   const [kind, setKind] = useState<Account['type']>(initial);
   const was = splitDesc(edit?.acc.description), wasM = was.plan?.monthlyCents ?? 0, wasR = was.plan?.rate ?? 0, g0 = edit?.goal;
-  const [bal, setBal] = useState(edit ? num(balOf(edit.acc)) : ''), [name, setName] = useState(edit?.acc.name ?? ''), [desc, setDesc] = useState(was.text);
-  const [hasMonthly, setHasMonthly] = useState(wasM > 0), [monthly, setMonthly] = useState(wasM ? num(wasM) : '');
+  const [bal, setBal] = useState(edit ? num(balOf(edit.acc)) : preset?.bal ?? ''), [name, setName] = useState(edit?.acc.name ?? preset?.name ?? ''), [desc, setDesc] = useState(was.text);
+  const pm = presetMonthly !== undefined ? Number(presetMonthly) : null;
+  const [hasMonthly, setHasMonthly] = useState(pm !== null ? pm > 0 : wasM > 0 || !!preset), [monthly, setMonthly] = useState(pm ? num(pm) : wasM ? num(wasM) : preset?.monthly ?? '');
+  // primeira conta de gastos: quer poupar um valor certo por mês? (depois abre a criação da poupança)
+  const firstSpending = !edit && accounts.filter((a) => a.type === 'spending').length <= 1;
+  const [wantSave, setWantSave] = useState(false), [saveAmt, setSaveAmt] = useState('');
   const [hasRate, setHasRate] = useState(wasR > 0), [rate, setRate] = useState(wasR ? String(wasR).replace('.', ',') : '');
   const [hasEnd, setHasEnd] = useState(!!g0?.targetDate), [end, setEnd] = useState(g0?.targetDate?.slice(0, 10) ?? '');
   const [wantGoal, setWantGoal] = useState(!!g0), [target, setTarget] = useState(g0 && initial !== 'debt' ? num(g0.targetCents) : '');
   const [how, setHow] = useState<'hand' | 'transfer'>('hand');
   const [from, setFrom] = useState(''), [amount, setAmount] = useState<string | null>(null), [date, setDate] = useState(todayISO()), [recurring, setRecurring] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [main, setMain] = useState(edit?.acc.isDefault ?? false), [inNet, setInNet] = useState(edit?.acc.includeInNetWorth ?? true);
 
   const debt = kind === 'debt', plan = kind !== 'spending', start = cents(bal);
   const m = plan && hasMonthly ? cents(monthly) : 0, r = debt && hasRate ? Number(rate.replace(',', '.')) || 0 : 0;
@@ -70,10 +77,10 @@ export function NewAccount({ initial, accounts, balOf, money, endText, onClose, 
     if (!miss.check() || busy) return;
     setBusy(true);
     try {
-      if (edit) { await edit.onSave({ balCents: parseMoneyToCents(bal || '0') ?? 0, name: name.trim(), desc, monthlyCents: m, rate: r, goal, end: hasEnd && end ? end : null, targetCents: goalCents }); return; }
+      if (edit) { await edit.onSave({ balCents: parseMoneyToCents(bal || '0') ?? 0, name: name.trim(), desc, monthlyCents: m, rate: r, goal, end: hasEnd && end ? end : null, targetCents: goalCents, main: kind === 'spending' && main, inNet }); return; }
       const p: DebtPlan | null = plan ? { monthlyCents: m, startCents: start, rate: r || undefined } : null;
       milestone('account');
-      const acc = await createAccount(db, { name: name.trim(), description: joinDesc(desc, p), type: kind, currency: s.currency, initialBalanceCents: start, includeInNetWorth: true, isDefault: false, showOnHome: true });
+      const acc = await createAccount(db, { name: name.trim(), description: joinDesc(desc, p), type: kind, currency: s.currency, initialBalanceCents: start, includeInNetWorth: inNet, isDefault: kind === 'spending' && main, showOnHome: true });
       if (goal && p) { // a meta de sempre, ligada à conta: o valor vem do saldo (na dívida, do que já foi abatido)
         const g = await addGoal(db, name.trim(), goalCents, todayISO(), e ? end : null);
         await db.goals.update(g.id, { notes: desc.trim() || undefined, accountIds: [acc.id] });
@@ -88,7 +95,7 @@ export function NewAccount({ initial, accounts, balOf, money, endText, onClose, 
           await materializeDueRecurrings(db, todayISO());
         } else await addTransfer(db, { fromAccountId: src, toAccountId: acc.id, amountCents: cents(amt), date, note: name.trim(), categoryId: null });
       }
-      onDone(kind);
+      onDone(kind, kind === 'spending' && firstSpending && wantSave && cents(saveAmt) > 0 ? { saveMonthly: saveAmt } : undefined);
     } finally { setBusy(false); }
   };
 
@@ -101,6 +108,10 @@ export function NewAccount({ initial, accounts, balOf, money, endText, onClose, 
     <div className="tx-rows">
       <TextRow icon={FI.name} label={L('Nome da conta')} value={name} onChange={setName} cls={miss.cls('name')} placeholder={debt ? L('Ex.: Empréstimo da casa') : kind === 'savings' ? L('Ex.: Poupanças') : L('Ex.: Conta do banco')} />
       <TextRow label={L('Descrição')} value={desc} onChange={setDesc} />
+      {kind === 'spending' && !edit?.acc.isDefault && <SwitchRow icon="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z" label={L('Tornar esta a conta principal?')} sub={main ? undefined : L('As despesas e rendimentos novos vão para esta conta')} on={main} onChange={setMain} />}
+      {kind === 'spending' && edit?.acc.isDefault && <div className="tx-row acc-mainrow"><span><Ic d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z" size={18} /><span className="acc-lbl">{L('Esta é a tua conta principal')}</span></span></div>}
+      {kind === 'spending' && firstSpending && <SwitchRow icon="M19 7a3 3 0 0 0-3-2H9a6 6 0 0 0-6 6c0 2 1 3.5 2 4.5V19h3v-2h5v2h3v-3a6 6 0 0 0 2-3h2V9h-2z" label={wantSave ? L('Quanto queres poupar por mês?') : L('Contas poupar um valor por mês?')} sub={wantSave ? L('A seguir crias a conta de poupança com este valor') : L('Ajudamos-te a criar a conta de poupança a seguir')} on={wantSave} onChange={setWantSave}>{numIn(saveAmt, setSaveAmt, L('Ex.: 200'))}</SwitchRow>}
+      <SwitchRow icon="M3 17l6-6 4 4 8-8M14 7h7v7" label={L('Contar para o património líquido?')} sub={inNet ? undefined : L('Fica de fora do total do que tens menos o que deves')} on={inNet} onChange={setInNet} />
       {plan && <>
         <SwitchRow icon={FI.month} cls={miss.cls('monthly') || miss.cls('low')} label={hasMonthly ? (debt ? L('Abater por mês') : L('Juntar por mês')) : debt ? L('Abater um valor certo por mês?') : L('Juntar um valor certo por mês?')}
           sub={hasMonthly ? undefined : debt ? L('Se não, vais abatendo quando puderes') : L('Se não, vais juntando quando puderes')} on={hasMonthly} onChange={(v) => { setHasMonthly(v); if (!v) setHasRate(false); }}>{numIn(monthly, setMonthly, L('Ex.: 500'))}</SwitchRow>

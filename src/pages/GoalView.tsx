@@ -17,6 +17,7 @@ import { PC_MOBILE } from '../core/uiMode';
 import { L } from '../i18n/phrases';
 import { BottomSheet } from './SimplePages';
 import { CALENDAR, GTile } from './Split';
+import { DayRows, SecHead } from './DebtBoost';
 
 const I = {
   add: 'M12 5v14M5 12h14', take: 'M5 12h14', edit: 'M4 20h4L19 9l-4-4L4 16zM13 7l4 4', swap: 'M7 7h12l-3-3M17 17H5l3 3',
@@ -35,7 +36,8 @@ export function GoalCard({ g, acc, icon, info, money, onOpen, i }: { g: Goal; ac
         <span className="gl-money"><b className={info.cur < 0 ? 'fx-neg' : ''}>{money(info.cur)}</b> {L('de')} {money(g.targetCents)}</span>
         <span className="gl-chips">
           {info.done ? <em className="ok">{L('Objetivo atingido 🎉')}</em> : info.eta ? <em><Ic d={I.flag} size={13} />{info.eta}</em> : <em className="dim">{L('Ainda não dá para prever')}</em>}
-          {info.when && <em className={info.when.ok ? 'ok' : 'bad'}><Ic d={I.clock} size={13} />{info.when.ok ? L('A tempo') : L('Atrasada')}</em>}
+          {g.paused && (!g.paused.until || g.paused.until >= new Date().toISOString().slice(0, 10)) ? <em className="paused"><Ic d="M8 5v14M16 5v14" size={13} />{L('Em pausa')}</em>
+            : info.when && <em className={info.when.ok ? 'ok' : 'bad'}><Ic d={I.clock} size={13} />{info.when.ok ? L('A tempo') : L('Atrasada')}</em>}
         </span>
       </span>
       <span className="gl-go"><Ic d={ICON.right} size={18} /></span>
@@ -98,6 +100,8 @@ export function GoalView({ g, acc, info, extra, accounts, valueOf, money, date, 
         <GoalRing r={info.r} size={176} debt={debt}><b>{Math.round(info.r * 100)}%</b><small>{info.done ? '🎉' : L('completo')}</small></GoalRing>
         <div className="gl-sum">
           <div className="gl-have"><small>{debt ? L('Já pagaste') : L('Já tens')}</small><b className={info.cur < 0 ? 'fx-neg' : 'fx-pos'}>{money(info.cur)}</b><small>{L('de')} {money(g.targetCents)}</small></div>
+          {!acc && linked.length > 0 && <div className="gl-accs">{linked.map((a2) => <span key={a2.id} className="gl-note gl-acc"><Ic d={ICON.wallet} size={14} /><span>{a2.name}</span><b className={valueOf(a2) < 0 ? 'fx-neg' : 'fx-pos'}>{money(valueOf(a2))}</b></span>)}</div>}
+          {note.text && <p className="gl-note" title={L('Notas')}><Ic d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4" size={14} /><span>{note.text}</span></p>}
           <div className="gl-acts">
             {hand ? <>
               <button type="button" className="gl-act main" onClick={() => setMove('add')}><Ic d={I.add} size={18} />{L('Juntar')}</button>
@@ -122,18 +126,32 @@ export function GoalView({ g, acc, info, extra, accounts, valueOf, money, date, 
       {!acc && left > 0 && <section className="mv-card gl-sec">
         <h2>{L('Quando queres lá chegar?')}</h2>
         <p className="gl-sub">{L('Carrega numa opção para juntares esse valor todos os meses.')}</p>
-        <div className="gl-plans">{plans.map((p) => <button key={p.n} type="button" className={monthly === p.m ? 'on' : ''} onClick={() => setPlan(p.m)}><small>{p.n === 12 ? L('Em 1 ano') : p.n === 24 ? L('Em 2 anos') : fill(L('Em {d} meses'), { d: String(p.n) })}</small><b>{money(p.m)}</b><em>{L('por mês')}</em></button>)}</div>
-      </section>}
-      {!acc && linked.length > 0 && <section className="mv-card gl-sec">
-        <h2>{linked.length === 1 ? L('Conta usada') : L('Contas usadas')}</h2>
-        {linked.map((a) => <div key={a.id} className="gl-line"><span><Ic d={ICON.wallet} size={17} />{a.name}</span><b className={valueOf(a) < 0 ? 'fx-neg' : 'fx-pos'}>{money(valueOf(a))}</b></div>)}
+        <div className="gl-plans gp">{plans.map((p, i) => {
+          const on = monthly === p.m;
+          const end = new Date(); end.setMonth(end.getMonth() + p.n);
+          return (
+            <button key={p.n} type="button" className={'gp-opt' + (on ? ' on' : '')} style={{ ['--i' as string]: i, ['--speed' as string]: 1 - i * 0.22 }} onClick={() => setPlan(p.m)} aria-pressed={on}>
+              <span className="gp-top"><span className="gp-ic"><Ic d={['M13 2 4 14h7l-1 8 9-12h-7z', 'M12 6v6l4 2M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20z', 'M5 5h14v15H5zM5 10h14M9 3v4M15 3v4', 'M3 17l6-6 4 4 8-8M14 7h7v7'][i] ?? 'M12 6v6l4 2'} size={16} /></span>
+                <small>{p.n === 12 ? L('Em 1 ano') : p.n === 24 ? L('Em 2 anos') : fill(L('Em {d} meses'), { d: String(p.n) })}</small>
+                {on && <span className="gp-check"><Ic d="M20 6 9 17l-5-5" size={13} /></span>}</span>
+              <b className="gp-val">{money(p.m)}<em>/{L('mês')}</em></b>
+              <span className="gp-track"><i /></span>
+              <small className="gp-end">{L('Chegas lá em')} {end.toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}</small>
+            </button>
+          );
+        })}</div>
       </section>}
       {hand && log.length > 0 && <section className="mv-card gl-sec">
-        <h2>{L('O que já juntaste')}</h2>
-        {(all ? log : log.slice(0, 5)).map((c) => <div key={c.idx} className="gl-line"><span><Ic d={c.cents < 0 ? I.take : I.add} size={17} />{date(c.date)}</span><b className={c.cents < 0 ? 'fx-neg' : 'fx-pos'}>{c.cents > 0 ? '+' : ''}{money(c.cents)}</b><button type="button" className="gl-x" onClick={() => delEntry(c.idx, c.cents)} aria-label={L('Apagar')}><Ic d={ICON.trash} size={16} /></button></div>)}
-        {log.length > 5 && <button type="button" className="gl-more" onClick={() => setAll(!all)}>{all ? L('Ver menos') : L('Ver tudo')}</button>}
+        <SecHead title={L('O que já juntaste')} more={log.length > 5 && <button type="button" className="gl-seemore" onClick={() => setAll(!all)}>{all ? L('Ver menos') : `${L('Ver mais')} (${log.length})`}<Ic d={all ? 'M6 15l6-6 6 6' : 'M9 6l6 6-6 6'} size={15} /></button>} />
+        <DayRows rows={(all ? log : log.slice(0, 5)).map((c) => ({ ...c, id: String(c.idx) }))} lang={loadSettings().language} render={(c) => (
+          <div key={c.id} className="sh-tx gl-tx">
+            <span className={'txs-tric' + (c.cents < 0 ? ' out' : '')}><Ic d={c.cents < 0 ? I.take : I.add} size={17} /></span>
+            <span className="sh-tx-main"><b>{c.cents < 0 ? L('Tirar dinheiro') : L('Juntar dinheiro')}</b><small>{g.name}</small></span>
+            <b className={c.cents < 0 ? 'fx-neg' : 'fx-pos'}>{c.cents > 0 ? '+' : ''}{money(c.cents)}</b>
+            <button type="button" className="gl-x" onClick={() => delEntry(c.idx, c.cents)} aria-label={L('Apagar')}><Ic d={ICON.trash} size={16} /></button>
+          </div>
+        )} />
       </section>}
-      {note.text && <section className="mv-card gl-sec"><h2>{L('Notas')}</h2><p>{note.text}</p></section>}
       {!acc && <div className="gx-end gl-end"><button type="button" className="gx-rm" onClick={del}><Ic d={ICON.trash} size={18} />{L('Apagar meta')}</button></div>}
       {move && <MoveSheet g={g} take={move === 'take'} money={money} onClose={() => setMove('')} onDone={() => { setMove(''); reload(); }} />}
     </div>
