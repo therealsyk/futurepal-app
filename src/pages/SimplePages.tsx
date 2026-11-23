@@ -74,7 +74,7 @@ export function SimpleAccounts() {
   const money = useMoney();
   const s = loadSettings();
   const [d, setD] = useState<Data | null>(null);
-  const [tab, setTab] = useState<'spending' | 'savings' | 'debt'>('spending');
+  const [tab, setTab] = useState<'spending' | 'savings' | 'debt'>(() => { const q = new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('tab'); return q === 'debt' || q === 'savings' ? q : 'spending'; });
   const [form, setForm] = useState(false);
   const [edit, setEdit] = useState<string | null>(null);
   const [goals, setGoals] = useState<Goal[]>([]);

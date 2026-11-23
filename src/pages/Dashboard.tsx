@@ -181,8 +181,8 @@ export function OverviewChart({ series, upTo, money, t }: {
           left: `calc(44px + (100% - 44px) * ${x(hover) / W})`,
           top: `calc((100% - 22px) * ${y(Math.max(hv.earning, hv.spending)) / H})`,
         }}>
-          {hv.label} · {money(hv.spending)}
-          <small>{t('panel.earning')}: {money(hv.earning)}</small>
+          <b className="cht-m">{hv.label}</b>
+          <span className="cht-r"><i className="inc" />{t('pco.income')}<b>{money(hv.earning)}</b></span><span className="cht-r"><i className="exp" />{t('pco.expenses')}<b>{money(hv.spending)}</b></span>
         </div>
       )}
       <div className="fx-xaxis">{series.map((s, i) => <span key={i}>{s.tick ?? s.label}</span>)}</div>
