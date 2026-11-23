@@ -48,8 +48,12 @@ export function DebtBoost({ a, left, txs, accounts, transfers, balOf, money, lan
   const monthly = per ?? base, sim = monthly > 0 ? simulate(left, base, rate, now, monthly) : null;
   if (left <= 0) return null;
   const gain = (e: Effect) => [e.saveMonths > 0 ? fill(L('menos {m}'), { m: duration(e.saveMonths) }) : '', e.saveInterestCents > 0 ? fill(L('poupas {m} em juros'), { m: money(e.saveInterestCents) }) : ''].filter(Boolean).join(' · ');
-  const apply = async (cents: number) => {
-    if (!(await appConfirm(fill(L('Passar a abater {m} por mês nesta dívida?'), { m: money(cents) }), { ok: L('Sim'), danger: false }))) return;
+  const apply = async (cents: number, e?: Effect | null) => {
+    const keep = Math.max(0, b.freeCents - Math.max(0, cents - base));
+    const msg = e && b.months >= 2 && cents > base
+      ? fill(L('Se passares a pagar {p} por mês, passas a poupar {a} por mês em vez de {b} e acabas {t} mais cedo.'), { p: money(cents), a: money(keep), b: money(b.freeCents), t: duration(e.saveMonths) }) + (e.saveInterestCents > 0 ? ' ' + fill(L('Poupas também {m} em juros.'), { m: money(e.saveInterestCents) }) : '')
+      : fill(L('Passar a abater {m} por mês nesta dívida?'), { m: money(cents) });
+    if (!(await appConfirm(msg, { ok: L('Sim'), danger: false }))) return;
     await updateAccount(db, a.id, { description: joinDesc(text, { startCents: plan?.startCents ?? Math.max(left, a.initialBalanceCents), rate: plan?.rate, goalId: plan?.goalId, monthlyCents: cents }) });
     reload();
   };
@@ -62,10 +66,10 @@ export function DebtBoost({ a, left, txs, accounts, transfers, balOf, money, lan
           : base <= 0 ? <p className="gl-sub">{L('Define quanto abates por mês em "Ver conta" para veres sugestões.')}</p>
           : opts.length === 0 && !lumpEffect ? <p className="sh-alert">{fill(L('Num mês normal sobram-te cerca de {m}. Por agora não convém abater mais: mantém o valor atual.'), { m: money(b.freeCents) })}</p>
           : <>
-            <p className="gl-sub">{fill(L('Toca numa opção. Continuas a ter {k} por mês para poupar.'), { k: money(b.keepCents) })}</p>
+            <p className="gl-sub">{fill(L('Num mês normal recebes {i} e gastas {g}. Sobram-te {f}: as opções usam só uma parte disso.'), { i: money(b.incomeCents), g: money(b.spendCents + b.debtCents), f: money(b.freeCents) })}</p>
             {nowEnd && <div className="db-now"><span><small>{L('Agora pagas')}</small><b>{money(base)}<i>/{L('mês')}</i></b></span><Ic d={ICON.right} size={18} /><span><small>{L('Acabas em')}</small><b>{endDate(nowEnd.months, lang)}</b></span></div>}
             {opts.length > 0 && <div className="db-opts">{opts.map((o, i) => (
-              <button key={o.extra} type="button" style={{ '--i': i } as CSSProperties} onClick={() => apply(o.monthly)}>
+              <button key={o.extra} type="button" style={{ '--i': i } as CSSProperties} onClick={() => apply(o.monthly, o.effect)}>
                 <small>{names[opts.length === 3 ? i : opts.length === 2 ? i + 1 : 1]}</small><b>{money(o.monthly)}<i>/{L('mês')}</i></b>
                 <em>+{money(o.extra)}</em><span>{L('Acabas em')} <strong>{endDate(o.effect.months, lang)}</strong></span><span className="fx-pos">{fill(L('Poupas {m}'), { m: duration(o.effect.saveMonths) })}</span>
               </button>
@@ -80,7 +84,7 @@ export function DebtBoost({ a, left, txs, accounts, transfers, balOf, money, lan
         <label><span>{L('Abater por mês')}<b><CountMoney cents={monthly} money={money} /></b></span><input type="range" min={0} max={top} step={step} value={monthly} style={{ '--r': `${(monthly / top) * 100}%` } as CSSProperties} onChange={(e) => setPer(+e.target.value)} /></label>
         {sim ? <div className="db-out" key={sim.months}><small>{L('Acabas em')}</small><b>{now >= left ? L('Agora') : endDate(sim.months, lang)}</b>{(sim.saveMonths > 0 || sim.saveInterestCents > 0) && <span className="fx-pos">{gain(sim)}</span>}</div> : <p className="sh-alert">{L('Com este valor a dívida não acaba: escolhe um valor por mês maior.')}</p>}
         {sim && b.months >= 2 && monthly > base + b.extraCents + 100 && <p className="sh-alert">{L('Cuidado: pode faltar-te dinheiro para as contas.')}</p>}
-        {sim && per !== null && per !== (plan?.monthlyCents ?? 0) && per > 0 && <button type="button" className="gl-act main db-use" onClick={() => apply(per)}><Ic d="M20 6 9 17l-5-5" size={17} />{fill(L('Usar {m} por mês'), { m: money(per) })}</button>}
+        {sim && per !== null && per !== (plan?.monthlyCents ?? 0) && per > 0 && <button type="button" className="gl-act main db-use" onClick={() => apply(per, sim)}><Ic d="M20 6 9 17l-5-5" size={17} />{fill(L('Usar {m} por mês'), { m: money(per) })}</button>}
       </section>
       <section className="mv-card gl-sec"><h2>{L('Pagamentos feitos')}</h2><PaymentList a={a} transfers={transfers} txs={txs} accounts={accounts} money={money} lang={lang} short={4} /></section>
     </>

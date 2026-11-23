@@ -34,7 +34,7 @@ export function budget(txs: Transaction[], transfers: Transfer[], accounts: Acco
     return {
       n: m.length,
       inc: m.filter((t) => t.type === 'income').reduce((a, t) => a + t.amountCents, 0),
-      exp: m.filter((t) => t.type === 'expense').reduce((a, t) => a + t.amountCents, 0),
+      exp: m.filter((t) => t.type === 'expense' && !t.transferId).reduce((a, t) => a + t.amountCents, 0),
       debt: transfers.filter((t) => t.deletedAt === null && t.date.startsWith(k) && debts.has(t.toAccountId)).reduce((a, t) => a + t.amountCents, 0),
     };
   }).filter((r) => r.n > 0 && r.inc > 0);

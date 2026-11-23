@@ -1199,6 +1199,9 @@ export const PHRASES: Record<string, Tr> = {
   'Ver o resto': ['See the rest', 'Ver el resto', 'Voir la suite'],
   'Continuar a visita guiada': ['Continue the tour', 'Continuar la visita', 'Continuer la visite'],
   'Fazer a visita guiada': ['Take the tour', 'Hacer la visita', 'Faire la visite'],
+  'Se passares a pagar {p} por mês, passas a poupar {a} por mês em vez de {b} e acabas {t} mais cedo.': ['If you pay {p} a month, you will save {a} a month instead of {b} and finish {t} sooner.', 'Si pagas {p} al mes, ahorrarás {a} al mes en lugar de {b} y terminarás {t} antes.', 'Si vous payez {p} par mois, vous épargnerez {a} par mois au lieu de {b} et finirez {t} plus tôt.'],
+  'Poupas também {m} em juros.': ['You also save {m} in interest.', 'También ahorras {m} en intereses.', 'Vous économisez aussi {m} d’intérêts.'],
+  'Num mês normal recebes {i} e gastas {g}. Sobram-te {f}: as opções usam só uma parte disso.': ['In a normal month you earn {i} and spend {g}. {f} is left: the options use only part of it.', 'En un mes normal recibes {i} y gastas {g}. Te sobran {f}: las opciones usan solo una parte.', 'Un mois normal, vous recevez {i} et dépensez {g}. Il reste {f} : les options n’en utilisent qu’une partie.'],
 };
 
 /** Português do Brasil: as palavras de Portugal que lá se dizem de outra forma. */

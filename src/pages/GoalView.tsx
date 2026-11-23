@@ -103,7 +103,7 @@ export function GoalView({ g, acc, info, extra, accounts, valueOf, money, date, 
               <button type="button" className="gl-act main" onClick={() => setMove('add')}><Ic d={I.add} size={18} />{L('Juntar')}</button>
               <button type="button" className="gl-act" disabled={g.currentCents <= 0} onClick={() => setMove('take')}><Ic d={I.take} size={18} />{L('Tirar')}</button>
             </> : linked[0] && <Link className="gl-act main" to={`/transacoes?nova=1&para=${linked[0].id}`}><Ic d={I.swap} size={18} />{debt ? L('Abater') : L('Juntar')}</Link>}
-            {acc ? <Link className="gl-act" to={acc.type === 'debt' ? '/contas?tab=debt' : acc.type === 'savings' ? '/contas?tab=savings' : '/contas'}><Ic d={ICON.wallet} size={18} />{L('Ver conta')}</Link> : <button type="button" className="gl-act" onClick={onEdit}><Ic d={I.edit} size={18} />{L('Alterar')}</button>}
+            {acc ? <Link className="gl-act" to={'/contas' + (acc.type === 'debt' || acc.type === 'savings' ? `?tab=${acc.type}` : '')}><Ic d={ICON.wallet} size={18} />{L('Ver conta')}</Link> : <button type="button" className="gl-act" onClick={onEdit}><Ic d={I.edit} size={18} />{L('Alterar')}</button>}
           </div>
         </div>
       </section>
