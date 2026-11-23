@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { MobileTopBar } from './ui/MobileTopBar';
+import { resetRoll } from './ui/rollGate';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { Link, Navigate, Routes, Route, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Rail from './ui/Rail';
@@ -22,6 +24,7 @@ import { HelpPage, PageTip } from './ui/Tips';
 import { AccountNudge, Guide } from './ui/Guide';
 import { LoginWindow } from './ui/LoginWindow';
 import { RecurringPage, RecurringPopup } from './pages/Recurring';
+import { PlanningPage } from './pages/Planning';
 import { DuplicateAccountsPopup } from './ui/DuplicateAccountsPopup';
 import { Groups } from './pages/Groups';
 import { SimpleAccounts, SimpleGoals, SimpleLimits, SimpleOverview } from './pages/SimplePages';
@@ -33,7 +36,7 @@ import { useIsMobile } from './ui/useIsMobile';
 import { DemoPage } from './ui/components';
 import SetupWizard, { ONBOARDED_FLAG } from './pages/SetupWizard';
 import { db, activateDatabaseFor, guestDataCount, moveGuestDataIntoCurrent, DB_CHANGED_EVENT, currentDbName, userDbName } from './db/app-db';
-import { Ic, ICON, Sheet } from './ui/fx';
+import { Ic, ICON } from './ui/fx';
 import { ensureDefaultCategories, addMissingCatalogCategories } from './core/finance';
 import { loadSettings, setTheme, type AppSettings } from './core/settings';
 import { useAuth } from './auth/AuthContext';
@@ -65,6 +68,7 @@ export default function App() {
   const [dbName, setDbName] = useState<string | null>(null);
   const [mergeCount, setMergeCount] = useState(0); // dados feitos sem conta, à espera da decisão da pessoa
   const [merging, setMerging] = useState(false);
+  const [mergeSure, setMergeSure] = useState(false); // segundo passo: confirmar que quer levar os dados
   const userId = auth.user?.id ?? null;
 
   const syncNowSilently = (uid: string) => {
@@ -142,7 +146,7 @@ export default function App() {
       if (bring) await moveGuestDataIntoCurrent();
     } finally {
       setMerging(false);
-      setMergeCount(0);
+      setMergeCount(0); setMergeSure(false);
       setDbName(currentDbName() + (bring ? '#merged' : '')); // recarrega as páginas com os dados novos
       if (userId) syncNowSilently(userId);
     }
@@ -160,6 +164,7 @@ export default function App() {
 
   // Cada página abre no topo (sem isto ficava a posição do scroll da página anterior).
   const { pathname } = useLocation();
+  useEffect(() => { resetRoll(); }, [pathname]); // ao abrir uma página os números não rolam
   const [settingsOpen, setSettingsOpen] = useState(false);
   useEffect(() => {
     const open = () => setSettingsOpen(true);
@@ -196,11 +201,14 @@ export default function App() {
     <div className="app-shell">
       <Rail />
       <main className="app-main" key={dbName}>
+        {SIMPLE_UI && isMobile && !PC_MOBILE && <MobileTopBar />}
         {!IS_DEMO && <PageTip />}
+        <div className="pg-fade" key={pathname}>
         <Routes>
           <Route path="/" element={PC_MOBILE ? <PcOverview /> : isMobile ? (SIMPLE_UI ? <SimpleHome /> : <MobileHome />) : <Dashboard />} />
           <Route path="/painel" element={<Dashboard />} />
           <Route path="/resumo-ano" element={<SimpleOverview yearly />} />
+          <Route path="/planeamento" element={<PlanningPage />} />
           <Route path="/grupos" element={<Groups />} />
           <Route path="/grupos/:id" element={<Groups />} />
           <Route path="/contas" element={SIMPLE_UI && isMobile ? <SimpleAccounts /> : <Accounts />} />
@@ -229,6 +237,7 @@ export default function App() {
           <Route path="/dividir" element={<Navigate to="/grupos" replace />} />
           {import.meta.env.DEV && <Route path="/demo" element={<DemoPage />} />}
         </Routes>
+        </div>
         {/* PC: Definições numa janela a flutuar por cima da página aberta */}
         {PC_MOBILE && settingsOpen && (
           <div className="stm-backdrop" onClick={() => setSettingsOpen(false)}>
@@ -254,15 +263,48 @@ export default function App() {
       {adminLogin && <AdminLogin onDone={() => { setAdminLogin(false); window.location.hash = '#/admin'; }} onCancel={() => setAdminLogin(false)} />}
       {ann && <div className={'ann-bar ' + ann.level} role="status"><span>{ann.message}</span><button type="button" onClick={ann.close} aria-label={L('Fechar')}>✕</button></div>}
       {IS_DEMO && <DemoGate />}
-      <Sheet open={mergeCount > 0} onClose={() => { if (!merging) decideMerge(false); }} title={t('accountData.title')}>
-        <p>{t('accountData.text', { count: mergeCount, email: auth.user?.email ?? '' })}</p>
-        <p className="fx-muted fx-small">{t('accountData.note')}</p>
-        <div className="ai-actions">
-          <span style={{ flex: 1 }} />
-          <button type="button" className="fx-btn" disabled={merging} onClick={() => decideMerge(false)} data-testid="merge-no">{t('accountData.keepApart')}</button>
-          <button type="button" className="fx-btn primary" disabled={merging} onClick={() => decideMerge(true)} data-testid="merge-yes">{t('accountData.bring')}</button>
+      {mergeCount > 0 && (
+        <div className="spi-back md-back" onMouseDown={(e) => { if (e.target === e.currentTarget && !merging) decideMerge(false); }}>
+          <div className="spi-card md-card" role="dialog" aria-modal="true" aria-labelledby="md-title">
+            {/* aparelho -> conta: os registos "viajam" para a nuvem */}
+            <div className="md-art" aria-hidden="true">
+              <span className="md-dev"><Ic d="M7 3h10v18H7zM11 18h2" size={26} /></span>
+              <span className="md-path"><i /><i /><i /></span>
+              <span className="md-cloud"><Ic d="M7 18a4 4 0 0 1-.6-7.96A6 6 0 0 1 18 9a4.5 4.5 0 0 1 0 9z" size={28} /></span>
+            </div>
+            {mergeSure ? <div className="md-sure" key="sure">
+              <h2 id="md-title">{L('Tens a certeza?')}</h2>
+              <p className="md-text">{L('Os {n} registos deste aparelho vão passar para a conta').replace('{n}', String(mergeCount))} <b>{auth.user?.email ?? ''}</b>.</p>
+              <ul className="md-what">
+                <li style={{ '--i': 0 } as CSSProperties}><span className="md-ic ok"><Ic d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5" size={17} /></span><span>{L('Juntam-se aos dados que já tens nesta conta e sincronizam em todos os aparelhos onde entrares.')}</span></li>
+                <li style={{ '--i': 1 } as CSSProperties}><span className="md-ic warn"><Ic d="M7 3h10v18H7zM11 18h2" size={17} /></span><span>{L('Deixam de aparecer quando usares a app sem conta neste aparelho.')}</span></li>
+                <li style={{ '--i': 2 } as CSSProperties}><span className="md-ic no"><Ic d="M12 8v5M12 16h.01M12 3l9 16H3z" size={17} /></span><span>{L('Não dá para desfazer: depois de passarem para a conta, ficam lá.')}</span></li>
+              </ul>
+              <div className="md-btns">
+                <button type="button" className="md-back-btn" disabled={merging} onClick={() => setMergeSure(false)}><Ic d="M15 6l-6 6 6 6" size={17} />{L('Voltar')}</button>
+                <button type="button" className="md-yes" disabled={merging} onClick={() => decideMerge(true)} data-testid="merge-confirm">{merging ? <span className="md-spin" /> : <Ic d="M20 6 9 17l-5-5" size={17} />}{L('Sim, levar os dados')}</button>
+              </div>
+            </div> : <>
+            <h2 id="md-title">{t('accountData.title')}</h2>
+            <p className="md-text">{L('Encontrámos {n} registos feitos sem conta neste aparelho.').replace('{n}', String(mergeCount))}<br /><b>{auth.user?.email ?? ''}</b></p>
+            <div className="md-opts">
+              <button type="button" className="md-opt main" disabled={merging} onClick={() => setMergeSure(true)} data-testid="merge-yes" style={{ '--i': 0 } as CSSProperties}>
+                <span className="md-ic"><Ic d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5" size={20} /></span>
+                <span className="md-txt"><b>{t('accountData.bring')}</b><small>{L('Ficam na tua conta e sincronizam em todos os aparelhos.')}</small></span>
+                <span className="md-go"><Ic d="M5 12h14M13 6l6 6-6 6" size={18} /></span>
+              </button>
+              <button type="button" className="md-opt" disabled={merging} onClick={() => decideMerge(false)} data-testid="merge-no" style={{ '--i': 1 } as CSSProperties}>
+                <span className="md-ic"><Ic d="M7 3h10v18H7zM11 18h2" size={20} /></span>
+                <span className="md-txt"><b>{t('accountData.keepApart')}</b><small>{L('Ficam só neste aparelho, para quando usares a app sem conta.')}</small></span>
+                <span className="md-go"><Ic d="M5 12h14M13 6l6 6-6 6" size={18} /></span>
+              </button>
+            </div>
+            {merging && <p className="md-busy"><span className="md-spin" />{L('A mover os teus dados…')}</p>}
+            </>}
+            <p className="md-note"><Ic d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" size={13} />{L('Os dados de uma conta nunca passam para outra.')}</p>
+          </div>
         </div>
-      </Sheet>
+      )}
       {toast && (
         <div className="mb-toast" role="status" onClick={() => setToast(false)}>
           <b>{t('onboard.doneTitle')}</b>
