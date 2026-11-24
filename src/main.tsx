@@ -48,7 +48,7 @@ if ((window as unknown as { __electronBridge?: unknown }).__electronBridge) {
   document.documentElement.classList.add('is-electron');
   const bar = document.createElement('div');
   bar.className = 'win-titlebar';
-  bar.innerHTML = '<span>FuturePal</span>';
+  bar.innerHTML = '<span>MyFuturePal</span>';
   document.body.prepend(bar);
 }
 setTheme(settings.theme);

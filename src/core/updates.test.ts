@@ -25,7 +25,7 @@ describe('evaluate (aviso de atualização)', () => {
 import { apkFromRelease } from './updates';
 describe('APK do GitHub', () => {
   it('lê a versão e o link do .apk da release', () => {
-    const r = apkFromRelease({ tag_name: 'v0.2.7', body: ' Novidades ', assets: [{ name: 'latest.yml', browser_download_url: 'x' }, { name: 'FuturePal-0.2.7.apk', browser_download_url: 'https://g/a.apk' }] });
+    const r = apkFromRelease({ tag_name: 'v0.2.7', body: ' Novidades ', assets: [{ name: 'latest.yml', browser_download_url: 'x' }, { name: 'MyFuturePal-0.2.7.apk', browser_download_url: 'https://g/a.apk' }] });
     expect(r).toEqual({ version: '0.2.7', notes: 'Novidades', url: 'https://g/a.apk' });
   });
   it('ignora releases sem APK, rascunhos e pré-lançamentos', () => {

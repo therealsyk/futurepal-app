@@ -18,8 +18,8 @@ import { usePlan } from './Premium';
 import { L } from '../i18n/phrases';
 import { openLogin } from '../ui/LoginWindow';
 
-// Assistente FuturePal: conversa no ecrã todo.
-//  - Com a IA do FuturePal (Edge Function "ai-ask"): a IA só interpreta a pergunta ou lê a foto; as contas são feitas aqui.
+// Assistente MyFuturePal: conversa no ecrã todo.
+//  - Com a IA do MyFuturePal (Edge Function "ai-ask"): a IA só interpreta a pergunta ou lê a foto; as contas são feitas aqui.
 //  - Com o modelo da própria pessoa (chave API em "Modelo de IA"): perguntas simples respondidas aqui, o resto vai ao modelo
 //    com um resumo das finanças (totais e categorias, sem dados pessoais além das descrições recentes).
 
@@ -68,7 +68,7 @@ function AssistantChat({ own, cfg, onCfg, allowed }: { own: boolean; cfg: AiConf
   const serverOk = !!getSupabase() && !!auth.user;
   const ready = allowed && (own || serverOk);
 
-  /** IA do FuturePal (Edge Function) — traduz os erros conhecidos. */
+  /** IA do MyFuturePal (Edge Function) — traduz os erros conhecidos. */
   const callAi = async (body: Record<string, unknown>): Promise<unknown | null> => {
     const sb = getSupabase()!;
     const { data, error } = await sb.functions.invoke('ai-ask', { body: { ...body, today, lang: s.language, categories: labeled.map((c) => c.label) } });
@@ -145,7 +145,7 @@ function AssistantChat({ own, cfg, onCfg, allowed }: { own: boolean; cfg: AiConf
       if (it) { say('bot', await answer(it)); return; }
       if (own) {
         const conv: ChatMessage[] = [
-          { role: 'system', content: 'És o assistente da app FuturePal, uma app de finanças pessoais. Usa só os dados abaixo; se não souberes, diz que não sabes.\n' + await context() },
+          { role: 'system', content: 'És o assistente da app MyFuturePal, uma app de finanças pessoais. Usa só os dados abaixo; se não souberes, diz que não sabes.\n' + await context() },
           ...history.slice(-10).map((m): ChatMessage => ({ role: m.from === 'me' ? 'user' : 'assistant', content: m.text })),
           { role: 'user', content: q },
         ];
@@ -203,7 +203,7 @@ function AssistantChat({ own, cfg, onCfg, allowed }: { own: boolean; cfg: AiConf
     if (!error) setAsked(true);
   };
   const examples = [t('assistant.ex1'), t('assistant.ex2'), t('assistant.ex3'), t('assistant.ex4')];
-  const modelName = own ? cfg.model : L('IA do FuturePal');
+  const modelName = own ? cfg.model : L('IA do MyFuturePal');
 
   let blocked: ReactNode = null;
   if (!allowed) blocked = (
@@ -211,7 +211,7 @@ function AssistantChat({ own, cfg, onCfg, allowed }: { own: boolean; cfg: AiConf
       <span className="ai-orb"><Ic d={SPARK} size={34} /></span>
       <h2>{L('Em breve: pergunta o que quiseres sobre o teu dinheiro')}</h2>
       <div className="ai-soonex" aria-hidden="true">{examples.slice(0, 3).map((e, i) => <span key={e} style={{ animationDelay: `${i * 0.5}s` }}>{e}</span>)}</div>
-      <p>{L('Vai fazer parte do FuturePal Plus.')}</p>
+      <p>{L('Vai fazer parte do MyFuturePal Plus.')}</p>
       <button type="button" className="ob-cta lg-go" disabled={asked} onClick={notify}>{asked ? <><Ic d="M20 6 9 17l-5-5" size={18} />{L('Vamos avisar-te')}</> : L('Avisa-me quando chegar')}</button>
       <button type="button" className="on-skip" onClick={() => setModels(true)}>{L('Já tenho outra IA (avançado)')}</button>
     </div>);
@@ -251,11 +251,11 @@ function AssistantChat({ own, cfg, onCfg, allowed }: { own: boolean; cfg: AiConf
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(text); } }} />
           <button type="submit" className="ai-send" disabled={busy || !text.trim()} aria-label={t('assistant.send')}><Ic d={SEND} size={19} /></button>
         </form>
-        <p className="ai-foot">{t('assistant.privacy')}{left ? ' ' + t('assistant.left', { q: left.questions, p: left.photos }) : ''}</p>
+        <p className="ai-foot ai-priv"><Ic d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6zM9 12l2 2 4-4" size={14} /><span>{t('assistant.privacy')}{left ? ' ' + t('assistant.left', { q: left.questions, p: left.photos }) : ''}</span></p>
       </>)}
 
       <Sheet open={models} onClose={() => setModels(false)} title={L('Modelo de IA')}>
-        <p className="fx-muted fx-small">{L('Escolhe o fornecedor, cola a tua chave API e o modelo. Sem chave, usa a IA do FuturePal.')}</p>
+        <p className="fx-muted fx-small">{L('Escolhe o fornecedor, cola a tua chave API e o modelo. Sem chave, usa a IA do MyFuturePal.')}</p>
         <AiSettings onSaved={(c) => { onCfg(loadAiConfig()); void c; }} />
       </Sheet>
 

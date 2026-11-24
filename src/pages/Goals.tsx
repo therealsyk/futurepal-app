@@ -1,3 +1,4 @@
+import { CountMoney } from '../ui/CountMoney';
 import { goalValueCents, splitDesc } from '../core/debtPlan';
 import { L } from '../i18n/phrases';
 import { FormError, useMissing } from '../ui/missing';
@@ -161,7 +162,11 @@ export function Goals() {
                   <Ring pct={Math.max(0, pct)} />
                   <div className="fx-goal-info">
                     <b>{g.name}</b>
-                    <span>{money(cur)} <em>/ {money(g.targetCents)}</em></span>
+                    <span className={'gl-amts' + (pct >= 100 ? ' done' : '')}>
+                      <span className="gl-now"><small>{L('Juntaste')}</small><b className={cur < 0 ? 'fx-neg' : ''}><CountMoney cents={cur} money={money} /></b></span>
+                      <span className="gl-amt-sep" aria-hidden="true"><i style={{ width: `${Math.round(Math.max(0, Math.min(100, pct)))}%` }} /></span>
+                      <span className="gl-goalv"><small>{L('Objetivo')}</small><b>{money(g.targetCents)}</b></span>
+                    </span>
                     <small>{g.targetDate ? `${t('goals.deadline')}: ${g.targetDate}` : t('goals.noDeadline')}</small>
                   </div>
                   <button type="button" className="fx-round sm fx-goal-del" onClick={() => setToDelete({ table: 'goals', id: g.id, name: g.name })} aria-label={t('goals.deleteGoal', { name: g.name })} data-testid="goal-delete"><Ic d={ICON.trash} size={15} /></button>

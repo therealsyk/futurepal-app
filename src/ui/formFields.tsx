@@ -22,7 +22,7 @@ export function AmountField({ value, onChange, currency, label, cls = '', autoFo
   return (
     <>
       <input className={'tx-amt' + (kind ? ' k-' + kind : '') + cls} autoFocus={autoFocus} inputMode="decimal" value={kind === 'expense' && value ? '−' + value : value} placeholder="0" onChange={(e) => onChange(signed ? e.target.value.replace(/[^\d.,-]/g, '') : onlyDigits(e.target.value))} aria-label={label ?? t('transactions.amount')} />
-      {onCurrency ? <button type="button" className="tx-cur tx-curbtn" onClick={onCurrency}>{currency}<Ic d={ICON.down} size={14} /></button> : <span className="tx-cur">{label ? `${label} · ${currency}` : currency}</span>}
+      {onCurrency ? <button type="button" className="tx-cur tx-curbtn" onClick={onCurrency} aria-label={`${t('settings.currency')}: ${currency}`}>{currency}<Ic d={ICON.down} size={14} /></button> : <span className="tx-cur">{label ? `${label} · ${currency}` : currency}</span>}
     </>
   );
 }
@@ -56,7 +56,7 @@ export function AccountRow({ icon = ICON.wallet, label, value, options, balance,
 }
 
 /** Interruptor; ligado, pode ter um campo na própria linha. */
-export function SwitchRow({ icon, label, sub, on, onChange, cls = '', children }: { icon: string; label: string; sub?: string; on: boolean; onChange: (v: boolean) => void; cls?: string; children?: ReactNode }) {
+export function SwitchRow({ icon, label, sub, on, onChange, cls = '', children }: { icon: string; label: string; sub?: ReactNode; on: boolean; onChange: (v: boolean) => void; cls?: string; children?: ReactNode }) {
   return (
     <div className={'tx-row' + cls}><span><Ic d={icon} size={18} /><span className="acc-lbl">{label}{sub && <small>{sub}</small>}</span></span>
       {on && children && <span className="acc-in">{children}</span>}

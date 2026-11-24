@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getAdminSupabase as getSupabase } from '../auth/supabase';
 import { L } from '../i18n/phrases';
+import { fill } from '../ui/AccountPlan';
 import { PRICES } from '../core/plan';
 
 type Stats = { users_total: number; users_7d: number; users_30d: number; active_7d: number; active_30d: number; unconfirmed: number; with_data: number;
@@ -186,6 +187,29 @@ export function Stat({ label, value, hint, ic = 'chart' }: { label: string; valu
     </div>
   );
 }
+type CustomCats = { people: number; total: number; last_30d: number; names: Array<{ name: string; people: number; n: number; last_at: string }> };
+/** Categorias criadas pelas pessoas: quantas pessoas, quantas categorias e quais os nomes (sem dizer quem as criou). */
+function CustomCategories() {
+  const [c, setC] = useState<CustomCats | null>(null);
+  const [err, setErr] = useState(false);
+  const [all, setAll] = useState(false);
+  useEffect(() => {
+    getSupabase()?.rpc('admin_custom_categories', { max_rows: 200 }).then(({ data, error }) => { if (error) setErr(true); else setC(data as CustomCats); }, () => setErr(true));
+  }, []);
+  if (err) return <p className="fx-muted fx-small">{L('Corre o ficheiro supabase/admin_categories.sql no Supabase para ver as categorias criadas.')}</p>;
+  if (!c) return null;
+  const list = all ? c.names : c.names.slice(0, 12);
+  return (
+    <section className="dsh-card dsh-cats"><header><h3>{L('Categorias criadas pelas pessoas')}</h3><small>{L('Só os nomes e quantas pessoas os usam, nunca quem')}</small></header>
+      <div className="dsh-sub2"><span>{L('Pessoas que criaram')} <b>{nf(c.people)}</b></span><span>{L('Categorias criadas')} <b>{nf(c.total)}</b></span><span>{L('Últimos 30 dias')} <b>{nf(c.last_30d)}</b></span></div>
+      {c.names.length === 0 ? <p className="dsh-note">{L('Ainda ninguém criou categorias próprias.')}</p> : <>
+        <ul className="dsh-catlist">{list.map((x) => <li key={x.name}><b>{x.name}</b><span>{x.people === 1 ? L('1 pessoa') : fill(L('{n} pessoas'), { n: nf(x.people) })}</span></li>)}</ul>
+        {c.names.length > 12 && <button type="button" className="gl-act dsh-more" onClick={() => setAll(!all)}>{all ? L('Ver menos') : fill(L('Ver todas ({n})'), { n: String(c.names.length) })}</button>}
+      </>}
+    </section>
+  );
+}
+
 export function AdminMoreMetrics({ section }: { section: 'engagement' | 'health' | 'safety' | 'money' }) {
   const [m, setM] = useState<M | null>(null);
   const [err, setErr] = useState(false);
@@ -231,6 +255,7 @@ export function AdminMoreMetrics({ section }: { section: 'engagement' | 'health'
         <section className="dsh-card"><header><h3>{L('Adoção de funcionalidades')}</h3><small>{L('% das contas que usam cada funcionalidade')}</small></header><HBars data={adoption} suffix="%" /></section>
         <section className="dsh-card"><header><h3>{L('Ecrãs mais usados')}</h3><small>{L('Minutos nos últimos 30 dias')}</small></header><HBars data={pages} /></section>
       </div>
+      <CustomCategories />
 
       </>}
       {section === 'health' && <>

@@ -1,14 +1,18 @@
+import { CountMoney } from '../ui/CountMoney';
 // Metas: cartão da lista (anel com a percentagem) e página de uma meta, com tudo o que se pode fazer nela.
 import { useState, type CSSProperties, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { db } from '../db/app-db';
 import type { Account, Goal } from '../db/database';
 import { contributeToGoal, removeGoalEntry, withdrawFromGoal } from '../core/finance';
+import { todayISO } from '../core/dates';
 import { joinDesc, splitDesc } from '../core/debtPlan';
+import { removeAccount } from '../core/accounts';
 import { parseMoneyToCents } from '../core/money';
 import { loadSettings } from '../core/settings';
 import { appConfirm } from '../ui/confirm';
-import { AmountField } from '../ui/formFields';
+import { AccountRow, AmountField, DateRow, SwitchRow, TextRow } from '../ui/formFields';
 import { fill } from '../ui/AccountPlan';
 import { useMissing, FormError } from '../ui/missing';
 import { Ic, ICON } from '../ui/fx';
@@ -33,7 +37,11 @@ export function GoalCard({ g, acc, icon, info, money, onOpen, i }: { g: Goal; ac
       <span className="gl-main">
         {acc && <span className={'goal-acc t-' + acc.type}><Ic d={icon!} size={14} />{acc.type === 'debt' ? L('Conta de dívida') : L('Conta de poupança')}</span>}
         <b className="gl-name">{g.name}</b>
-        <span className="gl-money"><b className={info.cur < 0 ? 'fx-neg' : ''}>{money(info.cur)}</b> {L('de')} {money(g.targetCents)}</span>
+        <span className={'gl-amts' + (info.done ? ' done' : '')}>
+          <span className="gl-now"><small>{L('Juntaste')}</small><b className={info.cur < 0 ? 'fx-neg' : ''}><CountMoney cents={info.cur} money={money} /></b></span>
+          <span className="gl-amt-sep" aria-hidden="true"><i style={{ width: `${Math.round(Math.max(0, Math.min(1, info.r)) * 100)}%` }} /></span>
+          <span className="gl-goalv"><small>{L('Objetivo')}</small><b>{money(g.targetCents)}</b></span>
+        </span>
         <span className="gl-chips">
           {info.done ? <em className="ok">{L('Objetivo atingido 🎉')}</em> : info.eta ? <em><Ic d={I.flag} size={13} />{info.eta}</em> : <em className="dim">{L('Ainda não dá para prever')}</em>}
           {g.paused && (!g.paused.until || g.paused.until >= new Date().toISOString().slice(0, 10)) ? <em className="paused"><Ic d="M8 5v14M16 5v14" size={13} />{L('Em pausa')}</em>
@@ -45,36 +53,75 @@ export function GoalCard({ g, acc, icon, info, money, onOpen, i }: { g: Goal; ac
   );
 }
 
-/** Juntar ou tirar dinheiro. */
-function MoveSheet({ g, take, money, onClose, onDone }: { g: Goal; take: boolean; money: (c: number) => string; onClose: () => void; onDone: () => void }) {
-  const [v, setV] = useState(''), [err, setErr] = useState('');
+/** Juntar ou tirar dinheiro: fica na meta e também nas transações (despesa ou rendimento, categoria "Metas"), na conta escolhida. */
+function MoveSheet({ g, take, money, accounts, defAcc, onClose, onDone }: { g: Goal; take: boolean; money: (c: number) => string; accounts: Account[]; defAcc?: Account; onClose: () => void; onDone: () => void }) {
+  const s0 = loadSettings();
+  const pool = accounts.filter((a) => a.type !== 'debt');
+  const [v, setV] = useState(''), [err, setErr] = useState(''), [busy, setBusy] = useState(false);
+  const [useDef, setUseDef] = useState(!!defAcc), [acc, setAcc] = useState(defAcc?.id ?? pool.find((a) => a.isDefault)?.id ?? pool[0]?.id ?? '');
+  const [date, setDate] = useState(todayISO()), [desc, setDesc] = useState('');
   const c = Math.abs(parseMoneyToCents(v || '0') ?? 0), missing = useMissing(), left = Math.max(0, g.targetCents - g.currentCents);
-  const miss = missing([['v', L('o valor'), c > 0]]);
+  const accId = useDef && defAcc ? defAcc.id : acc;
+  const miss = missing([['v', L('o valor'), c > 0], ['acc', L('a conta'), !!accId]]);
   const save = async () => {
-    if (!miss.check()) return;
+    if (!miss.check() || busy) return;
     if (take && c > g.currentCents) { setErr(fill(L('Só tens {m} nesta meta.'), { m: money(g.currentCents) })); return; }
-    await (take ? withdrawFromGoal(db, g.id, c) : contributeToGoal(db, g.id, c));
-    onDone();
+    setBusy(true);
+    try {
+      await (take ? withdrawFromGoal(db, g.id, c) : contributeToGoal(db, g.id, c));
+      // o registo fica com a conta e a data escolhidas: o dinheiro continua na conta, mas reservado para a meta
+      const fresh = await db.goals.get(g.id);
+      const list = [...(fresh?.contributions ?? [])];
+      if (list.length) { list[list.length - 1] = { ...list[list.length - 1], date, accountId: accId || undefined, ...(desc.trim() ? { note: desc.trim() } : {}) }; await db.goals.update(g.id, { contributions: list }); }
+      onDone();
+    } finally { setBusy(false); }
   };
   const quick = take ? [g.currentCents] : [...[1000, 2500, 5000, 10000].filter((x) => x < left), ...(left > 0 ? [left] : [])];
   return (
     <BottomSheet title={take ? L('Tirar dinheiro') : L('Juntar dinheiro')} onClose={onClose}>
       <div className="acc-form">
         {miss.note}{err && <FormError text={err} />}
-        <AmountField value={v} onChange={(x) => { setV(x); setErr(''); }} currency={loadSettings().currency} kind={take ? 'expense' : 'income'} cls={miss.cls('v')} autoFocus={PC_MOBILE} />
-        <div className="gl-quick">{quick.map((q) => <button key={q} type="button" className={q === c ? 'on' : ''} onClick={() => { setV(String(q / 100).replace('.', ',')); setErr(''); }}>{take ? `${L('Tudo')} · ${money(q)}` : q === left ? `${L('Tudo o que falta')} · ${money(q)}` : money(q)}</button>)}</div>
-        <p className="gl-hint">{L('Fica anotado na meta. O saldo das tuas contas não muda.')}</p>
-        <button type="button" className="tx-addbtn" onClick={save}>{take ? L('Tirar dinheiro') : L('Juntar dinheiro')}</button>
+        <AmountField value={v} onChange={(x) => { setV(x); setErr(''); }} currency={s0.currency} kind={take ? 'income' : 'expense'} cls={miss.cls('v')} autoFocus={PC_MOBILE} />
+        {quick.length > 0 && <div className="gl-quick">{quick.map((q) => <button key={q} type="button" className={q === c ? 'on' : ''} onClick={() => { setV(String(q / 100).replace('.', ',')); setErr(''); }}>{take ? `${L('Tudo')} · ${money(q)}` : q === left ? `${L('Tudo o que falta')} · ${money(q)}` : money(q)}</button>)}</div>}
+        <div className="tx-rows">
+          <TextRow label={L('Descrição')} value={desc} onChange={setDesc} placeholder={take ? fill(L('Tirado da meta {n}'), { n: g.name }) : fill(L('Para a meta {n}'), { n: g.name })} />
+          {defAcc && <SwitchRow icon={ICON.wallet} label={useDef ? fill(take ? L('Volta para {a}') : L('Reservado em {a}'), { a: defAcc.name }) : L('Usar a conta da meta?')} sub={useDef ? L('A conta escolhida quando criaste a meta') : L('Escolhe abaixo outra conta')} on={useDef} onChange={setUseDef} />}
+          {(!defAcc || !useDef) && <AccountRow label={take ? L('Volta para a conta') : L('Reservar na conta')} cls={miss.cls('acc')} value={acc} options={pool.map((a) => ({ id: a.id, name: a.name, sub: a.type === 'savings' ? L('Poupança') : L('Gastos') }))} onChange={setAcc} />}
+          <DateRow label={L('Data')} value={date} onChange={setDate} />
+        </div>
+        <p className="gl-hint gl-hint2"><Ic d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20zM12 16v-4M12 8h.01" size={14} />{take ? L('O dinheiro volta a ficar disponível na conta.') : L('O dinheiro continua na tua conta, mas fica reservado para esta meta e deixa de contar no saldo disponível.')}</p>
+        <button type="button" className="tx-addbtn" disabled={busy} onClick={save}>{take ? L('Tirar dinheiro') : L('Juntar dinheiro')}</button>
       </div>
     </BottomSheet>
   );
 }
 
-export function GoalView({ g, acc, info, extra, accounts, valueOf, money, date, onBack, onEdit, reload }: {
-  extra?: ReactNode; g: Goal; acc?: Account; info: GoalInfo; accounts: Account[]; valueOf: (a: Account) => number; money: (c: number) => string; date: (iso: string) => string; onBack: () => void; onEdit: () => void; reload: () => void;
+/** Realça valores (€) e datas ("março de 2028") num texto. */
+export function Hl({ text }: { text: string }) {
+  const re = /([-−]?\d[\d\s.,]*\d\s?€|€\s?\d[\d.,]*|[-−]?\d+\s?€|\b\p{L}+ de \d{4}\b|\b\p{Lu}\p{Ll}+ \d{4}\b)/gu;
+  const out: ReactNode[] = []; let last = 0, m: RegExpExecArray | null, k = 0;
+  while ((m = re.exec(text))) { if (m.index > last) out.push(text.slice(last, m.index)); out.push(<b key={k++} className="hl">{m[0]}</b>); last = m.index + m[0].length; }
+  if (last < text.length) out.push(text.slice(last));
+  return <>{out}</>;
+}
+
+/** Confirmação bonita para apagar (fundo desfocado). */
+export function DeleteGoalModal({ name, account, onCancel, onConfirm }: { name: string; account?: string; onCancel: () => void; onConfirm: () => void }) {
+  return createPortal(<div className="spi-back gdel-back" onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
+    <section className="spi-card gdel-card" role="dialog" aria-modal="true" aria-label={L('Apagar meta')}>
+      <span className="gdel-ic"><Ic d={ICON.trash} size={26} /></span>
+      <h2>{fill(L('Apagar a meta "{n}"?'), { n: name })}</h2>
+      {account ? <p className="gdel-warn"><Ic d="M12 8v5M12 16h.01M12 3l9 16H3z" size={16} /><span>{fill(L('Esta meta pertence à conta "{a}". A conta também vai ser apagada.'), { a: account })}</span></p>
+        : <p>{L('A meta desaparece da lista e o dinheiro reservado volta a ficar disponível.')}</p>}
+      <div className="gdel-acts"><button type="button" className="gl-act" onClick={onCancel}>{L('Cancelar')}</button><button type="button" className="gl-act danger" onClick={onConfirm}><Ic d={ICON.trash} size={16} />{L('Sim, apagar')}</button></div>
+    </section></div>, document.body);
+}
+
+export function GoalView({ g, acc, info, extra, accounts, valueOf, money, date, onBack, onEdit, reload, onNew }: {
+  onNew?: () => void; extra?: ReactNode; g: Goal; acc?: Account; info: GoalInfo; accounts: Account[]; valueOf: (a: Account) => number; money: (c: number) => string; date: (iso: string) => string; onBack: () => void; onEdit: () => void; reload: () => void;
 }) {
   const [move, setMove] = useState<'' | 'add' | 'take'>(''), [all, setAll] = useState(false);
-  const debt = acc?.type === 'debt', linked = accounts.filter((a) => g.accountIds?.includes(a.id)), hand = !g.accountIds?.length;
+  const debt = acc?.type === 'debt', linked = accounts.filter((a) => g.accountIds?.includes(a.id)), hand = !acc; // metas próprias: junta-se sempre aqui (a conta escolhida é só de onde sai o dinheiro)
   const left = Math.max(0, g.targetCents - info.cur), note = splitDesc(g.notes), monthly = note.plan?.monthlyCents ?? 0;
   const log = (g.contributions ?? []).map((c, idx) => ({ ...c, idx })).reverse();
   const plans = [3, 6, 12, 24].map((n) => ({ n, m: Math.ceil(left / n / 100) * 100 }));
@@ -83,9 +130,14 @@ export function GoalView({ g, acc, info, extra, accounts, valueOf, money, date, 
     await db.goals.update(g.id, { notes: joinDesc(note.text, { monthlyCents: m, startCents: 0 }), updatedAt: new Date().toISOString() });
     reload();
   };
+  const [askDel, setAskDel] = useState(false);
   const del = async () => {
-    if (!(await appConfirm(`${L('Apagar meta')} "${g.name}"?`, { danger: true }))) return;
     const now = new Date().toISOString();
+    if (acc) { // meta de uma conta: apaga também a conta (e as transferências automáticas para ela)
+      for (const x of await db.recurrings.toArray()) if (x.toAccountId === acc.id && x.deletedAt === null) await db.recurrings.update(x.id, { deletedAt: now, updatedAt: now });
+      await removeAccount(db, acc.id);
+      if (g.id.startsWith('acc:')) { onBack(); reload(); return; }
+    }
     await db.goals.update(g.id, { deletedAt: now, updatedAt: now });
     onBack(); reload();
   };
@@ -106,7 +158,7 @@ export function GoalView({ g, acc, info, extra, accounts, valueOf, money, date, 
             {hand ? <>
               <button type="button" className="gl-act main" onClick={() => setMove('add')}><Ic d={I.add} size={18} />{L('Juntar')}</button>
               <button type="button" className="gl-act" disabled={g.currentCents <= 0} onClick={() => setMove('take')}><Ic d={I.take} size={18} />{L('Tirar')}</button>
-            </> : linked[0] && <Link className="gl-act main" to={`/transacoes?nova=1&para=${linked[0].id}`}><Ic d={I.swap} size={18} />{debt ? L('Abater') : L('Juntar')}</Link>}
+            </> : linked[0] && <Link className="gl-act main" to={`/transacoes?nova=1&para=${linked[0].id}&desc=${encodeURIComponent(fill(L('Para a meta {n}'), { n: g.name }))}`}><Ic d={I.swap} size={18} />{debt ? L('Abater') : L('Juntar')}</Link>}
             {acc ? <Link className="gl-act" to={'/contas' + (acc.type === 'debt' || acc.type === 'savings' ? `?tab=${acc.type}` : '')}><Ic d={ICON.wallet} size={18} />{L('Ver conta')}</Link> : <button type="button" className="gl-act" onClick={onEdit}><Ic d={I.edit} size={18} />{L('Alterar')}</button>}
           </div>
         </div>
@@ -114,14 +166,22 @@ export function GoalView({ g, acc, info, extra, accounts, valueOf, money, date, 
       <div className="gx-tiles even">
         <GTile d="M12 19V5M5 12l7-7 7 7" tone={left > 0 ? 'neg' : 'pos'} label={debt ? L('Falta pagar') : L('Falta')} value={money(left)} />
         <GTile d={CALENDAR} label={L('Por mês')} value={info.per > 0 ? money(info.per) : '—'} />
-        <GTile d={I.flag} label={debt ? L('Acabas em') : L('Chegas lá em')} value={info.done ? L('Já chegaste') : info.eta || '—'} />
+        {info.done ? <GTile d={I.flag} tone="pos" label={debt ? L('Dívida paga') : L('Conseguiste!')} value={debt ? '🎉' : L('Meta atingida 🎉')} />
+          : <GTile d={I.flag} label={debt ? L('Acabas em') : L('Chegas lá em')} value={info.eta || '—'} />}
         <GTile d={I.clock} label={L('Data limite')} value={g.targetDate ? date(g.targetDate) : L('Sem data')} />
       </div>
-      {!debt && <section className="mv-card gl-sec">
-        <h2>{L('Previsão')}</h2>
-        <p className="fx-muted">{info.long}</p>
-        {info.when && <p className={'sh-alert' + (info.when.ok ? ' ok' : '')}>{info.when.long}</p>}
-      </section>}
+      {!debt && (info.done ? <section className="mv-card gl-sec gfc done">
+        <span className="gfc-cheer" aria-hidden="true"><i /><i /><b>🏆</b></span>
+        <div className="gfc-done-tx"><h2>{L('Conseguiste!')}</h2><p>{L('Chegaste ao objetivo. Que tal começar o próximo?')}</p></div>
+        {onNew && <button type="button" className="gfc-next" onClick={onNew}><Ic d="M12 5v14M5 12h14" size={16} />{L('Começar a próxima meta')}</button>}
+      </section> : <section className="mv-card gl-sec gfc">
+        <div className="gfc-head"><span className="gfc-ic"><Ic d="M3 17l6-6 4 4 8-8M14 7h7v7" size={18} /></span><h2>{L('Previsão')}</h2>{info.when && <em className={'gfc-pill ' + (info.when.ok ? 'ok' : 'bad')}><Ic d={info.when.ok ? 'M20 6 9 17l-5-5' : 'M12 8v5M12 16h.01M12 3l9 16H3z'} size={12} />{info.when.ok ? L('A tempo') : L('Atrasada')}</em>}</div>
+        {info.eta && <div className="gfc-line" style={{ '--p': `${Math.round(info.r * 100)}%` } as CSSProperties}>
+          <span className="gfc-dot a"><small>{L('Hoje')}</small></span><span className="gfc-bar"><i /></span><span className="gfc-dot b"><small>{info.eta}</small></span>
+        </div>}
+        <p className="gfc-txt"><Hl text={info.long} /></p>
+        {info.when && !info.when.ok && <p className="gfc-warn"><Ic d="M12 8v5M12 16h.01M12 3l9 16H3z" size={14} /><span><Hl text={info.when.long} /></span></p>}
+      </section>)}
       {extra}
       {!acc && left > 0 && <section className="mv-card gl-sec">
         <h2>{L('Quando queres lá chegar?')}</h2>
@@ -152,8 +212,9 @@ export function GoalView({ g, acc, info, extra, accounts, valueOf, money, date, 
           </div>
         )} />
       </section>}
-      {!acc && <div className="gx-end gl-end"><button type="button" className="gx-rm" onClick={del}><Ic d={ICON.trash} size={18} />{L('Apagar meta')}</button></div>}
-      {move && <MoveSheet g={g} take={move === 'take'} money={money} onClose={() => setMove('')} onDone={() => { setMove(''); reload(); }} />}
+      {<div className="gx-end gl-end"><button type="button" className="gx-rm" onClick={() => setAskDel(true)}><Ic d={ICON.trash} size={18} />{L('Apagar meta')}</button></div>}
+      {move && <MoveSheet g={g} take={move === 'take'} money={money} accounts={accounts} defAcc={linked[0]} onClose={() => setMove('')} onDone={() => { setMove(''); reload(); }} />}
+      {askDel && <DeleteGoalModal name={g.name} account={acc?.name} onCancel={() => setAskDel(false)} onConfirm={() => { setAskDel(false); del(); }} />}
     </div>
   );
 }

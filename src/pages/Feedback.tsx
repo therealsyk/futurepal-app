@@ -44,19 +44,19 @@ export function FeedbackSheet({ open, onClose }: { open: boolean; onClose: () =>
         </div>
       ) : (
         <div className="acc-form fbx">
-          <p>{t('feedback.intro')}</p>
+          <p className="fbx-intro">{t('feedback.intro')}</p>
           <div className="st2-acts" role="radiogroup" aria-label={t('feedback.kind')}>
             {KINDS.map(([id, d]) => <button key={id} type="button" role="radio" aria-checked={kind === id} className={kind === id ? 'on' : ''} onClick={() => setKind(id)}><span className="lg-ic"><Ic d={d} size={20} /></span><b>{t('feedback.' + id)}</b></button>)}
           </div>
           {miss.note}
           <div className="mv-card lg-card">
             <label className={'lg-f top' + miss.cls('msg')}><span className="lg-ic"><Ic d="M4 5h16v11H9l-5 4zM8 9h8M8 12h5" size={20} /></span><span className="lg-in"><small>{kind === 'bug' ? t('feedback.bugLabel') : t('feedback.message')}</small>
-              <textarea rows={5} maxLength={4000} value={message} onChange={(e) => setMessage(e.target.value)} placeholder={kind === 'bug' ? t('feedback.bugPh') : t('feedback.messagePh')} data-testid="feedback-message" /></span></label>
+              <textarea className="fbx-msg" rows={2} maxLength={4000} value={message} onChange={(e) => { setMessage(e.target.value); const el = e.target; el.style.height = 'auto'; el.style.height = `${Math.min(el.scrollHeight, 260)}px`; }} placeholder={kind === 'bug' ? t('feedback.bugPh') : t('feedback.messagePh')} data-testid="feedback-message" /></span></label>
             {!auth.user && <label className="lg-f"><span className="lg-ic"><Ic d="M3 6h18v12H3zM3 7l9 7 9-7" size={20} /></span><span className="lg-in"><small>{t('feedback.email')}</small><input type="email" inputMode="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('feedback.emailPh')} /></span></label>}
           </div>
           {error && <FormError text={error} />}
           <button type="button" className="tx-addbtn" disabled={busy} onClick={send} data-testid="feedback-send">{busy ? t('feedback.sending') : t('feedback.send')}</button>
-          <small className="fbx-note">{t('feedback.privacy')}</small>
+          <div className="pv-note"><span className="pv-ic"><Ic d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6zM9 12l2 2 4-4" size={15} /></span><span>{t('feedback.privacy')}</span></div>
         </div>
       )}
     </Sheet>

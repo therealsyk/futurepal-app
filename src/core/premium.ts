@@ -1,4 +1,4 @@
-// Funções do FuturePal Plus/Pro: Modo IRS, caçador de subscrições, previsão do mês,
+// Funções do MyFuturePal Plus/Pro: Modo IRS, caçador de subscrições, previsão do mês,
 // "o teu ano em números", desafios de poupança, garantias e despesas profissionais.
 // Tudo puro (sem base de dados) para poder ser testado; as páginas passam os dados.
 import type { Category, Transaction } from '../db/database';

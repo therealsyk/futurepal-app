@@ -3,11 +3,11 @@ import type { CSSProperties, ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Ic } from './fx';
 
-export function WidgetRow({ to, pic, title, value, tone = '', sub, when, i = 0 }: { to: string; pic: ReactNode; title: string; value?: ReactNode; tone?: string; sub?: string; when?: string; i?: number }) {
+export function WidgetRow({ to, pic, title, value, tone = '', sub, when, i = 0 }: { to: string; pic: ReactNode; title: string; value?: ReactNode; tone?: string; sub?: ReactNode; when?: string; i?: number }) {
   return (
     <Link to={to} className="wr" style={{ '--i': Math.min(i, 8) } as CSSProperties}>
       <span className="wr-pic">{pic}</span>
-      <span className="wr-main"><b>{title}</b>{sub && <small>{sub}</small>}{when && <small className="wr-when"><Ic d="M6 21V4h11l-2 4 2 4H6" size={13} />{when}</small>}</span>
+      <span className="wr-main"><b>{title}</b>{sub && (typeof sub === 'string' ? <small>{sub}</small> : sub)}{when && <small className="wr-when"><Ic d="M6 21V4h11l-2 4 2 4H6" size={13} />{when}</small>}</span>
       <span className="wr-end">{value && <span className={'wr-val ' + tone}>{value}</span>}</span>
     </Link>
   );

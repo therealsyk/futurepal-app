@@ -148,14 +148,14 @@ export function PlanningPage() {
     const sugg = [lvl('easy', easy), lvl('mid', mid), lvl('hard', hard)].filter((x) => x.items.length > 0);
     // detalhes para as caixas que abrem
     const fixedList = p.events.filter((e) => e.kind === 'recurring' || e.kind === 'oneoff').map((e) => ({ id: e.id, label: e.label, date: e.date, cents: -e.cents, catId: inp.recurrings.find((x) => x.id === e.sourceId)?.categoryId ?? '' }));
-    const debtList = [...p.events.filter((e) => e.kind === 'instalment').map((e) => ({ id: e.id, label: e.label || L('Prestação'), cents: -e.cents, note: L('agendada') })),
-      ...p.partial.flatMap((x) => (x.kind === 'debtNoSchedule' ? [{ id: 'd' + x.accountId, label: x.name, cents: x.monthlyCents, note: L('planeada, sem pagamento agendado') }] : []))];
+    const debtList = [...p.events.filter((e) => e.kind === 'instalment').map((e) => ({ id: e.id, label: e.label || L('Prestação'), cents: -e.cents, note: '', planned: false, date: e.date })),
+      ...p.partial.flatMap((x) => (x.kind === 'debtNoSchedule' ? [{ id: 'd' + x.accountId, label: x.name, cents: x.monthlyCents, note: '', planned: true, date: '' }] : []))];
     const oneOffs = (est.oneOffs ?? []).filter((x) => x.date >= hs && x.date < he);
     const dailyInfo = { months: est.months || 1, perDay: est.dailyCents, cats: catsAvg.slice(0, 6), oneOffs, widened: !!est.widened };
-    const saveList = [...inp.accounts.filter((a) => a.type === 'savings' && (splitDesc(a.description).plan?.monthlyCents ?? 0) > 0).map((a) => ({ id: 'a' + a.id, label: a.name, cents: splitDesc(a.description).plan!.monthlyCents, note: L('conta de poupança'), to: '/contas?tab=savings' })),
+    const saveList = [...inp.accounts.filter((a) => a.type === 'savings' && (splitDesc(a.description).plan?.monthlyCents ?? 0) > 0).map((a) => ({ id: 'a' + a.id, label: a.name, cents: splitDesc(a.description).plan!.monthlyCents, note: '', to: '/contas?tab=savings' })),
       ...goals.map((g) => ({ id: 'g' + g.id, label: g.name, cents: g.need, note: fill(g.until ? L('Faltam {v} · até {d}') : L('Faltam {v}'), { v: money(g.left), d: g.until ? new Date(g.until.slice(0, 10) + 'T12:00:00').toLocaleDateString(s.language, { month: 'short', year: 'numeric' }) : '' }), to: '/metas', ratio: g.ratio }))];
     const cutCats = catsAvg.slice(0, 5).map((c) => ({ ...c, items: [...byDesc.values()].filter((o) => o.cat === c.id && o.name).sort((a, b) => b.cents - a.cents).slice(0, 3).map((o) => ({ name: o.name, avg: Math.round(o.cents / hm), times: Math.max(1, Math.round(o.n / hm)) })) }));
-    return { start, income, used, fixed, debts, daily, spend, saveTarget, left, tone, weights, fixedList, debtList, dailyInfo, saveList, sugg, gap, cutCats, hasIncome: income > 0 };
+    return { start, income, used, fixed, debts, daily, spend, saveTarget, left, tone, weights, fixedList, debtList, dailyInfo, saveList, sugg, gap, cutCats, hasIncome: income > 0, enough: income > 0 && (est.ok || fixed > 0), steps: { income: income > 0, spend: inp.txs.some((x) => x.type === 'expense'), recurring: inp.recurrings.some((x) => x.type === 'expense'), goal: inp.goals.length > 0 } };
   }, [inp, cats, extras, tips]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const monthName = r ? new Date(r.start + 'T12:00:00').toLocaleDateString(lang, { month: 'long', year: 'numeric' }) : '';
@@ -183,7 +183,7 @@ export function PlanningPage() {
               ] as const).filter(([, , , v]) => v > 0);
               const base = Math.max(1, r.left >= 0 ? r.income : r.spend + r.saveTarget);
               return <>
-                <p className="pl3-lead">{L('Ganhas cerca de')} <strong className="inc">{money(r.income)}</strong> {L('por mês. Para pagar tudo e cumprir as poupanças e metas precisas de')} <strong className={r.left < 0 ? 'need over' : 'need'}>{money(r.spend + r.saveTarget)}</strong>{r.left < 0 ? <> — <strong className="miss">{fill(L('faltam {v}'), { v: money(-r.left) })}</strong></> : <> — <strong className="spare">{fill(L('sobram {v}'), { v: money(r.left) })}</strong></>}</p>
+                <p className="pl3-lead">{L('Ganhas cerca de')} <strong className="inc"><CountMoney cents={r.income} money={money} /></strong> {L('por mês. Para pagar tudo e cumprir as poupanças e metas precisas de')} <strong className={r.left < 0 ? 'need over' : 'need'}><CountMoney cents={r.spend + r.saveTarget} money={money} /></strong>{r.left < 0 ? <> — <strong className="miss">{L('faltam')} <CountMoney cents={-r.left} money={money} /></strong></> : <> — <strong className="spare">{L('sobram')} <CountMoney cents={r.left} money={money} /></strong></>}</p>
                 <div className="pl3-bar" role="img" aria-label={L('Para onde vai o teu rendimento')}>
                   {parts.map(([k, label, , v], i) => <i key={k} tabIndex={0} className={k + (k === 'left' && r.left < 0 ? ' over' : '')} style={{ '--i': i, '--g': v / base } as CSSProperties} aria-label={`${label}: ${money(v)}`}><span className="pl3-btip" role="tooltip"><b>{label}</b><em>{k === 'left' && r.left < 0 ? '−' : ''}{money(v)}</em><small className={'pl3-btipct ' + pctTone(k, v / Math.max(1, r.income), r.left)}><strong>{Math.round((v / Math.max(1, r.income)) * 100)}%</strong> {L('do que ganhas')}</small></span></i>)}
                 </div>
@@ -256,12 +256,13 @@ export function PlanningPage() {
         <span className="pl3-month"><span className="pl3-mcal"><Ic d="M5 5h14v15H5zM5 10h14M8 3v4M16 3v4" size={18} /></span><span className="pl3-mtx"><small>{L('A planear o próximo mês')}</small><b>{monthName.charAt(0).toUpperCase() + monthName.slice(1)}</b></span></span>
         <div className={'pl3-tog pl3-tog-head' + (extras ? ' r' : '')} role="tablist" aria-label={L('Rendimento a contar')}>
                 <span className="pl3-togpill" aria-hidden="true" />
-                <button type="button" role="tab" aria-selected={!extras} className={!extras ? 'on' : ''} onClick={() => setInc(false)}>{L('Só salário')}</button>
-                <button type="button" role="tab" aria-selected={extras} className={extras ? 'on' : ''} onClick={() => setInc(true)}>{L('Com extras')}</button>
+                <button type="button" role="tab" aria-selected={!extras} className={!extras ? 'on' : ''} onClick={() => setInc(false)}><Ic d="M3 7h18v12H3zM3 11h18M7 15h3" size={16} />{L('Só salário')}</button>
+                <button type="button" role="tab" aria-selected={extras} className={extras ? 'on' : ''} onClick={() => setInc(true)}><Ic d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" size={16} />{L('Com extras')}</button>
               </div>
       </div>
 
-      {r && mob && <>
+      {r && !r.enough && <NotEnough steps={r.steps} />}
+      {r && r.enough && mob && <>
         {/* telemóvel: resumo num só cartão, gráfico compacto e o resto em separadores */}
         <section className={'mv-card pl3-hero ' + r.tone}>
           <div className="pl3-hhead"><span className="pl3-hic"><Ic d={r.tone === 'ok' ? 'M20 6 9 17l-5-5' : 'M12 8v5M12 16h.01M12 3l9 16H3z'} size={16} /></span><b>{TONE[r.tone][0]}</b><span className="pl3-sinfo" tabIndex={0} aria-label={L('Estimativa a partir dos teus dados. Não é uma garantia.')}><Ic d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20zM12 16v-4M12 8h.01" size={15} /><span role="tooltip">{L('Estimativa a partir dos teus dados. Não é uma garantia.')}</span></span></div>
@@ -286,7 +287,7 @@ export function PlanningPage() {
         </section>
       </>}
 
-      {r && !mob && <>
+      {r && r.enough && !mob && <>
 
         {/* 2. para onde vai o dinheiro (sozinho numa fila: ao abrir linhas empurra o resto para baixo) */}
         <div className="pl3-row pl3-full">
@@ -300,8 +301,8 @@ export function PlanningPage() {
             <Metric i={2} icon={IC.free} tone={r.left < 0 ? 'exp' : 'sav'} title={r.left < 0 ? L('Falta para cumprir tudo') : L('Livre depois de cumprir tudo')} value={Math.abs(r.left)} money={money} sub={r.left < 0 ? L('Quanto falta para pagares tudo e cumprires as poupanças e metas.') : L('O que fica livre depois de pagares tudo e cumprires as poupanças e metas.')} ratio={Math.abs(r.left) / Math.max(1, r.income)} pct={r.hasIncome ? Math.abs(r.left) / r.income : undefined} />
           <section className={'mv-card pco-metric pl3-metric pl3-state ' + r.tone} style={{ '--i': 3 } as CSSProperties}>
             <div className="pco-mhead"><span className="pco-mic"><Ic d={r.tone === 'ok' ? 'M20 6 9 17l-5-5' : 'M12 8v5M12 16h.01M12 3l9 16H3z'} size={18} /></span><h3>{L('Estado do mês')}</h3><span className="pl3-sinfo" tabIndex={0} aria-label={L('Estimativa a partir dos teus dados. Não é uma garantia.')}><Ic d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20zM12 16v-4M12 8h.01" size={15} /><span role="tooltip">{L('Estimativa a partir dos teus dados. Não é uma garantia.')}</span></span></div>
-            <strong className="pco-value pl3-statev">{TONE[r.tone][0]}</strong>
-            <small className="pl3-statet">{!r.hasIncome ? L('Regista o teu salário') : r.left < 0 ? fill(L('Faltam {v} para tudo'), { v: money(-r.left) }) : r.tone === 'meh' ? fill(L('Pouca folga: sobram {v}'), { v: money(r.left) }) : fill(L('Sobram {v} 💪'), { v: money(r.left) })}</small>
+            <strong className="pco-value pl3-statev"><span className="pl3-semo" aria-hidden="true">{r.tone === 'ok' ? '💪' : r.tone === 'meh' ? '⚖️' : '⚠️'}</span>{TONE[r.tone][0]}</strong>
+            <span className="pl3-statet2"><Ic d={r.tone === 'ok' ? 'M20 6 9 17l-5-5' : r.tone === 'meh' ? 'M5 12h14' : 'M12 5v14M5 12l7 7 7-7'} size={13} />{!r.hasIncome ? L('Regista o teu salário') : r.tone === 'tight' ? L('Não chega para tudo o que planeaste') : r.tone === 'meh' ? L('Cabe tudo, com pouca folga') : L('Cabe tudo. Continua assim!')}</span>
           </section>
         </div>
 
@@ -409,7 +410,7 @@ function BuySim({ init, free, cats, inp, money, onClose, onSave, onDone }: { ini
 
 /** O que está por trás de cada parte: contas fixas, dia a dia normal (por categoria), dívidas, poupanças e metas.
  *  A lista vem primeiro; a explicação de como foi calculado fica em baixo, discreta. */
-type DetailData = { fixedList: Array<{ id: string; label: string; date: string; cents: number; catId: string }>; debtList: Array<{ id: string; label: string; cents: number; note: string }>; saveList: Array<{ id: string; label: string; cents: number; note: string; to: string; ratio?: number }>; dailyInfo: { months: number; perDay: number; widened: boolean; cats: Array<{ id: string; avg: number }>; oneOffs: Array<{ id: string; description: string; amountCents: number; date: string; categoryId: string }> } };
+type DetailData = { fixedList: Array<{ id: string; label: string; date: string; cents: number; catId: string }>; debtList: Array<{ id: string; label: string; cents: number; note: string; planned: boolean; date: string }>; saveList: Array<{ id: string; label: string; cents: number; note: string; to: string; ratio?: number }>; dailyInfo: { months: number; perDay: number; widened: boolean; cats: Array<{ id: string; avg: number }>; oneOffs: Array<{ id: string; description: string; amountCents: number; date: string; categoryId: string }> } };
 const Foot = ({ text }: { text: string }) => <p className="pl3-dfoot"><Ic d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20zM12 16v-4M12 8h.01" size={14} /><span>{text}</span></p>;
 function PartDetail({ k, r, cats, money, catName, lang }: { k: string; r: DetailData; cats: Category[]; money: (c: number) => string; catName: (id: string) => string; lang: string }) {
   const [showOff, setShowOff] = useState(false);
@@ -422,15 +423,15 @@ function PartDetail({ k, r, cats, money, catName, lang }: { k: string; r: Detail
     </div>);
   if (k === 'debt') return (
     <div className="pl3-detail">
-      {r.debtList.map((x, i) => <div key={x.id} className="sh-tx pl3-drow" style={{ '--i': i } as CSSProperties}><span className="txs-tric"><Ic d="M3 10l9-6 9 6M5 10v9h14v-9" size={15} /></span><span className="sh-tx-main"><b>{x.label}</b><small>{x.note}</small></span><b>{money(x.cents)}</b></div>)}
-      <div className="pl3-dend"><span /><Link to="/contas?tab=debt" className="mv-link">{L('Ver dívidas')}</Link></div>
+      {r.debtList.map((x, i) => <div key={x.id} className={'sh-tx pl3-drow' + (x.planned ? ' plan' : '')} style={{ '--i': i } as CSSProperties}><CatIcon cat={cats.find((c) => c.nameKey === 'catLoan') ?? { nameKey: 'catLoan', icon: 'handcoin' }} size={30} /><span className="sh-tx-main"><b>{x.label}</b><small>{x.planned ? <span className="pl3-dtag"><i aria-hidden="true" />{L('Ainda sem pagamento automático')}</span> : <span className="pl3-dtag ok"><Ic d="M20 6 9 17l-5-5" size={11} />{x.date ? fill(L('Agendado para {d}'), { d: new Date(x.date + 'T12:00:00').toLocaleDateString(lang, { day: 'numeric', month: 'long' }) }) : L('Pagamento já agendado')}</span>}</small></span><b>{money(x.cents)}</b></div>)}
+      <div className="pl3-dend">{r.debtList.length > 0 ? <Foot text={r.debtList.some((x) => x.planned) ? L('É o que planeaste pagar por mês. Agenda-o nas Dívidas para não te esqueceres.') : L('Estes pagamentos já estão agendados: saem sozinhos da tua conta nas datas indicadas.')} /> : <span />}<Link to="/contas?tab=debt" className="mv-link">{L('Ver dívidas')}</Link></div>
     </div>);
   if (k === 'save') return (
     <div className="pl3-detail">
       {r.saveList.length === 0 ? <p className="pl3-dnote">{L('Ainda não tens metas com data nem contas de poupança com um valor por mês.')}</p> : r.saveList.map((x, i) => (
         <Link key={x.id} to={x.to} className="sh-tx pl3-drow" style={{ '--i': i } as CSSProperties}>
           <span className={'txs-tric ' + (x.id[0] === 'g' ? 'pl3-icg' : 'pl3-ics')}><Ic d={x.id[0] === 'g' ? 'M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8z' : 'M19 7a3 3 0 0 0-3-2H9a6 6 0 0 0-6 6c0 2 1 3.5 2 4.5V19h3v-2h5v2h3v-3a6 6 0 0 0 2-3h2V9h-2z'} size={15} /></span>
-          <span className="sh-tx-main"><b>{x.label}</b><small>{x.note}</small>{x.ratio !== undefined && <span className="pl3-gbar" aria-hidden="true"><i style={{ width: `${Math.min(100, Math.max(2, x.ratio * 100))}%` }} /><em>{Math.round(x.ratio * 100)}%</em></span>}</span><b className="pl3-gneed">{money(x.cents)}<i className="pl3-per">/{L('mês')}</i></b>
+          <span className="sh-tx-main"><b>{x.label}</b>{x.note && <small>{x.note}</small>}{x.ratio !== undefined && <span className="pl3-gbar" aria-hidden="true"><i style={{ width: `${Math.min(100, Math.max(2, x.ratio * 100))}%` }} /><em>{Math.round(x.ratio * 100)}%</em></span>}</span><b className="pl3-gneed">{money(x.cents)}<i className="pl3-per">/{L('mês')}</i></b>
         </Link>))}
       <div className="pl3-dend"><Foot text={L('O que as metas precisam por mês para chegares a tempo e o que planeaste pôr nas contas de poupança.')} /><Link to="/metas" className="mv-link">{L('Ver metas')}</Link></div>
     </div>);
@@ -471,5 +472,31 @@ function CutSheet({ pct, r, cats, money, onClose }: { pct: number; r: { daily: n
         <Link className="tx-addbtn pl3-cutgo" to="/orcamentos" onClick={onClose}><Ic d="M12 3a9 9 0 1 0 9 9h-9zM15 3.5V9h5.5A9 9 0 0 0 15 3.5z" size={17} />{L('Definir limites para não passar')}</Link>
       </div>
     </BottomSheet>
+  );
+}
+
+/** Ainda sem dados para planear: o que fazer, passo a passo (cada passo leva ao sítio certo). */
+function NotEnough({ steps }: { steps: { income: boolean; spend: boolean; recurring: boolean; goal: boolean } }) {
+  const list: Array<[boolean, string, string, string, string]> = [
+    [steps.income, 'M3 7h18v12H3zM3 11h18M7 15h3', L('Regista o teu salário'), L('Diz quanto recebes por mês. É a base de todo o plano.'), '/salarios'],
+    [steps.spend, 'M12 5v14M5 12l7 7 7-7', L('Adiciona as tuas despesas'), L('Regista o que gastas (ou importa um extrato do banco) durante algumas semanas.'), '/transacoes?nova=1'],
+    [steps.recurring, 'M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3', L('Marca os pagamentos fixos'), L('Renda, internet, subscrições… a app conta com eles todos os meses.'), '/subscricoes'],
+    [steps.goal, 'M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8z', L('Cria uma meta (opcional)'), L('Para a app saber quanto queres pôr de lado por mês.'), '/metas'],
+  ];
+  const done = list.filter((x) => x[0]).length;
+  return (
+    <section className="mv-card pl3-ne">
+      <div className="pl3-ne-top">
+        <span className="pl3-ne-art" aria-hidden="true"><i /><b>🧭</b></span>
+        <div><h2>{L('Ainda não há informação suficiente')}</h2><p>{L('Para planear o próximo mês, a app precisa de conhecer o que recebes e o que gastas. Faz estes passos e o plano aparece aqui sozinho.')}</p></div>
+      </div>
+      <div className="pl3-ne-prog"><span><i style={{ width: `${(done / list.length) * 100}%` }} /></span><small>{fill(L('{d} de {t} passos feitos'), { d: String(done), t: String(list.length) })}</small></div>
+      <div className="pl3-ne-list">{list.map(([ok, d, title, sub, to], i) => (
+        <Link key={title} to={to} className={'pl3-ne-step' + (ok ? ' ok' : '')} style={{ '--i': i } as CSSProperties}>
+          <span className="pl3-ne-ic">{ok ? <Ic d="M20 6 9 17l-5-5" size={17} /> : <Ic d={d} size={17} />}</span>
+          <span className="pl3-ne-tx"><b>{title}</b><small>{ok ? L('Feito ✓') : sub}</small></span>
+          {!ok && <Ic d="M9 6l6 6-6 6" size={16} />}
+        </Link>))}</div>
+    </section>
   );
 }

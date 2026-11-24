@@ -1,3 +1,4 @@
+import { openImport } from '../ui/ImportHost';
 import { CountText } from '../ui/CountText';
 // Resumo do PC: Mensal | Anual | Período, caixas de rendimento/gastos/poupança, gráfico, contas,
 // últimos movimentos do período, categorias e calendário. Os widgets podem ir para qualquer sítio e mudar de tamanho (Personalizar).
@@ -220,6 +221,7 @@ export function PcOverview() {
           <PeriodFilter value={per} onChange={setPer} />
         </div>
         <div className="pco-right">
+          {!editing && <button type="button" className="imp-chip" onClick={openImport} title={L('Junta várias despesas de uma vez, sem escrever uma a uma')}><span className="imp-chip-ic"><Ic d="M12 3v12M7 10l5 5 5-5M5 21h14" size={15} /></span>{L('Importar extrato')}</button>}
           {editing && <>
             <div className="pco-addw">
               <button type="button" className="pf-chip on" onClick={() => setAddOpen(!addOpen)}>+ {L('Adicionar widget')}</button>

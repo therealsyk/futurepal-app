@@ -32,6 +32,6 @@ if (existsSync(android)) for (const n of readdirSync(android)) {
 // 3. restos de compilações antigas soltos na raiz de release/ (antes de cada versão ter a sua pasta)
 for (const n of readdirSync(release)) {
   const p = join(release, n);
-  if (/^(Wallet|FuturePal|Plannest)[- ].*\.(exe|blockmap)$/i.test(n) || /^(win-unpacked|asar_check\d*|builder-debug\.yml|builder-effective-config\.yaml|latest\.yml)$/i.test(n)) remove(p);
+  if (/^(Wallet|FuturePal|MyFuturePal|Plannest)[- ].*\.(exe|blockmap)$/i.test(n) || /^(win-unpacked|asar_check\d*|builder-debug\.yml|builder-effective-config\.yaml|latest\.yml)$/i.test(n)) remove(p);
 }
 console.log(`Limpeza: ficam ${keep.join(' e ')} · libertados ${(freed / 1048576).toFixed(0)} MB`);

@@ -90,9 +90,9 @@ export const CATEGORY_GROUPS: CatalogGroup[] = [
     { key: 'catLeisure', icon: 'film' }, { key: 'catHobby', icon: 'gamepad' }, { key: 'catSports', icon: 'run' }, { key: 'catNightlife', icon: 'cocktail' },
     { key: 'catSubscriptions', icon: 'repeat' }, { key: 'catVacation', icon: 'plane' },
   ] },
-  { id: 'savings', color: '#c2410c', items: [{ key: 'catEmergencySavings', icon: 'coins' }, { key: 'catVacationSavings', icon: 'sun' }] },
+  { id: 'savings', color: '#c2410c', items: [{ key: 'catEmergencySavings', icon: 'coins' }, { key: 'catVacationSavings', icon: 'sun' }, { key: 'catGoals', icon: 'coins' }] },
   { id: 'misc', color: '#6b7280', items: [
-    { key: 'catOther', icon: 'dots' }, { key: 'catBankFees', icon: 'bank' }, { key: 'catStudentLoan', icon: 'grad' }, { key: 'catUnknown', icon: 'question' },
+    { key: 'catBankFees', icon: 'bank' }, { key: 'catStudentLoan', icon: 'grad' }, { key: 'catOther', icon: 'dots' }, { key: 'catUnknown', icon: 'question' },
   ] },
 ];
 
@@ -104,12 +104,20 @@ export function catalogItem(nameKey?: string) {
 
 /** Grupo de uma categoria: o guardado, o do catálogo, ou "custom". */
 export function groupOf(c: { group?: string; nameKey?: string }): string {
+  if (c.nameKey === 'salaries.extras') return 'income'; // criada pela app (Rendimentos extras), não pela pessoa
   return c.group || catalogItem(c.nameKey)?.group || 'custom';
 }
 
 /** Ícone de uma categoria (do catálogo ou o escolhido); por omissão "dots". */
 export function iconPathOf(c: { icon?: string; nameKey?: string }): string {
   return CAT_ICONS[c.icon || ''] ?? CAT_ICONS[catalogItem(c.nameKey)?.icon ?? 'dots'] ?? CAT_ICONS.dots;
+}
+
+/** Ordem dentro de um grupo: a do catálogo (do mais comum para o "outros" no fim); as criadas pela pessoa vêm depois, por nome. */
+export function catalogRank(c: { nameKey?: string }): number {
+  if (c.nameKey === 'salaries.extras') return CATALOG_ITEMS.findIndex((x) => x.key === 'catOtherIncome') - 0.5; // antes de "Outros rendimentos"
+  const i = c.nameKey ? CATALOG_ITEMS.findIndex((x) => x.key === c.nameKey) : -1;
+  return i < 0 ? 9999 : i;
 }
 
 export const GROUP_ORDER = [...CATEGORY_GROUPS.map((g) => g.id), 'custom'];

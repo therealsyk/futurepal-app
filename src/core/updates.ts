@@ -28,8 +28,8 @@ export interface UpdateInfo {
 // Ponte do Electron (electron/preload.js) para o atualizador do Windows.
 export interface DesktopUpdater {
   supported: boolean; // false no .exe portátil ou em desenvolvimento
-  check: () => Promise<{ version: string; notes: string } | null>;
-  download: () => Promise<boolean>;
+  check: (fallbackRepo?: string) => Promise<{ version: string; notes: string } | null>;
+  download: (fallbackRepo?: string) => Promise<boolean>;
   install: () => void;
   onProgress: (cb: (percent: number) => void) => () => void;
 }
@@ -93,12 +93,28 @@ export async function githubLatest(fetcher: typeof fetch = fetch): Promise<{ ver
   } catch { return null; }
 }
 
-export async function githubApk(fetcher: typeof fetch = fetch): Promise<{ version: string; notes: string; url: string } | null> {
-  try {
-    const res = await fetcher(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, { headers: { Accept: 'application/vnd.github+json' } });
-    if (!res.ok) return null;
+export async function githubApk(fetcher: typeof fetch = fetch, fallbackRepo = ''): Promise<{ version: string; notes: string; url: string } | null> {
+  const one = async (repo: string) => {
+    const res = await fetcher(`https://api.github.com/repos/${repo}/releases/latest`, { headers: { Accept: 'application/vnd.github+json' } });
+    if (!res.ok) throw new Error(String(res.status));
     return apkFromRelease(await res.json() as GithubRelease);
-  } catch { return null; }
+  };
+  try { return await one(GITHUB_REPO); } catch {
+    // o repositório normal falhou: tenta o de reserva (painel de admin)
+    if (!REPO_RE.test(fallbackRepo) || fallbackRepo === GITHUB_REPO) return null;
+    try { return await one(fallbackRepo); } catch { return null; }
+  }
+}
+
+/** Repositório de reserva das atualizações (tabela app_config, mudado no painel de admin). Vazio se não houver. */
+export const REPO_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
+export async function fallbackRepo(client: SupabaseClient | null): Promise<string> {
+  if (!client) return '';
+  try {
+    const { data } = await client.from('app_config').select('value').eq('key', 'update_repo').maybeSingle();
+    const v = String((data as { value?: string } | null)?.value ?? '').trim();
+    return REPO_RE.test(v) ? v : '';
+  } catch { return ''; }
 }
 
 // "Agora não": não volta a avisar desta versão (mas avisa da seguinte).

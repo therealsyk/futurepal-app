@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
 import type { Category } from '../db/database';
 import { activeCategories, addCategory, softDelete } from '../core/finance';
-import { CAT_ICONS, CATEGORY_GROUPS, GROUP_ORDER, groupOf } from '../core/categoryCatalog';
+import { CAT_ICONS, CATEGORY_GROUPS, GROUP_ORDER, groupOf, catalogRank } from '../core/categoryCatalog';
 import { catLabel, PageHead, PickMenu, Sheet, Ic, ICON, CatIcon } from '../ui/fx';
 
 const COLORS = ['#16a34a', '#0ea5e9', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#c2410c', '#6b7280', '#ec4899', '#ef4444', '#14b8a6', '#eab308'];
@@ -31,7 +31,7 @@ export function Categories() {
   const q = query.trim().toLowerCase();
   const sections = useMemo(() => GROUP_ORDER.map((g) => ({
     g,
-    items: cats.filter((c) => groupOf(c) === g && (!q || label(c).toLowerCase().includes(q))).sort((a, b) => label(a).localeCompare(label(b))),
+    items: cats.filter((c) => groupOf(c) === g && (!q || label(c).toLowerCase().includes(q))).sort((a, b) => catalogRank(a) - catalogRank(b) || label(a).localeCompare(label(b))),
   })).filter((s) => s.items.length > 0 || (!q && s.g !== 'custom')),
   // eslint-disable-next-line react-hooks/exhaustive-deps
   [cats, q, t]);
@@ -83,9 +83,7 @@ export function Categories() {
 
   return (
     <div className="fx-page ct-page">
-      <PageHead title={t('panel.categoriesTitle')}>
-        <button type="button" className="fx-btn primary" onClick={() => startNew('custom')}><Ic d={ICON.plus} size={16} />{t('panel.newCategory')}</button>
-      </PageHead>
+      <PageHead title={t('panel.categoriesTitle')} />
 
       <label className="ob-search ct-search">
         <Ic d={ICON.search} size={18} />
@@ -102,6 +100,10 @@ export function Categories() {
                 <span>{label(c)}</span>
               </button>
             ))}
+            {!q && <button type="button" className="ct-tile ct-new" onClick={() => startNew(g)} aria-label={`${t('panel.newCategory')}: ${t('categoryGroups.' + g)}`}>
+              <span className="ct-new-ic"><Ic d={ICON.plus} size={26} /></span>
+              <span>{L('Nova')}</span>
+            </button>}
           </div>
         </section>
       ))}

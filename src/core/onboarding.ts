@@ -41,4 +41,6 @@ export const tipsOn = (): boolean => get('wallet.tips') === 'on';
 const seen = (): string[] => { try { return JSON.parse(get('wallet.tipsSeen') || '[]') as string[]; } catch { return []; } };
 export const tipSeen = (id: string): boolean => seen().includes(id);
 export function closeTip(id: string, how: 'close' | 'do'): void { set('wallet.tipsSeen', JSON.stringify([...new Set([...seen(), id])])); track(`tip_${how}_${id}`); changed(); }
+/** Visita guiada feita até ao fim: as dicas deixam de aparecer (voltam em Ajuda › Mostrar as dicas outra vez). */
+export function tipsOff(): void { set('wallet.tips', 'off'); changed(); }
 export function resetTips(): void { set('wallet.tips', 'on'); set('wallet.tipsSeen', null); changed(); }

@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { db } from '../db/app-db';
 import type { Account, Category } from '../db/database';
-import { catalogItem, CATEGORY_GROUPS, groupOf, iconPathOf, GROUP_ORDER } from '../core/categoryCatalog';
+import { catalogItem, CATEGORY_GROUPS, groupOf, iconPathOf, GROUP_ORDER, catalogRank } from '../core/categoryCatalog';
 import {
   ALL_ACCOUNTS, getActiveAccountId, setActiveAccountId, listAccounts, ensureDefaultAccount,
 } from '../core/accounts';
@@ -204,7 +204,7 @@ export function CategorySelect({ cats: all, value, onChange, className = 'fx-inp
   const groups = GROUP_ORDER.map((g) => ({
     g,
     items: cats.filter((c) => groupOf(c) === g && (!q || norm(catLabel(t, c)).includes(norm(q)) || norm(t('categoryGroups.' + g)).includes(norm(q))))
-      .sort((a, b) => catLabel(t, a).localeCompare(catLabel(t, b))),
+      .sort((a, b) => catalogRank(a) - catalogRank(b) || catLabel(t, a).localeCompare(catLabel(t, b))),
   })).filter((x) => x.items.length > 0);
   // lista plana (para o teclado): [vazio?, ...categorias por grupo]
   const flat: Array<{ v: string; label: string }> = [

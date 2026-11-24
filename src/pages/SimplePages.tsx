@@ -1,18 +1,20 @@
+import { reservedByAccount } from '../core/goalReserve';
+import { PC_MOBILE } from '../core/uiMode';
 import { markPeriodChange } from '../ui/rollGate';
-// Contas e Limites, organizados como no vídeo de referência, no estilo FuturePal.
+// Contas e Limites, organizados como no vídeo de referência, no estilo MyFuturePal.
 import { beforePayments, goalValueCents, joinDesc, payoff, planInfo, splitDesc } from '../core/debtPlan';
 import { AccountPlanBox, endText as planEnd, fill } from '../ui/AccountPlan';
 import { NewAccount, type AccountEdit } from './NewAccount';
 import { addGoal } from '../core/finance';
 import { todayISO } from '../core/dates';
 import { NewGoal } from './NewGoal';
-import { GoalCard, GoalView, type GoalInfo } from './GoalView';
+import { DeleteGoalModal, GoalCard, GoalView, type GoalInfo } from './GoalView';
 import { isGoalPaused } from '../core/goalPause';
 import { GoalRing } from '../ui/GoalRing';
-import { GTile } from './Split';
 import { milestone } from '../core/onboarding';
 import { DebtBoost, MoreInfo, PaySection } from './DebtBoost';
 import { CountMoney } from '../ui/CountMoney';
+import { CountText } from '../ui/CountText';
 import { allPayments, inPeriod, isEssential } from '../core/payments';
 import { hasFeature } from '../core/plan';
 import { ignoredList } from './Recurring';
@@ -35,13 +37,13 @@ import { forecastGoal, type GoalForecast } from '../core/goalForecast';
 import { goalMonthlyIn } from '../core/goalEta';
 import { Ic, ICON, CatIcon, catLabel } from '../ui/fx';
 import { AmountField, CategoryRow, FI, SwitchRow } from '../ui/formFields';
-import { EmptyState } from '../ui/EmptyState';
+import { AddTile, EmptyState } from '../ui/EmptyState';
 import { L } from '../i18n/phrases';
 import { DatePicker } from '../ui/DatePicker';
 import { openTxForm } from '../ui/TxForm';
 
 // Folha que sobe do fundo do ecrã (resto desfocado). Voltar, tocar fora ou Esc fecham.
-export function BottomSheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+export function BottomSheet({ title, sub, onClose, children }: { title: string; sub?: string; onClose: () => void; children: ReactNode }) {
   const body = useRef<HTMLDivElement>(null);
   useFitSheet(body);
   useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [onClose]);
@@ -49,7 +51,7 @@ export function BottomSheet({ title, onClose, children }: { title: string; onClo
     <div className="bs-backdrop" onClick={onClose}>
       <div className="bs-sheet" role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
         <span className="bs-grab" aria-hidden="true" />
-        <header className="bs-head"><button type="button" className="bs-back" onClick={onClose}><Ic d={ICON.left} size={18} />{L('Voltar')}</button><h2>{title}</h2><span /></header>
+        <header className="bs-head"><button type="button" className="bs-back" onClick={onClose}><Ic d={ICON.left} size={18} />{L('Voltar')}</button><h2>{title}{sub && <small className="bs-sub" key={sub}>{sub}</small>}</h2><span /></header>
         <div className="bs-body" ref={body}>{children}</div>
       </div>
     </div>,
@@ -81,9 +83,19 @@ export function SimpleAccounts() {
   const [edit, setEdit] = useState<string | null>(null);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [openAcc, setOpenAcc] = useState<string | null>(null); // poupança/dívida aberta na lista
+  const resv = reservedByAccount(goals);
   const [presetM, setPresetM] = useState<string | undefined>(undefined); // valor por mês sugerido pelo Planeamento
   const reload = () => { loadAll().then(setD).catch(() => {}); db.goals.toArray().then((g) => setGoals(live(g))).catch(() => {}); };
   useEffect(() => { reload(); }, []);
+  const [prefill, setPrefill] = useState<{ name?: string; bal?: string } | null>(null);
+  useEffect(() => { // ?nova=1&nome=…: vindo de uma meta que parecia poupança/dívida
+    const q = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
+    if (q.get('nova') !== '1') return;
+    const v = Number(q.get('valor') || 0);
+    setPrefill({ name: q.get('nome') || undefined, bal: q.get('tab') === 'debt' && v > 0 ? String(v / 100).replace('.', ',') : undefined });
+    setForm(true);
+    window.history.replaceState(null, '', window.location.href.split('?')[0] + '?tab=' + (q.get('tab') || 'savings'));
+  }, []);
   useEffect(() => { // ?editar=<conta>&mensal=<cêntimos>: abre a conta já com o valor por mês sugerido
     const q = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
     if (!q.get('editar')) return;
@@ -136,7 +148,7 @@ export function SimpleAccounts() {
 
   return (
     <div className="fx-page mv sh">
-      <header className="mv-head"><h1 className="sh-title">{L('Contas')}</h1></header>
+      <header className="mv-head gpz-head"><h1 className="sh-title">{L('Contas')}</h1></header>
       {(() => { // telemóvel: uma só caixa com o património líquido (as quatro caixas ficam só no PC)
         const accs = d?.accounts ?? [], net = accs.filter((a) => a.includeInNetWorth).reduce((x, a) => x + (a.type === 'debt' ? -Math.abs(balOf(a)) : balOf(a)), 0);
         return <section className="mv-card acc-netcard"><span className="acc-netic"><Ic d="M3 17l6-6 4 4 8-8M14 7h7v7" size={20} /></span><div><small>{L('Património líquido')}</small><b className={net < 0 ? 'fx-neg' : 'fx-pos'}><CountMoney cents={net} money={money} /></b><em>{L('O que tens nas contas menos o que deves.')}</em></div></section>;
@@ -176,7 +188,8 @@ export function SimpleAccounts() {
           <button type="button" className={'acc-card sh-acc t-' + a.type} onClick={() => (a.type === 'spending' ? openEdit(a) : setOpenAcc(openAcc === a.id ? null : a.id))} aria-expanded={a.type === 'spending' ? undefined : openAcc === a.id} aria-label={a.type === 'spending' ? `${L('Alterar conta')}: ${a.name}` : a.name}>
             {a.type !== 'spending' && <span className="acc-chev"><Ic d={ICON.down} size={18} /></span>}
             <div className="acc-card-top"><span className="acc-card-ic"><Ic d={TYPE_IC[a.type]} size={16} /></span><b>{a.name}</b>{a.isDefault && a.name !== L('Principal') && <small>{L('Principal')}</small>}</div>
-            <div className={'acc-card-val' + (balOf(a) < 0 ? ' neg' : '')}><CountMoney cents={balOf(a)} money={money} /></div>
+            <div className={'acc-card-val' + (balOf(a) < 0 ? ' neg' : '')}><CountMoney cents={a.type === 'debt' ? balOf(a) : balOf(a) - (resv.get(a.id) ?? 0)} money={money} /></div>
+            {a.type !== 'debt' && (resv.get(a.id) ?? 0) > 0 && <small className="acc-resv">{fill(L('Disponível · {m} reservado em metas'), { m: money(resv.get(a.id) ?? 0) })}</small>}
           </button>
           {a.type === 'spending' ? splitDesc(a.description).text && <p className="acc-desc">{splitDesc(a.description).text}</p> : (
             <div className={'acc-exp' + (openAcc === a.id ? ' open' : '')} aria-hidden={openAcc !== a.id} inert={openAcc !== a.id}><div>
@@ -187,11 +200,12 @@ export function SimpleAccounts() {
           )}
         </div>
       ))}
+      {list.length > 0 && <AddTile label={tab === 'debt' ? L('Adicionar dívida') : tab === 'savings' ? L('Criar conta de poupança') : L('Criar conta')} onClick={() => setForm(true)} />}
       {tab === 'debt' && list.length > 0 && <p className="acc-tip"><Ic d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20zM12 16v-4M12 8h.01" size={15} />{L('Para baixar uma dívida, faz uma transferência de uma conta de gastos ou de poupança para a conta da dívida.')}</p>}
-<button type="button" className="sh-btn in" onClick={() => setForm(true)}><Ic d={ICON.plus} size={20} />{L('Criar conta')}</button>
+
       {debtOpen && debtPre && <NewAccount key="debtpre" initial="debt" preset={debtPre} accounts={d?.accounts ?? []} balOf={balOf} money={money} endText={endText} onClose={() => setDebtOpen(false)} onDone={() => { setDebtOpen(false); setTab('debt'); reload(); }} />}
-      {form && <NewAccount key={preset ?? 'new'} initial={preset ? 'savings' : tab} preset={preset ? { monthly: preset } : undefined} accounts={d?.accounts ?? []} balOf={balOf} money={money} endText={endText} onClose={() => { setForm(false); setPreset(null); }}
-        onDone={(k, next) => { reload(); if (next) { setTab('savings'); setPreset(next.saveMonthly); setForm(true); } else { setForm(false); setPreset(null); setTab(k); } }} />}
+      {form && <NewAccount key={preset ?? (prefill ? 'pre' : 'new')} initial={preset ? 'savings' : tab} preset={preset ? { monthly: preset } : prefill ? { monthly: '', name: prefill.name, bal: prefill.bal } : undefined} accounts={d?.accounts ?? []} balOf={balOf} money={money} endText={endText} onClose={() => { setForm(false); setPreset(null); setPrefill(null); }}
+        onDone={(k, next) => { reload(); setPrefill(null); if (next) { setTab('savings'); setPreset(next.saveMonthly); setForm(true); } else { setForm(false); setPreset(null); setTab(k); } }} />}
       {editing && <NewAccount key={editing.id} initial={editing.type} presetMonthly={presetM} accounts={d?.accounts ?? []} balOf={balOf} money={money} endText={endText} onClose={() => { closeEdit(); setPresetM(undefined); }} onDone={() => setPresetM(undefined)}
         edit={{ acc: editing, goal: goals.find((x) => x.id === splitDesc(editing.description).plan?.goalId), onSave: (e) => saveEdit(editing, e), onDelete: editing.isDefault ? undefined : () => delAcc(editing) }} />}
     </div>
@@ -285,25 +299,33 @@ export function SimpleLimits() {
 
   return (
     <div className="fx-page mv sh lm-page">
-      <header className="mv-head"><h1 className="sh-title">{L('Limites do mês')}</h1></header>
-      <section className={'mv-hero sh-hero lm-hero' + (limits.length ? '' : ' none')}>
+      <header className="mv-head gpz-head"><h1 className="sh-title">{L('Limites do mês')}</h1></header>
+      {(d?.budgets.length ?? 0) > 0 && <section className={'mv-hero sh-hero lm-hero' + (limits.length ? '' : ' none')}>
         <div className="mv-hero-top">
           <button type="button" className="mv-chev" onClick={() => shift(-1)} aria-label={L('Mês anterior')}><Ic d={ICON.left} size={18} /></button>
           <span className="mv-month">{label}</span>
           <button type="button" className="mv-chev" onClick={() => shift(1)} aria-label={L('Mês seguinte')}><Ic d={ICON.right} size={18} /></button>
         </div>
-        {limits.length > 0 && <div className="gl-hero lm-sum" key={prefix}>
-          <GoalRing r={Math.min(1, ratio)} size={176} tone={toneOf(ratio)}><b>{Math.round(ratio * 100)}%</b><small>{L('gasto')}</small></GoalRing>
-          <div className="gl-have"><small>{left >= 0 ? L('Ainda podes gastar') : L('Passaste os limites em')}</small><b className={left >= 0 ? 'fx-pos' : 'fx-neg'}>{money(Math.abs(left))}</b>
-            {isNow && left > 0 && <small>{fill(L('cerca de {m} por dia'), { m: money(Math.floor(left / daysLeft)) })}</small>}</div>
-        </div>}
-      </section>
-      {limits.length > 0 && <div className="gx-tiles lm-tiles">
-        <GTile d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6" label={L('Limite total')} value={money(total)} />
-        <GTile d="M12 19V5M5 12l7-7 7 7" tone={left < 0 ? 'neg' : ''} label={L('Já gastaste')} value={money(used)} />
-        <GTile d="M12 3a9 9 0 1 0 9 9h-9zM15 3.5V9h5.5A9 9 0 0 0 15 3.5z" label={L('Limites')} value={String(limits.length)} />
-      </div>}
-      {d && limits.length === 0 && <EmptyState icon="M12 3a9 9 0 1 0 9 9h-9zM15 3.5V9h5.5A9 9 0 0 0 15 3.5z" title={L('Sem limites este mês')} text={L('Define quanto queres gastar no máximo numa categoria. A app avisa quando estiveres perto.')} examples={['🛒 Supermercado', '⛽ Combustível', '🍽️ Restaurantes']} />}
+        {limits.length > 0 && (() => {
+          const tone = toneOf(ratio), r = Math.min(1, ratio);
+          return <div className={'gt-v2 lm-v2' + (tone ? ' t-' + tone : '')} key={prefix}>
+            <span className="gt-glow" aria-hidden="true" />
+            <GoalRing r={r} size={104} tone={tone}><b className="gt-pct"><CountText text={`${Math.round(ratio * 100)}%`} /></b><small>{L('gasto')}</small></GoalRing>
+            <div className="gt-main">
+              <small className="mv-hero-label">{left >= 0 ? L('Ainda podes gastar') : L('Passaste os limites em')}</small>
+              <strong className={'mv-balance ' + (left >= 0 ? 'fx-pos' : 'fx-neg')}><CountMoney cents={Math.abs(left)} money={money} /></strong>
+              <div className="gt-bar" aria-hidden="true"><i style={{ width: `${r * 100}%` }} /></div>
+            </div>
+            <div className="gt-chips">
+              <span><small>{L('Limite total')}</small><b>{money(total)}</b></span>
+              <span className={left < 0 ? 'bad' : ''}><small>{L('Já gastaste')}</small><b>{money(used)}</b></span>
+              {isNow && left > 0 ? <span className="ok"><small>{L('Por dia')}</small><b>{money(Math.floor(left / daysLeft))}</b></span>
+                : <span><small>{L('Limites')}</small><b>{limits.length}</b></span>}
+            </div>
+          </div>;
+        })()}
+      </section>}
+      {d && limits.length === 0 && <EmptyState icon="M12 3a9 9 0 1 0 9 9h-9zM15 3.5V9h5.5A9 9 0 0 0 15 3.5z" title={L('Sem limites este mês')} text={L('Define quanto queres gastar no máximo numa categoria. A app avisa quando estiveres perto.')} examples={['🛒 Supermercado', '⛽ Combustível', '🍽️ Restaurantes']} ask={L('Queres criar o teu primeiro limite?')} onAsk={() => setForm(true)} />}
       {rows.length > 0 && <div className="gl-grid" key={prefix + 'g'}>
         {rows.map(({ b, u, r, left: l, c }, i) => (
           <button type="button" key={b.id} className="mv-card gl-card lm-card" style={{ ['--i' as string]: i }}
@@ -311,14 +333,18 @@ export function SimpleLimits() {
             <GoalRing r={Math.min(1, r)} size={86} tone={toneOf(r)}><CatIcon cat={c ?? {}} size={52} /></GoalRing>
             <span className="gl-main">
               <b className="gl-name">{c ? catLabel(t, c) : '—'}</b>
-              <span className="lm-left"><small>{l >= 0 ? L('Podes gastar') : L('Passaste')}</small> <b className={l < 0 ? 'fx-neg' : r > 0.85 ? 'lm-warn' : 'fx-pos'}>{money(Math.abs(l))}</b></span>
-              <span className="gl-money">{money(u)} {L('de')} {money(b.limitCents)}</span>
+              <span className={'lm-left2 ' + (l < 0 ? 'over' : r > 0.85 ? 'warn' : 'ok')}><Ic d={l < 0 ? 'M12 8v5M12 16h.01M12 3l9 16H3z' : 'M20 6 9 17l-5-5'} size={13} /><small>{l >= 0 ? L('Podes gastar') : L('Passaste')}</small><b>{money(Math.abs(l))}</b></span>
+              <span className={'gl-amts lm-amts' + (toneOf(r) ? ' t-' + toneOf(r) : '')}>
+                <span className="gl-now"><small>{L('Gasto')}</small><b><CountMoney cents={u} money={money} /></b></span>
+                <span className="gl-amt-sep" aria-hidden="true"><i style={{ width: `${Math.round(Math.min(1, r) * 100)}%` }} /></span>
+                <span className="gl-goalv"><small>{L('Limite')}</small><b>{money(b.limitCents)}</b></span>
+              </span>
             </span>
             <span className={'lm-tag ' + (toneOf(r) || 'ok')}>{Math.round(r * 100)}%</span>
           </button>
         ))}
+        <AddTile label={L('Novo limite')} onClick={() => setForm(true)} />
       </div>}
-      <button type="button" className="sh-pill" onClick={() => setForm(true)}><Ic d={ICON.plus} size={16} />{L('Novo limite')}</button>
       {edit && (() => { const c = catOf(edit.categoryId); return (
         <BottomSheet title={L('Alterar limite')} onClose={() => { setEdit(null); setDelConfirm(false); missEdit.reset(); }}>
           <div className="acc-form">
@@ -367,6 +393,7 @@ export function SimpleGoals() {
   const [form, setForm] = useState(false);
   const [preset, setPreset] = useState<string | undefined>(undefined); // data sugerida pelo Planeamento (AAAA-MM-DD)
   const [pause, setPause] = useState(false);
+  const [congrats, setCongrats] = useState<string | null>(null), [delGoal, setDelGoal] = useState<string | null>(null); // meta concluída: parabéns e opções
   const reload = async () => setD({ ...(await loadAll()), goals: live(await db.goals.toArray()) });
   useEffect(() => { reload().catch(() => {}); }, []);
   useEffect(() => {
@@ -379,7 +406,9 @@ export function SimpleGoals() {
   const now = new Date();
   const salaryToDate = (d?.salaries ?? []).filter((x) => x.year * 100 + x.month <= now.getFullYear() * 100 + now.getMonth() + 1).reduce((a, x) => a + x.amountCents, 0);
   const balOf = (a: Account) => (d ? accountBalanceCents(a, d.txs, d.accounts, salaryToDate, d.transfers) : 0);
-  const currentOf = (g: Goal) => (g.accountIds?.length ? (d?.accounts ?? []).filter((a) => g.accountIds!.includes(a.id)).reduce((x, a) => x + goalValueCents(a, balOf(a)), 0) : g.currentCents);
+  // só as metas que pertencem a uma conta de poupança/dívida usam o saldo dela; nas outras conta o que se juntou
+  const planGoal = (g: Goal) => g.id.startsWith('acc:') || (d?.accounts ?? []).some((a) => splitDesc(a.description).plan?.goalId === g.id);
+  const currentOf = (g: Goal) => (g.accountIds?.length && planGoal(g) ? (d?.accounts ?? []).filter((a) => g.accountIds!.includes(a.id)).reduce((x, a) => x + goalValueCents(a, balOf(a)), 0) : g.currentCents);
   // Quanto entrou na meta em cada um dos últimos 8 meses (o último é o mês atual)
   const monthlyIn = (g: Goal): number[] => (d ? goalMonthlyIn(g, d, now) : []);
   const dayRatio = now.getDate() / new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -441,7 +470,7 @@ export function SimpleGoals() {
   const gAcc = viaAcc ?? accGoals.find((y) => y.g.id === g?.id)?.acc;
   if (g && d) return (
     <>
-      <GoalView g={g} acc={gAcc} info={info(g)} accounts={d.accounts} extra={gAcc?.type === 'debt' ? <DebtBoost key={gAcc.id} a={gAcc} left={Math.max(0, balOf(gAcc))} txs={d.txs} accounts={d.accounts} transfers={d.transfers} balOf={balOf} money={money} lang={s.language} reload={reload} /> : gAcc ? <PaySection title={L('Dinheiro que entrou')} a={gAcc} transfers={d.transfers} txs={d.txs} accounts={d.accounts} money={money} lang={s.language} short={5} /> : undefined} valueOf={(a) => goalValueCents(a, balOf(a))} money={money} date={date} onBack={() => { if (viaGoal) { setLeft(true); navigate('/contas'); } else setOpen(null); }} onEdit={() => setForm(true)} reload={reload} />
+      <GoalView g={g} acc={gAcc} info={info(g)} accounts={d.accounts} extra={gAcc?.type === 'debt' ? <DebtBoost key={gAcc.id} a={gAcc} left={Math.max(0, balOf(gAcc))} txs={d.txs} accounts={d.accounts} transfers={d.transfers} balOf={balOf} money={money} lang={s.language} reload={reload} /> : gAcc ? <PaySection title={L('Dinheiro que entrou')} a={gAcc} transfers={d.transfers} txs={d.txs} accounts={d.accounts} money={money} lang={s.language} short={5} /> : undefined} valueOf={(a) => goalValueCents(a, balOf(a))} money={money} date={date} onBack={() => { if (viaGoal) { setLeft(true); navigate('/contas'); } else setOpen(null); }} onEdit={() => setForm(true)} reload={reload} onNew={viaGoal ? undefined : () => { setOpen(null); setForm(true); }} />
       {form && <NewGoal edit={g} presetEnd={preset} current={currentOf(g)} accounts={d.accounts} balOf={balOf} money={money} onClose={() => { setForm(false); setPreset(undefined); }} onDone={() => { setForm(false); setPreset(undefined); reload(); }} />}
     </>
   );
@@ -453,26 +482,49 @@ export function SimpleGoals() {
 
   return (
     <div className="fx-page mv sh">
-      <header className="mv-head"><h1 className="sh-title">{L('Metas')}</h1></header>
-      {d && ownGoals.length === 0 && accGoals.length === 0 && <EmptyState icon="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zM12 12h.01" title={L('Ainda não tens metas')} text={L('Uma meta é um objetivo para juntar dinheiro. A app mostra quanto falta e quando lá chegas.')} examples={['🏖️ Férias', '🚗 Carro', '🛟 Emergências', '🏠 Casa']} />}
-      {(d?.goals.length ?? 0) > 1 && aim > 0 && <section className="mv-hero sh-hero gl-total">
-        <small className="mv-hero-label">{L('Já juntaste nas tuas metas')}</small>
-        <strong className={'mv-balance ' + (savedTotal < 0 ? 'fx-neg' : 'fx-pos')}>{money(savedTotal)}</strong>
-        <span className="gl-total-sub">{L('de')} {money(aim)}{doneN > 0 && <em>✓ {doneN} {doneN === 1 ? L('concluída') : L('concluídas')}</em>}</span>
-        <div className="sh-bar"><i style={{ width: `${Math.max(0, Math.min(1, savedTotal / aim)) * 100}%` }} /></div>
-      </section>}
-      {(d?.goals.length ?? 0) > 0 && (() => {
+      <header className="mv-head gpz-head"><h1 className="sh-title">{L('Metas')}</h1>
+        <span className="pg-acts">        {(d?.goals ?? []).some((x) => !isGoalPaused(x)) && <button type="button" className="gpz-pill" onClick={() => setPause(true)} title={L('Para quando o mês aperta. Retomas quando quiseres.')}><span className="gpz-ic sm"><i /><i /></span>{L('Pausar metas')}</button>}</span>
+      </header>
+      {d && ownGoals.length === 0 && accGoals.length === 0 && <EmptyState icon="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zM12 12h.01" title={L('Ainda não tens metas')} text={L('Uma meta é um objetivo para juntar dinheiro. A app mostra quanto falta e quando lá chegas.')} examples={['🏖️ Férias', '🚗 Carro', '🛟 Emergências', '🏠 Casa']} ask={L('Queres criar a tua primeira meta?')} onAsk={() => setForm(true)} />}
+      {(d?.goals.length ?? 0) > 1 && aim > 0 && (() => {
+        const r = Math.max(0, Math.min(1, savedTotal / aim)), left = Math.max(0, aim - savedTotal);
+        return <section className="mv-hero sh-hero gl-total gt-v2">
+          <span className="gt-glow" aria-hidden="true" />
+          <GoalRing r={r} size={104}><b className="gt-pct"><CountText text={`${Math.round(r * 100)}%`} /></b></GoalRing>
+          <div className="gt-main">
+            <small className="mv-hero-label">{L('Já juntaste nas tuas metas')}</small>
+            <strong className={'mv-balance ' + (savedTotal < 0 ? 'fx-neg' : 'fx-pos')}><CountMoney cents={savedTotal} money={money} /></strong>
+            <div className="gt-bar" aria-hidden="true"><i style={{ width: `${r * 100}%` }} /></div>
+          </div>
+            <div className="gt-chips">
+              <span><small>{L('Objetivo')}</small><b>{money(aim)}</b></span>
+              {left > 0 && <span><small>{L('Falta')}</small><b>{money(left)}</b></span>}
+              {doneN > 0 && <span className="ok"><small>{L('Concluídas')}</small><b>✓ {doneN}</b></span>}
+            </div>
+        </section>;
+      })()}
+      {(() => {
         const pausedN = (d?.goals ?? []).filter((x) => isGoalPaused(x)).length, until = (d?.goals ?? []).find((x) => isGoalPaused(x))?.paused?.until;
-        return pausedN > 0
-          ? <section className="mv-card gp-bar on"><span className="gp-ic"><Ic d="M8 5v14M16 5v14" size={18} /></span><div><b>{pausedN === 1 ? L('1 meta em pausa') : fill(L('{n} metas em pausa'), { n: String(pausedN) })}</b><small>{until ? fill(L('Até {d}. Depois voltam sozinhas.'), { d: new Date(until + 'T12:00:00').toLocaleDateString(s.language, { day: 'numeric', month: 'long' }) }) : L('Até as retomares. Não contam no Planeamento.')}</small></div>
-              <button type="button" className="gp-go" onClick={async () => { const t2 = new Date().toISOString(); for (const x of d?.goals ?? []) if (x.paused) await db.goals.update(x.id, { paused: null, updatedAt: t2 }); reload(); }}><Ic d="M7 5l12 7-12 7z" size={15} />{L('Retomar')}</button></section>
-          : <button type="button" className="gp-bar" onClick={() => setPause(true)}><span className="gp-ic"><Ic d="M8 5v14M16 5v14" size={18} /></span><div><b>{L('Pausar todas as metas')}</b><small>{L('Para quando o mês aperta. Retomas quando quiseres.')}</small></div><span className="gp-go ghost"><Ic d="M9 6l6 6-6 6" size={15} /></span></button>;
+        return pausedN > 0 && <section className="mv-card gpz-on"><span className="gpz-ic"><i /><i /></span><div><b>{pausedN === 1 ? L('1 meta em pausa') : fill(L('{n} metas em pausa'), { n: String(pausedN) })}</b><small>{until ? fill(L('Até {d}. Depois voltam sozinhas.'), { d: new Date(until + 'T12:00:00').toLocaleDateString(s.language, { day: 'numeric', month: 'long' }) }) : L('Até as retomares. Não contam no Planeamento.')}</small></div>
+          <button type="button" className="gpz-go" onClick={async () => { const t2 = new Date().toISOString(); for (const x of d?.goals ?? []) if (x.paused) await db.goals.update(x.id, { paused: null, updatedAt: t2 }); reload(); }}><Ic d="M7 5l12 7-12 7z" size={14} />{L('Retomar')}</button></section>;
       })()}
       {ownGoals.length > 0 && accGoals.length > 0 && <div className="goal-sec gl-part"><h2><span className="pco-mic"><Ic d="M6 21V4h11l-2 4 2 4H6" size={18} /></span>{L('As tuas metas')}</h2></div>}
-      {ownGoals.length > 0 && <div className="gl-grid">{ownGoals.map((x, i) => <GoalCard key={x.id} g={x} info={info(x)} money={money} i={i} onOpen={() => setOpen(x.id)} />)}</div>}
+      {ownGoals.length > 0 && <div className="gl-grid">{ownGoals.map((x, i) => <GoalCard key={x.id} g={x} info={info(x)} money={money} i={i} onOpen={() => (info(x).done ? setCongrats(x.id) : setOpen(x.id))} />)}<AddTile label={L('Criar meta')} onClick={() => setForm(true)} /></div>}
       {accGoals.length > 0 && <div className={'goal-sec gl-part' + (ownGoals.length > 0 ? ' line' : '')}><h2><span className="pco-mic"><Ic d={ICON.wallet} size={18} /></span>{L('Das tuas contas')}</h2></div>}
-      {accGoals.length > 0 && <div className="gl-grid">{accGoals.map(({ g: x, acc }, i) => <GoalCard key={x.id} g={x} acc={acc} icon={TYPE_IC[acc.type]} info={info(x)} money={money} i={i} onOpen={() => setOpen(x.id)} />)}</div>}
-<button type="button" className="sh-pill" onClick={() => setForm(true)}><Ic d={ICON.plus} size={16} />{L('Criar meta')}</button>
+      {accGoals.length > 0 && <div className="gl-grid">{accGoals.map(({ g: x, acc }, i) => <GoalCard key={x.id} g={x} acc={acc} icon={TYPE_IC[acc.type]} info={info(x)} money={money} i={i} onOpen={() => setOpen(x.id)} />)}{ownGoals.length === 0 && <AddTile label={L('Criar meta')} onClick={() => setForm(true)} />}</div>}
+      {congrats && (() => { const cg = d?.goals.find((x) => x.id === congrats); if (!cg) return null; return createPortal(<div className="spi-back gcg-back" onMouseDown={(e) => { if (e.target === e.currentTarget) setCongrats(null); }}>
+        <section className="spi-card gcg-card" role="dialog" aria-modal="true" aria-label={L('Objetivo concluído')}>
+          <button type="button" className="gcg-ret" onClick={() => setCongrats(null)}><Ic d={ICON.left} size={16} />{L('Voltar')}</button>
+          <span className="gcg-art" aria-hidden="true"><i /><i /><b>🏆</b></span>
+          <h2>{L('Parabéns, já concluíste este objetivo!')}</h2>
+          <div className="gcg-hl"><b>{cg.name}</b><strong>{money(currentOf(cg))}</strong><small>{L('juntados')} 🎉</small></div>
+          <div className="gcg-acts">
+            <button type="button" className="gcg-opt main" onClick={() => { setCongrats(null); setForm(true); }}><Ic d={ICON.plus} size={18} /><span><b>{L('Criar uma nova meta')}</b><small>{L('Põe o próximo objetivo a andar')}</small></span></button>
+            <button type="button" className="gcg-opt" onClick={() => { setCongrats(null); setOpen(cg.id); }}><Ic d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" size={18} /><span><b>{L('Ver os detalhes')}</b><small>{L('Tudo o que juntaste e quando')}</small></span></button>
+            <button type="button" className="gcg-opt del" onClick={() => { setCongrats(null); setDelGoal(cg.id); }}><Ic d={ICON.trash} size={18} /><span><b>{L('Apagar esta meta')}</b><small>{L('Sai da lista; as transações ficam')}</small></span></button>
+          </div>
+        </section></div>, document.body); })()}
+      {delGoal && (() => { const dg = d?.goals.find((x) => x.id === delGoal); return dg ? <DeleteGoalModal name={dg.name} onCancel={() => setDelGoal(null)} onConfirm={async () => { const now = new Date().toISOString(); await db.goals.update(dg.id, { deletedAt: now, updatedAt: now }); setDelGoal(null); reload(); }} /> : null; })()}
       {pause && <PauseGoals goals={d?.goals ?? []} onClose={() => setPause(false)} onDone={() => { setPause(false); reload(); }} />}
       {form && <NewGoal accounts={d?.accounts ?? []} balOf={balOf} money={money} onClose={() => setForm(false)} onDone={() => { setForm(false); reload(); }} />}
     </div>
@@ -492,7 +544,7 @@ export function SimpleOverview({ yearly = false, embed }: { yearly?: boolean; em
   const qYear = Number(new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('ano')) || now.getFullYear();
   const [curS, setCur] = useState({ y: yearly ? qYear : now.getFullYear(), m: now.getMonth() });
   const cur = embed ? { y: embed.y, m: embed.m } : curS;
-  const [tab, setTab] = useState<'sum' | 'cat'>('sum');
+  const [tab, setTab] = useState<'sum' | 'cat' | 'cal'>('sum');
   const navigate = useNavigate();
   const [kind, setKind] = useState<'expense' | 'income'>('expense');
   const [tip, setTip] = useState<string | null>(null);
@@ -697,6 +749,7 @@ export function SimpleOverview({ yearly = false, embed }: { yearly?: boolean; em
       <div className="sh-seg" role="tablist">
         <button type="button" role="tab" aria-selected={tab === 'sum'} className={tab === 'sum' ? 'on' : ''} onClick={() => setTab('sum')}>{L('Resumo')}</button>
         <button type="button" role="tab" aria-selected={tab === 'cat'} className={tab === 'cat' ? 'on' : ''} onClick={() => setTab('cat')}>{L('Categorias')}</button>
+        {!PC_MOBILE && <button type="button" role="tab" aria-selected={tab === 'cal'} className={tab === 'cal' ? 'on' : ''} onClick={() => setTab('cal')}>{L('Calendário')}</button>}
       </div>
 
       {d && m.rows.length === 0 ? (<>
@@ -709,9 +762,9 @@ export function SimpleOverview({ yearly = false, embed }: { yearly?: boolean; em
           {totalsEl}
           {linesEl}
           {recEl}
-          {yearly ? yearCal() : monthCal()}
+          {PC_MOBILE && (yearly ? yearCal() : monthCal())}
         </>
-      ) : catsEl}
+      ) : tab === 'cal' ? <div className="sh-tabpane">{yearly ? yearCal() : monthCal()}</div> : catsEl}
     </div>
   );
 }

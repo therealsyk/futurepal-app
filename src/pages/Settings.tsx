@@ -1,3 +1,6 @@
+import { fill } from '../ui/AccountPlan';
+import { formatMoney } from '../core/money';
+import { createPortal } from 'react-dom';
 import { AlertPrefsPanel } from '../ui/AlertPrefs';
 import { PC_MOBILE } from '../core/uiMode';
 import { openTutorial } from '../ui/MobileTutorial';
@@ -146,6 +149,7 @@ export function Settings() {
   const importRef = useRef<HTMLInputElement>(null);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [switchOpen, setSwitchOpen] = useState(false);
+  const [curAsk, setCurAsk] = useState<string | null>(null), [newLogin, setNewLogin] = useState(false); // aviso ao mudar de moeda
 
   async function onExportBackup() {
     try {
@@ -209,9 +213,19 @@ export function Settings() {
     i18n.changeLanguage(code);
   }
 
-  function changeCountry(code: string) {
+  // Mudar de moeda não converte nada: com movimentos já registados sugere-se outra conta de login (cada moeda à parte)
+  const hasMoves = async () => (await db.transactions.toArray()).some((x) => x.deletedAt === null);
+  async function changeCurrency(v: string) {
+    if (!v || v === settings.currency) return;
+    if (await hasMoves()) { setCurAsk(v); return; }
+    update({ ...settings, currency: v });
+  }
+
+  async function changeCountry(code: string) {
     const info = COUNTRIES.find((c) => c.code === code);
-    update({ ...settings, country: code, currency: info ? info.currency : settings.currency, firstDayOfWeek: info?.firstDayOfWeek ?? settings.firstDayOfWeek, dateFormat: info?.dateFormat ?? settings.dateFormat });
+    const next = info ? info.currency : settings.currency, keep = next !== settings.currency && await hasMoves();
+    update({ ...settings, country: code, currency: keep ? settings.currency : next, firstDayOfWeek: info?.firstDayOfWeek ?? settings.firstDayOfWeek, dateFormat: info?.dateFormat ?? settings.dateFormat });
+    if (keep) setCurAsk(next); // o país muda já; a moeda só se a pessoa confirmar
   }
 
   function changeTheme(theme: 'dark' | 'light' | 'gray') {
@@ -254,7 +268,7 @@ export function Settings() {
         {tab === 1 && <AlertPrefsPanel />}
         {tab === 0 && <>
         <Row icon={I.coins} title={t('settings.currency')} sub={t('settings2.currencySub')}>
-          <PickMenu label={t('settings.currency')} testId="settings-currency" value={settings.currency} options={currencies.map((c) => ({ value: c, label: `${c} · ${currencyName(c, settings.language)}` }))} onChange={(v) => update({ ...settings, currency: String(v) })} />
+          <PickMenu label={t('settings.currency')} testId="settings-currency" value={settings.currency} options={currencies.map((c) => ({ value: c, label: `${c} · ${currencyName(c, settings.language)}` }))} onChange={(v) => { changeCurrency(String(v)).catch(() => {}); }} />
         </Row>
         <Row icon={I.globe} title={t('settings.language')} sub={t('settings2.languageSub')}>
           <PickMenu label={t('settings.language')} testId="settings-language" value={settings.language} options={LANGUAGES.map((l) => ({ value: l.code, label: l.label }))} onChange={(v) => changeLanguage(String(v))} />
@@ -299,7 +313,18 @@ export function Settings() {
         {danger && <DangerZone mode={danger} onClose={() => { setDanger(null); update({ ...settings, account: 'none' }); }} />}
       </Sheet>
       <FeedbackSheet open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
-      <AccountSwitcher open={switchOpen} onClose={() => setSwitchOpen(false)} />
+      <AccountSwitcher open={switchOpen} onClose={() => { setSwitchOpen(false); setNewLogin(false); }} startAdding={newLogin} />
+      {curAsk && createPortal(<div className="spi-back nsv-back" onMouseDown={(e) => { if (e.target === e.currentTarget) setCurAsk(null); }}>
+        <section className="spi-card nsv-card cur-card" role="dialog" aria-modal="true" aria-label={L('Mudar de moeda')}>
+          <span className="nsv-ic warn" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8v5M12 16h.01M12 3l9 16H3z" /></svg></span>
+          <h2>{L('Já tens movimentos em')} <span className="nsv-val">{settings.currency}</span></h2>
+          <div className="cur-swap" aria-hidden="true"><b>{formatMoney(5000, settings.currency, settings.language)}</b><i>→</i><b className="to">{formatMoney(5000, curAsk, settings.language)}</b></div>
+          <p>{L('Mudar a moeda não converte o que já registaste: os valores ficam iguais, só muda o símbolo.')}</p>
+          <p className="cur-tip">{fill(L('Para usar {c}, o melhor é criar outra conta de login. Assim cada moeda fica separada e nada se mistura.'), { c: curAsk })}</p>
+          <div className="nsv-acts"><button type="button" className="gl-act" onClick={() => { update({ ...settings, currency: curAsk }); setCurAsk(null); }}>{L('Mudar na mesma')}</button>
+            <button type="button" className="gl-act ok" onClick={() => { setCurAsk(null); setNewLogin(true); setSwitchOpen(true); }}>{L('Criar outra conta')}</button></div>
+          <button type="button" className="cur-cancel" onClick={() => setCurAsk(null)}>{fill(L('Ficar com {c}'), { c: settings.currency })}</button>
+        </section></div>, document.body)}
       <Sheet open={importOpen} onClose={() => setImportOpen(false)} title={t('importer.title')} wide>
         <ImportStatement />
       </Sheet>
@@ -310,7 +335,7 @@ export function Settings() {
   );
 }
 
-/** Privacidade: a pessoa escolhe se os seus dados entram (agregados e anónimos) nas estatísticas do FuturePal. */
+/** Privacidade: a pessoa escolhe se os seus dados entram (agregados e anónimos) nas estatísticas do MyFuturePal. */
 function CiOptRow() {
   const auth = useAuth();
   const [on, setOn] = useState<boolean | null>(null);

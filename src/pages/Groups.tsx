@@ -14,7 +14,7 @@ import { linkedGroupId, SPLIT_CHANGED, splitIdOf } from '../core/groupLink';
 import { CatIcon, catLabel, Ic, ICON } from '../ui/fx';
 import { addSplitTransaction, putMyShare } from '../core/splitInvite';
 import { useTranslation } from 'react-i18next';
-import { EmptyState } from '../ui/EmptyState';
+import { AddTile, EmptyState } from '../ui/EmptyState';
 import { FI, InviteRow, SwitchRow, TextRow } from '../ui/formFields';
 import { parseContact } from '../core/split';
 import { FormError, useMissing } from '../ui/missing';
@@ -289,8 +289,8 @@ export function Groups() {
 
   return (
     <div className="fx-page mv sh">
-      <header className="mv-head"><h1 className="sh-title">{L('Grupos')}</h1></header>
-      {groups.length === 0 && <EmptyState icon="M4 6h16M4 12h16M4 18h10" title={L('Ainda não tens grupos')} text={L('Junta despesas de uma coisa só e vê quanto custou no total.')} examples={['✈️ Viagem', '🔨 Obras', '🎄 Natal']} />}
+      <header className="mv-head gpz-head"><h1 className="sh-title">{L('Grupos')}</h1></header>
+      {groups.length === 0 && <EmptyState icon="M4 6h16M4 12h16M4 18h10" title={L('Ainda não tens grupos')} text={L('Junta despesas de uma coisa só e vê quanto custou no total.')} examples={['✈️ Viagem', '🔨 Obras', '🎄 Natal']}  ask={L('Queres criar o teu primeiro grupo?')} onAsk={() => setAdding('new')} />}
       {(() => {
         const doneOf = (g: Group) => { const k = splitIdOf(g.id), x = k ? state[k] : undefined; return !!x?.at && x.open === 0; };
         const card = (g: Group, i: number) => {
@@ -319,14 +319,13 @@ export function Groups() {
         };
         const live = groups.filter((g) => !doneOf(g)), fin = groups.filter(doneOf);
         return <>
-          {live.length > 0 && <div className="gl-grid">{live.map(card)}</div>}
+          {groups.length > 0 && <div className="gl-grid">{live.map(card)}<AddTile label={L('Novo grupo')} onClick={() => setAdding('new')} /></div>}
           {fin.length > 0 && <>
             <h2 className="gg-sec"><Ic d="M20 6 9 17l-5-5" size={16} />{L('Concluídos')}<small>{fin.length}</small></h2>
             <div className="gl-grid">{fin.map((g, i) => card(g, live.length + i))}</div>
           </>}
         </>;
       })()}
-      <button type="button" className="sh-btn in" onClick={() => setAdding('new')}><Ic d={ICON.plus} size={20} />{L('Novo grupo')}</button>
       {sheet}
       {intro && <SplitIntro onClose={() => setIntro(false)} />}
     </div>

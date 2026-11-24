@@ -1,4 +1,4 @@
-// Assistente FuturePal: lógica pura (testável). A IA só interpreta a pergunta ou lê a foto;
+// Assistente MyFuturePal: lógica pura (testável). A IA só interpreta a pergunta ou lê a foto;
 // os números são SEMPRE calculados aqui, com os dados do aparelho.
 import type { Transaction } from '../db/database';
 

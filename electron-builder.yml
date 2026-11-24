@@ -11,7 +11,7 @@ win:
   # O "publish" (para onde vão as versões novas) é passado pelo scripts/release.mjs a partir do release.config.json.
   target: nsis
   icon: build/icon.png
-  artifactName: FuturePal-Setup-${version}.${ext}
+  artifactName: MyFuturePal-Setup-${version}.${ext}
 # Onde as apps instaladas procuram versões novas: o repositório público das releases.
 # (Sem isto, o electron-builder usava o remote do git, que é privado, e as apps nunca viam as atualizações.)
 publish:
@@ -21,10 +21,13 @@ publish:
   releaseType: release
 # Liga futurepal:// à app (volta do login com Google/Facebook/Apple).
 protocols:
-  - name: FuturePal
+  - name: MyFuturePal
     schemes:
       - futurepal
 nsis:
+  # nome que se vê (atalhos, "Aplicações instaladas"); o productName fica igual para não mudar a pasta dos dados
+  shortcutName: MyFuturePal
+  uninstallDisplayName: MyFuturePal
   include: build/installer.nsh
   oneClick: true
   perMachine: false

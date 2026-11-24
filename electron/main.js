@@ -25,7 +25,7 @@ function createWindow() {
     width: 1280,
     height: 800,
     minWidth: 360,
-    title: 'FuturePal',
+    title: 'MyFuturePal',
     backgroundColor: '#0a0a0d',
     show: false, // só aparece já desenhada (sem piscar a branco)
     // Janela sem a barra do sistema nem o menu: a barra do título é escura e faz parte da app,
@@ -103,22 +103,38 @@ const plainText = (notes) => (typeof notes === 'string' ? notes : Array.isArray(
   .replace(/<[^>]+>/g, '').trim();
 
 ipcMain.on('wallet:update-supported', (event) => { event.returnValue = Boolean(getUpdater()); });
-ipcMain.handle('wallet:update-check', async () => {
+// Repositório de reserva (painel de admin): só se usa quando o normal falha. Formato "dono/repositório".
+let onFallback = false;
+const useFallback = (u, repo) => {
+  if (onFallback || typeof repo !== 'string' || !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo)) return false;
+  const [owner, name] = repo.split('/');
+  u.setFeedURL({ provider: 'github', owner, repo: name, releaseType: 'release' });
+  onFallback = true;
+  console.log('[updater] a usar o repositório de reserva', repo);
+  return true;
+};
+const checkOnce = async (u) => {
+  const r = await u.checkForUpdates();
+  if (!r || !r.updateInfo || r.isUpdateAvailable === false || r.updateInfo.version === app.getVersion()) return null;
+  return { version: r.updateInfo.version, notes: plainText(r.updateInfo.releaseNotes) };
+};
+ipcMain.handle('wallet:update-check', async (_e, fallback) => {
   const u = getUpdater();
   if (!u) return null;
-  try {
-    const r = await u.checkForUpdates();
-    if (!r || !r.updateInfo || r.isUpdateAvailable === false || r.updateInfo.version === app.getVersion()) return null;
-    return { version: r.updateInfo.version, notes: plainText(r.updateInfo.releaseNotes) };
-  } catch (err) {
+  try { return await checkOnce(u); } catch (err) {
     console.error('[updater] check', err && err.message);
-    return null;
+    if (!useFallback(u, fallback)) return null;
+    try { return await checkOnce(u); } catch (err2) { console.error('[updater] check (reserva)', err2 && err2.message); return null; }
   }
 });
-ipcMain.handle('wallet:update-download', async () => {
+ipcMain.handle('wallet:update-download', async (_e, fallback) => {
   const u = getUpdater();
   if (!u) return false;
-  try { await u.downloadUpdate(); return true; } catch (err) { console.error('[updater] download', err && err.message); return false; }
+  try { await u.downloadUpdate(); return true; } catch (err) {
+    console.error('[updater] download', err && err.message);
+    if (!useFallback(u, fallback)) return false;
+    try { await checkOnce(u); await u.downloadUpdate(); return true; } catch (err2) { console.error('[updater] download (reserva)', err2 && err2.message); return false; }
+  }
 });
 ipcMain.on('wallet:update-install', () => {
   const u = getUpdater();
@@ -166,10 +182,10 @@ function stopAuthServer() {
   if (authServerTimer) { clearTimeout(authServerTimer); authServerTimer = null; }
   if (authServer) { try { authServer.close(); } catch { /* já fechado */ } authServer = null; }
 }
-const AUTH_DONE_PAGE = '<!doctype html><html><head><meta charset="utf-8"><title>FuturePal</title>'
+const AUTH_DONE_PAGE = '<!doctype html><html><head><meta charset="utf-8"><title>MyFuturePal</title>'
   + '<style>body{font-family:system-ui,sans-serif;background:#0b0f14;color:#e6edf3;display:grid;place-items:center;height:100vh;margin:0;text-align:center}'
   + 'h1{font-size:22px;margin:0 0 8px}p{color:#9aa7b4;margin:0}</style></head><body><div><h1>Sessão iniciada ✓</h1>'
-  + '<p>Já podes fechar esta página e voltar ao FuturePal.</p><p style="margin-top:6px">Signed in — you can close this page and return to FuturePal.</p></div>'
+  + '<p>Já podes fechar esta página e voltar ao MyFuturePal.</p><p style="margin-top:6px">Signed in — you can close this page and return to MyFuturePal.</p></div>'
   + '<script>setTimeout(function(){window.close()},1500)</script></body></html>';
 function listenOn(port) {
   return new Promise((resolve) => {

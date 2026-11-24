@@ -1,3 +1,4 @@
+import { AddTile } from '../ui/EmptyState';
 import { markPeriodChange } from '../ui/rollGate';
 import { createPortal } from 'react-dom';
 import { appConfirm } from '../ui/confirm';
@@ -196,7 +197,7 @@ export const Salaries = () => {
           </div>
         )}
       </div>
-      <button type="button" className="sal-add floating" onClick={() => openTxForm({ type: 'income' })}><Ic d={ICON.plus} size={16} />{L('Adicionar salário ou extra')}</button>
+      <AddTile cls="sal-addtile" label={L('Adicionar salário ou extra')} onClick={() => openTxForm({ type: 'income' })} />
     </div>
   );
 };

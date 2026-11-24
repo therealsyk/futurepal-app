@@ -28,7 +28,7 @@ import { catLabel, CategorySelect, Field, Ic, ICON, PickMenu, Seg, Sheet, Toggle
 import { FormError, useMissing } from './missing';
 import { useIsMobile } from './useIsMobile';
 
-export interface TxFormOptions { type: 'expense' | 'income'; accountId?: string; groupId?: string; toAccount?: string; recurring?: boolean; currency?: string; language?: string; first?: boolean }
+export interface TxFormOptions { type: 'expense' | 'income'; accountId?: string; groupId?: string; toAccount?: string; description?: string; recurring?: boolean; currency?: string; language?: string; first?: boolean }
 interface FormData { accounts: Account[]; cats: Category[]; groups: Group[]; bals: Record<string, number> }
 
 const OPEN = 'wallet:tx-open', SAVED = 'wallet:tx-saved';
@@ -45,7 +45,7 @@ const q = (s: string) => JSON.stringify(s);
 /** Categoria "Rendimentos extras": criada na primeira vez que é precisa. */
 async function ensureExtras() {
   if ((await db.categories.toArray()).some((c) => c.deletedAt === null && c.name === 'extras')) return;
-  await db.categories.add(stampNew<Category>({ name: 'extras', color: '#34D399', icon: '', order: 99, nameKey: 'salaries.extras' }));
+  await db.categories.add(stampNew<Category>({ name: 'extras', color: '#34D399', icon: '', order: 99, nameKey: 'salaries.extras', group: 'income' }));
 }
 
 /** Já existe um rendimento com o mesmo valor a 3 dias ou menos? */
@@ -100,7 +100,7 @@ function TxForm({ o, d, onClose, onKind }: { o: TxFormOptions; d: FormData; onCl
   const [cats, setCats] = useState(d.cats);
   const [type, setType] = useState(o.type);
   const [amount, setAmount] = useState('');
-  const [description, setDescription] = useState('');
+  const [description, setDescription] = useState(o.description ?? '');
   const [date, setDate] = useState(todayISO());
   const [categoryId, setCategoryId] = useState(o.type === 'income' ? '' : d.cats[0]?.id ?? '');
   const [groupId, setGroupId] = useState(o.groupId ?? '');

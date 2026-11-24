@@ -16,7 +16,7 @@ import { fill } from '../ui/AccountPlan';
 import { appConfirm } from '../ui/confirm';
 import { CountMoney } from '../ui/CountMoney';
 import { DatePicker } from '../ui/DatePicker';
-import { EmptyState } from '../ui/EmptyState';
+import { AddTile, EmptyState } from '../ui/EmptyState';
 import { AmountField, CategoryRow, DateRow, FI, Row, SwitchRow, TextRow } from '../ui/formFields';
 import { CatIcon, catLabel, Ic, ICON, PickMenu } from '../ui/fx';
 import { GoalRing } from '../ui/GoalRing';
@@ -90,7 +90,7 @@ export function RecurringPage() {
   );
   return (
     <div className="fx-page mv sh rc-page">
-      <header className="mv-head"><h1 className="sh-title">{L('Recorrentes')}</h1></header>
+      <header className="mv-head gpz-head"><h1 className="sh-title">{L('Recorrentes')}</h1></header>
       <PeriodFilter value={per} onChange={setPer} />
       {all.length > 0 && <>
         <section className="mv-hero sh-hero gl-hero lm-sum rc-hero">
@@ -120,8 +120,8 @@ export function RecurringPage() {
         ))}</div>
       </section>}
       {hidden > 0 && <section className="mv-card rc-lock"><span className="gg-ic"><Ic d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z" size={28} /></span><div><b>{fill(L('Encontrámos {d} pagamentos que se repetem'), { d: String(hidden) })}</b><small>{L('Vê-los e adicioná-los com um toque faz parte do Plus.')}</small></div><Link to="/plus" className="gl-act main">{L('Ver planos')}</Link></section>}
-      {added.length > 0 && <section className="rc-sec">{found.length > 0 && <h2>{L('Os teus pagamentos')}</h2>}<div className="gl-grid">{added.map(card)}</div></section>}
-      {d && all.length === 0 && hidden === 0 && <EmptyState icon={REPEAT} title={L('Sem pagamentos recorrentes')} text={L('Adiciona os que pagas todos os meses. A app também os encontra nas tuas despesas.')} examples={['🎬 Netflix', '🎵 Spotify', '💡 ' + L('Luz'), '🏠 ' + L('Renda')]} />}
+      {all.length > 0 && <section className="rc-sec">{found.length > 0 && added.length > 0 && <h2>{L('Os teus pagamentos')}</h2>}<div className="gl-grid">{added.map(card)}<AddTile label={L('Novo recorrente')} onClick={() => openTxForm({ type: 'expense', recurring: true })} /></div></section>}
+      {d && all.length === 0 && hidden === 0 && <EmptyState icon={REPEAT} title={L('Sem pagamentos recorrentes')} text={L('Adiciona os que pagas todos os meses. A app também os encontra nas tuas despesas.')} examples={['🎬 Netflix', '🎵 Spotify', '💡 ' + L('Luz'), '🏠 ' + L('Renda')]} ask={L('Queres adicionar o primeiro pagamento que se repete?')} onAsk={() => openTxForm({ type: 'expense', recurring: true })} />}
       {all.length > 0 && <section className="mv-card gl-sec rc-save">
         <div className="rc-savehead"><div><h2>{L('Quanto podias poupar')}</h2><p className="gl-sub">{L('Toca no que podias deixar de pagar.')}</p></div><div className="rc-savenum"><b className="fx-pos"><CountMoney cents={per.mode === 'year' ? save * 12 : save} money={money} /></b><small>{per.mode === 'year' ? L('por ano') : L('por mês')}</small></div></div>
         {(() => { const tot = all.reduce((a, p) => a + p.monthlyCents, 0), n = all.filter(freed).length; return <div className="rc-savebar-w"><span className="rc-savebar" aria-hidden="true"><i style={{ width: `${tot > 0 ? Math.max(save > 0 ? 3 : 0, (save / tot) * 100) : 0}%` }} /></span><small>{fill(L('{n} de {t} escolhidos · {y} por ano'), { n: String(n), t: String(all.length), y: money(save * 12) })}</small></div>; })()}
@@ -132,7 +132,6 @@ export function RecurringPage() {
           <em>{sel.length}</em><Ic d="M9 6l6 6-6 6" size={16} />
         </button>; })()}
       </section>}
-      <button type="button" className="sh-pill" onClick={() => openTxForm({ type: 'expense', recurring: true })}><Ic d={ICON.plus} size={16} />{L('Novo recorrente')}</button>
       {rm && createPortal(<div className="spi-back rc-rmback" onMouseDown={(e) => { if (e.target === e.currentTarget && !rmBusy) setRm(false); }}>
         <section className="spi-card rc-rmcard" role="dialog" aria-modal="true" aria-label={L('Remover pagamentos recorrentes')}>
           <span className="rc-rmic"><Ic d={ICON.trash} size={26} /></span>

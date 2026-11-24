@@ -72,7 +72,8 @@ export function LimitsWidget({ money, y, m }: { money: (c: number) => string; y:
       <div className="pco-wlist">
         {rows.map(({ b, c, spent }, i) => {
           const r = b.limitCents > 0 ? spent / b.limitCents : 0, left = b.limitCents - spent, tn = toneOf(r);
-          return <WidgetRow key={b.id} i={i} to="/orcamentos" title={c ? catLabel(t, c) : '—'} sub={`${money(spent)} ${L('de')} ${money(b.limitCents)}`} value={<CountMoney cents={Math.abs(left)} money={money} />} tone={left < 0 ? 'fx-neg' : tn === 'warn' ? 'lm-warn' : 'fx-pos'}
+          return <WidgetRow key={b.id} i={i} to="/orcamentos" title={c ? catLabel(t, c) : '—'} sub={<small className={'wr-ofs' + (tn ? ' t-' + tn : '')}><b>{money(spent)}</b> {L('de')} <b>{money(b.limitCents)}</b></small>}
+            value={<span className="wr-cap"><small>{left < 0 ? L('Passaste') : L('Podes gastar')}</small><CountMoney cents={Math.abs(left)} money={money} /></span>} tone={left < 0 ? 'fx-neg' : tn === 'warn' ? 'lm-warn' : 'fx-pos'}
             pic={<GoalRing r={Math.min(1, r)} size={58} tone={tn}><CatIcon cat={c ?? {}} size={34} /></GoalRing>} />;
         })}
       </div>

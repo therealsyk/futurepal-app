@@ -1,4 +1,4 @@
-// Planos do FuturePal: Grátis, Plus e Pro. Cada plano tem tudo o do anterior, e mais.
+// Planos do MyFuturePal: Grátis, Plus e Pro. Cada plano tem tudo o do anterior, e mais.
 // (O antigo Família passou a fazer parte do Pro: quem o tinha fica com Pro.)
 // Ainda sem pagamentos ligados: o plano fica guardado neste aparelho e a pessoa pode ativar um
 // teste de 14 dias do Pro. Quando houver lojas/Paddle, só muda a origem do plano (ver activePlan).

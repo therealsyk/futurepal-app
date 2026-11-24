@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">FuturePal</string>
-    <string name="title_activity_main">FuturePal</string>
+    <string name="app_name">MyFuturePal</string>
+    <string name="title_activity_main">MyFuturePal</string>
     <string name="package_name">com.futurepal.app</string>
     <string name="custom_url_scheme">com.futurepal.app</string>
 </resources>

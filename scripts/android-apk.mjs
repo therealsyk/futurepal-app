@@ -1,4 +1,4 @@
-// Compila o APK assinado do Android e copia-o para release/android/FuturePal-<versão>.apk.
+// Compila o APK assinado do Android e copia-o para release/android/MyFuturePal-<versão>.apk.
 // Precisa: Android SDK (D:\Android SDK), Java 21 (C:\Users\rafae\tools\jdk21) e android/keystore.properties.
 // Uso: npm run android:apk
 import { execSync } from 'node:child_process';
@@ -21,6 +21,6 @@ const gradlew = join(root, 'android', process.platform === 'win32' ? 'gradlew.ba
 execSync(`"${gradlew}" assembleRelease --no-daemon -q`, { cwd: join(root, 'android'), stdio: 'inherit', env, shell: true });
 const out = join(root, 'release', 'android');
 mkdirSync(out, { recursive: true });
-const dest = join(out, `FuturePal-${version}.apk`);
+const dest = join(out, `MyFuturePal-${version}.apk`);
 copyFileSync(join(root, 'android', 'app', 'build', 'outputs', 'apk', 'release', 'app-release.apk'), dest);
 console.log(`\nAPK pronto: ${dest}`);

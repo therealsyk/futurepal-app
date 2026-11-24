@@ -1,3 +1,5 @@
+import { reservedByAccount } from '../core/goalReserve';
+import { openImport } from '../ui/ImportHost';
 // Início simplificado — só o essencial, para qualquer pessoa.
 //  1. Quanto ainda tenho este mês  2. Adicionar gasto / dinheiro recebido  3. A minha poupança  4. Últimos movimentos
 import type { CSSProperties } from 'react';
@@ -70,6 +72,7 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
   // Só contas com dinheiro (as dívidas, ex.: empréstimo da casa, ficam de fora para não assustar)
   const saved = data ? data.accounts.filter((a) => a.type !== 'debt').reduce((sum, a) => sum + accountBalanceCents(a, data.txs, data.accounts, salaryToDate, data.transfers), 0) : 0;
   const accRows = data ? [...data.accounts].sort((a, b) => Number(a.type === 'debt') - Number(b.type === 'debt') || a.order - b.order).map((a) => ({ a, bal: accountBalanceCents(a, data.txs, data.accounts, salaryToDate, data.transfers) })) : [];
+  const reserved = reservedByAccount(data?.goals ?? []); // dinheiro guardado em metas: fica na conta, mas não está disponível
   const fresh = isFresh(); // conta nova: só o essencial
   const rng = embed ? embed.range : ranged ? pr ?? undefined : undefined;
   const inRange = (data?.txs ?? []).filter((x) => !rng || (x.date >= rng.from && x.date <= rng.to));
@@ -120,18 +123,20 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
         <Link to="/transacoes?nova=1" className="sh-btn out"><Ic d="M5 12h14" size={22} />{L('Gastei')}</Link>
         <Link to="/transacoes?nova=1&tipo=income" className="sh-btn in"><Ic d="M12 5v14M5 12h14" size={22} />{L('Recebi')}</Link>
       </div>}
+      {mode === 'month' && !embed && <button type="button" className="imp-cta" data-tour="import" onClick={openImport}><span className="imp-cta-ic"><Ic d="M12 3v12M7 10l5 5 5-5M5 21h14" size={18} /></span><span className="imp-cta-tx"><b>{L('Importar extrato do banco')}</b><small>{L('Junta várias despesas de uma vez, sem escrever uma a uma')}</small></span><Ic d="M9 6l6 6-6 6" size={16} /></button>}
       {fresh && !embed && (data?.goals.length ?? 0) === 0 && <Link to="/metas" className="gl-act hm-goal"><Ic d="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8z" size={18} />{L('Criar meta')}</Link>}
 
       {/* 3. As contas da pessoa e quanto tem em cada uma */}
       {!embed && accRows.length > 0 && <section className="mv-card sh-accs" data-tour="accounts">
         <div className="mv-card-head"><h2>{L('As tuas contas')}</h2><Link to="/contas" className="mv-link">{L('Ver todas')}</Link></div>
-        {accRows.map(({ a, bal }) => (
-          <Link key={a.id} to="/contas" className={'sh-accrow t-' + a.type}>
+        <div className="sh-accscroll">{accRows.map(({ a, bal }, i) => (
+          <Link key={a.id} to="/contas" className={'sh-accrow t-' + a.type} style={{ '--i': i } as CSSProperties}>
             <span className="sh-accic"><Ic d={ACC_IC[a.type] ?? ICON.wallet} size={19} /></span>
             <span className="sh-tx-main"><b>{a.name}</b><small>{a.type === 'debt' ? L('Dívida') : a.type === 'savings' ? L('Poupança') : L('Gastos')}</small></span>
-            <b className={a.type === 'debt' || bal < 0 ? 'fx-neg' : ''}>{money(bal)}</b>
+            <b className={a.type === 'debt' || bal - (reserved.get(a.id) ?? 0) < 0 ? 'fx-neg' : 'fx-pos'}>{money(a.type === 'debt' ? bal : bal - (reserved.get(a.id) ?? 0))}</b>
+            {a.type !== 'debt' && (reserved.get(a.id) ?? 0) > 0 && <small className="sh-resv"><Ic d="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8z" size={11} />{fill(L('{m} em metas'), { m: money(reserved.get(a.id) ?? 0) })}</small>}
           </Link>
-        ))}
+        ))}</div>
         {accRows.filter((r) => r.a.type !== 'debt').length > 1 && <div className="sh-accrow sh-acctotal"><span className="sh-tx-main"><b>{L('Total')}</b></span><b className={saved < 0 ? 'fx-neg' : 'fx-pos'}>{money(saved)}</b></div>}
       </section>}
 
@@ -178,13 +183,13 @@ export function SimpleHome({ embed }: { embed?: { mode: 'month' | 'year'; y: num
       <section className="mv-card">
         <div className="mv-card-head">{embed && <span className="pco-mic"><Ic d="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8z" size={18} /></span>}<h2>{L('Metas')}</h2>{(data?.goals.length ?? 0) > 0 && <Link to="/metas" className="mv-link">{L('Ver todas')}</Link>}</div>
         {!embed && <div className="hm-goals">{(data?.goals ?? []).slice(0, 3).map((g, i) => {
-          const gc = g.accountIds?.length ? accRows.filter((x) => g.accountIds!.includes(x.a.id)).reduce((x, y) => x + goalValueCents(y.a, y.bal), 0) : g.currentCents;
+          const gc = g.accountIds?.length && accRows.some((x) => splitDesc(x.a.description).plan?.goalId === g.id) ? accRows.filter((x) => g.accountIds!.includes(x.a.id)).reduce((x, y) => x + goalValueCents(y.a, y.bal), 0) : g.currentCents;
           const r = g.targetCents > 0 ? Math.max(0, Math.min(1, gc / g.targetCents)) : 0;
           const eta = g.targetDate ? new Date(g.targetDate.slice(0, 10) + 'T12:00:00').toLocaleDateString(s.language, { month: 'long', year: 'numeric' }) : '';
           return <GoalCard key={g.id} g={g} i={i} money={money} onOpen={() => navigate('/metas')} info={{ cur: gc, r, eta, per: 0, done: r >= 1, when: null, long: '' }} />;
         })}</div>}
         <div className="sh-scroll wr-list">{embed && (data?.goals ?? []).slice(0, 20).map((g, i) => {
-          const gc = g.accountIds?.length ? accRows.filter((x) => g.accountIds!.includes(x.a.id)).reduce((x, y) => x + goalValueCents(y.a, y.bal), 0) : g.currentCents; // ligada a contas: o valor vem delas
+          const gc = g.accountIds?.length && accRows.some((x) => splitDesc(x.a.description).plan?.goalId === g.id) ? accRows.filter((x) => g.accountIds!.includes(x.a.id)).reduce((x, y) => x + goalValueCents(y.a, y.bal), 0) : g.currentCents; // ligada a contas: o valor vem delas
           const r = g.targetCents > 0 ? Math.max(0, Math.min(1, gc / g.targetCents)) : 0;
           return (
             <WidgetRow key={g.id} i={i} to="/metas" title={g.name} sub={`${money(gc)} ${L('de')} ${money(g.targetCents)}`} value={r >= 1 ? '🎉' : <CountMoney cents={Math.max(0, g.targetCents - gc)} money={money} />} when={r >= 1 ? undefined : goalWhen(g, gc)} pic={<GoalRing r={r} size={58} />} />

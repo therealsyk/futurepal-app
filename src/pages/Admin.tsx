@@ -1,3 +1,4 @@
+import { L } from '../i18n/phrases';
 import { AdminLive } from './AdminLive';
 import { AdminDashboard, AdminMoreMetrics } from './AdminDash';
 import { AdminCI, type CIPage } from './AdminCI';
@@ -51,6 +52,7 @@ export function AdminPage() {
   const [tab, setTab] = useState<AdminTab>('overview');
   const [v, setV] = useState({ platform: 'windows', version: '', min: '', notes: '', url: '' });
   const [saved, setSaved] = useState(false);
+  const [repo, setRepo] = useState(''), [repoMsg, setRepoMsg] = useState<{ ok: boolean; text: string } | null>(null); // repositório de reserva das atualizações
   const [subs, setSubs] = useState<SubRow[]>([]);
   const [subSearch, setSubSearch] = useState('');
   const [sub, setSub] = useState({ email: '', plan: 'plus', until: '' });
@@ -102,6 +104,7 @@ export function AdminPage() {
       if (changed) rows = ((await sb.from('app_versions').select('*').order('platform')).data ?? rows) as VersionRow[];
     }
     setVersions(rows);
+    sb.from('app_config').select('value').eq('key', 'update_repo').maybeSingle().then(({ data }) => setRepo(String((data as { value?: string } | null)?.value ?? '')), () => {});
   };
   useEffect(() => { if (isAdmin) load().catch((e) => setError(String(e))); }, [isAdmin]);
 
@@ -197,6 +200,19 @@ export function AdminPage() {
         </div>
         <Field label={t('admin.notes')}><input className="fx-input" value={v.notes} onChange={(e) => setV({ ...v, notes: e.target.value })} /></Field>
         <button type="button" className="fx-btn primary" onClick={publish}>{saved ? t('admin.published') : t('admin.publish')}</button>
+      </div>
+      <div className="fx-card ad-card ad-repo">
+        <h3>{L('Repositório de reserva das atualizações')}</h3>
+        <p className="fx-muted fx-small">{L('As apps procuram atualizações no repositório que vem no instalador. Só se isso falhar (repositório apagado, privado ou com outro nome) é que usam este. Formato: dono/repositório do GitHub.')}</p>
+        <Field label={L('Repositório (dono/nome)')}><input className="fx-input" value={repo} placeholder="therealsyk/futurepal" onChange={(e) => { setRepo(e.target.value); setRepoMsg(null); }} /></Field>
+        {repoMsg && <p className={repoMsg.ok ? 'fx-pos fx-small' : 'fx-error'}>{repoMsg.text}</p>}
+        <button type="button" className="fx-btn primary" onClick={async () => {
+          const v = repo.trim();
+          if (v && !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(v)) { setRepoMsg({ ok: false, text: L('Escreve no formato dono/repositório, por exemplo therealsyk/futurepal.') }); return; }
+          const sb = getSupabase(); if (!sb) return;
+          const { error: e } = await sb.rpc('admin_set_config', { p_key: 'update_repo', p_value: v });
+          setRepoMsg(e ? { ok: false, text: e.message.includes('admin_set_config') ? L('Corre primeiro o ficheiro supabase/update-source.sql no Supabase.') : e.message } : { ok: true, text: L('Guardado ✓') });
+        }}>{L('Guardar repositório')}</button>
       </div>
       </>)}
       {(['users', 'tickets', 'audit', 'security', 'team'] as AdminTab[]).includes(shown) && <AdminPhase1 tab={shown} />}

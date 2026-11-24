@@ -1,3 +1,5 @@
+import { tipsOff } from '../core/onboarding';
+import { showWelcome } from './WelcomeSplash';
 import { L } from '../i18n/phrases';
 import { useCallback, useEffect, useLayoutEffect, useState, type CSSProperties } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -14,9 +16,12 @@ const STEPS: Array<{ target?: string; title: string; text: string }> = [
   { title: 'Vamos dar uma volta rápida', text: 'Mostramos-te onde está cada coisa. Leva menos de um minuto.' },
   { target: 'month', title: 'O dinheiro deste mês', text: 'O número grande é o que ainda tens para gastar.' },
   { target: 'quick', title: 'Gastaste ou recebeste?', text: 'Toca em Gastei ou em Recebi, escreve o valor e já está.' },
+  { target: 'import', title: 'Importar extrato do banco', text: 'Tens muitas despesas? Importa o extrato do banco aqui e entram todas de uma vez. Também está em Definições › Dados.' },
   { target: 'accounts', title: 'As tuas contas', text: 'Aqui vês quanto tens em cada conta.' },
   { target: 'tx', title: 'Transações', text: 'A lista de tudo o que gastaste e recebeste.' },
   { target: 'limits', title: 'Limites', text: 'Escolhe quanto queres gastar no máximo em cada coisa, por exemplo no supermercado.' },
+  { target: 'bell', title: 'Avisos', text: 'No sino recebes avisos: pagamentos a chegar, limites, metas e o planeamento de cada mês novo.' },
+  { title: 'Planeia o próximo mês', text: 'Em Menu › Planeamento vês se o próximo mês fecha bem, o que pesa mais e o que podes fazer. Também podes simular uma compra antes de a fazer.' },
   { target: 'menu', title: 'Menu', text: 'As metas, o resumo, o calendário, os salários e tudo o resto estão aqui.' },
   { target: 'settings', title: 'Precisas de ajuda?', text: 'Nas Definições podes voltar a ver esta visita quando quiseres.' },
 ];
@@ -63,7 +68,7 @@ export function MobileTutorial({ enabled }: { enabled: boolean }) {
   }, [open, enabled, i, pathname, measure, step.target]);
 
   if (!open || !enabled) return null;
-  const close = () => { try { localStorage.setItem(TUTORIAL_KEY, '1'); } catch { /* sem storage */ } setOpen(false); window.scrollTo({ top: 0 }); };
+  const close = () => { try { localStorage.setItem(TUTORIAL_KEY, '1'); } catch { /* sem storage */ } setOpen(false); window.scrollTo({ top: 0 }); showWelcome(); };
   const last = i === STEPS.length - 1;
 
   // Balão por baixo do alvo se este estiver na metade de cima; senão por cima.
@@ -87,7 +92,7 @@ export function MobileTutorial({ enabled }: { enabled: boolean }) {
         <div className="tu-actions">
           <div className="tu-dots" aria-hidden="true">{STEPS.map((x, k) => <i key={x.title} className={k === i ? 'on' : ''} />)}</div>
           {i > 0 && <button type="button" className="tu-btn ghost" onClick={() => setI(i - 1)}>{t('tutorial.back')}</button>}
-          <button type="button" className="tu-btn" onClick={() => (last ? close() : setI(i + 1))} data-testid="tu-next">
+          <button type="button" className="tu-btn" onClick={() => { if (last) { tipsOff(); close(); } else setI(i + 1); }} data-testid="tu-next">
             {last ? t('tutorial.start') : t('tutorial.next')}
           </button>
         </div>

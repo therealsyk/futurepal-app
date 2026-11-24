@@ -82,7 +82,7 @@ export function AiSettings({ onSaved }: { onSaved?: (cfg: AiConfig) => void }) {
       {status && <p className={(status.ok ? 'ob-info' : 'ob-error') + ' lg-msg'} role="status" data-testid="ai-status">{status.text}</p>}
       <button type="button" className="tx-addbtn" onClick={save} disabled={!cfg.model || !cfg.baseUrl} data-testid="ai-save">{t('common.save')}</button>
       <div className="aix-more"><button type="button" className="on-skip" onClick={test} disabled={busy !== '' || !cfg.model}>{busy === 'test' ? '…' : t('ai.test')}</button>{cfg.apiKey && <button type="button" className="ctf-del" onClick={remove}>{t('ai.remove')}</button>}</div>
-      <small className="fbx-note">{t('ai.privacy')}</small>
+      <div className="pv-note"><span className="pv-ic"><Ic d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" size={15} /></span><span>{t('ai.privacy')}</span></div>
     </div>
   );
 }

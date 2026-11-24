@@ -17,7 +17,7 @@ function Face({ a }: { a: SavedAccount }) {
 }
 
 /** Ecrã "Quem está a usar?": as contas com sessão neste aparelho, em círculo com o nome por baixo. */
-export function AccountSwitcher({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function AccountSwitcher({ open, onClose, startAdding }: { open: boolean; onClose: () => void; startAdding?: boolean }) {
   const { t } = useTranslation();
   const auth = useAuth();
   const [list, setList] = useState<SavedAccount[]>(savedAccounts());
@@ -32,7 +32,7 @@ export function AccountSwitcher({ open, onClose }: { open: boolean; onClose: () 
     window.addEventListener(SAVED_EVENT, on);
     return () => window.removeEventListener(SAVED_EVENT, on);
   }, []);
-  useEffect(() => { if (open) { setList(savedAccounts()); setManage(false); setAdding(false); setError(''); } }, [open]);
+  useEffect(() => { if (open) { setList(savedAccounts()); setManage(false); setAdding(false); setError(''); if (startAdding) addAccount().catch(() => {}); } }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!open) return;
     const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };

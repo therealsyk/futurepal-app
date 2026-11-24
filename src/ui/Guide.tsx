@@ -1,3 +1,5 @@
+import { tipsOff } from '../core/onboarding';
+import { showWelcome } from './WelcomeSplash';
 // Depois do setup: guia passo a passo (conta, despesa e, se a pessoa quiser, o resto da app) e o lembrete para criar conta.
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -70,6 +72,7 @@ const EXPNAV = (): StepDef[] => [{ path: pc() ? '/' : undefined, sel: pc() ? '.p
 const MORE = (): StepDef[] => [
   nav('/transacoes', 'nav.transactions'),
   { path: '/transacoes', sel: '.txs-search, .fx-search', t: () => L('Transações'), d: I.list, text: () => L('Aqui vês e procuras todas as tuas transações.') },
+  { path: '/', sel: '.imp-cta, .imp-chip', t: () => L('Importar extrato'), d: 'M12 4v12M7 11l5 5 5-5M4 20h16', text: () => L('Tens muitas despesas? Importa o extrato do banco aqui no Início (ou nas Transações) e elas entram todas de uma vez.') },
   { path: '/definicoes?tab=data', sel: '[data-testid=import-row]', t: () => L('Importar'), d: 'M12 4v12M7 11l5 5 5-5M4 20h16', tap: true, text: () => L('Sem paciência para escrever tudo? Em Definições › Dados › Importar, escolhes o ficheiro do teu banco (CSV, Excel ou PDF) e a app junta as despesas sozinha.') },
 ];
 const REST = (): StepDef[] => [
@@ -85,6 +88,10 @@ const REST = (): StepDef[] => [
   { path: '/grupos', sel: '.fx-page > .sh-btn.in', t: () => L('Grupos'), d: I.grp, text: () => after(L('Grupos: junta as despesas de uma viagem ou jantar e divide-as com outras pessoas.')) },
 ];
 const REST2 = (): StepDef[] => [
+  nav('/planeamento', 'nav.planning'),
+  { path: '/planeamento', sel: '.pl3-health, .pl3-hero, .pl3-ne', t: () => L('Planeamento'), d: 'M3 17l6-6 4 4 8-8M14 7h7v7', text: () => after(L('Planeamento: vê se o próximo mês fecha bem, o que pesa mais e o que podes fazer para folgar.')) },
+  { path: '/planeamento', sel: '.pl3-sims', t: () => L('Compras simuladas'), d: 'M6 7h12l-1 13H7zM9 7a3 3 0 0 1 6 0', text: () => L('Queres comprar alguma coisa? Simula aqui e vê se cabe no mês antes de comprar.') },
+  { path: '/', sel: '.ab-bell, [data-tour=bell], .mv-bell', t: () => L('Avisos'), d: 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4', text: () => L('No sino recebes avisos: pagamentos a chegar, limites, metas e o planeamento de cada mês novo.') },
   nav('/subscricoes', 'nav.recurring'),
   { path: '/subscricoes', sel: '.fx-page > .sh-pill', t: () => L('Recorrentes'), d: I.rec, text: () => after(L('Recorrentes: vê o que se repete todos os meses e quanto podias poupar.')) },
   nav('/salarios', 'nav.salaries'),
@@ -173,7 +180,7 @@ export function Guide() {
   const [list, setList] = useState(false); // depois da despesa: mostrar onde estão as transações
   useEffect(() => { const on = () => setSt(guideStage()); window.addEventListener(GUIDE_EVENT, on); return () => window.removeEventListener(GUIDE_EVENT, on); }, []);
   useEffect(() => { document.documentElement.classList.toggle('guiding', st !== null); }, [st]); // os outros avisos esperam
-  const go = (s: Stage | null) => { track('tip_guide_' + (s ?? 'end').toLowerCase()); setGuide(s); };
+  const go = (s: Stage | null) => { track('tip_guide_' + (s ?? 'end').toLowerCase()); setGuide(s); if (s === null) showWelcome(); };
   const W = ICON.wallet, R = 'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6', S = 'M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z';
   // o que já foi feito no setup não se volta a pedir
   const [ok, setOk] = useState<Stage | null>(null);
@@ -200,7 +207,7 @@ export function Guide() {
   const leave = () => { navigate('/'); go(null); };
   if (st === 'more') return <Coach key="more" save="more" steps={REST} onEnd={(ok) => { if (!ok) { leave(); return; } put(AT + 'more', null); put(AT + 'more2', '0'); go('ask2'); }} />;
   if (st === 'ask2') return <Ask d={S} title={L('Já sabes o principal!')} text={L('Falta só: recorrentes, salários, categorias, calendário e assistente. Podes ver depois, em Ajuda.')} yes={L('Ver o resto')} no={L('Fica para mais tarde')} onNo={leave} onYes={() => go('more2')} />;
-  if (st === 'more2') return <Coach key="more2" save="more2" steps={REST2} onEnd={(ok) => { if (ok) put(AT + 'more2', null); leave(); }} />;
+  if (st === 'more2') return <Coach key="more2" save="more2" steps={REST2} onEnd={(ok) => { if (ok) { put(AT + 'more2', null); tipsOff(); } leave(); }} />;
   return null;
 }
 

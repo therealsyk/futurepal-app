@@ -82,7 +82,7 @@ export interface Goal extends BaseRecord {
   targetDate?: string | null;
   notes?: string;
   accountIds?: string[]; // contas que alimentam a meta (opcional)
-  contributions?: Array<{ date: string; cents: number }>; // cada vez que se junta dinheiro (para a previsão por padrões)
+  contributions?: Array<{ date: string; cents: number; accountId?: string; note?: string }>; // cada vez que se junta dinheiro (para a previsão por padrões)
   paused?: { at: string; until: string | null; reason: string } | null; // meta em pausa (até à data, ou sem data)
 }
 
@@ -192,7 +192,7 @@ export class WalletDB extends Dexie {
     this.version(3).stores({
       transfers: 'id, date, fromAccountId, toAccountId',
     });
-    // v4: garantias e marcas de transações profissionais (FuturePal Plus/Pro; ainda não sincronizadas).
+    // v4: garantias e marcas de transações profissionais (MyFuturePal Plus/Pro; ainda não sincronizadas).
     this.version(4).stores({
       warranties: 'id, purchaseDate',
       txTags: 'id',

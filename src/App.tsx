@@ -20,6 +20,8 @@ import { PcOverview } from './pages/PcOverview';
 import { AdminLogin, ADMIN_LOGIN_EVENT } from './pages/AdminPhase1';
 import { SplitInvitePopup } from './ui/SplitInvitePopup';
 import { TxFormHost } from './ui/TxForm';
+import { ImportHost } from './ui/ImportHost';
+import { WelcomeSplash } from './ui/WelcomeSplash';
 import { HelpPage, PageTip } from './ui/Tips';
 import { AccountNudge, Guide } from './ui/Guide';
 import { LoginWindow } from './ui/LoginWindow';
@@ -38,6 +40,7 @@ import SetupWizard, { ONBOARDED_FLAG } from './pages/SetupWizard';
 import { db, activateDatabaseFor, guestDataCount, moveGuestDataIntoCurrent, DB_CHANGED_EVENT, currentDbName, userDbName } from './db/app-db';
 import { Ic, ICON } from './ui/fx';
 import { ensureDefaultCategories, addMissingCatalogCategories } from './core/finance';
+import { adoptGoalCategory } from './core/goalCategory';
 import { loadSettings, setTheme, type AppSettings } from './core/settings';
 import { useAuth } from './auth/AuthContext';
 import { usePresence, useAnnouncement } from './core/presence';
@@ -97,6 +100,7 @@ export default function App() {
     (async () => {
       const r = await activateDatabaseFor(userId);
       await ensureDefaultCategories(db);
+      await adoptGoalCategory(db).catch(() => {}); // "Metas" antiga (categoria própria) passa para o catálogo
       await addMissingCatalogCategories(db);
       if (IS_DEMO) await seedDemo(db, t('accounts.mainName')).catch(() => {});
       const cur = loadSettings();
@@ -252,6 +256,8 @@ export default function App() {
       </main>
       <MobileNav />
       <TxFormHost key={'tx' + dbName} />
+      <ImportHost key={'im' + dbName} />
+      <WelcomeSplash />
       {!IS_DEMO && <LoginWindow />}
       {!IS_DEMO && <Guide />}
       {!IS_DEMO && <AccountNudge />}

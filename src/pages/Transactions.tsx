@@ -1,3 +1,7 @@
+import { AddTile } from '../ui/EmptyState';
+import type { Goal } from '../db/database';
+import { openImport } from '../ui/ImportHost';
+import { CountMoney } from '../ui/CountMoney';
 import { markPeriodChange } from '../ui/rollGate';
 import { CountText } from '../ui/CountText';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
@@ -22,6 +26,8 @@ import { L } from '../i18n/phrases';
 
 const COLORS = ['#8b7cf6', '#5fd4c4', '#e58fd3', '#f5b85a', '#60a5fa', '#4ade9b', '#f87171'];
 
+const fill = (x: string, v: Record<string, string>) => x.replace(/\{(\w+)\}/g, (_, k) => v[k] ?? '');
+
 export function Transactions() {
   const { t } = useTranslation();
   const settings = loadSettings();
@@ -45,6 +51,7 @@ export function Transactions() {
   const [cats, setCats] = useState<Category[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [transfers, setTransfers] = useState<Transfer[]>([]);
+  const [goalsL, setGoalsL] = useState<Goal[]>([]); // registos de dinheiro posto nas metas
   const [kind, setKind] = useState<'all' | 'expense' | 'income'>('all');
   const [filterCat, setFilterCat] = useState(() => new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('categoria') ?? ''); // ?categoria=<id>: vindo de uma sugestão do Planeamento
   const [filterText, setFilterText] = useState('');
@@ -54,6 +61,7 @@ export function Transactions() {
   const refresh = async () => {
     // tudo lido ao mesmo tempo (a página abre mais depressa)
     const [rows, cs, gs, trs] = await Promise.all([filterTransactions(db, { categoryId: filterCat || undefined, text: filterText }), activeCategories(db), listGroups(db), loadTransfers(db)]);
+    setGoalsL((await db.goals.toArray()).filter((x) => x.deletedAt === null && (x.contributions ?? []).length > 0));
     setTxs(onlyAcc ? rows : rows.filter((x) => x.date >= range.from && x.date <= range.to));
     setCats(cs); setGroups(gs); setTransfers(trs);
     setReady(true);
@@ -81,12 +89,13 @@ export function Transactions() {
   }, [transfers, range.from, range.to, active, kind, filterCat, filterText, accounts, onlyAcc]);
 
   const byDay = useMemo(() => {
-    const m = new Map<string, { txs: Transaction[]; trs: Transfer[] }>();
-    const get = (d: string) => m.get(d) ?? m.set(d, { txs: [], trs: [] }).get(d)!;
+    const m = new Map<string, { txs: Transaction[]; trs: Transfer[]; gls: Array<{ key: string; name: string; cents: number; acc?: string; note?: string }> }>();
+    const get = (d: string) => m.get(d) ?? m.set(d, { txs: [], trs: [], gls: [] }).get(d)!;
     for (const x of visible) get(x.date).txs.push(x);
     for (const tr of visibleTransfers) get(tr.date).trs.push(tr);
+    if (!onlyAcc && !filterCat && kind !== 'income' && !filterText.trim()) for (const g of goalsL) (g.contributions ?? []).forEach((c, i) => { if (c.date >= range.from && c.date <= range.to && (active === ALL_ACCOUNTS || (c.accountId ?? g.accountIds?.[0]) === active)) get(c.date).gls.push({ key: g.id + i, name: g.name, cents: c.cents, acc: c.accountId ?? g.accountIds?.[0], note: c.note }); });
     return [...m.entries()].sort((a, b) => b[0].localeCompare(a[0]));
-  }, [visible, visibleTransfers]);
+  }, [visible, visibleTransfers, goalsL, range.from, range.to, active, kind, onlyAcc, filterCat, filterText]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const removeTr = async (id: string) => { await removeTransfer(db, id); await refresh(); };
 
@@ -106,7 +115,7 @@ export function Transactions() {
   const [params, setParams] = useSearchParams();
   useEffect(() => {
     if (!params.get('nova')) return;
-    openTxForm({ type: params.get('tipo') === 'income' ? 'income' : 'expense', accountId: active !== ALL_ACCOUNTS ? active : undefined, groupId: params.get('grupo') ?? undefined, toAccount: params.get('para') ?? undefined });
+    openTxForm({ type: params.get('tipo') === 'income' ? 'income' : 'expense', accountId: active !== ALL_ACCOUNTS ? active : undefined, groupId: params.get('grupo') ?? undefined, toAccount: params.get('para') ?? undefined, description: params.get('desc') ?? undefined });
     setParams({}, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params]);
@@ -134,9 +143,9 @@ export function Transactions() {
       {simple && (
         <div className="txs-new mv sh">
           {/* Transações (telemóvel): só a lista completa, com filtros simples */}
-          <header className="mv-head"><h1 className="sh-title">{t('txs.title')}</h1></header>
-          <button type="button" className="sh-btn in txs-add" onClick={openNew}><Ic d={ICON.plus} size={18} />{t('txs.new')}</button>
+          <header className="mv-head gpz-head"><h1 className="sh-title">{t('txs.title')}</h1><span className="pg-acts"><button type="button" className="imp-chip txs-imp" onClick={openImport} title={L('Junta várias despesas de uma vez, sem escrever uma a uma')}><span className="imp-chip-ic"><Ic d="M12 3v12M7 10l5 5 5-5M5 21h14" size={15} /></span>{L('Importar extrato')}</button></span></header>
           <PeriodFilter value={per} onChange={setPer} />
+          <AddTile cls="txs-addtile" label={t('txs.new')} onClick={openNew} />
           {(() => {
             const kinds = [
               { id: 'all' as const, label: t('txs.all'), d: 'M4 7h13l-3-3M20 17H7l3 3', n: txsOfAccount(txs, active, accounts).length },
@@ -162,19 +171,28 @@ export function Transactions() {
             const fresh = prevCount ? Math.round(((n - prevCount) / prevCount) * 100) : null;
             if (fresh !== null) lastPct.current = fresh;
             const pctCmp = fresh ?? lastPct.current;
-            const days = period === 'year' ? (isCur ? Math.max(1, Math.round((nowD.getTime() - new Date(year, 0, 1).getTime()) / 864e5) + 1) : (year % 4 === 0 ? 366 : 365))
+            const today = nowD.toISOString().slice(0, 10), rTo = range.to < today ? range.to : today;
+            const days = period === 'range' ? Math.max(1, Math.round((new Date(rTo + 'T12:00:00').getTime() - new Date(range.from + 'T12:00:00').getTime()) / 864e5) + 1) : period === 'year' ? (isCur ? Math.max(1, Math.round((nowD.getTime() - new Date(year, 0, 1).getTime()) / 864e5) + 1) : (year % 4 === 0 ? 366 : 365))
               : (year === nowD.getFullYear() && month === nowD.getMonth() + 1 ? nowD.getDate() : new Date(year, month, 0).getDate());
             const perDay = n / Math.max(1, days);
             const prevLabel = period === 'year' ? String(year - 1) : new Date(year, month - 2, 1).toLocaleDateString(settings.language, { month: 'long' });
-            return (
+            const nExp = visible.filter((x) => x.type === 'expense').length, nInc = visible.filter((x) => x.type === 'income').length;
+            const fmtD = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString(settings.language, { day: 'numeric', month: 'short' });
+            return (<>
+              {period === 'range' && <div className={'txs-range' + (kind === 'all' ? ' two' : '')} key={'r' + kind + range.from + range.to}>
+                {kind !== 'income' && <div className="txs-rbox exp" style={{ ['--i' as string]: 0 }}><span className="txs-ric"><Ic d="M12 5v14M5 12l7 7 7-7" size={18} /></span><div><small><span className="txs-rl">{L('Gastaste em despesas')}</span><span className="txs-rs">{L('Gastaste')}</span></small><b><CountMoney cents={expense} money={money} /></b><em>{fill(L('{n} despesas · {a} a {b}'), { n: String(nExp), a: fmtD(range.from), b: fmtD(range.to) })}</em></div></div>}
+                {kind !== 'expense' && <div className="txs-rbox inc" style={{ ['--i' as string]: 1 }}><span className="txs-ric"><Ic d="M12 19V5M5 12l7-7 7 7" size={18} /></span><div><small><span className="txs-rl">{L('Recebeste em rendimentos')}</span><span className="txs-rs">{L('Recebeste')}</span></small><b><CountMoney cents={income} money={money} /></b><em>{fill(L('{n} rendimentos · {a} a {b}'), { n: String(nInc), a: fmtD(range.from), b: fmtD(range.to) })}</em></div></div>}
+                <div className="txs-rfoot">{kind === 'all' && <span className="txs-rbar" aria-hidden="true"><i style={{ width: `${expense + income > 0 ? (expense / (expense + income)) * 100 : 50}%` }} /></span>}
+                  <small>{kind === 'all' ? <>{L('Saldo do período')} <b className={income - expense >= 0 ? 'fx-pos' : 'fx-neg'}>{income - expense >= 0 ? '+' : '−'}{money(Math.abs(income - expense))}</b> · </> : null}{fmtD(range.from)} – {fmtD(range.to)}</small></div>
+              </div>}
               <div className="gx-tiles even txs-tiles three">
                 <div className="gx-tile txs-cnt"><span aria-hidden="true"><Ic d="M4 7h13l-3-3M20 17H7l3 3" size={20} /></span><div><small>{t('txs.count_' + period)}</small>
                   <span className="txs-v"><b><CountText text={String(n)} /></b>{<span style={{ opacity: pctCmp ? 1 : 0, transition: 'opacity .45s ease, background-color .45s ease, color .45s ease' }} className={'fx-chip ' + ((pctCmp ?? 0) > 0 ? 'warn' : (pctCmp ?? 0) < 0 ? 'good' : 'neutral')} title={`${t('pco.vs')} ${prevLabel}`}><CountText text={`${pctCmp ?? 0}%`} /> <small>{t('txs.vsShort_' + period)}</small></span>}</span></div></div>
                 {period === 'year' && <GTile d="M5 5h14v15H5zM5 10h14M8 3v4M16 3v4" label={L('Transações por mês (média)')} value={avg.toLocaleString(settings.language, { maximumFractionDigits: 1 })} />}
                 {period !== 'year' && <GTile d="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 7v5l3 2" label={L('Transações por dia (média)')} value={perDay.toLocaleString(settings.language, { maximumFractionDigits: 1 })} />}
-                <GTile d="M12 19V5M5 12l7-7 7 7" tone={top ? 'neg' : ''} label={t('txs.biggest') + (top ? ' · ' + (top.description || (topCat ? catLabel(t, topCat) : '')) : '')} value={top ? money(top.amountCents) : '—'} />
+                <div className={'gx-tile txs-top' + (top ? ' neg' : '')}><span aria-hidden="true"><Ic d="M12 19V5M5 12l7-7 7 7" size={20} /></span><div><small>{t('txs.biggest')}</small>{top && <em className="txs-topn">{top.description || (topCat ? catLabel(t, topCat) : '')}</em>}<b><CountMoney cents={top ? top.amountCents : 0} money={money} /></b></div></div>
               </div>
-            );
+            </>);
           })()}
           <section className="mv-card">
             <div className="mv-card-head"><h2>{t('txs.list')}</h2></div>
@@ -196,6 +214,13 @@ export function Transactions() {
                     {openRow === x.id && <div className="txs-actions"><button type="button" className="sh-danger" onClick={async () => { if (await appConfirm(L('Apagar este movimento?'))) { remove(x.id); setOpenRow(null); } }}>{L('Apagar')}</button></div>}
                   </div>
                 ); })}
+                {g.gls.map((x) => (
+                  <div key={x.key} className="sh-tx txs-goal">
+                    <span className="txs-tric goal"><Ic d="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zM12 13a1 1 0 1 1 0-2 1 1 0 0 1 0 2z" size={17} /></span>
+                    <span className="sh-tx-main"><b>{x.note || (x.cents >= 0 ? fill(L('Reservado para a meta {n}'), { n: x.name }) : fill(L('Tirado da meta {n}'), { n: x.name }))}</b><small>{L('Meta')} · {x.name}{x.acc ? ' · ' + nameOf(x.acc) : ''}</small></span>
+                    <b className="txs-goalv">{x.cents >= 0 ? '' : '−'}{money(Math.abs(x.cents))}</b>
+                  </div>
+                ))}
                 {g.trs.map((tr) => (
                   <div key={tr.id} className="sh-tx">
                     <span className="txs-tric"><Ic d="M4 7h13l-3-3M20 17H7l3 3" size={17} /></span>

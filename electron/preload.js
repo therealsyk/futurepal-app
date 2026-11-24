@@ -21,8 +21,8 @@ contextBridge.exposeInMainWorld('__electronBridge', {
   // Atualizações automáticas (ver main.js). supported=false no .exe portátil e em desenvolvimento.
   updates: {
     supported: ipcRenderer.sendSync('wallet:update-supported'),
-    check: () => ipcRenderer.invoke('wallet:update-check'),
-    download: () => ipcRenderer.invoke('wallet:update-download'),
+    check: (fallback) => ipcRenderer.invoke('wallet:update-check', fallback),
+    download: (fallback) => ipcRenderer.invoke('wallet:update-download', fallback),
     install: () => ipcRenderer.send('wallet:update-install'),
     onProgress: (cb) => {
       const h = (_e, percent) => cb(percent);

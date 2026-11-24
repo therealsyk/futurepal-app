@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getSupabase } from '../auth/supabase';
 import { registerPlugin, Capacitor } from '@capacitor/core';
-import { checkForUpdate, GITHUB_REPO, desktopUpdater, githubApk, dismiss, isDismissed, openExternal, type UpdateInfo } from '../core/updates';
+import { checkForUpdate, fallbackRepo, GITHUB_REPO, desktopUpdater, githubApk, dismiss, isDismissed, openExternal, type UpdateInfo } from '../core/updates';
 import { compareVersions } from '../core/version';
 
 // Aviso de atualização (banner) ou bloqueio (versão abaixo da mínima). Verifica ao abrir e de 6 em 6 horas.
@@ -16,12 +16,15 @@ const ApkUpdater = registerPlugin<{ downloadAndInstall: (o: { url: string }) => 
 type Phase = 'idle' | 'downloading' | 'installing' | 'ready' | 'error';
 
 /** Junta a tabela do Supabase com o atualizador nativo do Windows (GitHub Releases). */
+let lastReserve = ''; // repositório de reserva lido na última verificação
 export async function fullCheck(): Promise<UpdateInfo> {
   const info = await checkForUpdate(getSupabase());
   const du = desktopUpdater();
+  const reserve = await fallbackRepo(getSupabase());
+  lastReserve = reserve;
   if (info.platform === 'windows' && du?.supported) {
     try {
-      const native = await du.check();
+      const native = await du.check(reserve);
       if (native && compareVersions(native.version, info.current) > 0 && info.status !== 'required') {
         return { ...info, status: 'available', latest: native.version, notes: native.notes || info.notes };
       }
@@ -29,7 +32,7 @@ export async function fullCheck(): Promise<UpdateInfo> {
   }
   // Android: a versão nova é o APK da última release do GitHub (não precisa da tabela do Supabase).
   if (info.platform === 'android' && info.status !== 'required') {
-    const apk = await githubApk();
+    const apk = await githubApk(fetch, reserve);
     if (apk && compareVersions(apk.version, info.current) > 0) return { ...info, status: 'available', latest: apk.version, notes: apk.notes || info.notes, url: apk.url };
   }
   return info;
@@ -68,8 +71,8 @@ export function UpdateNotice() {
       setPhase('downloading'); setPercent(0);
       const off = du.onProgress((p) => setPercent(Math.round(p)));
       try {
-        const ok = await du.download();
-        if (!ok) { setPhase('error'); await openExternal(`https://github.com/${GITHUB_REPO}/releases/latest`); return; }
+        const ok = await du.download(lastReserve);
+        if (!ok) { setPhase('error'); await openExternal(info.url && /^https:\/\//.test(info.url) ? info.url : `https://github.com/${lastReserve || GITHUB_REPO}/releases/latest`); return; }
         // um só clique: descarregou, instala logo. Se a app não fechar (instalação bloqueada), volta o botão.
         setPhase('installing'); setPercent(100);
         setTimeout(() => du.install(), 600);

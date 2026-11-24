@@ -237,7 +237,7 @@ function TicketsPanel() {
               <div className="fx-inline ad-ticket-ctl">
                 <PickMenu label={L('Estado')} compact value={t.status} options={ST.map(([v, l]) => ({ value: v, label: L(l) }))} onChange={(v) => upd(t, { status: String(v) })} />
                 <PickMenu label={L('Prioridade')} compact value={t.priority} options={PR.map(([v, l]) => ({ value: v, label: L(l) }))} onChange={(v) => upd(t, { priority: String(v) })} />
-                {t.email && <a className="fx-btn" href={`mailto:${t.email}?subject=${encodeURIComponent('FuturePal — T-' + t.id.slice(0, 6).toUpperCase())}`}>{L('Responder por email')}</a>}
+                {t.email && <a className="fx-btn" href={`mailto:${t.email}?subject=${encodeURIComponent('MyFuturePal — T-' + t.id.slice(0, 6).toUpperCase())}`}>{L('Responder por email')}</a>}
               </div>
               <div className="fx-inline ad-ticket-ctl">
                 <input className="fx-input" value={notes[t.id] ?? t.admin_notes ?? ''} placeholder={L('Notas internas (não vão para o utilizador)')} onChange={(e) => setNotes({ ...notes, [t.id]: e.target.value })} />
@@ -302,7 +302,7 @@ function SecurityPanel() {
   };
   useEffect(() => { load().catch(() => {}); }, []);
   const start = async () => {
-    const { data, error } = await sb().auth.mfa.enroll({ factorType: 'totp', friendlyName: 'FuturePal Admin' });
+    const { data, error } = await sb().auth.mfa.enroll({ factorType: 'totp', friendlyName: 'MyFuturePal Admin' });
     if (error) { setMsg(error.message); return; }
     setEnroll({ id: data.id, qr: data.totp.qr_code, secret: data.totp.secret });
   };
@@ -430,7 +430,7 @@ export function AdminShell({ tab, onTab, onRefresh, role, children }: { tab: Adm
   return (
     <div className="adm">
       <aside className={'adm-side' + (open ? ' open' : '')}>
-        <div className="adm-brand"><span className="adm-logo">F</span><div><b>FuturePal</b><small>{L('Painel de administração')}</small></div></div>
+        <div className="adm-brand"><span className="adm-logo">F</span><div><b>MyFuturePal</b><small>{L('Painel de administração')}</small></div></div>
         <nav className="adm-nav">
           {nav.map((g) => (
             <div key={g.group} className="adm-group">
@@ -510,7 +510,7 @@ export function AdminLogin({ onDone, onCancel }: { onDone: () => void; onCancel?
     const f = (await sb().auth.mfa.listFactors()).data?.totp.find((x) => x.status === 'verified');
     if (f) { setFactor(f.id); setStep('code'); return; }
     // 2FA ainda não configurado nesta conta: obrigatório antes de entrar
-    const { data, error: e2 } = await sb().auth.mfa.enroll({ factorType: 'totp', friendlyName: 'FuturePal ' + u + ' ' + Date.now() });
+    const { data, error: e2 } = await sb().auth.mfa.enroll({ factorType: 'totp', friendlyName: 'MyFuturePal ' + u + ' ' + Date.now() });
     if (e2 || !data) { setErr(e2?.message ?? 'Erro'); return; }
     setFactor(data.id); setQr({ qr: data.totp.qr_code, secret: data.totp.secret }); setStep('enroll');
   };

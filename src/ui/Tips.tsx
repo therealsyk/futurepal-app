@@ -1,7 +1,7 @@
 // Dicas curtas na primeira visita a cada página (uma de cada vez, no topo, sem tapar nada) e o centro de ajuda.
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { db } from '../db/app-db';
+import { db, DB_CHANGED_EVENT } from '../db/app-db';
 import { closeTip, did, growFrom, resetTips, tipSeen, tipsOn, TIPS_EVENT } from '../core/onboarding';
 import { L } from '../i18n/phrases';
 import { Ic, ICON } from './fx';
@@ -50,6 +50,16 @@ export function PageTip() {
   useTxSaved(load);
   useEffect(() => { const on = () => { tick((n) => n + 1); load(); }; window.addEventListener(TIPS_EVENT, on); window.addEventListener('wallet:guide', on); return () => { window.removeEventListener(TIPS_EVENT, on); window.removeEventListener('wallet:guide', on); }; }, []);
   const tip = tipsOn() && !guiding() && s ? tips((p) => navigate(p))[pathname]?.find((x) => !tipSeen(x.id) && (!x.when || x.when(s))) : undefined;
+  // a dica que só explica (sem ação própria) sai sozinha quando a pessoa começa a usar a página
+  useEffect(() => {
+    if (!tip || tip.run) return;
+    const t0 = Date.now();
+    const on = (e: Event) => { if (Date.now() - t0 < 600) return; const el = e.target instanceof Element ? e.target : null; if (!el || el.closest('.tipb')) return; if (el.closest('.app-main, .fx-rail, .mb-tabbar, .mtb')) closeTip(tip.id, 'close'); };
+    document.addEventListener('pointerdown', on, true);
+    return () => document.removeEventListener('pointerdown', on, true);
+  }, [tip?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  // a dica com ação sai quando a pessoa já fez isso (por outro caminho): os dados mudam e a condição deixa de valer
+  useEffect(() => { const on = () => load(); window.addEventListener(DB_CHANGED_EVENT, on); return () => window.removeEventListener(DB_CHANGED_EVENT, on); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   if (!tip) return null;
   return (
     <aside key={tip.id} className="tipb" role="note">
